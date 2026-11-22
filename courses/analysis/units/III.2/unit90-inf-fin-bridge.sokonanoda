@@ -1,0 +1,98 @@
+-- 单元90 实数下确界与扩展下确界的相容
+--
+-- 88 把实数集合经 `fin` 搬进扩展实数，说明两套上确界是同一个点。下侧
+-- 还没有对应的桥：已知实数集合的下确界，能否直接把它搬进扩展实数？
+-- 反过来的问题同样要回答——扩展实数里的下确界若落在有限点上，它是不是
+-- 原来的实数下确界？
+--
+-- 与 88 一样，把 `A` 的每个元素换成 `fin a`，得到 `finImage A`。非空
+-- 前提仍然要带上，但挡住的方向换了：上确界那边，空集的扩展上确界是
+-- `negInf`，搬不过去；下确界这边，空集的扩展下确界是 `posInf`，它不是
+-- 任何有限点的下界。有限点上两套下确界一一对应，空集是唯一的例外。
+--
+-- 这条桥在 liminf 里要用：先在实数层算下界，再搬进扩展实数做大小比较。
+
+import lib.Order
+import lib.ExtReal
+import lib.ExtRealOrder
+import lib.Sup
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.0 把实数集合搬进扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+def finImage (A : Real → Prop) : ExtReal → Prop :=
+  fun (e : ExtReal) => ∃ (a : Real), A a ∧ e = fin a
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.1 成员资格
+-- ─────────────────────────────────────────────────────────────
+
+-- 88.1 证过同样的成员资格。这里把它作为已知事实给出，证明只有一行：
+-- 见证取 `a`，第二个分量是 `fin a = fin a`。
+theorem finImage_mem (A : Real → Prop) (a : Real) (ha : A a) :
+    finImage A (fin a) :=
+  Exists.intro a (And.intro ha (@Eq.refl.{1} ExtReal (fin a)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.2 下界随集合一起搬过去
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开 `∃` 取 `a` 与 `e = fin a`；把等式翻向后用 `Eq.subst` 把 `ele (fin m) (fin a)` 搬成 `ele (fin m) e`；前者由 `ele_fin_fin` 从 `realLe m a` 得到。
+-- soko:hint 目标形态：`LowerBound ExtReal ele (finImage A) (fin m)`。
+-- soko:hint 关键件：Exists.elim · Eq.subst · Eq.symm · ele_fin_fin · Iff.mpr。
+theorem finImage_lowerBound (A : Real → Prop) (m : Real)
+    (hm : LowerBound Real realLe A m) :
+    LowerBound ExtReal ele (finImage A) (fin m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.3 实数下确界搬到扩展实数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界分量交给 90.2。最大性对候选下界 `M` 分三种：`negInf` 直接由 `negInf_le`；`fin t` 用实数下确界的最大性；`posInf` 与 90.1 的非空见证撞上 `not_ele_posInf_fin`。
+-- soko:hint 目标形态：`IsInf ExtReal ele (finImage A) (fin s)`。
+-- soko:hint 关键件：ExtReal.rec · finImage_lowerBound · isInf_greatest · ele_fin_fin · not_ele_posInf_fin。
+theorem ext_inf_fin_of_inf (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a)
+    (hs : IsInf Real realLe A s) :
+    IsInf ExtReal ele (finImage A) (fin s) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.4 扩展下确界若落在有限点上，它就是实数下确界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界：把 `isInf_lower` 作用在 `fin a` 上，成员资格由 90.1 给，再用 `ele_fin_fin` 展开。最大性：实数下界 `M` 经 90.2 变成扩展下界 `fin M`，用 `isInf_greatest` 得 `fin M ≤ fin s`，再展开。
+-- soko:hint 目标形态：`IsInf Real realLe A s`。
+-- soko:hint 关键件：isInf_lower · isInf_greatest · ele_fin_fin · finImage_lowerBound。
+theorem real_inf_of_ext_inf (A : Real → Prop) (s : Real)
+    (hs : IsInf ExtReal ele (finImage A) (fin s)) :
+    IsInf Real realLe A s :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.5 两套下确界等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Iff.intro` 两支分别交给 90.3 与 90.4；非空前提只在前者用到。
+-- soko:hint 目标形态：`IsInf Real realLe A s ↔ IsInf ExtReal ele (finImage A) (fin s)`。
+-- soko:hint 关键件：Iff.intro · ext_inf_fin_of_inf · real_inf_of_ext_inf。
+theorem ext_inf_fin_iff (A : Real → Prop) (s : Real)
+    (hne : ∃ (a : Real), A a) :
+    IsInf Real realLe A s ↔ IsInf ExtReal ele (finImage A) (fin s) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 90.6 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先给单点集的实数下确界。下界把 `a = mk zero` 代进目标，用 `realLe_refl_mk`；最大性把任取下界作用在 `mk zero` 与 `Eq.refl` 上。非空见证取那个点本身。
+-- soko:hint 目标形态：`IsInf ExtReal ele (finImage (fun a => a = Real.mk zeroSeq)) (fin (Real.mk zeroSeq))`。
+-- soko:hint 关键件：ext_inf_fin_of_inf · realLe_refl_mk · Eq.subst · cauchy_zero。
+theorem demo_ext_inf_fin_zero :
+    IsInf ExtReal ele (finImage (fun (a : Real) => a = Real.mk zeroSeq))
+      (fin (Real.mk zeroSeq)) :=
+  sorry

@@ -1,0 +1,196 @@
+-- 单元67 实数的序：自反、传递、反对称（解答）
+--
+-- 单元66 已经把代表元层的序下降到实数上：
+--
+--   realLe (Real.mk x) (Real.mk y)  ↔  realLeRep x y
+--
+-- 其中 `realLeRep x y` 仍带两个 `Cauchy` 守卫。本单元把 `realLe` 收成
+-- **偏序**，三条公理各有各的难点：
+--
+--   · **自反**只在「有 Cauchy 代表元」的实数上成立：`Real` 是商，商里的
+--     非 Cauchy「杂点」让 `realLe` 没有输出。所以自反写成代表元形式
+--     `realLe (mk x) (mk x)`，假设 `Cauchy x`——不把「每个 Real 都是
+--     Cauchy 类」写成公理。
+--   · **传递**对任意三个实数成立：两个前提本身就是 `realLe`，经 66 的
+--     ι 规则回到代表元层后，`Cauchy` 守卫已经由前提付清；接力棒交给
+--     65.2 的 `realLeRep_trans`。
+--   · **反对称**是真正的数学内容：`x ≤ y` 与 `y ≤ x` 只给出
+--       `x n - y n ≤ eps` 与 `y n - x n ≤ eps`，
+--     要得到 `realRel x y` 的第三分量（`close`），必须把两个界折半，
+--     再用绝对值的两分支把 `|x n - y n|` 夹到 `eps` 以下。折半之后
+--     还需要 `eps/2 < eps` 这条**严格**不等式（52 只给了 `0 < eps/2`），
+--     本单元用加法消去补上（67.0）。
+--
+--   · 67.0 `ratHalf_lt_self` —— `0 < eps ⇒ eps/2 < eps`；
+--   · 67.1 `ratAbsRel_lt_of_bounds` —— 两侧界 `< eps` ⇒ 绝对值 `< eps`；
+--   · 67.2 `realLe_refl_mk` —— 代表元层的自反；
+--   · 67.3 `realLe_trans` —— 传递；
+--   · 67.4 `realLe_antisymm_mk` —— 代表元层的反对称（给出 `realRel`）；
+--   · 67.5 `realLe_antisymm` —— 商上的反对称；
+--   · 67.6 常零序列上的具体例。
+--
+-- 全程只用已判卷的库引理（64/65 的序、52/53 的半数、56 的加法消去），
+-- 不新增信任，也不碰 kernel/front。
+
+import lib.RealOrderLift
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.0 半数严格小于自身
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratHalf_lt_self (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep (ratHalf eps) eps :=
+  And.intro
+    (ratLeRep_congr_gen
+      (ratAddRep ratZeroRep (ratHalf eps)) (ratHalf eps)
+      (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+      (ratAdd_zero_left (ratHalf eps))
+      (ratHalf_add_self eps)
+      (ratLeRep_add_right ratZeroRep (ratHalf eps) (ratHalf eps)
+        (ratLeRep_half_of_lt eps h)))
+    (fun (heq : ratRel (ratHalf eps) eps) =>
+      (ratLtRep_right ratZeroRep (ratHalf eps) (ratLtRep_half eps h))
+        (ratRel_add_cancel_gen ratZeroRep (ratHalf eps) eps
+          (ratRel_trans_gen
+            (ratAddRep ratZeroRep eps)
+            (ratAddRep (ratHalf eps) (ratHalf eps))
+            (ratAddRep (ratHalf eps) eps)
+            (ratRel_trans_gen
+              (ratAddRep ratZeroRep eps) eps
+              (ratAddRep (ratHalf eps) (ratHalf eps))
+              (ratAdd_zero_left eps)
+              (ratRel_symm
+                (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+                (ratHalf_add_self eps)))
+            (ratRel_trans_gen
+              (ratAddRep (ratHalf eps) (ratHalf eps))
+              (ratAddRep eps (ratHalf eps))
+              (ratAddRep (ratHalf eps) eps)
+              (ratAddRep_wd_gen (ratHalf eps) eps (ratHalf eps) heq)
+              (ratAdd_comm eps (ratHalf eps))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.1 两侧界给出绝对值严格小于
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratAbsRel` 是定义别名；`Or.elim` 的三个显式命题必须写全，
+-- 否则推断停在 `ratAbsRel z d` 上，不会展开成析取。
+theorem ratAbsRel_lt_of_bounds (z d b eps : ratRep)
+    (hd : ratAbsRel z d)
+    (h1 : ratLeRep z b) (h2 : ratLeRep (ratNegRep z) b)
+    (hb : ratLtRep b eps) : ratLtRep d eps :=
+  @Or.elim
+    (ratLeRep ratZeroRep z ∧ ratRel d z)
+    (ratLeRep z ratZeroRep ∧ ratRel d (ratNegRep z))
+    (ratLtRep d eps)
+    (fun (hl : ratLeRep ratZeroRep z ∧ ratRel d z) =>
+      ratLtRep_of_le_lt d b eps
+        (ratLeRep_trans d z b
+          (ratLeRep_of_ratRel d z (And.right hl)) h1) hb)
+    (fun (hr : ratLeRep z ratZeroRep ∧ ratRel d (ratNegRep z)) =>
+      ratLtRep_of_le_lt d b eps
+        (ratLeRep_trans d (ratNegRep z) b
+          (ratLeRep_of_ratRel d (ratNegRep z) (And.right hr)) h2) hb)
+    hd
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.2 自反（代表元层）
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLe_refl_mk (x : Seq) (hx : Cauchy x) :
+    realLe (Real.mk x) (Real.mk x) :=
+  Iff.mpr (realLe_mk x x) (realLeRep_refl x hx)
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.3 传递
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLe_trans (a b c : Real)
+    (h1 : realLe a b) (h2 : realLe b c) : realLe a c :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) => realLe a b → realLe b c → realLe a c)
+    (fun (x : Seq) =>
+      @Quot.ind.{1} Seq realRel
+        (fun (b : Real) => realLe (Real.mk x) b → realLe b c → realLe (Real.mk x) c)
+        (fun (y : Seq) =>
+          @Quot.ind.{1} Seq realRel
+            (fun (c : Real) => realLe (Real.mk x) (Real.mk y) → realLe (Real.mk y) c → realLe (Real.mk x) c)
+            (fun (z : Seq) (hxy : realLe (Real.mk x) (Real.mk y))
+                           (hyz : realLe (Real.mk y) (Real.mk z)) =>
+              Iff.mpr (realLe_mk x z)
+                (realLeRep_trans x y z
+                  (Iff.mp (realLe_mk x y) hxy)
+                  (Iff.mp (realLe_mk y z) hyz)))
+            c)
+        b)
+    a h1 h2
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.4 反对称（代表元层）
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLe_antisymm_mk (x y : Seq)
+    (h1 : realLeRep x y) (h2 : realLeRep y x) : realRel x y :=
+  And.intro (And.left h1)
+    (And.intro (And.left h2)
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim
+          (realLeRep_close x y h1 (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N1 : Nat)
+              (hN1 : ∀ (n : Nat), LeNat N1 n →
+                ratLeRep (ratSubRep (x n) (y n)) (ratHalf eps)) =>
+            Exists.elim
+              (realLeRep_close y x h2 (ratHalf eps) (ratLtRep_half eps heps))
+              (fun (N2 : Nat)
+                  (hN2 : ∀ (n : Nat), LeNat N2 n →
+                    ratLeRep (ratSubRep (y n) (x n)) (ratHalf eps)) =>
+                Exists.elim (leNat_max N1 N2)
+                  (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                    Exists.intro N
+                      (fun (n : Nat) (hn : LeNat N n) =>
+                        Exists.elim
+                          (ratAbsRel_total (ratSubRep (x n) (y n)))
+                          (fun (d : ratRep) (hd : ratAbsRel (ratSubRep (x n) (y n)) d) =>
+                            Exists.intro d
+                              (And.intro hd
+                                (ratAbsRel_lt_of_bounds
+                                  (ratSubRep (x n) (y n)) d (ratHalf eps) eps hd
+                                  (hN1 n (leNat_trans N1 N n (And.left hN) hn))
+                                  (ratLeRep_congr_gen
+                                    (ratSubRep (y n) (x n))
+                                    (ratNegRep (ratSubRep (x n) (y n)))
+                                    (ratHalf eps) (ratHalf eps)
+                                    (ratSubRep_neg (x n) (y n))
+                                    (ratRel_refl (ratHalf eps))
+                                    (hN2 n (leNat_trans N2 N n (And.right hN) hn)))
+                                  (ratHalf_lt_self eps heps))))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.5 反对称（商上）
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLe_antisymm (a b : Real)
+    (h1 : realLe a b) (h2 : realLe b a) : a = b :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) => realLe a b → realLe b a → a = b)
+    (fun (x : Seq) =>
+      @Quot.ind.{1} Seq realRel
+        (fun (b : Real) => realLe (Real.mk x) b → realLe b (Real.mk x) → Real.mk x = b)
+        (fun (y : Seq) (hxy : realLe (Real.mk x) (Real.mk y))
+                       (hyx : realLe (Real.mk y) (Real.mk x)) =>
+          Real.sound x y
+            (realLe_antisymm_mk x y
+              (Iff.mp (realLe_mk x y) hxy)
+              (Iff.mp (realLe_mk y x) hyx)))
+        b)
+    a h1 h2
+
+-- ─────────────────────────────────────────────────────────────
+-- 67.6 具体：常零序列的序是自反的
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_realLe_self : realLe (Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  realLe_refl_mk zeroSeq cauchy_zero

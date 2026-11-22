@@ -1,0 +1,118 @@
+-- 单元52 ε 折半：半数的存在与加倍
+--
+-- `close` 的传递性要把两个 `ε/2` 的界加起来，所以先要有「半数」：
+-- 对任意有理数 `x`，构造 `x/2` 的一个代表元，并证明 `x/2 + x/2 ~ x`。
+--
+-- 代表元层不需要除法：`(a-b)/(m+1)` 的一半就是 `(a-b)/(2m+2)`，
+-- 也就是把分母字段从 `m` 换成 `2m+1`（真正的分母 `2m+2 = 2(m+1)`）。
+-- 于是
+--
+--   `ratHalf (qrep a b m) := qrep a b (2m+1)`，
+--
+-- 分子序对根本不用动。52.1 先补一条定义性等式：`2m+2 = (m+1)+(m+1)`
+-- （注意 `Nat.add` 对**第二个**参数递归，所以这条不是 `Eq.refl`，
+-- 要走 `succ_add` 与 `add_succ`）。52.2–52.3 是纯 ℕ 算术：
+--
+--   `D·(m+1) + D·(m+1) = D·D`（`D = 2m+2`），
+--   `(x·D + x·D)·(m+1) = x·(D·D)`。
+--
+-- 52.4 把这两条装成 `ratRel (x/2 + x/2) x`：两边用 `mulRep_den_form`
+-- 化成序对，交叉相乘后正是 52.3；52.5 用 `_aux` 把字面三元组搬到任意
+-- 代表元（`ratRep` 是定义别名，`match` 只认展开类型）。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：半数
+-- ─────────────────────────────────────────────────────────────
+
+-- 半数在分母字段上的写法：`(a-b)/(m+1)` 的一半是 `(a-b)/(2m+2)`，
+-- 所以新分母字段是 `2m+1`。
+
+def halfDen (m : Nat) : Nat := Nat.succ (Nat.add m m)
+
+-- 两倍的分母字段：`2m+2 = succ (2m+1)`，也正是 `(m+1)+(m+1)`。
+
+def twoDen (m : Nat) : Nat := Nat.succ (halfDen m)
+
+def ratHalf (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (numOf x) (halfDen (denOf x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.1 两倍的分母就是 `(m+1)+(m+1)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Nat.add` 对第二个参数递归，所以 `(m+1)+(m+1)` 要用 `succ_add` 提出一个 `succ`，再把 `m+(m+1)` 用 `add_succ` 收成 `succ (m+m)`；最后取对称（目标写的是 `twoDen` 在左边）。
+-- soko:hint 目标形态：`twoDen m = (m+1)+(m+1)`。
+-- soko:hint 关键件：succ_add · add_succ · congrArg · Eq.symm。
+theorem half_den_two (m : Nat) :
+    twoDen m = Nat.add (Nat.succ m) (Nat.succ m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.2 两倍分母乘一个正分母：`D·(m+1) + D·(m+1) = D·D`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`D = (m+1)+(m+1)`（52.1），所以 `D·D = D·((m+1)+(m+1))`；用 `mul_add` 把右边拆开，正好是 `D·(m+1) + D·(m+1)`。链是：`mul_add`（取对称）→ 在 `D·_` 下改写 52.1（取对称）→ 取对称把方向对上。
+-- soko:hint 目标形态：`D*(m+1) + D*(m+1) = D*D`。
+-- soko:hint 关键件：mul_add · congrArg · half_den_two（取对称）· Eq.symm · Eq.trans。
+theorem den_two_mul (m : Nat) :
+    Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)) =
+    myMul (twoDen m) (twoDen m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.3 分子乘开：`(x·D + x·D)·(m+1) = x·(D·D)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：四步链。① `mul_add_right` 把 `(x·D + x·D)·(m+1)` 拆成两个 `(x·D)·(m+1)`；② `myMul_assoc`（取对称）把两个都换成 `x·(D·(m+1))`，用 `congrArg (fun z => z + z)` 一次改两个；③ `mul_add`（取对称）把两个 `x·…` 收回 `x·(D·(m+1) + D·(m+1))`；④ 在 `x·_` 下用 52.2。
+-- soko:hint 目标形态：`(x*D + x*D)*(m+1) = x*(D*D)`。
+-- soko:hint 关键件：mul_add_right · myMul_assoc（取对称）· congrArg · mul_add（取对称）· den_two_mul · Eq.trans。
+theorem half_num_mul (x m : Nat) :
+    myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m) =
+    myMul x (myMul (twoDen m) (twoDen m)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.4 字面三元组上的加倍：`x/2 + x/2 ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边各用 `mulRep_den_form` 化成序对，目标变成序对相等。左坐标与右坐标分别是 52.3（两次：`x = a`、`x = b`）；另一边还要把 `succ (ratDenRep M M)` 用 `ratDenRep_succ` 换成 `D·D`（在 `a·_`、`b·_` 下各改写一次）。
+-- soko:hint 目标形态：`ratRel (ratHalf (qrep a b m) + ratHalf (qrep a b m)) (qrep a b m)`。
+-- soko:hint 关键件：intRel_of_eq · mulRep_den_form（两次）· prod_mk_congr · half_num_mul（两次）· ratDenRep_succ（两次）· congrArg · Eq.symm · Eq.trans。
+theorem ratHalf_add_self_mk (a b m : Nat) :
+    ratRel (ratAddRep (ratHalf (qrep a b m)) (ratHalf (qrep a b m))) (qrep a b m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.5 任意代表元上的加倍
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，`match` 只认展开类型；先在展开类型上把三元组拆开，转发给 52.4。
+-- soko:hint 目标形态：`ratRel (x/2 + x/2) x`。
+-- soko:hint 关键件：match（三层 `prod_mk`）· ratHalf_add_self_mk。
+theorem ratHalf_add_self_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  sorry
+
+theorem ratHalf_add_self (x : ratRep) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.6 具体：`1/2 + 1/2 ~ 1`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 52.5 用在一个具体的 `1`（`qrep 1 0 0`）上。
+-- soko:hint 目标形态：`ratRel (1/2 + 1/2) 1`。
+-- soko:hint 关键件：ratHalf_add_self。
+theorem demo_half_one :
+    ratRel
+      (ratAddRep (ratHalf (qrep 1 Nat.zero Nat.zero))
+                 (ratHalf (qrep 1 Nat.zero Nat.zero)))
+      (qrep 1 Nat.zero Nat.zero) :=
+  sorry

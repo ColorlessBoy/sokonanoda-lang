@@ -1,0 +1,73 @@
+-- 课程库：实数的序的传递性（单元65 的引擎）
+--
+-- 单元65 在画布上把代表元层的序补成传递关系并判卷；这里按
+-- 「引擎进库」惯例收进 L2，单元66 的良定义性直接引用：
+--
+--   · `ratLeRep_sub_add` —— 两个 eps 的减法界相加：
+--       `(x-y) ≤ eps → (y-z) ≤ eps → (x-z) ≤ eps+eps`；
+--   · `realLeRep_trans` —— 序的传递性 `x ≤ y → y ≤ z → x ≤ z`；
+--   · `demo_realLe_trans` —— 常零序列上的具体例。
+--
+-- 证明只用 56 的 `ratSubRep_add`、52 的 `ratHalf_add_self`、51 的
+-- `ratLtRep_half` 与 58 的 `leNat_max`，不碰商、不加公理。
+
+import lib.RealOrder
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.1 代表元层：两个 eps 的减法界相加
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLeRep_sub_add (x y z eps : ratRep)
+    (h1 : ratLeRep (ratSubRep x y) eps)
+    (h2 : ratLeRep (ratSubRep y z) eps) :
+    ratLeRep (ratSubRep x z) (ratAddRep eps eps) :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep x y) (ratSubRep y z))
+    (ratSubRep x z)
+    (ratAddRep eps eps) (ratAddRep eps eps)
+    (ratSubRep_add x y z)
+    (ratRel_refl (ratAddRep eps eps))
+    (ratLeRep_add (ratSubRep x y) eps (ratSubRep y z) eps h1 h2)
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.2 序的传递性
+-- ─────────────────────────────────────────────────────────────
+
+theorem realLeRep_trans (x y z : Seq)
+    (h1 : realLeRep x y) (h2 : realLeRep y z) : realLeRep x z :=
+  And.intro (And.left h1)
+    (And.intro (And.left (And.right h2))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim
+          (realLeRep_close x y h1 (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N1 : Nat)
+              (hN1 : ∀ (n : Nat), LeNat N1 n →
+                ratLeRep (ratSubRep (x n) (y n)) (ratHalf eps)) =>
+            Exists.elim
+              (realLeRep_close y z h2 (ratHalf eps) (ratLtRep_half eps heps))
+              (fun (N2 : Nat)
+                  (hN2 : ∀ (n : Nat), LeNat N2 n →
+                    ratLeRep (ratSubRep (y n) (z n)) (ratHalf eps)) =>
+                Exists.elim (leNat_max N1 N2)
+                  (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                    Exists.intro N
+                      (fun (n : Nat) (hn : LeNat N n) =>
+                        ratLeRep_congr_gen
+                          (ratSubRep (x n) (z n))
+                          (ratSubRep (x n) (z n))
+                          (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+                          (ratRel_refl (ratSubRep (x n) (z n)))
+                          (ratHalf_add_self eps)
+                          (ratLeRep_sub_add (x n) (y n) (z n) (ratHalf eps)
+                            (hN1 n (leNat_trans N1 N n (And.left hN) hn))
+                            (hN2 n (leNat_trans N2 N n (And.right hN) hn)))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.3 具体：常零序列上的传递
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_realLe_trans : realLeRep zeroSeq zeroSeq :=
+  realLeRep_trans zeroSeq zeroSeq zeroSeq
+    (realLeRep_refl zeroSeq cauchy_zero)
+    (realLeRep_refl zeroSeq cauchy_zero)

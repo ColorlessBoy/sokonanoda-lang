@@ -1,0 +1,119 @@
+-- 单元73 序列与极限：ε-N 的定义形状（解答）
+--
+-- 数系造到 ℝ 之后，下一步要谈「越来越接近」。有理数上的 `close` 只能
+-- 比较两个点，极限却要比较一列点与一个点，并且允许前有限项不满足。
+-- 缺的正是这两个层次：先把「从某项起」与 ε-N 收敛写成定义，后面的
+-- 唯一性、夹逼与四则运算才有共同的语言。
+--
+-- 这里的 `Seq` 是 `Nat → ratRep`（㉟ 的 `Seq`），`close` 是
+-- 「两个有理数在 ε 内接近」。于是 ε-N 极限在这一层是：
+--
+--   `Converges x L  :⟺  ∀ eps > 0, 终究 (close (x n) L eps)`
+--
+-- 其中 `Eventually P` 是「存在阈值 N，从 N 起 P 一直成立」。把
+-- 「终究」单独命名，是因为后面几乎每条极限证明都要合并两个阈值
+-- （唯一性、夹逼、四则运算）；这里先把它自己的两条结构律备齐。
+--
+-- 边界：`Real` 上的加法在本课程里是三元关系 `addRel`
+-- 而不是函数，所以「实数列的 ε-N」暂时不能写成 `L + eps` 这样的项。
+-- 这里停在有理代表元层；68.6 的 `TendsTo` 已经是类层的写法，
+-- 把两者接起来留到后续单元。不新增公理。
+
+import lib.RealComplete
+import lib.RatCloseTrans
+import lib.RealEq
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.0 终究与 ε-N 极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 「从某个阈值起一直成立」。注意阈值是**存在**给出的，不是「对每个 n」。
+def Eventually (P : Nat → Prop) : Prop :=
+  ∃ (N : Nat), ∀ (n : Nat), LeNat N n → P n
+
+-- ε-N 极限：每个正有理 ε 都有一个阈值，从那里起 `x n` 与 `L` 在 ε 内。
+def Converges (x : Seq) (L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    Eventually (fun (n : Nat) => close (x n) L eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.1 终究性对更强的性质封闭
+-- ─────────────────────────────────────────────────────────────
+
+-- 拆出阈值 `N` 与「从 N 起 P」；对同一个 `N` 把每个 `P n` 换成 `Q n`。
+theorem eventually_mono (P Q : Nat → Prop) (h : Eventually P)
+    (hpq : ∀ (n : Nat), P n → Q n) : Eventually Q :=
+  Exists.elim h
+    (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → P n) =>
+      Exists.intro N (fun (n : Nat) (hn : LeNat N n) => hpq n (hN n hn)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.2 两条终究性可以合并（阈值取 max）
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条假设各给一个阈值；58 的 `leNat_max` 取一个同时 ≥ 两者的 `N`，
+-- 再对 `n ≥ N` 用 `leNat_trans` 落回两个旧阈值。
+theorem eventually_and (P Q : Nat → Prop) (hp : Eventually P) (hq : Eventually Q) :
+    Eventually (fun (n : Nat) => P n ∧ Q n) :=
+  Exists.elim hp
+    (fun (Np : Nat) (hNp : ∀ (n : Nat), LeNat Np n → P n) =>
+      Exists.elim hq
+        (fun (Nq : Nat) (hNq : ∀ (n : Nat), LeNat Nq n → Q n) =>
+          Exists.elim (leNat_max Np Nq)
+            (fun (N : Nat) (hN : LeNat Np N ∧ LeNat Nq N) =>
+              Exists.intro N
+                (fun (n : Nat) (hn : LeNat N n) =>
+                  And.intro
+                    (hNp n (leNat_trans Np N n (And.left hN) hn))
+                    (hNq n (leNat_trans Nq N n (And.right hN) hn))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.3 定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边展开后是同一个命题，两个方向都取恒等函数。
+theorem converges_iff (x : Seq) (L : ratRep) :
+    Converges x L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) L eps :=
+  Iff.intro
+    (fun (h : Converges x L) => h)
+    (fun (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) L eps) => h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.4 相等 ⇒ 任意 ε 内接近
+-- ─────────────────────────────────────────────────────────────
+
+-- 见证取 `0`：`x ~ y` 时 `x - y ~ 0`，绝对值那一支由 `ratAbsRel_zero`
+-- 经 ㊷ 的 `ratAbsRel_wd_left` 搬过去；`0 < eps` 直接用假设。
+theorem close_of_ratRel (x y : ratRep) (h : ratRel x y) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps) : close x y eps :=
+  Exists.intro ratZeroRep
+    (And.intro
+      (ratAbsRel_wd_left ratZeroRep (ratSubRep x y) ratZeroRep
+        (ratRel_symm (ratSubRep x y) ratZeroRep
+          (ratRel_trans_gen (ratSubRep x y) (ratSubRep y y) ratZeroRep
+            (ratAddRep_wd_gen x y (ratNegRep y) h)
+            (ratAdd_neg_gen y)))
+        ratAbsRel_zero)
+      heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.5 常序列收敛到自己的值
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列每项都是 `q`；任意 `eps > 0` 取阈值 `0`，每项交给 73.4。
+theorem converges_const (q : ratRep) : Converges (constSeq q) q :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro Nat.zero
+      (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+        close_of_ratRel q q (ratRel_refl q) eps heps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 73.6 具体：常零序列收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+-- `zeroSeq` 就是 `constSeq ratZeroRep`（定义性相等）。
+theorem demo_converges_zero : Converges zeroSeq ratZeroRep :=
+  converges_const ratZeroRep

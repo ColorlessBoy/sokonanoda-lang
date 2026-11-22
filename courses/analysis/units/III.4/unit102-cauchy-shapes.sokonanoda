@@ -1,0 +1,128 @@
+-- 单元102 Cauchy 性的等价写法
+--
+-- Cauchy 定义对尾巴上任意两项同时提要求。实际估计往往只固定一个下标 n，
+-- 把另一项写成 n + k；如果每个 k 都要重新挑阈值，工作量会翻倍。把两项比较
+-- 改写成定向比较与尾部跳跃两种形状，后面的级数部分和只需处理一个方向。
+--
+-- 102.0–102.2 收定向形式：只比较 n ≤ m 的一侧。102.3–102.5 收跳跃形式：
+-- 固定 n，让 k 任意跑。两种形式都与原定义等价，常序列作为实例。
+--
+-- 边界：跳跃形式要求对 k 一致成立；只要求相邻项接近（k = 1）不足以推出
+-- Cauchy，反例属于级数章，这里不展开。本单元只改写定义，不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.CauchyTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.0 定向形式：只比较 n ≤ m 的一侧
+-- ─────────────────────────────────────────────────────────────
+
+-- 原定义对 n、m 对称；定向形式保留 n ≤ m 的一支。正向是直接削弱：
+-- Cauchy 本来就对任意一对下标给接近性，多出来的 `n ≤ m` 用不上。
+--
+-- soko:hint 思路：拆开 `h eps heps` 得阈值 N；对 n、m ≥ N，先用 `leNat_trans N n m hn hnm` 得到 `N ≤ m`，再把两条界交给 `hN n m`。
+-- soko:hint 目标形态：`∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m → close (x n) (x m) eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro。
+theorem cauchy_oriented (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+        close (x n) (x m) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.1 从定向形式回到原定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 任意一对 n、m 由全性分成 `n ≤ m` 与 `m ≤ n` 两支。前一支直接用定向假设；
+-- 后一支把 `m ≤ n` 的那条接近性翻向。
+--
+-- soko:hint 思路：给定 ε 先取定向假设的阈值 N。对 n、m ≥ N，用 `leNat_total n m` 分两支：`n ≤ m` 交给定向假设，`m ≤ n` 则由 `close_symm` 把 `close (x m) (x n) ε` 翻成 `close (x n) (x m) ε`。
+-- soko:hint 目标形态：`Cauchy x`。
+-- soko:hint 关键件：leNat_total · close_symm · Or.elim · Exists.elim · Exists.intro。
+theorem cauchy_of_oriented (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+        close (x n) (x m) eps) :
+    Cauchy x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.2 两种定向写法等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 102.0 与 102.1 给出。
+--
+-- soko:hint 思路：`Iff.intro`，正向交 `cauchy_oriented x`，反向交 `cauchy_of_oriented x`。
+-- soko:hint 目标形态：`Cauchy x ↔ ∀ eps > 0, ∃ N, ∀ n m, N ≤ n → n ≤ m → close (x n) (x m) eps`。
+-- soko:hint 关键件：Iff.intro · cauchy_oriented · cauchy_of_oriented。
+theorem cauchy_oriented_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat n m →
+          close (x n) (x m) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.3 尾部跳跃：固定 n，让 k 任意跑
+-- ─────────────────────────────────────────────────────────────
+
+-- 取原定义的阈值 N。对 n ≥ N，`n ≤ n + k` 由 `leNat_self_add` 给出，
+-- 于是 `x (n + k)` 也在尾巴上，两项比较直接可用。
+--
+-- soko:hint 思路：`h eps heps` 给 N。对 n ≥ N 与任意 k，用 `leNat_self_add n k` 得 `n ≤ n + k`，再把 `hn` 与它一起交给 `hN`。注意 `hN` 要的是 `N ≤ n + k`：由 `leNat_trans N n (n+k) hn (leNat_self_add n k)` 得到。
+-- soko:hint 目标形态：`∃ (N : Nat), ∀ (n : Nat), LeNat N n → ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps`。
+-- soko:hint 关键件：leNat_self_add · leNat_trans · Exists.elim · Exists.intro。
+theorem cauchy_tail_jump (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.4 从跳跃形式回到原定义
+-- ─────────────────────────────────────────────────────────────
+
+-- 先走 102.1 的定向形式。对 n ≤ m，`leNat_exists_add` 给出 m = n + k；
+-- 把等式代进目标，跳跃假设正好给 `close (x n) (x (n + k)) ε`。
+--
+-- soko:hint 思路：对 102.1 的定向形式逐条构造：给 ε 取跳跃假设的 N；对 n ≤ m，用 `leNat_exists_add n m hnm` 得 `m = n + k`；再用 `@Eq.subst` 沿 `Eq.symm hk` 把 `close (x n) (x (n+k)) ε` 搬到 `close (x n) (x m) ε`。
+-- soko:hint 目标形态：`Cauchy x`。
+-- soko:hint 关键件：cauchy_of_oriented · leNat_exists_add · Eq.subst · Eq.symm · Exists.elim · Exists.intro。
+theorem cauchy_of_tail_jump (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps) :
+    Cauchy x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.5 跳跃形式与原定义等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 102.3 与 102.4 给出。
+--
+-- soko:hint 思路：`Iff.intro`，正向交 `cauchy_tail_jump x`，反向交 `cauchy_of_tail_jump x`。
+-- soko:hint 目标形态：`Cauchy x ↔ ∀ eps > 0, ∃ N, ∀ n ≥ N, ∀ k, close (x n) (x (n+k)) eps`。
+-- soko:hint 关键件：Iff.intro · cauchy_tail_jump · cauchy_of_tail_jump。
+theorem cauchy_tail_jump_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+          ∀ (k : Nat), close (x n) (x (Nat.add n k)) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 102.6 常序列满足跳跃形式
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，把这条交给 102.3 的跳跃形式。
+--
+-- soko:hint 思路：`cauchy_const q` 给 Cauchy 性，再交给 `cauchy_tail_jump`。
+-- soko:hint 目标形态：`∀ eps > 0, ∃ N, ∀ n ≥ N, ∀ k, close (constSeq q n) (constSeq q (n+k)) eps`。
+-- soko:hint 关键件：cauchy_const · cauchy_tail_jump。
+theorem demo_cauchy_jump_const (q : ratRep) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close ((constSeq q) n) ((constSeq q) (Nat.add n k)) eps :=
+  sorry

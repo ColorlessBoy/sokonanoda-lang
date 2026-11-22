@@ -1,0 +1,305 @@
+-- 课程库：细分割上的振幅估计（单元164）
+--
+-- 单元164 把「一致连续」落到分割的每一段上：如果每段的宽都小于 delta，
+-- 那么段里的点到左端点的距离就小于 delta，函数值与左端点处的值之差就小于
+-- eta。于是每段可以架一条 `f(左端点) + eta` 的上界、垫一条 `f(左端点) - eta`
+-- 的下界，两条台阶的矩形和之差是 (eta + eta) 乘区间长度。
+--
+-- 下面这些声明供可积性证明直接引用：
+--
+--   · `MeshBelow` / `leftLower` / `leftUpper` —— 细分割与两条台阶；
+--   · `segLen_add_point` —— 右端点是左端点加段宽；
+--   · `close_point_left` —— 段里的点靠近左端点；
+--   · `le_sub_of_sub_le` —— 从 L - x ≤ eta 读出 L - eta ≤ x；
+--   · `upperStep_leftUpper` / `lowerStep_leftLower` —— 两条台阶确实是界；
+--   · `stepSum_left_gap` —— 两个矩形和之差是两段 eta 乘总长；
+--   · `strip_of_mesh` —— 把三条合成「夹住曲线的一对台阶」。
+--
+-- 边界：分割固定不动，只做估计，不构造分割；函数取 `ratRep → ratRep`，
+-- 停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatGroup
+import lib.Bounded
+import lib.MaxOn
+import lib.Monotone
+import lib.LimitOrder
+import lib.LimitAbs
+import lib.LimInfinity
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralShift
+import lib.IntegralAdd
+
+-- ─────────────────────────────────────────────────────────────
+-- 每段都短于 delta
+-- ─────────────────────────────────────────────────────────────
+
+-- 「分割够细」的可判读形式：每一段的宽都小于 delta。
+def MeshBelow (p : Partition) (delta : ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) → ratLtRep (segLen p i) delta
+
+-- 左端点处的下界：函数值减去 eta。
+def leftLower (f : ratRep → ratRep) (p : Partition) (eta : ratRep)
+    (i : Nat) : ratRep :=
+  ratAddRep (f (partPoint p i)) (ratNegRep eta)
+
+-- 左端点处的上界：函数值加上 eta。
+def leftUpper (f : ratRep → ratRep) (p : Partition) (eta : ratRep)
+    (i : Nat) : ratRep :=
+  ratAddRep (f (partPoint p i)) eta
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段的右端是左端加段宽
+-- ─────────────────────────────────────────────────────────────
+
+theorem segLen_add_point (p : Partition) (i : Nat) :
+    ratRel (ratAddRep (partPoint p i) (segLen p i))
+      (partPoint p (Nat.succ i)) :=
+  ratRel_trans_gen
+    (ratAddRep (partPoint p i) (segLen p i))
+    (ratAddRep (segLen p i) (partPoint p i))
+    (partPoint p (Nat.succ i))
+    (ratAdd_comm (partPoint p i) (segLen p i))
+    (ratSubRep_add_self (partPoint p (Nat.succ i)) (partPoint p i))
+
+-- ─────────────────────────────────────────────────────────────
+-- 段里的点靠近左端点
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_point_left (a b : ratRep) (p : Partition) (delta : ratRep)
+    (hm : MeshBelow p delta) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+    (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) :
+    close x (partPoint p i) delta :=
+  close_of_le_ub x (partPoint p i) delta (segLen p i)
+    (inClosed_left (partPoint p i) (partPoint p (Nat.succ i)) x hx)
+    (ratLeRep_congr_gen x x (partPoint p (Nat.succ i))
+      (ratAddRep (partPoint p i) (segLen p i))
+      (ratRel_refl x)
+      (ratRel_symm (ratAddRep (partPoint p i) (segLen p i))
+        (partPoint p (Nat.succ i)) (segLen_add_point p i))
+      (inClosed_right (partPoint p i) (partPoint p (Nat.succ i)) x hx))
+    (hm i hi)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条台阶
+theorem le_sub_of_sub_le (L x eta : ratRep)
+    (h : ratLeRep (ratSubRep L x) eta) :
+    ratLeRep (ratSubRep L eta) x :=
+  ratLeRep_congr_gen
+    (ratSubRep L eta) (ratSubRep L eta)
+    (ratAddRep (ratAddRep x eta) (ratNegRep eta)) x
+    (ratRel_refl (ratSubRep L eta))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep x eta) (ratNegRep eta))
+      (ratAddRep x (ratAddRep eta (ratNegRep eta)))
+      x
+      (ratAdd_assoc x eta (ratNegRep eta))
+      (ratRel_trans_gen
+        (ratAddRep x (ratAddRep eta (ratNegRep eta)))
+        (ratAddRep x ratZeroRep)
+        x
+        (ratAddRep_wd_snd_gen x (ratAddRep eta (ratNegRep eta))
+          ratZeroRep (ratAdd_neg_gen eta))
+        (ratAdd_zero x)))
+    (ratLeRep_add_right L (ratAddRep x eta) (ratNegRep eta)
+      (le_add_of_sub_le L x eta h))
+
+-- ─────────────────────────────────────────────────────────────
+
+theorem upperStep_leftUpper (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    UpperStep a b p f (leftUpper f p eta) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    ratLtRep_le (f x) (ratAddRep (f (partPoint p i)) eta)
+      (close_lt_add_right (f x) (f (partPoint p i)) eta
+        (hu x (partPoint p i)
+          (close_point_left a b p delta hm i hi x hx)))
+
+theorem lowerStep_leftLower (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    LowerStep a b p f (leftLower f p eta) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    le_sub_of_sub_le (f (partPoint p i)) (f x) eta
+      (close_neg_bound (f x) (f (partPoint p i)) eta
+        (hu x (partPoint p i)
+          (close_point_left a b p delta hm i hi x hx)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 一个顺序小工具
+-- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条台阶的差
+-- ─────────────────────────────────────────────────────────────
+
+theorem stepSum_left_gap (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (hp : IsPartition a b p) (eta : ratRep) :
+    ratRel
+      (ratSubRep (stepSum p (leftUpper f p eta))
+        (stepSum p (leftLower f p eta)))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a))) :=
+  ratRel_trans_gen
+    (ratSubRep (stepSum p (leftUpper f p eta))
+      (stepSum p (leftLower f p eta)))
+    (ratSubRep
+      (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+        (stepSum p (fun (_ : Nat) => eta)))
+      (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+        (ratNegRep (stepSum p (fun (_ : Nat) => eta)))))
+    (ratAddRep (ratMulRep eta (ratSubRep b a))
+      (ratMulRep eta (ratSubRep b a)))
+    (ratSubRep_wd
+      (stepSum p (leftUpper f p eta))
+      (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+        (stepSum p (fun (_ : Nat) => eta)))
+      (stepSum p (leftLower f p eta))
+      (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+        (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+      (stepSum_add p (fun (i : Nat) => f (partPoint p i)) (fun (_ : Nat) => eta))
+      (ratRel_trans_gen
+        (stepSum p (leftLower f p eta))
+        (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+          (stepSum p (fun (_ : Nat) => ratNegRep eta)))
+        (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+        (stepSum_add p (fun (i : Nat) => f (partPoint p i))
+          (fun (_ : Nat) => ratNegRep eta))
+        (ratAddRep_wd_snd_gen
+          (stepSum p (fun (i : Nat) => f (partPoint p i)))
+          (stepSum p (fun (_ : Nat) => ratNegRep eta))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+          (ratRel_trans_gen
+            (stepSum p (fun (_ : Nat) => ratNegRep eta))
+            (ratMulRep (ratNegRep eta) (ratSubRep b a))
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+            (stepSum_const a b p hp (ratNegRep eta))
+            (ratRel_trans_gen
+              (ratMulRep (ratNegRep eta) (ratSubRep b a))
+              (ratNegRep (ratMulRep (ratSubRep b a) eta))
+              (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+              (ratRel_trans_gen
+                (ratMulRep (ratNegRep eta) (ratSubRep b a))
+                (ratMulRep (ratSubRep b a) (ratNegRep eta))
+                (ratNegRep (ratMulRep (ratSubRep b a) eta))
+                (ratMul_comm (ratNegRep eta) (ratSubRep b a))
+                (ratMul_neg (ratSubRep b a) eta))
+              (ratNegRep_wd (ratMulRep (ratSubRep b a) eta)
+                (stepSum p (fun (_ : Nat) => eta))
+                (ratRel_symm (stepSum p (fun (_ : Nat) => eta))
+                  (ratMulRep (ratSubRep b a) eta)
+                  (ratRel_trans_gen
+                    (stepSum p (fun (_ : Nat) => eta))
+                    (ratMulRep eta (ratSubRep b a))
+                    (ratMulRep (ratSubRep b a) eta)
+                    (stepSum_const a b p hp eta)
+                    (ratMul_comm eta (ratSubRep b a))))))))))
+    (ratRel_trans_gen
+      (ratSubRep
+        (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+          (stepSum p (fun (_ : Nat) => eta)))
+        (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta)))))
+      (ratSubRep
+        (stepSum p (fun (_ : Nat) => eta))
+        (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a)))
+      (ratRel_trans_gen
+        (ratSubRep
+          (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (stepSum p (fun (_ : Nat) => eta)))
+          (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta)))))
+        (ratSubRep
+          (ratAddRep (stepSum p (fun (_ : Nat) => eta))
+            (stepSum p (fun (i : Nat) => f (partPoint p i))))
+          (ratAddRep
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+            (stepSum p (fun (i : Nat) => f (partPoint p i)))))
+        (ratSubRep
+          (stepSum p (fun (_ : Nat) => eta))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+        (ratSubRep_wd
+          (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (stepSum p (fun (_ : Nat) => eta)))
+          (ratAddRep (stepSum p (fun (_ : Nat) => eta))
+            (stepSum p (fun (i : Nat) => f (partPoint p i))))
+          (ratAddRep (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+          (ratAddRep
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+            (stepSum p (fun (i : Nat) => f (partPoint p i))))
+          (ratAdd_comm (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (stepSum p (fun (_ : Nat) => eta)))
+          (ratAdd_comm (stepSum p (fun (i : Nat) => f (partPoint p i)))
+            (ratNegRep (stepSum p (fun (_ : Nat) => eta)))))
+        (ratSubRep_add_cancel
+          (stepSum p (fun (_ : Nat) => eta))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta)))
+          (stepSum p (fun (i : Nat) => f (partPoint p i)))))
+      (ratRel_trans_gen
+        (ratSubRep (stepSum p (fun (_ : Nat) => eta))
+          (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+        (ratAddRep (stepSum p (fun (_ : Nat) => eta))
+          (stepSum p (fun (_ : Nat) => eta)))
+        (ratAddRep (ratMulRep eta (ratSubRep b a))
+          (ratMulRep eta (ratSubRep b a)))
+        (ratAddRep_wd_snd_gen
+          (stepSum p (fun (_ : Nat) => eta))
+          (ratNegRep (ratNegRep (stepSum p (fun (_ : Nat) => eta))))
+          (stepSum p (fun (_ : Nat) => eta))
+          (ratNegRep_invol (stepSum p (fun (_ : Nat) => eta))))
+        (ratRel_trans_gen
+          (ratAddRep (stepSum p (fun (_ : Nat) => eta))
+            (stepSum p (fun (_ : Nat) => eta)))
+          (ratAddRep (ratMulRep eta (ratSubRep b a))
+            (stepSum p (fun (_ : Nat) => eta)))
+          (ratAddRep (ratMulRep eta (ratSubRep b a))
+            (ratMulRep eta (ratSubRep b a)))
+          (ratAddRep_wd_gen
+            (stepSum p (fun (_ : Nat) => eta))
+            (ratMulRep eta (ratSubRep b a))
+            (stepSum p (fun (_ : Nat) => eta))
+            (stepSum_const a b p hp eta))
+          (ratAddRep_wd_snd_gen
+            (ratMulRep eta (ratSubRep b a))
+            (stepSum p (fun (_ : Nat) => eta))
+            (ratMulRep eta (ratSubRep b a))
+            (stepSum_const a b p hp eta)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 夹住曲线的一对台阶
+-- ─────────────────────────────────────────────────────────────
+
+theorem strip_of_mesh (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (hp : IsPartition a b p) (eta delta : ratRep) (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u ∧
+        ratRel (ratSubRep (stepSum p u) (stepSum p l))
+          (ratAddRep (ratMulRep eta (ratSubRep b a))
+            (ratMulRep eta (ratSubRep b a))) :=
+  Exists.intro (leftLower f p eta)
+    (Exists.intro (leftUpper f p eta)
+      (And.intro
+        (lowerStep_leftLower a b p f eta delta hm hu)
+        (And.intro
+          (upperStep_leftUpper a b p f eta delta hm hu)
+          (stepSum_left_gap a b p f hp eta))))

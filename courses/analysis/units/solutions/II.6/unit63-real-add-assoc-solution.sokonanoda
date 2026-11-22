@@ -1,0 +1,136 @@
+-- 单元63 实数的加法：结合律（三元关系版）（解答）
+--
+-- 62 给了三元关系 `addRel` 的交换律与零元。本单元补上**结合律**：
+--
+--   若 `a + b = s` 且 `s + c = t`，则 `b + c` 有输出 `u`，且
+--   `a + u = t`。
+--
+-- 写成存在形式是
+--
+--   addRel a b s → addRel s c t → ∃ u, addRel b c u ∧ addRel a u t
+--
+-- 它是**重括号**的合法性：左边的 `(a+b)+c` 与右边的 `a+(b+c)` 落在
+-- 同一个 `t` 上。注意右边不是函数，所以结论只能写成「存在 `u`」；
+-- 但 61 的 `addRel_unique` 保证这样的 `u` 唯一。
+--
+-- 证明分两层：
+--   · 63.1 代表元层：`(x+y)+z ~ x+(y+z)`（㉔ 的 `ratAdd_assoc` 经
+--     62 的 `close_of_ratRel` 逐点搬到 `realRel`）；
+--   · 63.2 `mk` 层：已知 `(x+y)+z = t`，取 `u := mk (y+z)`，把
+--     63.1 经 `Real.sound` 换成 `t = mk (x+(y+z))`；
+--   · 63.3 商层：对 `a`、`b`、`c` 各做一次 `Quot.ind`，用 63.2。
+--
+-- 边界仍是 61 的部分关系：`addRel a b s` 的两个前提分量带着 `Cauchy`
+-- 守卫，所以 63.2 要显式接收 `Cauchy x`、`Cauchy y`；不新增信任。
+
+import lib.RealAddLaws
+import lib.RatAssoc
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.1 代表元层：`(x + y) + z ~ x + (y + z)`
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `Cauchy` 分量各是两次 60 的 `cauchy_add`；第三分量取 `N := 0`，
+-- 逐点用㉔的 `ratAdd_assoc` 加 62 的 `close_of_ratRel`。
+
+theorem realRel_add_assoc (x y z : Seq) (hx : Cauchy x) (hy : Cauchy y)
+    (hz : Cauchy z) :
+    realRel (addSeq (addSeq x y) z) (addSeq x (addSeq y z)) :=
+  And.intro
+    (cauchy_add (addSeq x y) z (cauchy_add x y hx hy) hz)
+    (And.intro
+      (cauchy_add x (addSeq y z) hx (cauchy_add y z hy hz))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            close_of_ratRel (addSeq (addSeq x y) z n)
+              (addSeq x (addSeq y z) n)
+              (ratAdd_assoc (x n) (y n) (z n)) eps heps)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.2 `mk` 层：`(x + y) + z = t ⇒ ∃ u, y + z = u ∧ x + u = t`
+-- ─────────────────────────────────────────────────────────────
+
+-- 见证取 `u := mk (y + z)`。
+--   · `addRel (mk y) (mk z) u`：61 的 `addRel_intro`，要 `Cauchy y`（假设）
+--     与 `Cauchy z`（从 `h` 的第二个守卫）；
+--   · `addRel (mk x) u t`：`Cauchy x` 是假设，`Cauchy (y+z)` 是
+--     `cauchy_add`，第三分量是
+--     `t = mk ((x+y)+z) = mk (x+(y+z))`——后半段由 63.1 经 `Real.sound`。
+
+theorem addRel_assoc_mk (x y z : Seq) (t : Real)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : addRel (Real.mk (addSeq x y)) (Real.mk z) t) :
+    ∃ (u : Real), addRel (Real.mk y) (Real.mk z) u ∧
+      addRel (Real.mk x) u t :=
+  Exists.intro (Real.mk (addSeq y z))
+    (And.intro
+      (addRel_intro y z hy (And.left (And.right h)))
+      (And.intro
+        hx
+        (And.intro
+          (cauchy_add y z hy (And.left (And.right h)))
+          (Eq.trans
+            (And.right (And.right h))
+            (Real.sound (addSeq (addSeq x y) z) (addSeq x (addSeq y z))
+              (realRel_add_assoc x y z hx hy
+                (And.left (And.right h))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.3 商层：三元关系的结合律
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `a`、`b`、`c` 各做一次 `Quot.ind`。进入 `mk x`、`mk y`、`mk z` 后，
+-- `h1` 的 ι 归约给出 `s = mk (x+y)`；把它代进 `h2`（`Eq.subst`）得到
+-- `addRel (mk (x+y)) (mk z) t`，正好是 63.2 的前提。
+
+theorem addRel_assoc (a b c s t : Real)
+    (h1 : addRel a b s) (h2 : addRel s c t) :
+    ∃ (u : Real), addRel b c u ∧ addRel a u t :=
+  @Quot.ind.{1} Seq realRel
+    (fun (a : Real) =>
+      ∀ (b c s t : Real), addRel a b s → addRel s c t →
+        ∃ (u : Real), addRel b c u ∧ addRel a u t)
+    (fun (x : Seq) =>
+      fun (b c s t : Real)
+          (h1 : addRel (Real.mk x) b s) (h2 : addRel s c t) =>
+        @Quot.ind.{1} Seq realRel
+          (fun (b : Real) =>
+            ∀ (c s t : Real), addRel (Real.mk x) b s → addRel s c t →
+              ∃ (u : Real), addRel b c u ∧ addRel (Real.mk x) u t)
+          (fun (y : Seq) =>
+            fun (c s t : Real)
+                (h1 : addRel (Real.mk x) (Real.mk y) s) (h2 : addRel s c t) =>
+              @Quot.ind.{1} Seq realRel
+                (fun (c : Real) =>
+                  ∀ (s t : Real), addRel (Real.mk x) (Real.mk y) s →
+                    addRel s c t →
+                    ∃ (u : Real), addRel (Real.mk y) c u ∧ addRel (Real.mk x) u t)
+                (fun (z : Seq) =>
+                  fun (s t : Real)
+                      (h1 : addRel (Real.mk x) (Real.mk y) s)
+                      (h2 : addRel s (Real.mk z) t) =>
+                    (fun (h2' : addRel (Real.mk (addSeq x y)) (Real.mk z) t) =>
+                      addRel_assoc_mk x y z t
+                        (And.left h1) (And.left (And.right h1)) h2')
+                    (@Eq.subst.{1} Real
+                      (fun (s' : Real) => addRel s' (Real.mk z) t)
+                      s (Real.mk (addSeq x y))
+                      (And.right (And.right h1)) h2))
+                c s t h1 h2)
+          b c s t h1 h2)
+    a b c s t h1 h2
+
+-- ─────────────────────────────────────────────────────────────
+-- 63.4 具体：常零序列上的结合律
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_addRel_assoc :
+    ∃ (u : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) u ∧
+        addRel (Real.mk zeroSeq) u (Real.mk zeroSeq) :=
+  addRel_assoc
+    (Real.mk zeroSeq) (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (Real.mk zeroSeq) (Real.mk zeroSeq)
+    (addRel_zero_right zeroSeq cauchy_zero)
+    (addRel_zero_right zeroSeq cauchy_zero)

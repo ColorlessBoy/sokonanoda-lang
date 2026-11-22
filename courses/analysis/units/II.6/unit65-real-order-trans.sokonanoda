@@ -1,0 +1,62 @@
+-- 单元65 实数的序：传递性
+--
+-- 64 立了代表元层的序
+--
+--   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
+--
+-- 并结清了自反性与「相等 ⇒ 序」。本单元补上**传递性**：
+--
+--   x ≤ y  →  y ≤ z  →  x ≤ z
+--
+-- 证明是 eps 折半的标准拼装，两块地基都在前序单元：
+--   · 56 的 `ratSubRep_add`：`(x - y) + (y - z) ~ x - z`；
+--   · 52 的 `ratHalf_add_self`：`eps/2 + eps/2 ~ eps`；
+--   · 51 的 `ratLtRep_half`：`0 < eps ⇒ 0 < eps/2`。
+--
+-- 两个 eps/2 的减法界相加得到 `(x - z) ≤ eps/2 + eps/2`，再沿上面两条
+-- 等价关系搬到 `(x - z) ≤ eps`。阈值用 58 的 `leNat_max` 合并。
+--
+--   · 65.1 `ratLeRep_sub_add` —— 代表元层的拼装件；
+--   · 65.2 `realLeRep_trans` —— 序的传递性；
+--   · 65.3 常零序列上的具体例。
+--
+-- 下一步（66）把 `realLeRep` 沿 `realRel` 证明良定义，再经 `Quot.lift`
+-- 下降到 `Real → Real → Prop`。
+
+import lib.RealOrder
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.1 代表元层：两个 eps 的减法界相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLeRep_add` 先把两个界加成 `(x-y)+(y-z) ≤ eps+eps`；左边用 56 的 `ratSubRep_add` 换成 `x-z`，右边不动（`ratRel_refl`），交给 `ratLeRep_congr_gen`。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep x y) eps → ratLeRep (ratSubRep y z) eps → ratLeRep (ratSubRep x z) (ratAddRep eps eps)`。
+-- soko:hint 关键件：ratLeRep_add · ratSubRep_add · ratRel_refl · ratLeRep_congr_gen。
+theorem ratLeRep_sub_add (x y z eps : ratRep)
+    (h1 : ratLeRep (ratSubRep x y) eps)
+    (h2 : ratLeRep (ratSubRep y z) eps) :
+    ratLeRep (ratSubRep x z) (ratAddRep eps eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.2 序的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个 `Cauchy` 守卫直接取 `h1`、`h2` 的第一/第三分量。对 `eps` 用 `ratLtRep_half` 得到 `0 < eps/2`，两个前提各取阈值 `N1`、`N2`，用 `leNat_max` 合成 `N`；在 `n ≥ N` 上用 65.1 得 `x n - z n ≤ eps/2 + eps/2`，再沿 `ratHalf_add_self` 搬到 `eps`。
+-- soko:hint 目标形态：`realLeRep x z`。
+-- soko:hint 关键件：realLeRep_close（第三分量的命名投影）· ratLtRep_half · leNat_max · leNat_trans · ratLeRep_sub_add · ratHalf_add_self · ratLeRep_congr_gen。
+theorem realLeRep_trans (x y z : Seq)
+    (h1 : realLeRep x y) (h2 : realLeRep y z) : realLeRep x z :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 65.3 具体：常零序列上的传递
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 65.2 用在三个 `zeroSeq` 上，两个前提都是 64 的 `realLeRep_refl`（配 `cauchy_zero`）。
+-- soko:hint 目标形态：`realLeRep zeroSeq zeroSeq`。
+-- soko:hint 关键件：realLeRep_trans · realLeRep_refl · cauchy_zero。
+theorem demo_realLe_trans : realLeRep zeroSeq zeroSeq :=
+  sorry

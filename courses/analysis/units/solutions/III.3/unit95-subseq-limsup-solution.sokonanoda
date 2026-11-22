@@ -1,0 +1,89 @@
+-- 单元95 子序列与上下极限（解答）
+--
+-- 上极限与下极限各自压住或托住极限点集合。换一条子序列取项时，极限点的
+-- 集合只会变小：子序列收敛到的每个点，原序列也能收敛到它。集合变小，
+-- 上确界只降，下确界只升。
+--
+-- 95.1 把「子序列的极限点」这条链拆开：收敛的见证本身是一条子序列，两条
+-- 轨道复合仍是子序列。95.2 与 95.3 把这条包含关系翻译成上确界与下确界的
+-- 不等式。95.4 与 95.5 处理收敛情形：子序列继承极限，两个界都回到同一个数。
+--
+-- 边界：只证「子序列的界不超过原序列的界」这一个方向。反方向不成立，原序列
+-- 多出来的极限点不必出现在某一条固定的子序列里。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.0 按轨道取项
+-- ─────────────────────────────────────────────────────────────
+
+-- `subseqSeq g x` 的第 n 项是原序列的第 `g n` 项。
+def subseqSeq (g : Nat → Nat) (x : Seq) : Seq :=
+  fun (n : Nat) => x (g n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.1 子序列的极限点也是原序列的极限点
+-- ─────────────────────────────────────────────────────────────
+
+-- `LimitPoint` 展开成一条轨道与它的收敛性。子序列 `x ∘ g` 的极限点由轨道
+-- `h` 见证；把两条轨道复合，`x ∘ (g ∘ h)` 就是原序列的一条子序列。
+theorem subseq_limitPoint (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L : ratRep)
+    (h : LimitPoint (subseqSeq g x) L) : LimitPoint x L :=
+  Exists.elim h
+    (fun (h' : Nat → Nat)
+        (hh : Subseq h' ∧ Converges (fun (n : Nat) => subseqSeq g x (h' n)) L) =>
+      Exists.intro (fun (n : Nat) => g (h' n))
+        (And.intro
+          (subseq_comp g h' hg (And.left hh))
+          (And.right hh)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.2 上极限沿子序列只降不升
+-- ─────────────────────────────────────────────────────────────
+
+-- 上确界的最小性：要证 `M ≤ L`，只需说明 `L` 压住子序列的每个极限点。
+-- 那是原序列的上界性质加上 95.1 的包含关系。
+theorem limsup_subseq_le (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Limsup x L) (hM : Limsup (subseqSeq g x) M) : ratLeRep M L :=
+  limsup_least (subseqSeq g x) M hM L
+    (fun (P : ratRep) (hP : LimitPoint (subseqSeq g x) P) =>
+      limsup_upper x L hL P (subseq_limitPoint x g hg P hP))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.3 下极限沿子序列只升不降
+-- ─────────────────────────────────────────────────────────────
+
+-- 对偶：下确界的最大性要求 `L` 托住子序列的每个极限点。
+theorem liminf_le_subseq (x : Seq) (g : Nat → Nat) (hg : Subseq g) (L M : ratRep)
+    (hL : Liminf x L) (hM : Liminf (subseqSeq g x) M) : ratLeRep L M :=
+  liminf_greatest (subseqSeq g x) M hM L
+    (fun (P : ratRep) (hP : LimitPoint (subseqSeq g x) P) =>
+      liminf_lower x L hL P (subseq_limitPoint x g hg P hP))
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.4 收敛序列的子序列以上极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 子序列继承极限（91.5），再把极限换成上极限（93.5）。
+theorem limsup_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Limsup (subseqSeq g x) L :=
+  limsup_of_converges (subseqSeq g x) L (subseq_converges x L h g hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.5 收敛序列的子序列以下极限为极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 95.4 同形，把上极限换成下极限（94.5）。
+theorem liminf_subseq_of_converges (x : Seq) (g : Nat → Nat) (hg : Subseq g)
+    (L : ratRep) (h : Converges x L) : Liminf (subseqSeq g x) L :=
+  liminf_of_converges (subseqSeq g x) L (subseq_converges x L h g hg)
+
+-- ─────────────────────────────────────────────────────────────
+-- 95.6 常序列的子序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列收敛到自己的值，95.4 把结论搬到它的子序列上。
+theorem demo_subseq_const (g : Nat → Nat) (hg : Subseq g) (q : ratRep) :
+    Limsup (subseqSeq g (constSeq q)) q :=
+  limsup_subseq_of_converges (constSeq q) g hg q (converges_const q)

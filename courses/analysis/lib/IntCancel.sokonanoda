@@ -1,0 +1,418 @@
+-- 课程库：整数代表元的非零因子消去
+--
+-- 有理数的乘法能消去非零因子，最后要落回整数代表元 `(p - q)` 的乘法。
+-- 两个整数代表元 `(p, q)` 相等当且仅当 `p + q' = p' + q`；乘以同一个
+-- 代表元之后，这条等式变成 `(p, q)` 分别乘上两个分子后的交叉和。
+--
+-- 消去的钥匙只有一条：正整数因子可以从 `ℕ` 的等式中约掉。若 `p ≠ q`，
+-- 那么 `p` 与 `q` 有一边更大；把大的写成小的加上 `k+1`，等式两边就出现
+-- 公共因子 `(k+1)`，约掉之后剩下的正是两个分子的相等。两支特别之处在于
+-- 符号：`(p, q)` 的差为正时乘上的公共因子是 `(k+1)`，为负时是 `-(k+1)`，
+-- 乘法的交换律把负号挪到另一侧。
+--
+-- 这一层只做代表元上的算术，不涉及有理数的商；有理数层的消去在
+-- `lib/RatCancel` 里接上。
+--
+-- 边界：不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatSub
+import lib.RatAbsOrder
+import lib.RatGroup
+
+theorem prod_mk_fst_snd (X : Prod Nat Nat) :
+    @prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X) = X :=
+  match X with
+  | prod_mk a b => Eq.refl (@prod_mk Nat Nat a b)
+
+theorem intRel_zero_of_eq (p q : Nat) (h : p = q) :
+    intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  @Eq.trans.{1} Nat
+    (Nat.add p Nat.zero)
+    p
+    (Nat.add Nat.zero q)
+    (add_zero p)
+    (@Eq.trans.{1} Nat p q (Nat.add Nat.zero q) h
+      (@Eq.symm.{1} Nat (Nat.add Nat.zero q) q (zero_add q)))
+
+theorem intRel_cancel_den_left (a b a' b' m : Nat)
+    (h : intRel (mulRep (den m) (@prod_mk Nat Nat a b))
+                (mulRep (den m) (@prod_mk Nat Nat a' b'))) :
+    intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b') :=
+  rat_cross a b a' b' m
+    (intRel_trans
+      (mulRep (@prod_mk Nat Nat a b) (den m))
+      (mulRep (den m) (@prod_mk Nat Nat a b))
+      (mulRep (@prod_mk Nat Nat a' b') (den m))
+      (intRel_of_eq
+        (mulRep (@prod_mk Nat Nat a b) (den m))
+        (mulRep (den m) (@prod_mk Nat Nat a b))
+        (mulRep_comm a b (Nat.succ m) Nat.zero))
+      (intRel_trans
+        (mulRep (den m) (@prod_mk Nat Nat a b))
+        (mulRep (den m) (@prod_mk Nat Nat a' b'))
+        (mulRep (@prod_mk Nat Nat a' b') (den m))
+        h
+        (intRel_of_eq
+          (mulRep (den m) (@prod_mk Nat Nat a' b'))
+          (mulRep (@prod_mk Nat Nat a' b') (den m))
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (mulRep (@prod_mk Nat Nat a' b') (den m))
+            (mulRep (den m) (@prod_mk Nat Nat a' b'))
+            (mulRep_comm a' b' (Nat.succ m) Nat.zero)))))
+
+theorem mulRep_zero_left_form (s c d : Nat) :
+    mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat c d) =
+      @prod_mk Nat Nat (myMul s d) (myMul s c) :=
+  prod_mk_congr
+    (Nat.add (myMul Nat.zero c) (myMul s d)) (myMul s d)
+    (Nat.add (myMul Nat.zero d) (myMul s c)) (myMul s c)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero c) (myMul s d))
+      (Nat.add Nat.zero (myMul s d))
+      (myMul s d)
+      (congrArg.{1} (fun (x : Nat) => Nat.add x (myMul s d)) (zero_mul c))
+      (zero_add (myMul s d)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero d) (myMul s c))
+      (Nat.add Nat.zero (myMul s c))
+      (myMul s c)
+      (congrArg.{1} (fun (x : Nat) => Nat.add x (myMul s c)) (zero_mul d))
+      (zero_add (myMul s c)))
+
+theorem intRel_mul_zero_left (s a b : Nat) :
+    intRel (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+      (@prod_mk Nat Nat (myMul s b) (myMul s a)) :=
+  intRel_of_eq
+    (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+    (@prod_mk Nat Nat (myMul s b) (myMul s a))
+    (mulRep_zero_left_form s a b)
+
+theorem intRel_mul_zero_mid (s a b a' b' : Nat)
+    (h : intRel (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+                (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a' b'))) :
+    intRel (@prod_mk Nat Nat (myMul s b) (myMul s a))
+           (@prod_mk Nat Nat (myMul s b') (myMul s a')) :=
+  intRel_trans
+    (@prod_mk Nat Nat (myMul s b) (myMul s a))
+    (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+    (@prod_mk Nat Nat (myMul s b') (myMul s a'))
+    (intRel_of_eq
+      (@prod_mk Nat Nat (myMul s b) (myMul s a))
+      (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+        (@prod_mk Nat Nat (myMul s b) (myMul s a))
+        (mulRep_zero_left_form s a b)))
+    (intRel_trans
+      (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a b))
+      (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a' b'))
+      (@prod_mk Nat Nat (myMul s b') (myMul s a'))
+      h
+      (intRel_of_eq
+        (mulRep (@prod_mk Nat Nat Nat.zero s) (@prod_mk Nat Nat a' b'))
+        (@prod_mk Nat Nat (myMul s b') (myMul s a'))
+        (mulRep_zero_left_form s a' b')))
+
+theorem mul_shift_left (a b m : Nat) :
+    myMul (Nat.add a b) (Nat.succ m) =
+      Nat.add (myMul (Nat.succ m) a) (myMul (Nat.succ m) b) :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.add a b) (Nat.succ m))
+    (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+    (Nat.add (myMul (Nat.succ m) a) (myMul (Nat.succ m) b))
+    (mul_add_right a b (Nat.succ m))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a (Nat.succ m)) (myMul b (Nat.succ m)))
+      (Nat.add (myMul (Nat.succ m) a) (myMul b (Nat.succ m)))
+      (Nat.add (myMul (Nat.succ m) a) (myMul (Nat.succ m) b))
+      (congrArg.{1}
+        (fun (x : Nat) => Nat.add x (myMul b (Nat.succ m)))
+        (myMul_comm a (Nat.succ m)))
+      (congrArg.{1}
+        (fun (x : Nat) => Nat.add (myMul (Nat.succ m) a) x)
+        (myMul_comm b (Nat.succ m))))
+
+theorem intRel_cancel_neg_den (a b a' b' m : Nat)
+    (h : intRel (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ m)) (@prod_mk Nat Nat a b))
+                (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ m)) (@prod_mk Nat Nat a' b'))) :
+    intRel (@prod_mk Nat Nat a b) (@prod_mk Nat Nat a' b') :=
+  @Eq.symm.{1} Nat
+    (Nat.add a' b)
+    (Nat.add a b')
+    (@Eq.trans.{1} Nat
+      (Nat.add a' b)
+      (Nat.add b a')
+      (Nat.add a b')
+      (add_comm a' b)
+      (@Eq.trans.{1} Nat
+        (Nat.add b a')
+        (Nat.add b' a)
+        (Nat.add a b')
+        (mul_cancel_pos m (Nat.add b a') (Nat.add b' a)
+          (@Eq.trans.{1} Nat
+            (myMul (Nat.add b a') (Nat.succ m))
+            (Nat.add (myMul (Nat.succ m) b) (myMul (Nat.succ m) a'))
+            (myMul (Nat.add b' a) (Nat.succ m))
+            (mul_shift_left b a' m)
+            (@Eq.trans.{1} Nat
+              (Nat.add (myMul (Nat.succ m) b) (myMul (Nat.succ m) a'))
+              (Nat.add (myMul (Nat.succ m) b') (myMul (Nat.succ m) a))
+              (myMul (Nat.add b' a) (Nat.succ m))
+              (intRel_mul_zero_mid (Nat.succ m) a b a' b' h)
+              (@Eq.symm.{1} Nat
+                (myMul (Nat.add b' a) (Nat.succ m))
+                (Nat.add (myMul (Nat.succ m) b') (myMul (Nat.succ m) a))
+                (mul_shift_left b' a m)))))
+        (add_comm b' a)))
+
+theorem intRel_to_zero_left (p q k : Nat) (h : q = Nat.add p (Nat.succ k)) :
+    intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero (Nat.succ k)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add p (Nat.succ k))
+    q
+    (Nat.add Nat.zero q)
+    (@Eq.symm.{1} Nat q (Nat.add p (Nat.succ k)) h)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero q) q (zero_add q))
+
+theorem intRel_to_den_right (p q k : Nat) (h : p = Nat.add q (Nat.succ k)) :
+    intRel (@prod_mk Nat Nat p q) (den k) :=
+  @Eq.trans.{1} Nat
+    (Nat.add p Nat.zero)
+    p
+    (Nat.add (Nat.succ k) q)
+    (add_zero p)
+    (@Eq.trans.{1} Nat
+      p
+      (Nat.add q (Nat.succ k))
+      (Nat.add (Nat.succ k) q)
+      h
+      (@Eq.symm.{1} Nat
+        (Nat.add (Nat.succ k) q)
+        (Nat.add q (Nat.succ k))
+        (add_comm (Nat.succ k) q)))
+
+theorem intRel_cancel_nonzero_pos (p q c d e f : Nat)
+    (hpq : LeNat p q)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : intRel (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))) :
+    intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f) :=
+  Or.elim
+    (fun (heq : p = q) =>
+      @False.elim
+        (intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f))
+        (hne (intRel_zero_of_eq p q heq)))
+    (fun (hlt : LeNat (Nat.succ p) q) =>
+      Exists.elim (leNat_exists_add (Nat.succ p) q hlt)
+        (fun (k : Nat) (hk : q = Nat.add (Nat.succ p) k) =>
+          intRel_cancel_neg_den c d e f k
+            (intRel_trans
+              (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ k)) (@prod_mk Nat Nat c d))
+              (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+              (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ k)) (@prod_mk Nat Nat e f))
+              (intRel_symm
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ k)) (@prod_mk Nat Nat c d))
+                (mulRep_wd_gen (@prod_mk Nat Nat p q)
+                  (@prod_mk Nat Nat Nat.zero (Nat.succ k))
+                  (@prod_mk Nat Nat c d)
+                  (intRel_to_zero_left p q k
+                    (@Eq.trans.{1} Nat
+                      q
+                      (Nat.add (Nat.succ p) k)
+                      (Nat.add p (Nat.succ k))
+                      hk
+                      (@Eq.trans.{1} Nat
+                        (Nat.add (Nat.succ p) k)
+                        (Nat.succ (Nat.add p k))
+                        (Nat.add p (Nat.succ k))
+                        (succ_add p k)
+                        (@Eq.symm.{1} Nat
+                          (Nat.add p (Nat.succ k))
+                          (Nat.succ (Nat.add p k))
+                          (add_succ p k)))))))
+              (intRel_trans
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))
+                (mulRep (@prod_mk Nat Nat Nat.zero (Nat.succ k)) (@prod_mk Nat Nat e f))
+                h
+                (mulRep_wd_gen (@prod_mk Nat Nat p q)
+                  (@prod_mk Nat Nat Nat.zero (Nat.succ k))
+                  (@prod_mk Nat Nat e f)
+                  (intRel_to_zero_left p q k
+                    (@Eq.trans.{1} Nat
+                      q
+                      (Nat.add (Nat.succ p) k)
+                      (Nat.add p (Nat.succ k))
+                      hk
+                      (@Eq.trans.{1} Nat
+                        (Nat.add (Nat.succ p) k)
+                        (Nat.succ (Nat.add p k))
+                        (Nat.add p (Nat.succ k))
+                        (succ_add p k)
+                        (@Eq.symm.{1} Nat
+                          (Nat.add p (Nat.succ k))
+                          (Nat.succ (Nat.add p k))
+                          (add_succ p k))))))))))
+    (leNat_eq_or_succ p q hpq)
+
+theorem intRel_cancel_nonzero_neg (p q c d e f : Nat)
+    (hqp : LeNat q p)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : intRel (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))) :
+    intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f) :=
+  Or.elim
+    (fun (heq : q = p) =>
+      @False.elim
+        (intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f))
+        (hne (intRel_zero_of_eq p q (@Eq.symm.{1} Nat q p heq))))
+    (fun (hlt : LeNat (Nat.succ q) p) =>
+      Exists.elim (leNat_exists_add (Nat.succ q) p hlt)
+        (fun (k : Nat) (hk : p = Nat.add (Nat.succ q) k) =>
+          intRel_cancel_den_left c d e f k
+            (intRel_trans
+              (mulRep (den k) (@prod_mk Nat Nat c d))
+              (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+              (mulRep (den k) (@prod_mk Nat Nat e f))
+              (intRel_symm
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (den k) (@prod_mk Nat Nat c d))
+                (mulRep_wd_gen (@prod_mk Nat Nat p q) (den k)
+                  (@prod_mk Nat Nat c d)
+                  (intRel_to_den_right p q k
+                    (@Eq.trans.{1} Nat
+                      p
+                      (Nat.add (Nat.succ q) k)
+                      (Nat.add q (Nat.succ k))
+                      hk
+                      (@Eq.trans.{1} Nat
+                        (Nat.add (Nat.succ q) k)
+                        (Nat.succ (Nat.add q k))
+                        (Nat.add q (Nat.succ k))
+                        (succ_add q k)
+                        (@Eq.symm.{1} Nat
+                          (Nat.add q (Nat.succ k))
+                          (Nat.succ (Nat.add q k))
+                          (add_succ q k)))))))
+              (intRel_trans
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))
+                (mulRep (den k) (@prod_mk Nat Nat e f))
+                h
+                (mulRep_wd_gen (@prod_mk Nat Nat p q) (den k)
+                  (@prod_mk Nat Nat e f)
+                  (intRel_to_den_right p q k
+                    (@Eq.trans.{1} Nat
+                      p
+                      (Nat.add (Nat.succ q) k)
+                      (Nat.add q (Nat.succ k))
+                      hk
+                      (@Eq.trans.{1} Nat
+                        (Nat.add (Nat.succ q) k)
+                        (Nat.succ (Nat.add q k))
+                        (Nat.add q (Nat.succ k))
+                        (succ_add q k)
+                        (@Eq.symm.{1} Nat
+                          (Nat.add q (Nat.succ k))
+                          (Nat.succ (Nat.add q k))
+                          (add_succ q k))))))))))
+    (leNat_eq_or_succ q p hqp)
+
+theorem intRel_cancel_nonzero (p q c d e f : Nat)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : intRel (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat c d))
+                (mulRep (@prod_mk Nat Nat p q) (@prod_mk Nat Nat e f))) :
+    intRel (@prod_mk Nat Nat c d) (@prod_mk Nat Nat e f) :=
+  Or.elim
+    (fun (hpq : LeNat p q) =>
+      intRel_cancel_nonzero_pos p q c d e f hpq hne h)
+    (fun (hqp : LeNat q p) =>
+      intRel_cancel_nonzero_neg p q c d e f hqp hne h)
+    (leNat_total p q)
+
+theorem intRel_zero_iff (p q : Nat) :
+    intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) ↔ p = q :=
+  Iff.intro
+    (fun (h : Nat.add p Nat.zero = Nat.add Nat.zero q) =>
+      @Eq.trans.{1} Nat p (Nat.add p Nat.zero) q
+        (@Eq.symm.{1} Nat (Nat.add p Nat.zero) p (add_zero p))
+        (@Eq.trans.{1} Nat (Nat.add p Nat.zero) (Nat.add Nat.zero q) q
+          h
+          (zero_add q)))
+    (fun (h : p = q) => intRel_zero_of_eq p q h)
+
+
+theorem intRel_cancel_den (X Y : Prod Nat Nat) (m : Nat)
+    (h : intRel (mulRep X (den m)) (mulRep Y (den m))) :
+    intRel X Y :=
+  rat_cross (Prod.fst Nat Nat X) (Prod.snd Nat Nat X)
+    (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y) m h
+
+theorem intRel_cancel_nonzero_gen (p q : Nat) (X Y : Prod Nat Nat)
+    (hne : ¬ intRel (@prod_mk Nat Nat p q)
+      (@prod_mk Nat Nat Nat.zero Nat.zero))
+    (h : intRel (mulRep (@prod_mk Nat Nat p q) X)
+                (mulRep (@prod_mk Nat Nat p q) Y)) :
+    intRel X Y :=
+  intRel_trans X
+    (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X))
+    Y
+    (intRel_symm
+      (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X))
+      X
+      (intRel_of_eq
+        (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X))
+        X (prod_mk_fst_snd X)))
+    (intRel_trans
+      (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X))
+      (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y))
+      Y
+      (intRel_cancel_nonzero p q
+        (Prod.fst Nat Nat X) (Prod.snd Nat Nat X)
+        (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y)
+        hne
+        (intRel_trans
+          (mulRep (@prod_mk Nat Nat p q)
+            (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X)))
+          (mulRep (@prod_mk Nat Nat p q) X)
+          (mulRep (@prod_mk Nat Nat p q)
+            (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y)))
+          (intRel_symm
+            (mulRep (@prod_mk Nat Nat p q) X)
+            (mulRep (@prod_mk Nat Nat p q)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X)))
+            (intRel_of_eq
+              (mulRep (@prod_mk Nat Nat p q)
+                (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X)))
+              (mulRep (@prod_mk Nat Nat p q) X)
+              (@congrArg.{1} (Prod Nat Nat) (Prod Nat Nat)
+                (@prod_mk Nat Nat (Prod.fst Nat Nat X) (Prod.snd Nat Nat X))
+                X
+                (fun (Z : Prod Nat Nat) => mulRep (@prod_mk Nat Nat p q) Z)
+                (prod_mk_fst_snd X))))
+          (intRel_trans
+            (mulRep (@prod_mk Nat Nat p q) X)
+            (mulRep (@prod_mk Nat Nat p q) Y)
+            (mulRep (@prod_mk Nat Nat p q)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y)))
+            h
+            (intRel_of_eq
+              (mulRep (@prod_mk Nat Nat p q) Y)
+              (mulRep (@prod_mk Nat Nat p q)
+                (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y)))
+              (@congrArg.{1} (Prod Nat Nat) (Prod Nat Nat)
+                Y
+                (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y))
+                (fun (Z : Prod Nat Nat) => mulRep (@prod_mk Nat Nat p q) Z)
+                (@Eq.symm.{1} (Prod Nat Nat)
+                  (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y))
+                  Y (prod_mk_fst_snd Y)))))))
+      (intRel_of_eq
+        (@prod_mk Nat Nat (Prod.fst Nat Nat Y) (Prod.snd Nat Nat Y))
+        Y (prod_mk_fst_snd Y)))
+

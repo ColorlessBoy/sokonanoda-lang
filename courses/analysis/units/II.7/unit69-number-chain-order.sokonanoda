@@ -1,0 +1,169 @@
+-- 单元69 数系链：从 ℕ 到 ℝ 的保序嵌入
+--
+-- 本课程已经把数系从 ℕ 造到 ℤ（序对商）、ℚ（再商一次）、ℝ（Cauchy
+-- 序列的商）。II.7 不再造新数，而是把这四层**接起来**读一遍：
+--
+--   ℕ —(n ↦ (n,0))→ ℤ —((a,b) ↦ (a-b)/1)→ ℚ —(q ↦ 常序列 q)→ ℝ
+--
+-- 三段各有不同的代价：
+--
+--   · ℕ → ℤ：只换代表元，`(n, 0)` 直接就是 `intOfNat n`；
+--   · ℤ → ℚ：要把代表元映射**下降**成 `Int → Rat`——必须交良定义性
+--     （`intToRatRep_wd`），再经一次 `Quot.lift`；
+--   · ℚ → ℝ：`Real` 是**序列**的商，嵌入的像是常序列
+--     `constSeq q`，Cauchy 性由 68.1 付清。
+--
+-- 序的迁移分两段陈述：前两段停在代表元层（ℤ 的序在本课程里没有下降成
+-- `Int → Int → Prop`，本单元**不**替它下降），ℝ 上的序则是 66 已经下降好
+-- 的 `realLe`。于是「ℕ 的 ≤ 一路走到 ℝ 的 ≤」是 69.10 的合成。
+--
+-- **边界（明说）**：本单元只把**函数**（ℤ → ℚ 的嵌入）下降一次，不把 ℤ
+-- 的序再下降；序保持的前两段因此写成代表元关系 `leRep` / `ratLeRep`，
+-- 这是诚实的部分结论，不是绕过。
+--
+-- 本单元：
+--   · 69.0 `natToIntRep` —— ℕ 的整数代表元；
+--   · 69.1 `intToRatRep` —— 整数的有理代表元；
+--   · 69.2 `intToRatRep_wd` —— 嵌入尊重整数的相等（给出，作为下降的样板）；
+--   · 69.3 `intToRat` —— 下降成 `Int → Rat`；
+--   · 69.4 `intToRat_mk` —— ι 规则；
+--   · 69.5 `natToInt_le` —— ℕ 序进 ℤ（代表元层）；
+--   · 69.6 `intToRat_le` —— ℤ 序进 ℚ（代表元层）；
+--   · 69.7 `ratLeRep_sub_nonpos` —— 减法把序压到 0 以下；
+--   · 69.8 `ratToReal_le` —— ℚ 序进 ℝ；
+--   · 69.9 `natToReal` —— 合成 ℕ → ℝ；
+--   · 69.10 `natToReal_le` —— 整条链保序；
+--   · 69.11 具体：`1 ≤ 3` 在 ℝ 里仍成立。
+
+import lib.RatAbs
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.0 自然数到整数的代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- `intOfNat n` 就是 `Quot.mk (n, 0)`；这里把代表元单独命名，后面
+-- 的序与加法都直接对它陈述。
+def natToIntRep (n : Nat) : Prod Nat Nat := @prod_mk Nat Nat n Nat.zero
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.1 整数到有理数的代表元：`(a, b) ↦ (a - b) / 1`
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratRep` 的第三个坐标 `n` 表示分母 `n + 1`；取 `n = 0` 就是除以 1。
+-- 于是整数的代表元 `(a, b)`（表示 `a - b`）原样搬成有理数 `(a - b)/1`。
+def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.2 嵌入尊重整数的相等
+-- ─────────────────────────────────────────────────────────────
+
+-- `intRel p q` 是交叉和等式；`ratRel (p/1) (q/1)` 展开后只是把两边各乘
+-- `den 0 = (1,0)`，正是 `mulRep_wd` 的形状。坐标用 `Prod.fst` / `Prod.snd`
+-- 取出来，避免对变量 `p` 做模式匹配（假设位不会跟着重写）。
+theorem intToRatRep_wd (p q : Prod Nat Nat) (h : intRel p q) :
+    ratRel (intToRatRep p) (intToRatRep q) :=
+  mulRep_wd (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+    (Prod.fst Nat Nat q) (Prod.snd Nat Nat q) 1 0 h
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.3 下降成 `Int → Rat`
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 ⑲ 的 `intNeg` 同一写法：`Quot.lift` 的函数取 `ratOf p 0`，
+-- 良定义性用 `Quot.sound` 把 69.2 的代表元关系升级成商里的相等。
+def intToRat : Int → Rat :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Rat
+    (fun (p : Prod Nat Nat) => ratOf p Nat.zero)
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =>
+      @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+        (intToRatRep_wd p q h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.4 ι 规则
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Quot.lift` 作用在 `Quot.mk p` 上按 ι 归约成 `f p`，两条边是**定义性相等**——直接 `Eq.refl`，不要试图用 `Quot.sound` 或 `congrArg`。
+-- soko:hint 目标形态：`intToRat (mk (a,b)) = ratOf (a,b) 0`。
+-- soko:hint 关键件：Eq.refl（类型要写成归约后的右边）。
+theorem intToRat_mk (a b : Nat) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat a b)) =
+    ratOf (@prod_mk Nat Nat a b) Nat.zero :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.5 ℕ 序嵌入 ℤ（代表元层）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`leRep (n,0) (m,0)` 展开就是 `LeNat (n + 0) (m + 0)`。`leNat_add_right` 正好把 `LeNat n m` 右加同一个数，取 `0`。
+-- soko:hint 目标形态：`LeNat n m → leRep (natToIntRep n) (natToIntRep m)`。
+-- soko:hint 关键件：leNat_add_right（第三个参数 `Nat.zero`）。
+theorem natToInt_le (n m : Nat) (h : LeNat n m) :
+    leRep (natToIntRep n) (natToIntRep m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.6 ℤ 序嵌入 ℚ
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLeRep (p/1) (q/1)` 是交叉相乘后的 `leRep`；「乘正分母保序」`leRep_mul_den_right` 把 `leRep p q` 搬到 `den 0 = (1,0)` 上，分母参数取 `0`。
+-- soko:hint 目标形态：`leRep p q → ratLeRep (intToRatRep p) (intToRatRep q)`。
+-- soko:hint 关键件：leRep_mul_den_right（第三个参数 `Nat.zero`）。
+theorem intToRat_le (p q : Prod Nat Nat) (h : leRep p q) :
+    ratLeRep (intToRatRep p) (intToRatRep q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.7 `x ≤ y ⇒ x - y ≤ 0`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `x ≤ y` 两边同加 `-y`（㊹ 的 `ratLeRep_add_right`），右边 `y + -y` 用 55 的 `ratAdd_neg_gen` 收成 0，再用 `ratLeRep_trans` 传递。`ratSubRep x y` 就是 `x + -y` 的定义。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep (ratSubRep x y) ratZeroRep`。
+-- soko:hint 关键件：ratLeRep_add_right · ratAdd_neg_gen · ratLeRep_of_ratRel · ratLeRep_trans。
+theorem ratLeRep_sub_nonpos (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x y) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.8 ℚ 序嵌入 ℝ（常序列）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：66 的 `realLe_mk` 把商上的 `realLe` 化回代表元层的 `realLeRep`。三个分量：两个常序列的 Cauchy 性（68.1），以及逐点把 `x - y ≤ 0` 接到 `0 ≤ eps`（`ratLtRep_le`）上。
+-- soko:hint 目标形态：`ratLeRep x y → realLe (mk (constSeq x)) (mk (constSeq y))`。
+-- soko:hint 关键件：Iff.mpr · realLe_mk · cauchy_const · ratLeRep_sub_nonpos · ratLtRep_le · ratLeRep_trans。
+theorem ratToReal_le (x y : ratRep) (h : ratLeRep x y) :
+    realLe (Real.mk (constSeq x)) (Real.mk (constSeq y)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.9 合成：ℕ → ℝ
+-- ─────────────────────────────────────────────────────────────
+
+-- 有理数层的像是 `intToRatRep (natToIntRep n)`；`Real.mk` 再把常序列
+-- 送进商。这里不需要 `intToRat`（`Rat` 的商）——`Real` 的代表元是**序列**，
+-- 常序列取的是有理数的**代表元**，不是商元素。
+def natToReal (n : Nat) : Real :=
+  Real.mk (constSeq (intToRatRep (natToIntRep n)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.10 整条链保序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先 `natToInt_le` 把 ℕ 的序送进 ℤ 的代表元，再 `intToRat_le` 送进 ℚ 的代表元，最后把这两个代表元交给 69.8 `ratToReal_le`。这是 69.5 → 69.6 → 69.8 的合成，不需要新的算术。
+-- soko:hint 目标形态：`LeNat n m → realLe (natToReal n) (natToReal m)`。
+-- soko:hint 关键件：ratToReal_le · intToRat_le · natToInt_le。
+theorem natToReal_le (n m : Nat) (h : LeNat n m) :
+    realLe (natToReal n) (natToReal m) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 69.11 具体：1 ≤ 3 在 ℝ 里仍成立
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 69.10 用在 `1 ≤ 3` 上；`1 ≤ 3` 用两次 `le_succ` 从 `le_refl 1` 造出来。
+-- soko:hint 目标形态：`realLe (natToReal 1) (natToReal 3)`。
+-- soko:hint 关键件：natToReal_le · le_succ · le_refl。
+theorem demo_natToReal_le :
+    realLe (natToReal 1) (natToReal 3) :=
+  sorry

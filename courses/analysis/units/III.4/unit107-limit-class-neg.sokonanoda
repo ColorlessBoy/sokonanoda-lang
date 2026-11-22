@@ -1,0 +1,130 @@
+-- 单元107 极限类的取负
+--
+-- 取负是商上最先被定义成函数的运算（59），但它的序性质一直没有用在极限上。
+-- 一条序列逐项取负，极限也要取负：这看起来只是符号翻转，做起来却要处理
+-- 两件事。一是 `TendsTo` 的两条非严格界在取负后互换位置；二是 `realLeRep`
+-- 的前两个分量是 `Cauchy`，取负后的序列还得另付一次 `cauchy_neg`。
+--
+-- 107.0 把 `(-y) - ((-x) + eps)` 与 `x - (y + eps)` 认成同一个差；
+-- 107.1 把它逐点搬进 `realLeRep`；107.2 组装成 `TendsTo`；107.3–107.4
+-- 把结论收成极限类；107.5 是常序列的实例。
+--
+-- 边界：取负只在带 Cauchy 见证的序列上做，因为 `TendsTo` 的目标类型本身
+-- 带一个 `Cauchy` 分量。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.Cauchy
+import lib.RatClose
+import lib.RealEq
+import lib.RealNeg
+import lib.RealComplete
+import lib.RealOrder
+import lib.LimitClass
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.0 取负之后的差
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边都是 `x - y - eps` 的变体：左边先把 `-((-x) + eps)` 拆成
+-- `-(-x) + -eps`，把 `-(-x)` 认成 `x`；右边用 `-(y + eps)` 的定义。
+-- 中间差一次结合律与一次交换律。
+--
+-- soko:hint 思路：`ratNegRep_add` 把 `-((-x) + eps)` 拆开，`ratNegRep_invol` 把 `-(-x)` 认成 x，再用结合律与交换律把 `-y + (x + -eps)` 重排成 `x + (-y + -eps)`，最后反向用一次 `ratNegRep_add`。
+-- soko:hint 目标形态：`ratRel ((-y) - ((-x) + eps)) (x - (y + eps))`。
+-- soko:hint 关键件：ratNegRep_add · ratNegRep_invol · ratAdd_assoc · ratAdd_comm · ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratRel_trans_gen · ratRel_symm。
+theorem ratSubRep_neg_shift (x y eps : ratRep) :
+    ratRel (ratSubRep (ratNegRep y) (ratAddRep (ratNegRep x) eps))
+           (ratSubRep x (ratAddRep y eps)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.1 把差界搬到取负之后
+-- ─────────────────────────────────────────────────────────────
+
+-- `x n - ((addConst y eps) n) ≤ d` 是 `realLeRep` 的第三分量。107.0 的
+-- 等价取对称后，`ratLeRep_congr_gen` 把这条界搬到取负的差上；阈值原样
+-- 沿用，因为两个差是等价的。
+--
+-- soko:hint 思路：`realLeRep_close` 取出阈值 N 与界；对每个 n 把 107.0 的对称版本交给 `ratLeRep_congr_gen`，第二个等价用 `ratRel_refl d`。
+-- soko:hint 目标形态：`∃ N, ∀ n ≥ N, ratLeRep ((-y n) - ((-x n) + eps)) d`。
+-- soko:hint 关键件：realLeRep_close · ratLeRep_congr_gen · ratRel_symm · ratRel_refl · ratSubRep_neg_shift。
+theorem neg_tail_le (x y : Seq) (eps d : ratRep)
+    (h : realLeRep x (addConst y eps))
+    (hd : ratLtRep ratZeroRep d) :
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      ratLeRep (ratSubRep (negSeq y n) ((addConst (negSeq x) eps) n)) d :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.2 序在取负下翻向
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个分量分开交：`cauchy_neg` 给两端的 Cauchy 见证，第三分量就是
+-- 107.1 的 λ。注意 `addConst (negSeq x) eps` 的 Cauchy 见证要用
+-- `cauchy_add_const` 作用在 `cauchy_neg x` 上。
+--
+-- soko:hint 思路：`And.intro` 三层——`cauchy_neg y hy`、`cauchy_add_const (negSeq x) eps (cauchy_neg x hx)`、然后 `fun d hd => neg_tail_le x y eps d h hd`。
+-- soko:hint 目标形态：`realLeRep (-y) ((-x) + eps)`。
+-- soko:hint 关键件：cauchy_neg · cauchy_add_const · neg_tail_le · And.intro。
+theorem realLeRep_neg_add (x y : Seq) (eps : ratRep)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : realLeRep x (addConst y eps)) :
+    realLeRep (negSeq y) (addConst (negSeq x) eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.3 `TendsTo` 在取负下保持
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0` 取 `TendsTo x L` 的阈值。取负后原来的下界
+-- `L ≤ x n + eps` 变成新的上界 `-x n ≤ -L + eps`，原来的上界变成新的
+-- 下界；两条都用 107.2 与 `realLe_mk` 的 `mp`/`mpr` 互换。
+--
+-- soko:hint 思路：`Exists.elim` 取 N；每个 n 交两个 `Iff.mpr (realLe_mk …)`，里面的 `realLeRep` 分别由 107.2 作用在 `Iff.mp (realLe_mk …)` 得到的旧界上——旧下界供新上界，旧上界供新下界。
+-- soko:hint 目标形态：`TendsTo (-x) (-L)`。
+-- soko:hint 关键件：realLe_mk · realLeRep_neg_add · And.left · And.right · Iff.mp · Iff.mpr · Exists.elim · Exists.intro。
+theorem tendsTo_neg (x L : Seq) (hx : Cauchy x) (hL : Cauchy L)
+    (h : TendsTo x L) : TendsTo (negSeq x) (negSeq L) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.4 取负后的极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 代表元取 `-L`：`cauchy_neg` 付清第一分量，107.3 付清第二分量，
+-- 第三分量是 `Eq.refl`。
+--
+-- soko:hint 思路：`Exists.intro (negSeq L)`，三件用 `cauchy_neg`、107.3、`Eq.refl`。
+-- soko:hint 目标形态：`LimitClass (-x) [(-L)]`。
+-- soko:hint 关键件：cauchy_neg · tendsTo_neg · Eq.refl · And.intro · Exists.intro。
+theorem limitClass_neg_mk (x L : Seq)
+    (hx : Cauchy x) (hL : Cauchy L) (hT : TendsTo x L) :
+    LimitClass (negSeq x) (Real.mk (negSeq L)) :=
+  sorry
+
+-- 拆开 `LimitClass` 的存在量词，把 107.4 装回去。`a = [L]` 这个分量
+-- 在这里用不上：结论只要求某个极限类存在，不要求它与 a 有运算关系。
+--
+-- soko:hint 思路：`Exists.elim` 拆 h，取 L；`Exists.intro (Real.mk (negSeq L))`，里面直接引用 107.4，Cauchy 见证与收敛见证从 `hL` 的两个分量取。
+-- soko:hint 目标形态：`∃ b, LimitClass (-x) b`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · limitClass_neg_mk · And.left · And.right。
+theorem limitClass_neg (x : Seq) (a : Real)
+    (hx : Cauchy x) (h : LimitClass x a) :
+    ∃ (b : Real), LimitClass (negSeq x) b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.5 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列取负还是常序列（逐点定义），它收敛到自己的类。
+--
+-- soko:hint 思路：`Exists.intro (negSeq (constSeq q))`；`cauchy_neg`、`cauchy_tends_to_class`、`Eq.refl` 三件。
+-- soko:hint 目标形态：`LimitClass (-(constSeq q)) [-(constSeq q)]`。
+-- soko:hint 关键件：cauchy_neg · cauchy_const · cauchy_tends_to_class · Eq.refl。
+theorem demo_limitClass_neg_const (q : ratRep) :
+    LimitClass (negSeq (constSeq q)) (Real.mk (negSeq (constSeq q))) :=
+  sorry

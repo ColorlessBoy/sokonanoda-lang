@@ -1,0 +1,66 @@
+-- 单元53 半数的正性：`0 < ε` ⇒ `0 < ε/2`
+--
+-- 52 给出了「半数」与 `x/2 + x/2 ~ x`。`close` 的传递性还要能**用**这个半数：
+-- 把 Cauchy 假设放在 `ε/2` 上要求 `0 < ε/2`。本单元补上这一条。
+--
+-- 证明路线（不碰代表元，全部走序 + 加法的抽象律）：
+--
+--   · 53.1 `0 ≤ ε/2`：用 ㊺ 的全性把 `0 ≤ ε/2` 与 `ε/2 ≤ 0` 两分支切开；
+--     第二支把 `ε/2 ≤ 0` 加到两边（㊹ 的右加 + 51.1 的左加，已进库）
+--     得到 `ε/2 + ε/2 ≤ 0 + 0`，再用 52 的 `ε/2 + ε/2 ~ ε` 搬到 `ε ≤ 0`；
+--     与 `0 ≤ ε` 用 ㊻ 的反对称性夹出 `0 ~ ε`，撞上严格序的第二分量。
+--   · 53.2 `ε/2 ~ 0 ⇒ ε ~ 0`：把 `ε/2 ~ 0` 读成两条弱序，用同样的加法
+--     相容把 `ε/2 + ε/2` 与 `0 + 0` **互相**夹住，反对称性给出它们相等；
+--     再串上 `0 + 0 ~ 0` 与 52 的 `ε/2 + ε/2 ~ ε`。
+--   · 53.3 把两条装成严格正性；53.4 落在 `1/2 > 0` 上。
+
+import lib.RatHalf
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.1 `0 < ε` ⇒ `0 ≤ ε/2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：用 `ratLeRep_total` 把目标 `0 ≤ ε/2` 与 `ε/2 ≤ 0` 两支切开，右支导出矛盾（`False.elim`）。矛盾链：`ε/2 ≤ 0` 经 `ratLeRep_add_right` 得 `ε/2+ε/2 ≤ 0+ε/2`，`ε/2 ≤ 0` 再经 `ratLeRep_add_left`（`z = 0`）得 `0+ε/2 ≤ 0+0`，`ratLeRep_trans` 串起来；再用 `ratAdd_zero 0` 把右端换成 `0`（`ratLeRep_congr_gen`），用 `ratHalf_add_self` 把左端换成 `ε`，得到 `ε ≤ 0`；与 `And.left h` 用 `ratLeRep_antisymm` 夹出 `0 ~ ε`，撞上 `And.right h`。
+-- soko:hint 目标形态：`ratLtRep 0 eps → ratLeRep 0 (ratHalf eps)`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_congr_gen · ratAdd_zero · ratHalf_add_self · ratLeRep_antisymm · False.elim。
+theorem ratLeRep_half_of_lt (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLeRep ratZeroRep (ratHalf eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.2 `ε/2 ~ 0` ⇒ `ε ~ 0`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h0 : ε/2 ~ 0` 的两个方向各用 `ratLeRep_of_ratRel` 读成弱序。`ε/2+ε/2 ≤ 0+0` 由「右加 `ε/2 ≤ 0`、再左加 `0 ≤ 0`（`z = 0`）」串联；`0+0 ≤ ε/2+ε/2` 由「左加 `0 ≤ ε/2`（`z = 0`）、再右加同一个」串联；`ratLeRep_antisymm` 得到 `ε/2+ε/2 ~ 0+0`，串 `ratAdd_zero 0` 得 `ε/2+ε/2 ~ 0`，最后从 `ε ~ ε/2+ε/2`（`ratHalf_add_self` 取对称）过去。
+-- soko:hint 目标形态：`ratRel (ratHalf eps) 0 → ratRel eps 0`。
+-- soko:hint 关键件：ratLeRep_of_ratRel · ratRel_symm · ratLeRep_add_right · ratLeRep_add_left · ratLeRep_trans · ratLeRep_antisymm · ratRel_trans_gen · ratAdd_zero · ratHalf_add_self。
+theorem ratRel_half_zero (eps : ratRep)
+    (h0 : ratRel (ratHalf eps) ratZeroRep) : ratRel eps ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.3 `0 < ε` ⇒ `0 < ε/2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：严格序是 `And`；第二分量单独取出来（`ratLtRep_right`），再把它用在 53.2 给出的 `ε ~ 0` 上（方向要先用 `ratRel_symm` 摆正）。
+-- soko:hint 目标形态：`ratLtRep x y → ¬ ratRel x y`。
+theorem ratLtRep_right (x y : ratRep) (h : ratLtRep x y) : ¬ ratRel x y :=
+  sorry
+
+-- soko:hint 思路：弱序是 53.1；不相等假设 `0 ~ ε/2`，取对称后交给 53.2 得 `ε ~ 0`，再对称一次撞上 53.3 的前一条投影。
+-- soko:hint 目标形态：`ratLtRep 0 eps → ratLtRep 0 (ratHalf eps)`。
+-- soko:hint 关键件：And.intro · ratLeRep_half_of_lt · ratRel_half_zero · ratRel_symm · ratLtRep_right。
+theorem ratLtRep_half (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (ratHalf eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 53.4 具体：`0 < 1/2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先证 `0 < 1`（弱序 `le_succ 0 0 (le_refl 0)`，不相等把 `0 ~ 1` 化成 `0 = 1` 后交给 `succ_ne_zero`），交给 53.3。
+-- soko:hint 目标形态：`ratLtRep 0 (ratHalf 1)`。
+-- soko:hint 关键件：ratLtRep_half · And.intro · le_succ · le_refl · Eq.symm · succ_ne_zero。
+theorem demo_zero_lt_half_one :
+    ratLtRep ratZeroRep (ratHalf (qrep 1 Nat.zero Nat.zero)) :=
+  sorry

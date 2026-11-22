@@ -1,0 +1,107 @@
+-- 单元108 极限类的减法
+--
+-- 106 给了极限类的加法，107 给了取负。减法可以把两者接起来：`x - y`
+-- 就是 `x + (-y)`。接之前要确认两件事：`subSeq` 与 `addSeq x (negSeq y)`
+-- 是同一个序列，以及 `TendsTo` 的结论在换了名字之后仍然成立。两件事都
+-- 由定义展开直接给出，但调用点要把参数顺序写对。
+--
+-- 108.0 把减法定义成逐点差；108.1–108.2 把 106 与 107 的结论接起来；
+-- 108.3–108.4 收到极限类上；108.5 是常序列的实例。
+--
+-- 边界：只处理已经有极限类的序列。`LimitClass` 不构造实数减法，结论只
+-- 断言差序列有某个极限类，不说它是哪两个类相减。不新增公理。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RealNeg
+import lib.RealAdd
+import lib.RealComplete
+import lib.RealOrder
+import lib.LimitClass
+import lib.LimitClassAdd
+import lib.LimitClassNeg
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.0 逐点差
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 `addSeq` 和 `negSeq` 的定义展开一致：`x - y` 就是 `x + (-y)`。
+def subSeq (x y : Seq) : Seq := fun (n : Nat) => ratAddRep (x n) (ratNegRep (y n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.1 差的收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 `y` 换成 `negSeq y`：106 的和收敛给出
+-- `TendsTo (addSeq x (negSeq y)) (addSeq L (negSeq M))`，107 的取负给出
+-- `TendsTo (negSeq y) (negSeq M)`；`addSeq x (negSeq y)` 与 `subSeq x y`
+-- 是同一个 λ，直接交出去。
+--
+-- soko:hint 思路：`tendsTo_add x (negSeq y) L (negSeq M)` 与 `tendsTo_neg y M` 拼起来；两个 `Cauchy` 分量分别由 `hLc` 与 `cauchy_neg M hMc` 付清。
+-- soko:hint 目标形态：`TendsTo (subSeq x y) (subSeq L M)`。
+-- soko:hint 关键件：tendsTo_add · tendsTo_neg · cauchy_neg。
+theorem tendsTo_sub (x y L M : Seq) (hLc : Cauchy L) (hMc : Cauchy M)
+    (hxc : Cauchy x) (hyc : Cauchy y)
+    (hx : TendsTo x L) (hy : TendsTo y M) :
+    TendsTo (subSeq x y) (subSeq L M) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.2 差的 Cauchy 性
+-- ─────────────────────────────────────────────────────────────
+
+-- 60 的 `cauchy_add` 用在 `x` 与 `negSeq y` 上，取负的 Cauchy 性由
+-- `cauchy_neg` 付清。
+--
+-- soko:hint 思路：`cauchy_add x (negSeq y) hx (cauchy_neg y hy)`；`addSeq x (negSeq y)` 与 `subSeq x y` 定义性相等。
+-- soko:hint 目标形态：`Cauchy (subSeq x y)`。
+-- soko:hint 关键件：cauchy_add · cauchy_neg。
+theorem cauchy_sub (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    Cauchy (subSeq x y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.3 差序列的极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 代表元取 `subSeq L M`：108.2 给 Cauchy，108.1 给收敛，第三分量是
+-- `Eq.refl`。
+--
+-- soko:hint 思路：`Exists.intro (subSeq L M)`；三件用 `cauchy_sub`、`tendsTo_sub`、`Eq.refl`。
+-- soko:hint 目标形态：`LimitClass (subSeq x y) [subSeq L M]`。
+-- soko:hint 关键件：cauchy_sub · tendsTo_sub · Eq.refl · And.intro。
+theorem limitClass_sub_mk (x y L M : Seq) (hLc : Cauchy L) (hMc : Cauchy M)
+    (hxc : Cauchy x) (hyc : Cauchy y) (hx : TendsTo x L) (hy : TendsTo y M) :
+    LimitClass (subSeq x y) (Real.mk (subSeq L M)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.4 两个极限类的差
+-- ─────────────────────────────────────────────────────────────
+
+-- 拆开 `hb` 得到代表元 `M`。107.4 把 `y` 的极限类搬到 `negSeq y` 上，
+-- 106.2 的 `limitClass_add` 再把 `x` 与 `negSeq y` 的类加起来；结论里
+-- 多出的 `addRel` 分量在这里用不上，只取右半边。
+--
+-- soko:hint 思路：对 `hb` 与 `limitClass_add` 的结果各做一次 `Exists.elim`；因为目标与中间结论都是 `Exists`，隐式动机用 `@Exists.elim` 写全（A、p、Q 三个位）。
+-- soko:hint 目标形态：`∃ c, LimitClass (subSeq x y) c`。
+-- soko:hint 关键件：limitClass_add · limitClass_neg_mk · Exists.elim（@ 全显式）· And.right · Exists.intro。
+theorem limitClass_sub (x y : Seq) (a b : Real)
+    (hxc : Cauchy x) (hyc : Cauchy y)
+    (ha : LimitClass x a) (hb : LimitClass y b) :
+    ∃ (c : Real), LimitClass (subSeq x y) c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 108.5 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条常序列的差是常序列，收敛到自己的类。
+--
+-- soko:hint 思路：把 108.3 的六个前提都实例成 `constSeq p`、`constSeq q`；两个 Cauchy 用 `cauchy_const`，两条收敛用 `cauchy_tends_to_class`。
+-- soko:hint 目标形态：`LimitClass (subSeq (constSeq p) (constSeq q)) [subSeq (constSeq p) (constSeq q)]`。
+-- soko:hint 关键件：limitClass_sub_mk · cauchy_const · cauchy_tends_to_class。
+theorem demo_limitClass_sub_const (p q : ratRep) :
+    LimitClass (subSeq (constSeq p) (constSeq q))
+      (Real.mk (subSeq (constSeq p) (constSeq q))) :=
+  sorry

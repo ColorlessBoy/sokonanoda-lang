@@ -1,0 +1,111 @@
+-- 单元㊼ 绝对值的唯一性：同一个数的两个见证相等（解答）
+--
+-- ㊺ 证了「每个有理数都有绝对值」（`∃ d, ratAbsRel x d`），㊻ 证了序的反对称性。
+-- 两者合起来就能回答绝对值是**函数**的那个问题：
+--
+--   ratAbsRel x d  ∧  ratAbsRel x d'   ⟹   d ~ d'
+--
+-- 为什么它不是一句废话：`ratAbsRel` 是**关系**，定义是两个析取的并
+--
+--   (0 ≤ x ∧ d ~ x) ∨ (x ≤ 0 ∧ d ~ -x)
+--
+-- 同一个 `x` 的两个见证可能落在**不同分支**（一个取 `x`、一个取 `-x`）。
+-- ㊻ 的 `ratLeRep_antisymm` 正好把「`0 ≤ x` 与 `x ≤ 0` 同时成立」压成
+-- `x ~ 0`，于是 `x ~ 0 ~ -x`，两个分支的见证就接上了。
+--
+-- 本单元结清：
+--
+--   · ㊼.1 `ratAbsRel_unique`：绝对值的唯一性（四个分支两两配对）；
+--   · ㊼.2 具体：`|-1/2|` 的两个见证 `1/2` 与 `2/4` 相等。
+--
+-- 证明路线：四个分支里「同号」两支只是 `ratRel` 的传递；「异号」两支先用
+-- ㊻ 把 `0 ≤ x ≤ 0` 压成 `0 ~ x`，再用 `ratNegRep_wd` 把 `0 ~ x` 搬到
+-- `0 ~ -x`（或反向），最后用 `ratRel_trans_gen` 把四段串起来。
+--
+-- `ratLeRep` / `leRep` 只做头部展开；`-0` 是闭项，定义性归约回 `0`。
+
+import lib.RatAbsOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊼.1 异号两支：`d ~ x`、`d' ~ -x` 时 `d ~ d'`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h1` 给 `d ~ x`，`h2` 给 `d' ~ -x`；先用 ㊻ 的 `ratLeRep_antisymm 0 x`（前提是 `0 ≤ x` 与 `x ≤ 0`）得到 `0 ~ x`，反转得 `x ~ 0`，再用 `ratNegRep_wd` 得 `0 ~ -x`，最后把「`d ~ x`」「`x ~ 0`」「`0 ~ -x`」「`-x ~ d'`」四段用 `ratRel_trans_gen` 串起来。
+-- soko:hint 目标形态：`(0 ≤ x ∧ d ~ x) → (x ≤ 0 ∧ d' ~ -x) → ratRel d d'`。
+-- soko:hint 关键件：ratLeRep_antisymm · ratNegRep_wd · ratRel_symm · ratRel_trans_gen · And.left · And.right。
+theorem ratAbsRel_left_right (x d d' : ratRep)
+    (hl : ratLeRep ratZeroRep x ∧ ratRel d x)
+    (hr : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) :
+    ratRel d d' :=
+  ratRel_trans_gen d x d'
+    (And.right hl)
+    (ratRel_trans_gen x (ratNegRep x) d'
+      (ratRel_trans_gen x ratZeroRep (ratNegRep x)
+        (ratRel_symm ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr)))
+        (ratNegRep_wd ratZeroRep x
+          (ratLeRep_antisymm ratZeroRep x (And.left hl) (And.left hr))))
+      (ratRel_symm d' (ratNegRep x) (And.right hr)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊼.2 绝对值的唯一性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `h1`、`h2` 各做一次 `Or.elim`，四支。「同号」两支只是 `ratRel` 的传递（`ratRel_trans_gen` + `ratRel_symm`）；「左/右」交给 ㊼.1；「右/左」把 ㊼.1 的两个见证对调后再 `ratRel_symm`。
+-- soko:hint 目标形态：`ratAbsRel x d → ratAbsRel x d' → ratRel d d'`。
+-- soko:hint 关键件：Or.elim · ratRel_trans_gen · ratRel_symm · ratAbsRel_left_right。
+theorem ratAbsRel_unique (x d d' : ratRep)
+    (h1 : ratAbsRel x d) (h2 : ratAbsRel x d') : ratRel d d' :=
+  @Or.elim
+    (ratLeRep ratZeroRep x ∧ ratRel d x)
+    (ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x))
+    (ratRel d d')
+    (fun (h1l : ratLeRep ratZeroRep x ∧ ratRel d x) =>
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =>
+          ratRel_trans_gen d x d'
+            (And.right h1l)
+            (ratRel_symm d' x (And.right h2l)))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =>
+          ratAbsRel_left_right x d d' h1l h2r)
+        h2)
+    (fun (h1r : ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) =>
+      @Or.elim
+        (ratLeRep ratZeroRep x ∧ ratRel d' x)
+        (ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x))
+        (ratRel d d')
+        (fun (h2l : ratLeRep ratZeroRep x ∧ ratRel d' x) =>
+          ratRel_symm d' d (ratAbsRel_left_right x d' d h2l h1r))
+        (fun (h2r : ratLeRep x ratZeroRep ∧ ratRel d' (ratNegRep x)) =>
+          ratRel_trans_gen d (ratNegRep x) d'
+            (And.right h1r)
+            (ratRel_symm d' (ratNegRep x) (And.right h2r)))
+        h2)
+    h1
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊼.3 具体：|-1/2| 的两个见证 1/2 与 2/4 相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 第二支的 `2/4 ~ -(-1/2)`：`-(-1/2)` 定义性归约成 `1/2`，交叉相乘两边都是 `(4, 0)`。
+
+-- soko:hint 思路：`-1/2` 是 `qrep 0 1 1`，`1/2` 是 `qrep 1 0 1`、`2/4` 是 `qrep 2 0 3`。两个见证都走右支：`qrep 0 1 1 ≤ 0` 是 `LeNat 0 1`（`le_succ 0 0 (le_refl 0)`）；`-(-1/2)` 定义性归约成 `1/2`，所以第二个分量分别是 `ratRel_refl` 与 `intRel_of_eq`（交叉相乘两边都是 `(4,0)`，`Eq.refl` 即可）。最后交给 ㊼.1。
+-- soko:hint 目标形态：`ratRel (qrep 1 0 1) (qrep 2 0 3)`。
+-- soko:hint 关键件：ratAbsRel_unique · Or.inr · And.intro · le_succ · le_refl · ratRel_refl · intRel_of_eq · Eq.refl。
+theorem demo_abs_unique :
+    ratRel (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3) :=
+  ratAbsRel_unique (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) (qrep 2 Nat.zero 3)
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (ratRel_refl (qrep 1 Nat.zero 1))))
+    (Or.inr
+      (And.intro
+        (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+        (intRel_of_eq
+          (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))
+          (mulRep (@prod_mk Nat Nat 1 Nat.zero) (den 3))
+          (Eq.refl (mulRep (@prod_mk Nat Nat 2 Nat.zero) (den 1))))))

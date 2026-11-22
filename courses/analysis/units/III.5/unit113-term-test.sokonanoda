@@ -1,0 +1,79 @@
+-- 单元113 收敛级数的通项趋于零
+--
+-- 级数可和是一条很强的要求：部分和的尾巴必须互相靠近。相邻两个部分和只差
+-- 一项，于是这一项也被迫靠近零。这是可和的第一个必要条件，也是判断发散
+-- 最省力的工具：通项不趋于零，级数一定不可和。
+--
+-- 证明只用到 Cauchy 定义与 112 的计算规则。反向不成立：通项趋于零不足以保证
+-- 可和，这条边界留到后续单元处理。
+--
+-- 边界：只处理必要条件。常数非零的级数作为反例给出；调和级数一类需要
+-- 更多估计，不在本单元。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.Series
+import lib.Limit
+import lib.LimitOrder
+import lib.LimitClass
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.0 相邻部分和的差靠近零，则这一项靠近零
+-- ─────────────────────────────────────────────────────────────
+
+-- `(a + b) - a ~ b`，把绝对值搬过去即可。
+theorem close_step_zero (a b eps : ratRep)
+    (h : close (ratAddRep a b) a eps) : close b ratZeroRep eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep (ratAddRep a b) a) d ∧
+        ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left b (ratSubRep b ratZeroRep) d
+            (ratRel_symm (ratSubRep b ratZeroRep) b
+              (ratRel_trans_gen
+                (ratSubRep b ratZeroRep)
+                (ratAddRep b ratZeroRep)
+                b
+                (ratAddRep_wd_snd_gen b (ratNegRep ratZeroRep) ratZeroRep
+                  (ratRel_refl ratZeroRep))
+                (ratAdd_zero b)))
+            (ratAbsRel_wd_left (ratSubRep (ratAddRep a b) a) b d
+              (ratSubRep_add_self_sub a b) (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.1 可和级数的通项趋于零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对每个 eps > 0，Cauchy 性给出阈值 N。对 n ≥ N，`Series f n` 与 `Series f (n+1)` 的差在 eps 内；把这条接近性翻向，左边正好是 `Series f n + f n`，再交 113.0。
+-- soko:hint 目标形态：`Eventually (fun n => close (f n) ratZeroRep eps)`。
+-- soko:hint 关键件：Cauchy 的定义 · close_symm · close_step_zero · series_succ · leNat_self_add · Exists.intro。
+theorem summable_terms_tend_zero (f : Nat → ratRep) (h : Summable f) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      Eventually (fun (n : Nat) => close (f n) ratZeroRep eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.2 常数非零的级数不可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：若常级数可和，113.1 说 `q` 在任意正 eps 内靠近零；每一项都等于 q，所以 74.6 的 `ratRel_of_close_all` 直接给出 `q ~ 0`，与 hq 矛盾。
+-- soko:hint 目标形态：`False`（从 `Summable (fun _ => q)` 与 `¬ ratRel q ratZeroRep`）。
+-- soko:hint 关键件：summable_terms_tend_zero · ratRel_of_close_all · Exists.elim · LeNat.le_refl。
+theorem not_summable_const (q : ratRep) (hq : ¬ ratRel q ratZeroRep) :
+    ¬ Summable (fun (_ : Nat) => q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 113.3 具体：常数 1 的级数不可和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 q 取成 1。`1 ~ 0` 与严格序 `0 < 1` 的第二分量矛盾（先把 `1 ~ 0` 翻成 `0 ~ 1`），再把这份矛盾交给 113.2。
+-- soko:hint 目标形态：`¬ Summable (fun _ => ratOneRep)`。
+-- soko:hint 关键件：not_summable_const · ratLtRep_zero_one · ratRel_symm。
+theorem demo_const_one_not_summable :
+    ¬ Summable (fun (_ : Nat) => ratOneRep) :=
+  sorry

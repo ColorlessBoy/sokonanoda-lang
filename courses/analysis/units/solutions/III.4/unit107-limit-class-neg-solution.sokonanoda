@@ -1,0 +1,199 @@
+-- 单元107 极限类的取负（解答）
+--
+-- 取负是商上最先被定义成函数的运算（59），但它的序性质一直没有用在极限上。
+-- 一条序列逐项取负，极限也要取负：这看起来只是符号翻转，做起来却要处理
+-- 两件事。一是 `TendsTo` 的两条非严格界在取负后互换位置；二是 `realLeRep`
+-- 的前两个分量是 `Cauchy`，取负后的序列还得另付一次 `cauchy_neg`。
+--
+-- 107.0 把 `(-y) - ((-x) + eps)` 与 `x - (y + eps)` 认成同一个差；
+-- 107.1 把它逐点搬进 `realLeRep`；107.2 组装成 `TendsTo`；107.3–107.4
+-- 把结论收成极限类；107.5 是常序列的实例。
+--
+-- 边界：取负只在带 Cauchy 见证的序列上做，因为 `TendsTo` 的目标类型本身
+-- 带一个 `Cauchy` 分量。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.Cauchy
+import lib.RatClose
+import lib.RealEq
+import lib.RealNeg
+import lib.RealComplete
+import lib.RealOrder
+import lib.LimitClass
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.0 取负之后的差
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边都是 `x - y - eps` 的变体：左边先把 `-((-x) + eps)` 拆成
+-- `-(-x) + -eps`，把 `-(-x)` 认成 `x`；右边用 `-(y + eps)` 的定义。
+-- 中间差一次结合律与一次交换律。
+--
+theorem ratSubRep_neg_shift (x y eps : ratRep) :
+    ratRel (ratSubRep (ratNegRep y) (ratAddRep (ratNegRep x) eps))
+           (ratSubRep x (ratAddRep y eps)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratNegRep y) (ratNegRep (ratAddRep (ratNegRep x) eps)))
+    (ratAddRep (ratNegRep y) (ratAddRep (ratNegRep (ratNegRep x)) (ratNegRep eps)))
+    (ratSubRep x (ratAddRep y eps))
+    (ratAddRep_wd_snd_gen (ratNegRep y)
+      (ratNegRep (ratAddRep (ratNegRep x) eps))
+      (ratAddRep (ratNegRep (ratNegRep x)) (ratNegRep eps))
+      (ratNegRep_add (ratNegRep x) eps))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep y) (ratAddRep (ratNegRep (ratNegRep x)) (ratNegRep eps)))
+      (ratAddRep (ratNegRep y) (ratAddRep x (ratNegRep eps)))
+      (ratSubRep x (ratAddRep y eps))
+      (ratAddRep_wd_snd_gen (ratNegRep y)
+        (ratAddRep (ratNegRep (ratNegRep x)) (ratNegRep eps))
+        (ratAddRep x (ratNegRep eps))
+        (ratAddRep_wd_gen (ratNegRep (ratNegRep x)) x (ratNegRep eps)
+          (ratNegRep_invol x)))
+      (ratRel_trans_gen
+        (ratAddRep (ratNegRep y) (ratAddRep x (ratNegRep eps)))
+        (ratAddRep (ratAddRep (ratNegRep y) x) (ratNegRep eps))
+        (ratSubRep x (ratAddRep y eps))
+        (ratRel_symm
+          (ratAddRep (ratAddRep (ratNegRep y) x) (ratNegRep eps))
+          (ratAddRep (ratNegRep y) (ratAddRep x (ratNegRep eps)))
+          (ratAdd_assoc (ratNegRep y) x (ratNegRep eps)))
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep (ratNegRep y) x) (ratNegRep eps))
+          (ratAddRep (ratAddRep x (ratNegRep y)) (ratNegRep eps))
+          (ratSubRep x (ratAddRep y eps))
+          (ratAddRep_wd_gen (ratAddRep (ratNegRep y) x) (ratAddRep x (ratNegRep y))
+            (ratNegRep eps) (ratAdd_comm (ratNegRep y) x))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep x (ratNegRep y)) (ratNegRep eps))
+            (ratAddRep x (ratAddRep (ratNegRep y) (ratNegRep eps)))
+            (ratSubRep x (ratAddRep y eps))
+            (ratAdd_assoc x (ratNegRep y) (ratNegRep eps))
+            (ratRel_symm
+              (ratSubRep x (ratAddRep y eps))
+              (ratAddRep x (ratAddRep (ratNegRep y) (ratNegRep eps)))
+              (ratAddRep_wd_snd_gen x
+                (ratNegRep (ratAddRep y eps))
+                (ratAddRep (ratNegRep y) (ratNegRep eps))
+                (ratNegRep_add y eps)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.1 把差界搬到取负之后
+-- ─────────────────────────────────────────────────────────────
+
+-- `x n - ((addConst y eps) n) ≤ d` 是 `realLeRep` 的第三分量。107.0 的
+-- 等价取对称后，`ratLeRep_congr_gen` 把这条界搬到取负的差上；阈值原样
+-- 沿用，因为两个差是等价的。
+--
+theorem neg_tail_le (x y : Seq) (eps d : ratRep)
+    (h : realLeRep x (addConst y eps))
+    (hd : ratLtRep ratZeroRep d) :
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      ratLeRep (ratSubRep (negSeq y n) ((addConst (negSeq x) eps) n)) d :=
+  Exists.elim (realLeRep_close x (addConst y eps) h d hd)
+    (fun (N : Nat)
+        (hN : ∀ (n : Nat), LeNat N n →
+          ratLeRep (ratSubRep (x n) ((addConst y eps) n)) d) =>
+      Exists.intro N
+        (fun (n : Nat) (hn : LeNat N n) =>
+          ratLeRep_congr_gen
+            (ratSubRep (x n) ((addConst y eps) n))
+            (ratSubRep (negSeq y n) ((addConst (negSeq x) eps) n))
+            d d
+            (ratRel_symm
+              (ratSubRep (negSeq y n) ((addConst (negSeq x) eps) n))
+              (ratSubRep (x n) ((addConst y eps) n))
+              (ratSubRep_neg_shift (x n) (y n) eps))
+            (ratRel_refl d)
+            (hN n hn)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.2 序在取负下翻向
+-- ─────────────────────────────────────────────────────────────
+
+-- 三个分量分开交：`cauchy_neg` 给两端的 Cauchy 见证，第三分量就是
+-- 107.1 的 λ。注意 `addConst (negSeq x) eps` 的 Cauchy 见证要用
+-- `cauchy_add_const` 作用在 `cauchy_neg x` 上。
+--
+theorem realLeRep_neg_add (x y : Seq) (eps : ratRep)
+    (hx : Cauchy x) (hy : Cauchy y)
+    (h : realLeRep x (addConst y eps)) :
+    realLeRep (negSeq y) (addConst (negSeq x) eps) :=
+  And.intro (cauchy_neg y hy)
+    (And.intro (cauchy_add_const (negSeq x) eps (cauchy_neg x hx))
+      (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+        neg_tail_le x y eps d h hd))
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.3 `TendsTo` 在取负下保持
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0` 取 `TendsTo x L` 的阈值。取负后原来的下界
+-- `L ≤ x n + eps` 变成新的上界 `-x n ≤ -L + eps`，原来的上界变成新的
+-- 下界；两条都用 107.2 与 `realLe_mk` 的 `mp`/`mpr` 互换。
+--
+theorem tendsTo_neg (x L : Seq) (hx : Cauchy x) (hL : Cauchy L)
+    (h : TendsTo x L) : TendsTo (negSeq x) (negSeq L) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n : Nat), LeNat N n →
+            realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L eps)) ∧
+            realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) eps))) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            And.intro
+              (Iff.mpr
+                (realLe_mk (constSeq (ratNegRep (x n))) (addConst (negSeq L) eps))
+                (realLeRep_neg_add L (constSeq (x n)) eps hL (cauchy_const (x n))
+                  (Iff.mp (realLe_mk L (addConst (constSeq (x n)) eps))
+                    (And.right (hN n hn)))))
+              (Iff.mpr
+                (realLe_mk (negSeq L) (addConst (constSeq (ratNegRep (x n))) eps))
+                (realLeRep_neg_add (constSeq (x n)) L eps
+                  (cauchy_const (x n)) hL
+                  (Iff.mp (realLe_mk (constSeq (x n)) (addConst L eps))
+                    (And.left (hN n hn)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.4 取负后的极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 代表元取 `-L`：`cauchy_neg` 付清第一分量，107.3 付清第二分量，
+-- 第三分量是 `Eq.refl`。
+--
+theorem limitClass_neg_mk (x L : Seq)
+    (hx : Cauchy x) (hL : Cauchy L) (hT : TendsTo x L) :
+    LimitClass (negSeq x) (Real.mk (negSeq L)) :=
+  Exists.intro (negSeq L)
+    (And.intro (cauchy_neg L hL)
+      (And.intro (tendsTo_neg x L hx hL hT)
+        (Eq.refl (Real.mk (negSeq L)))))
+
+-- 拆开 `LimitClass` 的存在量词，把 107.4 装回去。`a = [L]` 这个分量
+-- 在这里用不上：结论只要求某个极限类存在，不要求它与 a 有运算关系。
+--
+theorem limitClass_neg (x : Seq) (a : Real)
+    (hx : Cauchy x) (h : LimitClass x a) :
+    ∃ (b : Real), LimitClass (negSeq x) b :=
+  Exists.elim h
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L ∧ a = Real.mk L) =>
+      Exists.intro (Real.mk (negSeq L))
+        (limitClass_neg_mk x L hx (And.left hL) (And.left (And.right hL))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 107.5 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列取负还是常序列（逐点定义），它收敛到自己的类。
+--
+theorem demo_limitClass_neg_const (q : ratRep) :
+    LimitClass (negSeq (constSeq q)) (Real.mk (negSeq (constSeq q))) :=
+  Exists.intro (negSeq (constSeq q))
+    (And.intro (cauchy_neg (constSeq q) (cauchy_const q))
+      (And.intro
+        (cauchy_tends_to_class (negSeq (constSeq q))
+          (cauchy_neg (constSeq q) (cauchy_const q)))
+        (Eq.refl (Real.mk (negSeq (constSeq q))))))

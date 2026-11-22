@@ -1,0 +1,20 @@
+-- 课程库：减法界搬成加法界
+--
+-- 单元77 与单元79 都要把一条 `a - b ≤ eps` 的估计改写成 `a ≤ eps + b`。
+-- 这条搬运只依赖 `(a - b) + b ~ a` 与序对右加法的相容，两条库引理都在
+-- `lib/LimitOrder` 里；把它单独放一层，两个模块共用一份，避免同名声明
+-- 在同一个闭包里相撞。
+--
+-- 边界：只在代表元层搬运，不谈收敛与极限。不新增公理。
+
+import lib.LimitOrder
+
+-- `a - b ≤ eps` 两边加 `b`：左边 `(a - b) + b ~ a`，右边不变。
+theorem le_of_sub_le (a b eps : ratRep)
+    (h : ratLeRep (ratSubRep a b) eps) : ratLeRep a (ratAddRep eps b) :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a b) b) a
+    (ratAddRep eps b) (ratAddRep eps b)
+    (ratSubRep_add_self a b)
+    (ratRel_refl (ratAddRep eps b))
+    (ratLeRep_add_right (ratSubRep a b) eps b h)

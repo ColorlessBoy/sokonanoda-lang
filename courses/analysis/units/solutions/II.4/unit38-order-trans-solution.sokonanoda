@@ -1,0 +1,100 @@
+-- 单元㊳ 有理数的序：传递性
+--
+-- 单元㉙ 用交叉相乘定义了 `ratLeRep`，单元㊲ 备好了「乘正分母保序 / 可消去」
+-- 的引擎。本单元把它们拼起来，结清序的**传递性**：
+--
+--   x ≤ y  ∧  y ≤ z  ⟹  x ≤ z
+--
+-- 证明路线（把两个不等式换到同一个公分母上再比较）：
+--
+--   ① 把 `x ≤ y` 两边乘 `z_den`：`x·y_den·z_den ≤ y·x_den·z_den`；
+--   ② 把 `y ≤ z` 两边乘 `x_den`：`y·z_den·x_den ≤ z·y_den·x_den`；
+--   ③ 中间项 `(y·x_den)·z_den` 与 `(y·z_den)·x_den` 只差分母的换位（㊳.1），
+--      换位后用 `leRep_trans` 串成 `x·y_den·z_den ≤ z·y_den·x_den`；
+--   ④ 两边各换位一次，把 `y_den` 挪到最外层，`leRep_cancel_den` 消去它，
+--      正好得到 `ratLeRep x z` 展开后的形状。
+--
+-- 引擎（`leRep_mul_den_right` / `leRep_cancel_den`）已在单元㊲ 判卷，收在
+-- `lib/RatOrder`；本单元的律（㊳.1–㊳.3）留在画布里。
+
+import lib.RatOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊳.1 两个正分母可以换位
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两边各用一次 `mulRep_assoc` 拆成 `p·(den m · den k)` 与 `p·(den k · den m)`，中间用 `mulRep_comm` 交换括号里的两个正分母；`intRel_trans` 把三段串起来（第二段是等式，用 `intRel_of_eq` 读成 `intRel`）。
+-- soko:hint 目标形态：`intRel (mulRep (mulRep p (den m)) (den k)) (mulRep (mulRep p (den k)) (den m))`。
+-- soko:hint 关键件：mulRep_assoc（两次，其中一次取 `intRel_symm`）· mulRep_comm · congrArg · intRel_of_eq · intRel_trans。
+theorem mulRep_den_perm (p : Prod Nat Nat) (m k : Nat) :
+    intRel (mulRep (mulRep p (den m)) (den k))
+           (mulRep (mulRep p (den k)) (den m)) :=
+  match p with
+  | prod_mk a b =>
+    intRel_trans
+      (mulRep (mulRep (prod_mk a b) (den m)) (den k))
+      (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+      (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+      (mulRep_assoc a b (Nat.succ m) Nat.zero (Nat.succ k) Nat.zero)
+      (intRel_trans
+        (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+        (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+        (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+        (intRel_of_eq
+          (mulRep (prod_mk a b) (mulRep (den m) (den k)))
+          (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+          (congrArg
+            (fun (x : Prod Nat Nat) => mulRep (prod_mk a b) x)
+            (mulRep_comm (Nat.succ m) Nat.zero (Nat.succ k) Nat.zero)))
+        (intRel_symm
+          (mulRep (mulRep (prod_mk a b) (den k)) (den m))
+          (mulRep (prod_mk a b) (mulRep (den k) (den m)))
+          (mulRep_assoc a b (Nat.succ k) Nat.zero (Nat.succ m) Nat.zero)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊳.2 序的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：h1 两边乘 `den z`、h2 两边乘 `den x`（`leRep_mul_den_right`）；中间项 `(y·x_den)·z_den` 与 `(y·z_den)·x_den` 用 ㊳.1 换位，再用 `leRep_trans` 串成一条；最后两边各用 ㊳.1 把 `y_den` 挪到最外层，`leRep_cancel_den` 消去它。
+-- soko:hint 目标形态：`ratLeRep x y → ratLeRep y z → ratLeRep x z`。
+-- soko:hint 关键件：leRep_mul_den_right · mulRep_den_perm · leRep_wd_pair · leRep_trans · leRep_cancel_den。
+theorem ratLeRep_trans (x y z : ratRep)
+    (h1 : ratLeRep x y) (h2 : ratLeRep y z) : ratLeRep x z :=
+  leRep_cancel_den
+    (leNum x z) (leNum z x) (denOf y)
+    (leRep_wd_pair
+      (mulRep (leNum x y) (den (denOf z)))
+      (mulRep (leNum x z) (den (denOf y)))
+      (mulRep (leNum z y) (den (denOf x)))
+      (mulRep (leNum z x) (den (denOf y)))
+      (mulRep_den_perm (numOf x) (denOf y) (denOf z))
+      (mulRep_den_perm (numOf z) (denOf y) (denOf x))
+      (leRep_trans
+        (Prod.fst Nat Nat (mulRep (leNum x y) (den (denOf z))))
+        (Prod.snd Nat Nat (mulRep (leNum x y) (den (denOf z))))
+        (Prod.fst Nat Nat (mulRep (leNum y z) (den (denOf x))))
+        (Prod.snd Nat Nat (mulRep (leNum y z) (den (denOf x))))
+        (Prod.fst Nat Nat (mulRep (leNum z y) (den (denOf x))))
+        (Prod.snd Nat Nat (mulRep (leNum z y) (den (denOf x))))
+        (leRep_wd_pair
+          (mulRep (leNum x y) (den (denOf z)))
+          (mulRep (leNum x y) (den (denOf z)))
+          (mulRep (leNum y x) (den (denOf z)))
+          (mulRep (leNum y z) (den (denOf x)))
+          (intRel_refl (mulRep (leNum x y) (den (denOf z))))
+          (mulRep_den_perm (numOf y) (denOf x) (denOf z))
+          (leRep_mul_den_right (leNum x y) (leNum y x) (denOf z) h1))
+        (leRep_mul_den_right (leNum y z) (leNum z y) (denOf x) h2)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊳.3 具体：0 ≤ 1/2 ≤ 3/4 推出 0 ≤ 3/4
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取中间项 `qrep 1 0 1`（即 1/2），对 ㊳.2 用两次。两条前提先算清交叉相乘后的 `LeNat`：`0 ≤ 1/2` 是 `LeNat 0 1`，`1/2 ≤ 3/4` 是 `LeNat 4 6`；都用 `le_succ` 叠出来。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep (qrep 3 0 3)`。
+-- soko:hint 关键件：ratLeRep_trans · le_succ · le_refl。
+theorem demo_ratLe_trans :
+    ratLeRep ratZeroRep (qrep 3 0 3) :=
+  ratLeRep_trans ratZeroRep (qrep 1 0 1) (qrep 3 0 3)
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (le_succ 4 5 (le_succ 4 4 (le_refl 4)))

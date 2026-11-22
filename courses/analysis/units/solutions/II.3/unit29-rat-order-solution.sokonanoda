@@ -1,0 +1,80 @@
+-- 单元㉙ 有理数的序：代表元公式与自反性
+--
+-- M1 把 ℚ 建成 `Quot ratRel`（单元⑳），并在代表元层结清了加法与乘法的
+-- 良定义性（㉖–㉘）。从本单元起进入 **ℚ 的性质**：序、绝对值、幂、间隙。
+--
+-- 序的定义沿用整数序的同一套想法：`(a-b)/(m+1) ≤ (c-d)/(n+1)` 等价于
+-- 交叉相乘后的 ℕ 不等式
+--
+--   a·(n+1) + d·(m+1)  ≤  c·(m+1) + b·(n+1)
+--
+-- 右边不是笔误：`(a-b)(n+1) ≤ (c-d)(m+1)` 移项后，负部 `-b(n+1)` 与
+-- `-d(m+1)` 都搬到对面。分母 `(m+1)(n+1)` 是正的，所以交叉相乘不改变方向。
+--
+-- 本单元只做**定义 + 自反 + 相等蕴含序**；传递性、全序与加法/乘法相容
+-- 留给后续单元（它们都要先把两个代表元换到公分母）。
+--
+-- 本单元自带序的定义与前序地基（L3：律必须留在单元里）；ℚ 的算术内核
+-- 来自 `lib/Rat`（M1 已判卷的构造与法律）。
+
+import lib.Rat
+
+-- 有理数的非严格序：交叉相乘后的 ℕ 不等式。
+def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))
+
+-- 严格序：≤ 且不相等（相等仍用商上的 `ratRel` 表达）。
+def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.1 序的自反性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLeRep x x` 展开后两边是同一个整数代表元 `mulRep …`，用 `leRep_refl`。
+-- soko:hint 目标形态：`ratLeRep x x`。
+-- soko:hint 关键件：leRep_refl。
+theorem ratLeRep_refl (x : ratRep) : ratLeRep x x :=
+  leRep_refl (mulRep (numOf x) (den (denOf x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.2 相等蕴含序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`h : ratRel x y` 就是两个交叉乘积的整数相等；序的良定义性 `leRep_wd_pair` 把 `leRep p p` 搬到 `leRep p q`，其中 `p`、`q` 正是 `ratLeRep` 展开后的两个乘积。
+-- soko:hint 目标形态：`ratRel x y → ratLeRep x y`。
+-- soko:hint 关键件：leRep_wd_pair · intRel_refl · leRep_refl。
+theorem ratLeRep_of_ratRel (x y : ratRep) (h : ratRel x y) : ratLeRep x y :=
+  leRep_wd_pair
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+    (mulRep (numOf y) (den (denOf x)))
+    (intRel_symm
+      (mulRep (numOf x) (den (denOf y)))
+      (mulRep (numOf y) (den (denOf x))) h)
+    (intRel_refl (mulRep (numOf y) (den (denOf x))))
+    (leRep_refl (mulRep (numOf y) (den (denOf x))))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.3 具体数字：0 ≤ 1
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：0/1 与 1/1 交叉相乘得 `0 ≤ 1`，用 `le_succ 0 0 (le_refl 0)`。
+-- soko:hint 目标形态：`ratLeRep (qrep 0 0 0) (qrep 1 0 0)`。
+-- soko:hint 关键件：le_succ · le_refl。
+theorem demo_zero_le_one :
+    ratLeRep (qrep Nat.zero Nat.zero Nat.zero) (qrep 1 Nat.zero Nat.zero) :=
+  le_succ Nat.zero Nat.zero (le_refl Nat.zero)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉙.4 具体数字：1/2 ≤ 3/4
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：交叉相乘后是 `4 ≤ 6`；用两次 `le_succ` 从 `le_refl 4` 走到 6。
+-- soko:hint 目标形态：`ratLeRep (qrep 1 0 1) (qrep 3 0 3)`。
+-- soko:hint 关键件：le_succ · le_refl。
+theorem demo_half_le_three_quarters :
+    ratLeRep (qrep 1 Nat.zero 1) (qrep 3 Nat.zero 3) :=
+  le_succ 4 5 (le_succ 4 4 (le_refl 4))

@@ -1,0 +1,144 @@
+-- 单元158 上下和与可积性：两条台阶之间的宽度
+--
+-- 上界与下界还是函数，不能直接比较大小；把每一段的高乘上这一段的宽，再加
+-- 起来，才得到两个数。上面的那摞台阶给出上和，下面的那摞给出下和。同一个
+-- 分割上，每一段的下界都不超过上界，于是下和不超过上和。两条台阶贴得越
+-- 近，曲线底下的面积就被夹得越窄。
+--
+-- 「贴得足够近」可以写成一条 ε 判据：任给正数 ε，都存在一个分割，使它的上
+-- 和与下和之差小于 ε。满足这条判据的函数叫可积。常值函数是最先能验证的例
+-- 子：上下两摞台阶取同一个常数，差恰好是零，而零小于任何正数。取负把两摞
+-- 台阶对调，上和与下和也跟着对调，这是后面把可积性接到代数运算上的第一
+-- 步。
+--
+-- 边界：只做到可积性的 ε 判据与常值函数的验证，不证明连续或单调函数可积，
+-- 也不定义积分值。函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，
+-- 也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+
+-- ─────────────────────────────────────────────────────────────
+-- 把一摞台阶变成一块面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 上和的候选值：有一摞上界 `u`，它的矩形和就是 `U`。用关系而不是函数，
+-- 是因为同一个分割上的上界可以有很多摞，谁都不是唯一的那一摞。
+def UpperSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (U : ratRep) : Prop :=
+  ∃ (u : Nat → ratRep), UpperStep a b p f u ∧ ratRel U (stepSum p u)
+
+-- 下和同理：从一摞下界出发，取它的矩形和。
+def LowerSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (L : ratRep) : Prop :=
+  ∃ (l : Nat → ratRep), LowerStep a b p f l ∧ ratRel L (stepSum p l)
+
+-- 可积：每个正 ε 都配得上一个分割，使这个分割的上和与下和之差小于 ε。
+-- 分割必须真的是区间 [a, b] 的分割，否则「差」可以靠退化的分割作假。
+def Integrable (a b : ratRep) (f : ratRep → ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (p : Partition), IsPartition a b p ∧
+      ∃ (L : ratRep), ∃ (U : ratRep),
+        LowerSum a b p f L ∧ UpperSum a b p f U ∧
+          ratLtRep (ratSubRep U L) eps
+
+-- soko:hint 思路：常值曲线的上界取同一个 k，矩形和用两切点分割的读数 `k · (b - a)`；把这两件装进存在量词。
+-- soko:hint 目标形态：`UpperSum a b (twoPoint a b) (fun _ => k) (k · (b - a))`。
+-- soko:hint 关键件：upperStep_const · stepSum_twoPoint · Exists.intro · And.intro。
+theorem upperSum_twoPoint_const (a b k : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry
+
+-- soko:hint 思路：与上和同形，只是把下界那一摞代进去。
+-- soko:hint 目标形态：`LowerSum a b (twoPoint a b) (fun _ => k) (k · (b - a))`。
+-- soko:hint 关键件：lowerStep_const · stepSum_twoPoint · Exists.intro · And.intro。
+theorem lowerSum_twoPoint_const (a b k : ratRep) :
+    LowerSum a b (twoPoint a b) (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一条曲线、同一个分割：下界不超过上界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个界都在左端点取值，得到 `l i ≤ f (point i) ≤ u i`，再用传递性收成 `l i ≤ u i`。
+-- soko:hint 目标形态：`l i ≤ u i`，前提是同一分割上的下界与上界。
+-- soko:hint 关键件：lowerStep_value · upperStep_value · ratLeRep_trans。
+theorem lowerStep_le_upperStep (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (u i) :=
+  sorry
+
+-- soko:hint 思路：逐段的下界不超过上界，乘上同一个正宽，再把每段的不等式加起来；两端的 `L`、`U` 沿定义里的等价关系搬过去。
+-- soko:hint 目标形态：`L ≤ U`。
+-- soko:hint 关键件：stepSum_mono · lowerStep_le_upperStep · ratLeRep_congr_gen · ratRel_symm · Exists.elim。
+theorem lowerSum_le_upperSum (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L U : ratRep) (hp : IsPartition a b p)
+    (hL : LowerSum a b p f L) (hU : UpperSum a b p f U) :
+    ratLeRep L U :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 整体抬高与取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 g 的上界原样拿来给 f 用；逐点上 f 更低，上界仍然压得住，矩形和与 `U` 的关系不变。
+-- soko:hint 目标形态：`UpperSum a b p f U`，前提是 `∀ x, f x ≤ g x` 与 `UpperSum a b p g U`。
+-- soko:hint 关键件：upperStep_mono · Exists.elim · Exists.intro。
+theorem upperSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperSum a b p g U) : UpperSum a b p f U :=
+  sorry
+
+-- soko:hint 思路：下界对更低的 f 也仍然垫得住；把 f 的下界原样留给 g。
+-- soko:hint 目标形态：`LowerSum a b p g L`，前提是 `∀ x, f x ≤ g x` 与 `LowerSum a b p f L`。
+-- soko:hint 关键件：lowerStep_mono · Exists.elim · Exists.intro。
+theorem lowerSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerSum a b p f L) : LowerSum a b p g L :=
+  sorry
+
+-- soko:hint 思路：取负把上界翻成下界，矩形和也该取负；先用 `stepSum_neg` 把和的负号搬到外面，再把 `U` 的等价关系送过去。
+-- soko:hint 目标形态：`LowerSum a b p (fun x => - f x) (- U)`。
+-- soko:hint 关键件：upperStep_neg · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen。
+theorem upperSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p f U) :
+    LowerSum a b p (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep U) :=
+  sorry
+
+-- soko:hint 思路：下界取负变成上界，矩形和同时取负；与上和那条同一条搬运链。
+-- soko:hint 目标形态：`UpperSum a b p (fun x => - f x) (- L)`。
+-- soko:hint 关键件：lowerStep_neg · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen。
+theorem lowerSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p f L) :
+    UpperSum a b p (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep L) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数可积
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：分割取两切点，下和与上和都取 `k · (b - a)`；它们相减等于零，而零小于任意正 ε，于是这条 ε 判据对每个正 ε 都有见证。
+-- soko:hint 目标形态：`Integrable a b (fun _ => k)`。
+-- soko:hint 关键件：twoPoint_isPartition · upperSum_twoPoint_const · lowerSum_twoPoint_const · ratSubRep_self · ratLtRep_congr_fst · Exists.intro。
+theorem integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => k) :=
+  sorry

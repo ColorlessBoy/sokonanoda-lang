@@ -1,0 +1,120 @@
+-- 课程库：上下极限与常数界
+--
+-- 96 的单向估计收进 L2：序列本身的常数界（逐项或终究）压住上极限、托住
+-- 下极限。
+--
+--   · `BoundedAbove` / `BoundedBelow` —— 逐项的上下界；
+--   · `limsup_le_of_boundedAbove` —— 上界压住上极限；
+--   · `le_liminf_of_boundedBelow` —— 下界托住下极限；
+--   · `limsup_le_of_eventually_boundedAbove` —— 终究上界也够；
+--   · `le_liminf_of_eventually_boundedBelow` —— 同上的下界版本；
+--   · `limsup_const_rel` —— 常序列的上极限就是它的值；
+--   · `demo_both_bounds` —— 两侧的界一起给出。
+--
+-- 边界：只有单向的界。`limsup ≤ B` 不反推每一项都不超过 B，首项可以短暂高于
+-- B。不新增公理，也不碰 kernel/front。
+
+import lib.Limsup
+import lib.Liminf
+import lib.LimitLe
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.0 序列的上界与下界
+-- ─────────────────────────────────────────────────────────────
+
+def BoundedAbove (x : Seq) (B : ratRep) : Prop :=
+  ∀ (n : Nat), ratLeRep (x n) B
+
+def BoundedBelow (x : Seq) (B : ratRep) : Prop :=
+  ∀ (n : Nat), ratLeRep B (x n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.1 上界压住上极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_le_of_boundedAbove (x : Seq) (B L : ratRep)
+    (hB : BoundedAbove x B) (hL : Limsup x L) : ratLeRep L B :=
+  limsup_least x L hL B
+    (fun (P : ratRep) (hP : LimitPoint x P) =>
+      Exists.elim hP
+        (fun (g : Nat → Nat)
+            (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+          converges_le_const (fun (n : Nat) => x (g n)) P B (And.right hg)
+            (Exists.intro Nat.zero
+              (fun (n : Nat) (_hn : LeNat Nat.zero n) => hB (g n)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.2 下界托住下极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem le_liminf_of_boundedBelow (x : Seq) (B L : ratRep)
+    (hB : BoundedBelow x B) (hL : Liminf x L) : ratLeRep B L :=
+  liminf_greatest x L hL B
+    (fun (P : ratRep) (hP : LimitPoint x P) =>
+      Exists.elim hP
+        (fun (g : Nat → Nat)
+            (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+          converges_le_of_eventually (constSeq B) (fun (n : Nat) => x (g n)) B P
+            (converges_const B) (And.right hg)
+            (Exists.intro Nat.zero
+              (fun (n : Nat) (_hn : LeNat Nat.zero n) => hB (g n)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.3 终究有上界就压住上极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_le_of_eventually_boundedAbove (x : Seq) (B L : ratRep)
+    (hB : Eventually (fun (n : Nat) => ratLeRep (x n) B)) (hL : Limsup x L) :
+    ratLeRep L B :=
+  limsup_least x L hL B
+    (fun (P : ratRep) (hP : LimitPoint x P) =>
+      Exists.elim hB
+        (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → ratLeRep (x n) B) =>
+          Exists.elim hP
+            (fun (g : Nat → Nat)
+                (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+              converges_le_const (fun (n : Nat) => x (g n)) P B (And.right hg)
+                (Exists.intro N
+                  (fun (n : Nat) (hn : LeNat N n) =>
+                    hN (g n)
+                      (leNat_trans N n (g n) hn (subseq_ge g (And.left hg) n)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.4 终究有下界就托住下极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem le_liminf_of_eventually_boundedBelow (x : Seq) (B L : ratRep)
+    (hB : Eventually (fun (n : Nat) => ratLeRep B (x n))) (hL : Liminf x L) :
+    ratLeRep B L :=
+  liminf_greatest x L hL B
+    (fun (P : ratRep) (hP : LimitPoint x P) =>
+      Exists.elim hB
+        (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → ratLeRep B (x n)) =>
+          Exists.elim hP
+            (fun (g : Nat → Nat)
+                (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+              converges_le_of_eventually (constSeq B) (fun (n : Nat) => x (g n)) B P
+                (converges_const B) (And.right hg)
+                (Exists.intro N
+                  (fun (n : Nat) (hn : LeNat N n) =>
+                    hN (g n)
+                      (leNat_trans N n (g n) hn (subseq_ge g (And.left hg) n)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.5 常序列的上极限就是它的值
+-- ─────────────────────────────────────────────────────────────
+
+theorem limsup_const_rel (q L : ratRep) (h : Limsup (constSeq q) L) : ratRel L q :=
+  limsup_unique (constSeq q) L q h (limsup_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.6 两侧的界一起给出
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_both_bounds (x : Seq) (B C L M : ratRep)
+    (hB : BoundedBelow x B) (hC : BoundedAbove x C)
+    (hM : Liminf x M) (hL : Limsup x L) :
+    ratLeRep B M ∧ ratLeRep L C :=
+  And.intro
+    (le_liminf_of_boundedBelow x B M hB hM)
+    (limsup_le_of_boundedAbove x C L hC hL)

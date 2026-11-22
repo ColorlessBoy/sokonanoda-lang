@@ -1,0 +1,103 @@
+-- 单元98 上下极限与收敛
+--
+-- 收敛把一条序列的极限点集合压成一个等价类。上极限是这个集合的最小上界，
+-- 下极限是最大下界，所以收敛时两者都该等于极限；反过来，两个界之间只要有
+-- 空隙，序列就不可能收敛。这里把这两句话写成定理，再把极限点夹在两个界之间。
+--
+-- 98.0 收敛时上下极限彼此等价。98.1 把空隙变成不收敛的判据。98.2 给出
+-- 极限点的位置：下极限托住它，上极限压住它。98.3 说明上极限不超过下极限时，
+-- 所有极限点落在同一个等价类。98.4 在给定一个极限点的前提下证两个界相等。
+-- 98.5 是常序列的实例。
+--
+-- 边界：结论都是单向的。上下极限相等不能反推收敛：反方向要从「无穷多次
+-- 偏离」里造出一条子序列，每一步都要挑新下标，需要可数选择。另外，序列的
+-- 项是有理代表元，有界有理序列未必有有理极限点（截断的 √2 近似是一例），
+-- 所以这里也不声称 Bolzano–Weierstrass。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.0 收敛时上下极限彼此等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 上极限与极限是同一个数（93.6），下极限也是（94.6）。把两条相等接起来，
+-- 中间经过极限 L。
+--
+-- soko:hint 思路：先用 `limsup_unique_of_converges` 得 M ~ L，再用 `liminf_unique_of_converges` 得 N ~ L；把第二条翻向后用 `ratRel_trans_gen` 接上。
+-- soko:hint 目标形态：`ratRel M N`。
+-- soko:hint 关键件：limsup_unique_of_converges · liminf_unique_of_converges · ratRel_trans_gen · ratRel_symm。
+theorem limsup_liminf_rel_of_converges (x : Seq) (L M N : ratRep)
+    (h : Converges x L) (hM : Limsup x M) (hN : Liminf x N) : ratRel M N :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.1 上下极限之间有空隙，序列就不收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- 假设序列有一个极限 K，98.0 就会把 M 与 N 认成同一个数，与空隙矛盾。
+--
+-- soko:hint 思路：对假设给的存在极限 K 用 98.0，得到 `ratRel M N`，直接与 `hne` 相撞。
+-- soko:hint 目标形态：`(∃ (K : ratRep), Converges x K) → False`。
+-- soko:hint 关键件：Exists.elim · limsup_liminf_rel_of_converges。
+theorem not_converges_of_limsup_liminf_gap (x : Seq) (M N : ratRep)
+    (hM : Limsup x M) (hN : Liminf x N) (hne : ¬ ratRel M N) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.2 极限点落在两个界之间
+-- ─────────────────────────────────────────────────────────────
+
+-- 下极限托住每个极限点（94.1），上极限压住每个极限点（93.1），两条并起来。
+--
+-- soko:hint 思路：`And.intro`，左支用 `liminf_lower`，右支用 `limsup_upper`。
+-- soko:hint 目标形态：`ratLeRep M P ∧ ratLeRep P L`。
+-- soko:hint 关键件：And.intro · liminf_lower · limsup_upper。
+theorem limitPoint_between_limsup_liminf (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hP : LimitPoint x P) :
+    ratLeRep M P ∧ ratLeRep P L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.3 上极限不超过下极限时极限点至多一个等价类
+-- ─────────────────────────────────────────────────────────────
+
+-- 98.2 把两个极限点 P、Q 都放进区间 [M, L]。若还有 L ≤ M，区间缩成一个点：
+-- P 与 Q 都被夹在 M 与 L 之间，因而彼此等价。
+--
+-- soko:hint 思路：两次用 98.2 得 `M ≤ P ≤ L` 与 `M ≤ Q ≤ L`；与 `hLM : L ≤ M` 传递出 `P ≤ Q` 与 `Q ≤ P`；交给 `ratLeRep_antisymm`。
+-- soko:hint 目标形态：`ratRel P Q`。
+-- soko:hint 关键件：limitPoint_between_limsup_liminf · ratLeRep_trans · ratLeRep_antisymm。
+theorem limitPoints_rel_of_le (x : Seq) (L M P Q : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.4 有极限点时两个界相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 98.2 给出 M ≤ P ≤ L，与假设 L ≤ M 一起把 M 与 L 夹成同一个数。
+--
+-- soko:hint 思路：由 98.2 取 `M ≤ P` 与 `P ≤ L`，传递得 `M ≤ L`；与 `hLM : L ≤ M` 交给 `ratLeRep_antisymm` 得 `ratRel M L`，再翻向得到目标。
+-- soko:hint 目标形态：`ratRel L M`。
+-- soko:hint 关键件：limitPoint_between_limsup_liminf · ratLeRep_trans · ratLeRep_antisymm · ratRel_symm。
+theorem limsup_liminf_rel_of_le (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) : ratRel L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 98.5 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的上极限与下极限都是它的值，极限点也是它。98.2 在这个具体序列上
+-- 给出 `q ≤ q ∧ q ≤ q`。
+--
+-- soko:hint 思路：把 98.2 用在 `constSeq q` 上：上下极限分别由 `limsup_const`、`liminf_const` 给，极限点由 `limitPoint_const` 给。
+-- soko:hint 目标形态：`ratLeRep q q ∧ ratLeRep q q`。
+-- soko:hint 关键件：limitPoint_between_limsup_liminf · limsup_const · liminf_const · limitPoint_const。
+theorem demo_const_between (q : ratRep) :
+    ratLeRep q q ∧ ratLeRep q q :=
+  sorry

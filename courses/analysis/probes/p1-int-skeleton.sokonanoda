@@ -1,0 +1,42 @@
+-- P1 probe: quotient-based integer skeleton over Nat × Nat.
+-- Purpose: type-level feasibility of Int := Quot intRel, plus Quot.sound/lift/iota.
+-- Arithmetic laws and the full ℚ construction are deliberately out of scope.
+
+inductive Pair (α β : Type) : Type
+ctor Pair.mk (fst : α) (snd : β) : Pair α β
+end
+
+def fst (p : Pair Nat Nat) : Nat :=
+  Pair.rec.{1} Nat Nat (fun (_ : Pair Nat Nat) => Nat)
+    (fun (a : Nat) (b : Nat) => a) p
+
+def snd (p : Pair Nat Nat) : Nat :=
+  Pair.rec.{1} Nat Nat (fun (_ : Pair Nat Nat) => Nat)
+    (fun (a : Nat) (b : Nat) => b) p
+
+def intRel (a b : Pair Nat Nat) : Prop :=
+  Nat.add (fst a) (snd b) = Nat.add (fst b) (snd a)
+
+def Int : Type := @Quot.{1} (Pair Nat Nat) intRel
+
+def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Pair Nat Nat) intRel (Pair.mk n Nat.zero)
+
+theorem zero_repr : intOfNat 2 = @Quot.mk.{1} (Pair Nat Nat) intRel (Pair.mk 3 1) :=
+  @Quot.sound.{1} (Pair Nat Nat) intRel (Pair.mk 2 0) (Pair.mk 3 1) (Eq.refl 3)
+
+def negRep (p : Pair Nat Nat) : Pair Nat Nat := Pair.mk (snd p) (fst p)
+
+axiom neg_wd : ∀ (a b : Pair Nat Nat), intRel a b →
+  (@Quot.mk.{1} (Pair Nat Nat) intRel (negRep a)) =
+    (@Quot.mk.{1} (Pair Nat Nat) intRel (negRep b))
+
+def intNeg (q : Int) : Int :=
+  @Quot.lift.{1,1} (Pair Nat Nat) intRel Int
+    (fun (p : Pair Nat Nat) => @Quot.mk.{1} (Pair Nat Nat) intRel (negRep p))
+    neg_wd q
+
+theorem intNeg_mk (p : Pair Nat Nat) :
+    intNeg (@Quot.mk.{1} (Pair Nat Nat) intRel p) =
+      @Quot.mk.{1} (Pair Nat Nat) intRel (negRep p) :=
+  Eq.refl (@Quot.mk.{1} (Pair Nat Nat) intRel (negRep p))

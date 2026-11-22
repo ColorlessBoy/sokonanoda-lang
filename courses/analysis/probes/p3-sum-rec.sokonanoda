@@ -1,0 +1,14 @@
+-- P3 probe: finite sums via Nat.rec, using a course-defined addition.
+-- Finding: builtin Nat.add does not reduce under a recursor step in this
+-- position; a user-defined add does. This file records the workaround.
+
+def myAdd (a b : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) a (fun (n : Nat) (ih : Nat) => Nat.succ ih) b
+
+def sum2 (f : Nat → Nat) (n : Nat) : Nat :=
+  Nat.rec (fun (_ : Nat) => Nat) Nat.zero
+    (fun (k : Nat) (acc : Nat) => myAdd (f k) acc) n
+
+theorem sum2_succ (f : Nat → Nat) (n : Nat) :
+    sum2 f (Nat.succ n) = myAdd (f n) (sum2 f n) :=
+  Eq.refl (myAdd (f n) (sum2 f n))

@@ -1,0 +1,222 @@
+-- 课程库：上和、下和与可积性（单元158）
+--
+-- 单元158 把「一摞上界的矩形和」写成 `UpperSum`，「一摞下界的矩形和」写成
+-- `LowerSum`，再用一条 ε 判据定义 `Integrable`。下面这些定义与九条引理供
+-- 后续单元直接引用：
+--
+--   · `UpperSum` / `LowerSum` / `Integrable` —— 三个定义；
+--   · `upperSum_twoPoint_const` / `lowerSum_twoPoint_const` —— 常值曲线的读数；
+--   · `lowerStep_le_upperStep` / `lowerSum_le_upperSum` —— 同一分割上的序；
+--   · `upperSum_mono_fun` / `lowerSum_mono_fun` —— 曲线整体抬高；
+--   · `upperSum_neg` / `lowerSum_neg` —— 取负把上下和对调；
+--   · `integrable_const` —— 常值函数可积。
+--
+-- 边界：只谈同一分割上的两个和与可积性的 ε 判据，不加细，也不定义积分值。
+-- 函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+
+-- ─────────────────────────────────────────────────────────────
+-- 把一摞台阶变成一块面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 上和的候选值：有一摞上界 `u`，它的矩形和就是 `U`。用关系而不是函数，
+-- 是因为同一个分割上的上界可以有很多摞，谁都不是唯一的那一摞。
+def UpperSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (U : ratRep) : Prop :=
+  ∃ (u : Nat → ratRep), UpperStep a b p f u ∧ ratRel U (stepSum p u)
+
+-- 下和同理：从一摞下界出发，取它的矩形和。
+def LowerSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (L : ratRep) : Prop :=
+  ∃ (l : Nat → ratRep), LowerStep a b p f l ∧ ratRel L (stepSum p l)
+
+-- 可积：每个正 ε 都配得上一个分割，使这个分割的上和与下和之差小于 ε。
+-- 分割必须真的是区间 [a, b] 的分割，否则「差」可以靠退化的分割作假。
+def Integrable (a b : ratRep) (f : ratRep → ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (p : Partition), IsPartition a b p ∧
+      ∃ (L : ratRep), ∃ (U : ratRep),
+        LowerSum a b p f L ∧ UpperSum a b p f U ∧
+          ratLtRep (ratSubRep U L) eps
+
+-- 把上和的定义展开成存在命题。定义本身可以归约，但 `Exists.elim` 要看见
+-- 命题的形状；先写成一条类型为 `∃` 的引理，消去量词时不必再手工补隐式参数。
+theorem upperSum_witness (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep) (h : UpperSum a b p f U) :
+    ∃ (u : Nat → ratRep), UpperStep a b p f u ∧ ratRel U (stepSum p u) :=
+  h
+
+theorem lowerSum_witness (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep) (h : LowerSum a b p f L) :
+    ∃ (l : Nat → ratRep), LowerStep a b p f l ∧ ratRel L (stepSum p l) :=
+  h
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线在两切点分割上的读数
+-- ─────────────────────────────────────────────────────────────
+
+theorem upperSum_twoPoint_const (a b k : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) => k)
+    (And.intro
+      (upperStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) => k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) => k))))
+
+theorem lowerSum_twoPoint_const (a b k : ratRep) :
+    LowerSum a b (twoPoint a b) (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) => k)
+    (And.intro
+      (lowerStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) => k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) => k))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一分割上的两个和
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个界都在左端点取值：下界给出 `l i ≤ f (point i)`，上界给出
+-- `f (point i) ≤ u i`，传递性收成 `l i ≤ u i`。
+theorem lowerStep_le_upperStep (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (u i) :=
+  ratLeRep_trans (l i) (f (partPoint p i)) (u i)
+    (lowerStep_value a b p f l hl hp i hi)
+    (upperStep_value a b p f u hu hp i hi)
+
+-- 逐段的下界不超过上界，乘上同一个正宽之后每一段的乘积也不超过；矩形和的
+-- 保序把段数那么多条不等式收成一条。两端的 `L`、`U` 只是矩形和的等价写法，
+-- 沿等价关系搬过去。
+theorem lowerSum_le_upperSum (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L U : ratRep) (hp : IsPartition a b p)
+    (hL : LowerSum a b p f L) (hU : UpperSum a b p f U) :
+    ratLeRep L U :=
+  @Exists.elim (Nat → ratRep)
+    (fun (l : Nat → ratRep) => LowerStep a b p f l ∧ ratRel L (stepSum p l))
+    (ratLeRep L U) hL
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      @Exists.elim (Nat → ratRep)
+        (fun (u : Nat → ratRep) => UpperStep a b p f u ∧ ratRel U (stepSum p u))
+        (ratLeRep L U) hU
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+          ratLeRep_congr_gen (stepSum p l) L (stepSum p u) U
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (ratRel_symm U (stepSum p u) (And.right hu))
+            (stepSum_mono a b p hp l u
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+                lowerStep_le_upperStep a b p f l u hp
+                  (And.left hl) (And.left hu) i hi))))
+
+-- g 的上界原样拿来给更低的 f 用：逐点上 f 更低，上界仍然压得住，矩形和与
+-- `U` 的关系不变。
+theorem upperSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperSum a b p g U) : UpperSum a b p f U :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p g u ∧ ratRel U (stepSum p u)) =>
+      Exists.intro u
+        (And.intro
+          (upperStep_mono a b p f g u hfg (And.left hu))
+          (And.right hu)))
+
+-- f 的下界原样留给更高的 g：下界仍然垫得住，矩形和也不动。
+theorem lowerSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerSum a b p f L) : LowerSum a b p g L :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      Exists.intro l
+        (And.intro
+          (lowerStep_mono a b p f g l hfg (And.left hl))
+          (And.right hl)))
+
+-- 上界取负翻成下界。矩形和也取负：`stepSum_neg` 把和的负号搬到外面，得到
+-- `-(stepSum u) ~ stepSum (-u)`；而 `-U ~ -(stepSum u)` 只是把已知的等价
+-- 关系送进取负。两条接起来，`-U` 就是新下和。
+theorem upperSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p f U) :
+    LowerSum a b p (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep U) :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+      Exists.intro (fun (i : Nat) => ratNegRep (u i))
+        (And.intro
+          (upperStep_neg a b p f u (And.left hu))
+          (ratRel_trans_gen
+            (ratNegRep U)
+            (ratNegRep (stepSum p u))
+            (stepSum p (fun (i : Nat) => ratNegRep (u i)))
+            (ratNegRep_wd U (stepSum p u) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) => ratNegRep (u i)))
+              (ratNegRep (stepSum p u))
+              (stepSum_neg p u)))))
+
+-- 下界取负翻成上界，矩形和同时取负；搬运链与上和那条逐字同形。
+theorem lowerSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p f L) :
+    UpperSum a b p (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep L) :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+      Exists.intro (fun (i : Nat) => ratNegRep (l i))
+        (And.intro
+          (lowerStep_neg a b p f l (And.left hl))
+          (ratRel_trans_gen
+            (ratNegRep L)
+            (ratNegRep (stepSum p l))
+            (stepSum p (fun (i : Nat) => ratNegRep (l i)))
+            (ratNegRep_wd L (stepSum p l) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) => ratNegRep (l i)))
+              (ratNegRep (stepSum p l))
+              (stepSum_neg p l)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数可积
+-- ─────────────────────────────────────────────────────────────
+
+-- 分割取两切点。上界与下界都取常数 k，上和与下和都等于 `k · (b - a)`；两
+-- 者相减，代表元相同，差等价于零。零小于任意正 ε，于是这条 ε 判据对每个
+-- 正 ε 都有见证。
+theorem integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => k) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro (twoPoint a b)
+      (And.intro (twoPoint_isPartition a b hab)
+        (Exists.intro (ratMulRep k (ratSubRep b a))
+          (Exists.intro (ratMulRep k (ratSubRep b a))
+            (And.intro (lowerSum_twoPoint_const a b k)
+              (And.intro (upperSum_twoPoint_const a b k)
+                (ratLtRep_congr_fst
+                  (ratSubRep (ratMulRep k (ratSubRep b a))
+                    (ratMulRep k (ratSubRep b a)))
+                  ratZeroRep eps heps
+                  (ratSubRep_self (ratMulRep k (ratSubRep b a)))))))))

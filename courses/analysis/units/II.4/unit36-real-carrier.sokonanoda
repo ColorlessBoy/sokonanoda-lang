@@ -1,0 +1,113 @@
+-- 单元㊱ 实数的载体：`Real := Quot realRel`
+--
+-- 单元㉟ 有了 Cauchy 序列。两个 Cauchy 序列「等价」当且仅当它们逐项
+-- 最终任意接近：
+--
+--   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+--
+-- 实数就是这些序列的商：
+--
+--   Real := Quot realRel
+--
+-- 本单元只立载体与构造子：
+--   · `Real.mk x`（把序列放进商）；
+--   · `Real.sound`（`realRel x y ⇒ mk x = mk y`，直接是 `Quot.sound`）；
+--   · `realRel_zero`（常零序列与自身等价）与它的推论 `mk zero = mk zero`。
+--
+-- 等价关系的传递性（`realRel_trans`）与 `Quot.exact` 的反向消去都需要
+-- 三角不等式与序的加法相容，留到后续单元。
+--
+-- 本单元自带定义与前序地基（L3：律必须留在单元里）。
+
+import lib.Rat
+
+def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)
+
+def ratSubRep (x y : ratRep) : ratRep :=
+  ratAddRep x (ratNegRep y)
+
+def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))
+
+def ratLtRep (x y : ratRep) : Prop :=
+  ratLeRep x y ∧ ¬ ratRel x y
+
+def ratZeroRep : ratRep := qrep Nat.zero Nat.zero Nat.zero
+
+def ratAbsRel (x y : ratRep) : Prop :=
+  (ratLeRep ratZeroRep x ∧ ratRel y x) ∨
+    (ratLeRep x ratZeroRep ∧ ratRel y (ratNegRep x))
+
+def Seq : Type := Nat → ratRep
+
+def close (x y : ratRep) (eps : ratRep) : Prop :=
+  ∃ (d : ratRep), ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps
+
+def Cauchy (x : Seq) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (N : Nat), ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps
+
+def realRel (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps
+
+def Real : Type := @Quot.{1} Seq realRel
+
+def Real.mk (x : Seq) : Real := @Quot.mk.{1} Seq realRel x
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.0 预备：零的绝对值、零的 close、常零序列的 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  Or.inl
+    (And.intro
+      (leRep_refl (mulRep (numOf ratZeroRep) (den (denOf ratZeroRep))))
+      (ratRel_refl ratZeroRep))
+
+theorem close_zero_zero (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    close ratZeroRep ratZeroRep eps :=
+  Exists.intro ratZeroRep (And.intro ratAbsRel_zero h)
+
+def zeroSeq : Seq := fun (_ : Nat) => ratZeroRep
+
+theorem cauchy_zero : Cauchy zeroSeq :=
+  fun (eps : ratRep) (h : ratLtRep ratZeroRep eps) =>
+    Exists.intro Nat.zero
+      (fun (n m : Nat) (hn : LeNat Nat.zero n) (hm : LeNat Nat.zero m) =>
+        close_zero_zero eps h)
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.1 常零序列与自身等价
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realRel` 是三元组；两个 `Cauchy` 分量都是 `cauchy_zero`，第三分量对任意 eps>0 取 N=0，逐项用 `close_zero_zero`。
+-- soko:hint 目标形态：`realRel zeroSeq zeroSeq`。
+-- soko:hint 关键件：And.intro · cauchy_zero · Exists.intro · close_zero_zero。
+theorem realRel_zero : realRel zeroSeq zeroSeq :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.2 相关 ⇒ 实数相等（Quot.sound）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：商类型的构造子公理；把 `realRel` 的证明交给 `Quot.sound`。
+-- soko:hint 目标形态：`realRel x y → Real.mk x = Real.mk y`。
+-- soko:hint 关键件：Quot.sound。
+theorem Real.sound (x y : Seq) (h : realRel x y) : Real.mk x = Real.mk y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊱.3 具体：常零序列的实数与自身相等
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：用 ㊱.2 与 ㊱.1。
+-- soko:hint 目标形态：`Real.mk zeroSeq = Real.mk zeroSeq`。
+-- soko:hint 关键件：Real.sound · realRel_zero。
+theorem demo_real_zero :
+    Real.mk zeroSeq = Real.mk zeroSeq :=
+  sorry

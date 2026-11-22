@@ -1,0 +1,93 @@
+-- 单元64 实数的序：代表元关系与自反性（解答）
+--
+-- 63 把加法收成结合的三元关系。现在立**序**。Tao 的定义是
+--
+--   x ≤ y  :⟺  对每个 eps > 0，最终有 x_n ≤ y_n + eps
+--
+-- 本课程用等价的**减法**写法：
+--
+--   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
+--
+-- 减法写法让下一单元的传递性直接对上 56 的
+-- `(x - y) + (y - z) ~ x - z`：两个 eps 的界相加就落在 `x - z` 上，
+-- 不必每次把 eps 加到代表元里再搬序。
+--
+-- 关系保留两个 `Cauchy` 守卫，与 61 的三元加法同一纪律：只有带
+-- Cauchy 代表元的实数之间才断序，商里的「杂点」没有输出。序的下降
+-- （`realLeRep` 沿 `realRel` 良定义，再经 `Quot.lift` 得到
+-- `Real → Real → Prop`）留到下一单元之后的单元。
+--
+-- 本单元：
+--   · 64.0 `realLeRep` —— 序的代表元关系；
+--   · 64.1 `realLeRep_refl` —— 每个 Cauchy 序列 ≤ 自己；
+--   · 64.2 `realLeRep_of_realRel` —— 相等 ⇒ 序；
+--   · 64.3 常零序列上的具体例。
+--
+-- 传递性（65）需要两个 eps/2 的界相加，放在下一单元。
+
+import lib.RealEq
+import lib.RatGroup
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.0 定义：代表元层的序
+-- ─────────────────────────────────────────────────────────────
+
+-- `realLeRep x y` 读作「`x` 的类 ≤ `y` 的类」。两个 `Cauchy` 守卫是
+-- 必要的：`realRel` 只在 Cauchy 序列上自反，没有守卫时杂点之间没有
+-- 可比性，序就不是 `Real` 上的关系。
+def realLeRep (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ratLeRep (ratSubRep (x n) (y n)) eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.1 自反性：`x` ≤ `x`
+-- ─────────────────────────────────────────────────────────────
+
+-- 前两个分量都是 `hx`；第三分量取 `N := 0`，逐点把 `x n - x n` 认成 0
+-- （55 的 `ratAdd_neg_gen`，`ratSubRep` 就是 `x + (-x)`），再用
+-- `ratLtRep_le` 把 `0 < eps` 投成 `0 ≤ eps`。
+theorem realLeRep_refl (x : Seq) (hx : Cauchy x) : realLeRep x x :=
+  And.intro hx
+    (And.intro hx
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.intro Nat.zero
+          (fun (n : Nat) (_hn : LeNat Nat.zero n) =>
+            ratLeRep_trans (ratSubRep (x n) (x n)) ratZeroRep eps
+              (ratLeRep_of_ratRel (ratSubRep (x n) (x n)) ratZeroRep
+                (ratAdd_neg_gen (x n)))
+              (ratLtRep_le ratZeroRep eps heps))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.2 相等 ⇒ 序：`realRel x y → x ≤ y`
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `Cauchy` 分量直接取 `h`。第三分量对 `eps` 直接用 `realRel` 的
+-- 接近性（不必折半）：它给见证 `d` 使 `|x n - y n| ~ d` 且 `d < eps`；
+-- `ratAbsRel_le` 把绝对值压成 `x n - y n ≤ d`，`ratLtRep_le` 把
+-- `d < eps` 投成 `d ≤ eps`，再传递。
+theorem realLeRep_of_realRel (x y : Seq) (h : realRel x y) : realLeRep x y :=
+  And.intro (And.left h)
+    (And.intro (And.left (And.right h))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                Exists.elim (hN n hn)
+                  (fun (d : ratRep)
+                      (hd : ratAbsRel (ratSubRep (x n) (y n)) d ∧
+                            ratLtRep d eps) =>
+                    ratLeRep_trans (ratSubRep (x n) (y n)) d eps
+                      (ratAbsRel_le (ratSubRep (x n) (y n)) d (And.left hd))
+                      (ratLtRep_le d eps (And.right hd)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 64.3 具体：常零序列 ≤ 常零序列
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_realLe_zero : realLeRep zeroSeq zeroSeq :=
+  realLeRep_of_realRel zeroSeq zeroSeq realRel_zero

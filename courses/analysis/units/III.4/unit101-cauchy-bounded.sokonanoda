@@ -1,0 +1,81 @@
+-- 单元101 Cauchy 序列有界
+--
+-- 100 把 Cauchy 性收成「尾巴上的项都靠近 x N」。这条控制只覆盖尾巴，
+-- 前面的有限项仍然任意。有界性要把两段接起来：尾巴由 1 这个固定的 ε
+-- 给出双侧界，前缀由一次归纳给出另一个界，两个界再用全性合成一个。
+--
+-- 有界性是乘积估计的前置：要证 Cauchy 序列的乘积仍是 Cauchy 序列，
+-- 就得先有一个不随 n 变化的界去乘另一个因子。
+--
+-- 边界：只证有界，不反推 Cauchy；有界序列未必 Cauchy（交替的 0、1 是
+-- 一例）。这里也不做乘积本身。不新增公理。
+
+import lib.Bounded
+import lib.CauchyTail
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.0 尾巴上有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 ε = 1。100.0 给出阈值 N 与 `close (x n) (x N) 1`；库里的
+-- `exists_tail_bound` 把每一对界合成同一个 B。
+--
+-- soko:hint 思路：`cauchy_tail` 在 ε = 1 上给出 N 与逐点的 `close (x n) (x N) 1`；把这条逐点界交给 `exists_tail_bound x (x N) ratOneRep N`，再套上 `Exists.intro N`。
+-- soko:hint 目标形态：`∃ N, ∃ B, ∀ n ≥ N, x n ≤ B ∧ -x n ≤ B`。
+-- soko:hint 关键件：cauchy_tail · ratLtRep_zero_one · exists_tail_bound · Exists.intro · Exists.elim。
+theorem cauchy_eventually_bounded (x : Seq) (h : Cauchy x) :
+    ∃ (N : Nat), ∃ (B : ratRep), ∀ (n : Nat), LeNat N n →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.1 整条序列有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾巴的界来自 101.0，前缀 0..N 的界来自 `exists_prefix_bound`。
+-- 两个界用 `exists_upper_of_two` 合成，再对每个 n 用全性分两支。
+--
+-- soko:hint 思路：先拆 101.0 得 N 与 Btail；`exists_prefix_bound x N` 给 Bpre；`exists_upper_of_two Bpre Btail` 合成 B。对每个 n，`leNat_total N n` 分成 `N ≤ n` 与 `n ≤ N` 两支，各自把对应的界传递到 B。
+-- soko:hint 目标形态：`Bounded x`。
+-- soko:hint 关键件：cauchy_eventually_bounded · exists_prefix_bound · exists_upper_of_two · leNat_total · ratLeRep_trans · And.intro · Or.elim。
+theorem cauchy_bounded (x : Seq) (h : Cauchy x) : Bounded x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.2 平移也保持有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 100.3 给 Cauchy 性，101.1 把它换成有界性。
+--
+-- soko:hint 思路：对平移后的序列用 101.1，Cauchy 性由 `cauchy_shift x k h` 提供。
+-- soko:hint 目标形态：`Bounded (fun (n : Nat) => x (Nat.add n k))`。
+-- soko:hint 关键件：cauchy_shift · cauchy_bounded。
+theorem cauchy_bounded_shift (x : Seq) (k : Nat) (h : Cauchy x) :
+    Bounded (fun (n : Nat) => x (Nat.add n k)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.3 加一个常数保持有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 |x n| ≤ B，则 `x n + q ≤ B + q`、`-(x n + q) ≤ B + (-q)`。
+-- 两条界再用 `exists_upper_of_two` 合成。
+--
+-- soko:hint 思路：从 `Bounded x` 拆出逐点的 B。正侧用 `ratLeRep_add_right`；负侧先用 `ratNegRep_add` 把 `-(x n + q)` 认成 `(-x n) + (-q)`，再用 `ratLeRep_congr_gen` 与同一条加法单调搬过去。两个上界 `B + q`、`B + (-q)` 交给 `exists_upper_of_two`。
+-- soko:hint 目标形态：`Bounded (fun (n : Nat) => ratAddRep (x n) q)`。
+-- soko:hint 关键件：exists_upper_of_two · ratLeRep_add_right · ratNegRep_add · ratLeRep_congr_gen · ratLeRep_trans · ratRel_refl。
+theorem bounded_add_const (x : Seq) (q : ratRep) (h : Bounded x) :
+    Bounded (fun (n : Nat) => ratAddRep (x n) q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 101.4 常序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，101.1 因此给出有界性。
+--
+-- soko:hint 思路：`cauchy_const q` 给 Cauchy 性，交给 101.1。
+-- soko:hint 目标形态：`Bounded (constSeq q)`。
+-- soko:hint 关键件：cauchy_const · cauchy_bounded。
+theorem demo_cauchy_bounded_const (q : ratRep) : Bounded (constSeq q) :=
+  sorry

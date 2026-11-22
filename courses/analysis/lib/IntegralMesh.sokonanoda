@@ -1,0 +1,920 @@
+-- 课程库：等分分割（单元165）
+--
+-- 这一版只放分割的构造：把一个有理数除以一个正整数，再用它把区间等分。
+-- 单元165 会用到这些声明；先把它们立在这里，是为了让单元里的证明只谈
+-- 几何，不重复代数的细节。
+--
+--   · `divDen` / `ratDiv` —— 把 `x` 除以 `k+1`：分母字段乘上 `k+1`；
+--   · `divDen_succ` —— 乘回去，分母字段正好还原；
+--   · `ratRel_div_rep` —— 等分后的代表元与原来的代表元等价；
+--   · `ratDiv_mul` —— `(k+1) · (x/(k+1)) ~ x`；
+--   · `ratDiv_pos` —— 正数除以正整数仍为正；
+--   · `ratDiv_lt_one` —— 比 `k+1` 小的正数除以 `k+1` 小于一。
+--
+-- 边界：只做除以正整数的代数，不构造分割，也不谈可积性。不新增公理，
+-- 也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatArch
+import lib.RatMulOrder
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatSub
+import lib.DerivAlgebra
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStrip
+import lib.LimitClass
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 除以一个正整数
+-- ─────────────────────────────────────────────────────────────
+
+-- 分母字段乘上 `k+1`；`succ` 编码要求再减一，`Nat.pred` 正好做这件事。
+def divDen (k m : Nat) : Nat :=
+  Nat.pred (myMul (Nat.succ k) (Nat.succ m))
+
+-- `x/(k+1)` 不动分子，只把分母字段换成 `divDen k (denOf x)`。
+def ratDiv (k : Nat) (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (numOf x) (divDen k (denOf x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 分母还原
+-- ─────────────────────────────────────────────────────────────
+
+-- `succ (divDen k m)` 就是 `(k+1)(m+1)`：先把 `myMul` 的后继展开成
+-- `(k+1) + ...`，再用 `succ_add` 把那一项写成 `succ`。
+theorem divDen_succ (k m : Nat) :
+    Nat.succ (divDen k m) = myMul (Nat.succ k) (Nat.succ m) :=
+  @Eq.subst.{1} Nat
+      (fun (z : Nat) => Nat.succ (Nat.pred z) = z)
+      (Nat.succ (Nat.add k (myMul (Nat.succ k) m)))
+      (myMul (Nat.succ k) (Nat.succ m))
+      (@Eq.symm.{1} Nat
+        (myMul (Nat.succ k) (Nat.succ m))
+        (Nat.succ (Nat.add k (myMul (Nat.succ k) m)))
+        (@Eq.trans.{1} Nat
+          (myMul (Nat.succ k) (Nat.succ m))
+          (Nat.add (Nat.succ k) (myMul (Nat.succ k) m))
+          (Nat.succ (Nat.add k (myMul (Nat.succ k) m)))
+          (myMul_succ (Nat.succ k) m)
+          (succ_add k (myMul (Nat.succ k) m))))
+      (@Eq.refl.{1} Nat
+        (Nat.succ (Nat.pred (Nat.succ (Nat.add k (myMul (Nat.succ k) m))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 分母乘开之后分子可以约掉
+-- ─────────────────────────────────────────────────────────────
+
+-- 两边的第一个分子都化成 `a·(k+1)(m+1)`：先与 `m+1` 结合，再交换
+-- `k+1` 与 `m+1`，最后把 `k+1` 提到最外层。
+theorem div_num_fst (k a m : Nat) :
+    myMul (myMul (Nat.succ k) a) (Nat.succ m) =
+      myMul a (myMul (Nat.succ k) (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul (Nat.succ k) a) (Nat.succ m))
+    (myMul (Nat.succ k) (myMul a (Nat.succ m)))
+    (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+    (myMul_assoc (Nat.succ k) a (Nat.succ m))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ k) (myMul a (Nat.succ m)))
+      (myMul (Nat.succ k) (myMul (Nat.succ m) a))
+      (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+      (@congrArg.{1} Nat Nat
+        (myMul a (Nat.succ m))
+        (myMul (Nat.succ m) a)
+        (fun (z : Nat) => myMul (Nat.succ k) z)
+        (myMul_comm a (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (myMul (Nat.succ k) (myMul (Nat.succ m) a))
+        (myMul (myMul (Nat.succ k) (Nat.succ m)) a)
+        (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+        (@Eq.symm.{1} Nat
+          (myMul (myMul (Nat.succ k) (Nat.succ m)) a)
+          (myMul (Nat.succ k) (myMul (Nat.succ m) a))
+          (myMul_assoc (Nat.succ k) (Nat.succ m) a))
+        (myMul_comm (myMul (Nat.succ k) (Nat.succ m)) a)))
+
+-- 第二个分子同理。
+theorem div_num_snd (k b m : Nat) :
+    myMul (myMul (Nat.succ k) b) (Nat.succ m) =
+      myMul b (myMul (Nat.succ k) (Nat.succ m)) :=
+  div_num_fst k b m
+
+-- 交叉相乘后的等式：两边的首项都换成 `a·(k+1)(m+1)`、次项都换成
+-- `b·(k+1)(m+1)`，于是两边是同一个和。
+theorem ratRel_div_rep (k a b m : Nat) :
+    ratRel
+      (qrep (myMul (Nat.succ k) a) (myMul (Nat.succ k) b) (divDen k m))
+      (qrep a b m) :=
+  intRel_of_eq
+    (mulRep
+      (@prod_mk Nat Nat (myMul (Nat.succ k) a) (myMul (Nat.succ k) b))
+      (den m))
+    (mulRep (@prod_mk Nat Nat a b) (den (divDen k m)))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (mulRep
+        (@prod_mk Nat Nat (myMul (Nat.succ k) a) (myMul (Nat.succ k) b))
+        (den m))
+      (@prod_mk Nat Nat
+        (myMul (myMul (Nat.succ k) a) (Nat.succ m))
+        (myMul (myMul (Nat.succ k) b) (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat a b) (den (divDen k m)))
+      (mulRep_den_form
+        (@prod_mk Nat Nat (myMul (Nat.succ k) a) (myMul (Nat.succ k) b)) m)
+      (@Eq.trans.{1} (Prod Nat Nat)
+        (@prod_mk Nat Nat
+          (myMul (myMul (Nat.succ k) a) (Nat.succ m))
+          (myMul (myMul (Nat.succ k) b) (Nat.succ m)))
+        (@prod_mk Nat Nat
+          (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+          (myMul b (myMul (Nat.succ k) (Nat.succ m))))
+        (mulRep (@prod_mk Nat Nat a b) (den (divDen k m)))
+        (prod_mk_congr
+          (myMul (myMul (Nat.succ k) a) (Nat.succ m))
+          (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+          (myMul (myMul (Nat.succ k) b) (Nat.succ m))
+          (myMul b (myMul (Nat.succ k) (Nat.succ m)))
+          (div_num_fst k a m)
+          (div_num_snd k b m))
+        (@Eq.trans.{1} (Prod Nat Nat)
+          (@prod_mk Nat Nat
+            (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+            (myMul b (myMul (Nat.succ k) (Nat.succ m))))
+          (@prod_mk Nat Nat
+            (myMul a (Nat.succ (divDen k m)))
+            (myMul b (Nat.succ (divDen k m))))
+          (mulRep (@prod_mk Nat Nat a b) (den (divDen k m)))
+          (prod_mk_congr
+            (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+            (myMul a (Nat.succ (divDen k m)))
+            (myMul b (myMul (Nat.succ k) (Nat.succ m)))
+            (myMul b (Nat.succ (divDen k m)))
+            (@Eq.symm.{1} Nat
+              (myMul a (Nat.succ (divDen k m)))
+              (myMul a (myMul (Nat.succ k) (Nat.succ m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (divDen k m))
+                (myMul (Nat.succ k) (Nat.succ m))
+                (fun (z : Nat) => myMul a z)
+                (divDen_succ k m)))
+            (@Eq.symm.{1} Nat
+              (myMul b (Nat.succ (divDen k m)))
+              (myMul b (myMul (Nat.succ k) (Nat.succ m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (divDen k m))
+                (myMul (Nat.succ k) (Nat.succ m))
+                (fun (z : Nat) => myMul b z)
+                (divDen_succ k m))))
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (mulRep (@prod_mk Nat Nat a b) (den (divDen k m)))
+            (@prod_mk Nat Nat
+              (myMul a (Nat.succ (divDen k m)))
+              (myMul b (Nat.succ (divDen k m))))
+            (mulRep_den_form (@prod_mk Nat Nat a b) (divDen k m))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘回去
+-- ─────────────────────────────────────────────────────────────
+
+-- 先按 `natToRat_mul_rep` 把乘积读成 `qrep`，再用上一条约去公因子。
+theorem ratDiv_mul_rep (k a b m : Nat) :
+    ratRel (ratMulRep (natToRat (Nat.succ k)) (ratDiv k (qrep a b m)))
+      (qrep a b m) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) => ratRel z (qrep a b m))
+    (qrep (myMul (Nat.succ k) a) (myMul (Nat.succ k) b) (divDen k m))
+    (ratMulRep (natToRat (Nat.succ k)) (ratDiv k (qrep a b m)))
+    (@Eq.symm.{1} ratRep
+      (ratMulRep (natToRat (Nat.succ k)) (ratDiv k (qrep a b m)))
+      (qrep (myMul (Nat.succ k) a) (myMul (Nat.succ k) b) (divDen k m))
+      (natToRat_mul_rep (Nat.succ k) a b (divDen k m)))
+    (ratRel_div_rep k a b m)
+
+-- ─────────────────────────────────────────────────────────────
+-- 除以正整数保持正性
+-- ─────────────────────────────────────────────────────────────
+
+-- `0 ≤ x` 由分子第二格不超过第一格给出；`0 < x` 再排除分子相等，
+-- 于是 `x/(k+1)` 的分子仍然满足同样的两条。
+theorem ratDiv_pos_rep (k a b m : Nat)
+    (h : ratLtRep ratZeroRep (qrep a b m)) :
+    ratLtRep ratZeroRep (qrep a b (divDen k m)) :=
+  And.intro
+    (@Iff.mpr (ratLeRep ratZeroRep (qrep a b (divDen k m)))
+      (LeNat b a) (ratLeRep_zero_lit a b (divDen k m))
+      (@Iff.mp (ratLeRep ratZeroRep (qrep a b m)) (LeNat b a)
+        (ratLeRep_zero_lit a b m) (And.left h)))
+    (fun (hz : ratRel ratZeroRep (qrep a b (divDen k m))) =>
+      leNat_succ_not_self b
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat (Nat.succ b) z)
+          a b
+          (@Iff.mp (ratRel ratZeroRep (qrep a b (divDen k m))) (a = b)
+            (ratRel_zero_lit a b (divDen k m)) hz)
+          (ratLtRep_zero_num a b m h)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 除出来的数比 delta 小
+-- ─────────────────────────────────────────────────────────────
+
+-- 一个分母上的项：`u·(D+1)` 与 `(k+1)u·(m+1)` 是同一个数。
+theorem div_term (k u m : Nat) :
+    myMul u (Nat.succ (divDen k m)) =
+      myMul (myMul (Nat.succ k) u) (Nat.succ m) :=
+  @Eq.trans.{1} Nat
+    (myMul u (Nat.succ (divDen k m)))
+    (myMul u (myMul (Nat.succ k) (Nat.succ m)))
+    (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+    (@congrArg.{1} Nat Nat
+      (Nat.succ (divDen k m))
+      (myMul (Nat.succ k) (Nat.succ m))
+      (fun (z : Nat) => myMul u z)
+      (divDen_succ k m))
+    (@Eq.symm.{1} Nat
+      (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+      (myMul u (myMul (Nat.succ k) (Nat.succ m)))
+      (div_num_fst k u m))
+
+-- 右边那一对代表元其实是同一个序对：分母换成 `divDen`，分子乘上
+-- `k+1`，两个坐标各用一次 `div_term`。
+theorem div_right_pair (k u v m : Nat) :
+    mulRep (@prod_mk Nat Nat u v) (den (divDen k m)) =
+      mulRep
+        (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+        (den m) :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (mulRep (@prod_mk Nat Nat u v) (den (divDen k m)))
+    (@prod_mk Nat Nat
+      (myMul u (Nat.succ (divDen k m)))
+      (myMul v (Nat.succ (divDen k m))))
+    (mulRep
+      (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+      (den m))
+    (mulRep_den_form (@prod_mk Nat Nat u v) (divDen k m))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (@prod_mk Nat Nat
+        (myMul u (Nat.succ (divDen k m)))
+        (myMul v (Nat.succ (divDen k m))))
+      (@prod_mk Nat Nat
+        (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+        (myMul (myMul (Nat.succ k) v) (Nat.succ m)))
+      (mulRep
+        (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+        (den m))
+      (prod_mk_congr
+        (myMul u (Nat.succ (divDen k m)))
+        (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+        (myMul v (Nat.succ (divDen k m)))
+        (myMul (myMul (Nat.succ k) v) (Nat.succ m))
+        (div_term k u m) (div_term k v m))
+      (@Eq.symm.{1} (Prod Nat Nat)
+        (mulRep
+          (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+          (den m))
+        (@prod_mk Nat Nat
+          (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+          (myMul (myMul (Nat.succ k) v) (Nat.succ m)))
+        (mulRep_den_form
+          (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+          m)))
+
+-- 弱序那一半：`ratLeRep_lit` 把两边化成同一个 ℕ 不等式，唯一的差别是
+-- `divDen` 的分母；两次改写把 `(k+1)v·(m+1)` 与 `v·(D+1)` 对齐。
+theorem ratDiv_le_rep (k a b m u v w : Nat)
+    (h : ratLeRep (qrep a b m)
+      (qrep (myMul (Nat.succ k) u) (myMul (Nat.succ k) v) w)) :
+    ratLeRep (qrep a b (divDen k m)) (qrep u v w) :=
+  @Iff.mpr
+    (ratLeRep (qrep a b (divDen k m)) (qrep u v w))
+    (LeNat
+      (Nat.add (myMul a (Nat.succ w))
+        (myMul v (Nat.succ (divDen k m))))
+      (Nat.add (myMul u (Nat.succ (divDen k m)))
+        (myMul b (Nat.succ w))))
+    (ratLeRep_lit a b (divDen k m) u v w)
+    (@Eq.subst.{1} Nat
+      (fun (z : Nat) =>
+        LeNat
+          (Nat.add (myMul a (Nat.succ w)) z)
+          (Nat.add (myMul u (Nat.succ (divDen k m)))
+            (myMul b (Nat.succ w))))
+      (myMul (myMul (Nat.succ k) v) (Nat.succ m))
+      (myMul v (Nat.succ (divDen k m)))
+      (@Eq.symm.{1} Nat
+        (myMul v (Nat.succ (divDen k m)))
+        (myMul (myMul (Nat.succ k) v) (Nat.succ m))
+        (div_term k v m))
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) =>
+          LeNat
+            (Nat.add (myMul a (Nat.succ w))
+              (myMul (myMul (Nat.succ k) v) (Nat.succ m)))
+            (Nat.add z (myMul b (Nat.succ w))))
+        (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+        (myMul u (Nat.succ (divDen k m)))
+        (@Eq.symm.{1} Nat
+          (myMul u (Nat.succ (divDen k m)))
+          (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+          (div_term k u m))
+        (@Iff.mp
+          (ratLeRep (qrep a b m)
+            (qrep (myMul (Nat.succ k) u) (myMul (Nat.succ k) v) w))
+          (LeNat
+            (Nat.add (myMul a (Nat.succ w))
+              (myMul (myMul (Nat.succ k) v) (Nat.succ m)))
+            (Nat.add (myMul (myMul (Nat.succ k) u) (Nat.succ m))
+              (myMul b (Nat.succ w))))
+          (ratLeRep_lit a b m
+            (myMul (Nat.succ k) u) (myMul (Nat.succ k) v) w)
+          h)))
+
+-- 严格那一半：`qrep u v (D)` 与 `qrep (k+1)u (k+1)v m` 的第二个
+-- 代表元是同一个序对，所以「不相等」可以沿这个等式搬过去。
+theorem ratDiv_not_rel (k a b m u v w : Nat)
+    (h : ¬ ratRel (qrep a b m)
+      (qrep (myMul (Nat.succ k) u) (myMul (Nat.succ k) v) w)) :
+    ¬ ratRel (qrep a b (divDen k m)) (qrep u v w) :=
+  fun (hz : ratRel (qrep a b (divDen k m)) (qrep u v w)) =>
+    h (@Eq.subst.{1} (Prod Nat Nat)
+      (fun (q : Prod Nat Nat) =>
+        intRel
+          (mulRep (@prod_mk Nat Nat a b) (den w)) q)
+      (mulRep (@prod_mk Nat Nat u v) (den (divDen k m)))
+      (mulRep
+        (@prod_mk Nat Nat (myMul (Nat.succ k) u) (myMul (Nat.succ k) v))
+        (den m))
+      (div_right_pair k u v m)
+      hz)
+
+-- 主定理：`L/(k+1) < delta` 只要 `L < (k+1)·delta`。
+theorem ratDiv_lt_rep (k a b m u v w : Nat)
+    (h : ratLtRep (qrep a b m)
+      (qrep (myMul (Nat.succ k) u) (myMul (Nat.succ k) v) w)) :
+    ratLtRep (qrep a b (divDen k m)) (qrep u v w) :=
+  And.intro
+    (ratDiv_le_rep k a b m u v w (And.left h))
+    (ratDiv_not_rel k a b m u v w (And.right h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 从 a 走 k 步，最后一步落到 b
+-- ─────────────────────────────────────────────────────────────
+
+-- `walkPoint a b step k i` 是「走了 k 步、当前下标 i」：下标用完就停在
+-- `b`，否则每走一步把起点抬高 `step`。这样第 k 个下标之后正好是 `b`，
+-- 端点由构造保证，不需要在函数里比较下标。
+def walkBase (b : ratRep) (a : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ _ => b
+
+def walkStep (b step : ratRep) (ih : ratRep → Nat → ratRep)
+    (a : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ j => ih (ratAddRep a step) j
+
+def walkAux (b step : ratRep) (n : Nat) : ratRep → Nat → ratRep :=
+  Nat.rec
+    (fun (_ : Nat) => ratRep → Nat → ratRep)
+    (fun (a : ratRep) => walkBase b a)
+    (fun (m : Nat) (ih : ratRep → Nat → ratRep) =>
+      fun (a : ratRep) => walkStep b step ih a)
+    n
+
+def walkPoint (a b step : ratRep) (n i : Nat) : ratRep :=
+  walkAux b step n a i
+
+theorem natToRat_succ (j : Nat) :
+    natToRat (Nat.succ j) = ratAddRep (natToRat j) ratOneRep :=
+  @Eq.refl.{1} ratRep (qrep (Nat.succ j) Nat.zero Nat.zero)
+
+-- ─────────────────────────────────────────────────────────────
+-- 下标加一：分子多一项 `step`
+-- ─────────────────────────────────────────────────────────────
+
+-- `natToRat` 的后继是定义性相等：`(j+1)/1` 就是 `j/1 + 1/1`。
+theorem natToRat_succ_rel (j : Nat) :
+    ratRel (natToRat (Nat.succ j)) (ratAddRep (natToRat j) ratOneRep) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) => ratRel (natToRat (Nat.succ j)) z)
+    (natToRat (Nat.succ j))
+    (ratAddRep (natToRat j) ratOneRep)
+    (natToRat_succ j)
+    (ratRel_refl (natToRat (Nat.succ j)))
+
+-- 右分配律：`(x + y)·z ~ x·z + y·z`。左分配律已经在库里，交换两次
+-- 乘法就把它搬过来。
+theorem ratAdd_mul (x y z : ratRep) :
+    ratRel (ratMulRep (ratAddRep x y) z)
+      (ratAddRep (ratMulRep x z) (ratMulRep y z)) :=
+  ratRel_trans_gen
+    (ratMulRep (ratAddRep x y) z)
+    (ratMulRep z (ratAddRep x y))
+    (ratAddRep (ratMulRep x z) (ratMulRep y z))
+    (ratMul_comm (ratAddRep x y) z)
+    (ratRel_trans_gen
+      (ratMulRep z (ratAddRep x y))
+      (ratAddRep (ratMulRep z x) (ratMulRep z y))
+      (ratAddRep (ratMulRep x z) (ratMulRep y z))
+      (ratMul_add z x y)
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep z x) (ratMulRep z y))
+        (ratAddRep (ratMulRep x z) (ratMulRep z y))
+        (ratAddRep (ratMulRep x z) (ratMulRep y z))
+        (ratAddRep_wd_gen (ratMulRep z x) (ratMulRep x z)
+          (ratMulRep z y) (ratMul_comm z x))
+        (ratAddRep_wd_snd_gen (ratMulRep x z) (ratMulRep z y)
+          (ratMulRep y z) (ratMul_comm z y))))
+
+-- 乘开之后：`(j+1)·step ~ j·step + step`。
+theorem natMul_succ_rel (j : Nat) (step : ratRep) :
+    ratRel (ratMulRep (natToRat (Nat.succ j)) step)
+      (ratAddRep (ratMulRep (natToRat j) step) step) :=
+  ratRel_trans_gen
+    (ratMulRep (natToRat (Nat.succ j)) step)
+    (ratAddRep (ratMulRep (natToRat j) step)
+      (ratMulRep ratOneRep step))
+    (ratAddRep (ratMulRep (natToRat j) step) step)
+    (ratAdd_mul (natToRat j) ratOneRep step)
+    (ratAddRep_wd_snd_gen (ratMulRep (natToRat j) step)
+      (ratMulRep ratOneRep step) step (ratMul_one_left step))
+
+-- `(a + step) + j·step` 与 `a + (j+1)·step` 是同一个数：先把 `step`
+-- 挪到后面，再把 `j·step + step` 收成 `(j+1)·step`。
+theorem add_step_mul_succ (a step : ratRep) (j : Nat) :
+    ratRel
+      (ratAddRep (ratAddRep a step) (ratMulRep (natToRat j) step))
+      (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep a step) (ratMulRep (natToRat j) step))
+    (ratAddRep a (ratAddRep step (ratMulRep (natToRat j) step)))
+    (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step))
+    (ratAdd_assoc a step (ratMulRep (natToRat j) step))
+    (ratAddRep_wd_snd_gen a
+      (ratAddRep step (ratMulRep (natToRat j) step))
+      (ratMulRep (natToRat (Nat.succ j)) step)
+      (ratRel_trans_gen
+        (ratAddRep step (ratMulRep (natToRat j) step))
+        (ratAddRep (ratMulRep (natToRat j) step) step)
+        (ratMulRep (natToRat (Nat.succ j)) step)
+        (ratAdd_comm step (ratMulRep (natToRat j) step))
+        (ratRel_symm
+          (ratMulRep (natToRat (Nat.succ j)) step)
+          (ratAddRep (ratMulRep (natToRat j) step) step)
+          (natMul_succ_rel j step))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 走 k 步的读数是 `a + k·step`，最后一步是 `b`
+-- ─────────────────────────────────────────────────────────────
+
+-- 第零个点永远是 `a`，不管还剩多少步：对剩余步数归纳。
+theorem walkPoint_zero (a b step : ratRep) (n : Nat) :
+    walkPoint a b step n Nat.zero = a :=
+  Nat.rec
+    (fun (k : Nat) => walkPoint a b step k Nat.zero = a)
+    (@Eq.refl.{1} ratRep a)
+    (fun (m : Nat) (_ih : walkPoint a b step m Nat.zero = a) =>
+      @Eq.refl.{1} ratRep a)
+    n
+
+-- 退一步：`(k+1, i+1)` 就是 `(k, i)`，只是起点抬高了 `step`。
+theorem walkPoint_succ (a b step : ratRep) (m j : Nat) :
+    walkPoint a b step (Nat.succ m) (Nat.succ j) =
+      walkPoint (ratAddRep a step) b step m j :=
+  @Eq.refl.{1} ratRep (walkPoint (ratAddRep a step) b step m j)
+
+-- 下标用完就停在 `b`：对 k 归纳，每退一步把起点抬高 `step`。
+theorem walkPoint_last (b step : ratRep) :
+    ∀ (a : ratRep) (n : Nat),
+      walkPoint a b step n (Nat.succ n) = b :=
+  fun (a : ratRep) (n : Nat) =>
+    Nat.rec
+      (fun (k : Nat) =>
+        ∀ (x : ratRep), walkPoint x b step k (Nat.succ k) = b)
+      (fun (x : ratRep) => @Eq.refl.{1} ratRep b)
+      (fun (k : Nat)
+          (ih : ∀ (x : ratRep), walkPoint x b step k (Nat.succ k) = b) =>
+        fun (x : ratRep) => ih (ratAddRep x step))
+      n a
+
+-- 走满 k 步之前，第 i 个点是 `a + i·step`：对 i 归纳。每退一步既要
+-- 把起点换成 `a + step`，又要把 `j·step + step` 收成 `(j+1)·step`。
+theorem walkPoint_of_le (b step : ratRep) (a : ratRep) (i n : Nat)
+    (hi : LeNat i n) :
+    ratRel (walkPoint a b step n i)
+      (ratAddRep a (ratMulRep (natToRat i) step)) :=
+  Nat.rec
+    (fun (i : Nat) =>
+      ∀ (a : ratRep) (n : Nat), LeNat i n →
+        ratRel (walkPoint a b step n i)
+          (ratAddRep a (ratMulRep (natToRat i) step)))
+    (fun (a : ratRep) (n : Nat) (_hi : LeNat Nat.zero n) =>
+      @Eq.subst.{1} ratRep
+        (fun (z : ratRep) =>
+          ratRel z (ratAddRep a (ratMulRep (natToRat Nat.zero) step)))
+        a (walkPoint a b step n Nat.zero)
+        (@Eq.symm.{1} ratRep (walkPoint a b step n Nat.zero) a
+          (walkPoint_zero a b step n))
+        (ratRel_trans_gen
+          a
+          (ratAddRep a ratZeroRep)
+          (ratAddRep a (ratMulRep (natToRat Nat.zero) step))
+          (ratRel_symm (ratAddRep a ratZeroRep) a (ratAdd_zero a))
+          (ratAddRep_wd_snd_gen a ratZeroRep
+            (ratMulRep (natToRat Nat.zero) step)
+            (ratRel_symm (ratMulRep (natToRat Nat.zero) step) ratZeroRep
+              (ratMul_zero_left step)))))
+    (fun (j : Nat)
+        (ih : ∀ (a : ratRep) (n : Nat), LeNat j n →
+          ratRel (walkPoint a b step n j)
+            (ratAddRep a (ratMulRep (natToRat j) step))) =>
+      fun (a : ratRep) (n : Nat) (h : LeNat (Nat.succ j) n) =>
+        Nat.rec
+          (fun (m : Nat) =>
+            LeNat (Nat.succ j) m →
+              ratRel (walkPoint a b step m (Nat.succ j))
+                (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step)))
+          (fun (h0 : LeNat (Nat.succ j) Nat.zero) =>
+            @False.elim
+              (ratRel (walkPoint a b step Nat.zero (Nat.succ j))
+                (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step)))
+              (leNat_succ_zero_absurd j h0))
+          (fun (m : Nat)
+              (_ihn : LeNat (Nat.succ j) m →
+                ratRel (walkPoint a b step m (Nat.succ j))
+                  (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step)))
+              (hsm : LeNat (Nat.succ j) (Nat.succ m)) =>
+            @Eq.subst.{1} ratRep
+              (fun (z : ratRep) =>
+                ratRel z
+                  (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step)))
+              (walkPoint (ratAddRep a step) b step m j)
+              (walkPoint a b step (Nat.succ m) (Nat.succ j))
+              (@Eq.symm.{1} ratRep
+                (walkPoint a b step (Nat.succ m) (Nat.succ j))
+                (walkPoint (ratAddRep a step) b step m j)
+                (walkPoint_succ a b step m j))
+              (ratRel_trans_gen
+                (walkPoint (ratAddRep a step) b step m j)
+                (ratAddRep (ratAddRep a step) (ratMulRep (natToRat j) step))
+                (ratAddRep a (ratMulRep (natToRat (Nat.succ j)) step))
+                (ih (ratAddRep a step) m (leNat_pred j m hsm))
+                (add_step_mul_succ a step j)))
+          n h)
+    i a n hi
+
+-- 任意代表元上的版本：把 `x` 写成它的两个投影，`qrep` 只是把投影重新
+-- 装回去。
+theorem ratDiv_mul (k : Nat) (x : ratRep) :
+    ratRel (ratMulRep (natToRat (Nat.succ k)) (ratDiv k x)) x :=
+  ratDiv_mul_rep k
+    (Prod.fst Nat Nat (numOf x)) (Prod.snd Nat Nat (numOf x)) (denOf x)
+
+-- 任意代表元上的正性版本。
+theorem ratDiv_pos (k : Nat) (x : ratRep)
+    (h : ratLtRep ratZeroRep x) :
+    ratLtRep ratZeroRep (ratDiv k x) :=
+  ratDiv_pos_rep k
+    (Prod.fst Nat Nat (numOf x)) (Prod.snd Nat Nat (numOf x)) (denOf x) h
+
+-- 任意代表元上的严格版本：把 `delta` 写成 `qrep`，乘积就化成
+-- `(k+1)u/(k+1)v` 的形状。
+theorem ratDiv_lt (k : Nat) (x delta : ratRep)
+    (h : ratLtRep x (ratMulRep (natToRat (Nat.succ k)) delta)) :
+    ratLtRep (ratDiv k x) delta :=
+  ratDiv_lt_rep k
+    (Prod.fst Nat Nat (numOf x)) (Prod.snd Nat Nat (numOf x)) (denOf x)
+    (Prod.fst Nat Nat (numOf delta)) (Prod.snd Nat Nat (numOf delta))
+    (denOf delta)
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) =>
+        ratLtRep
+          (qrep (Prod.fst Nat Nat (numOf x))
+            (Prod.snd Nat Nat (numOf x)) (denOf x)) z)
+      (ratMulRep (natToRat (Nat.succ k)) delta)
+      (qrep
+        (myMul (Nat.succ k) (Prod.fst Nat Nat (numOf delta)))
+        (myMul (Nat.succ k) (Prod.snd Nat Nat (numOf delta)))
+        (denOf delta))
+      (natToRat_mul_rep (Nat.succ k)
+        (Prod.fst Nat Nat (numOf delta))
+        (Prod.snd Nat Nat (numOf delta)) (denOf delta))
+      h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 等分分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 每段的宽：区间长度除以 `k+1`。
+def meshStep (a b : ratRep) (k : Nat) : ratRep :=
+  ratDiv k (ratSubRep b a)
+
+-- 段数是 `k+1`；前 `k+1` 个点是 `a, a+step, …, a+k·step`，最后一个是 `b`。
+def uniformPartition (a b : ratRep) (k : Nat) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ k)
+    (fun (i : Nat) => walkPoint a b (meshStep a b k) k i)
+
+theorem uniformPartition_zero (a b : ratRep) (k : Nat) :
+    partPoint (uniformPartition a b k) Nat.zero = a :=
+  walkPoint_zero a b (meshStep a b k) k
+
+theorem uniformPartition_count (a b : ratRep) (k : Nat) :
+    partCount (uniformPartition a b k) = Nat.succ k :=
+  @Eq.refl.{1} Nat (Nat.succ k)
+
+theorem uniformPartition_last (a b : ratRep) (k : Nat) :
+    partPoint (uniformPartition a b k) (Nat.succ k) = b :=
+  walkPoint_last b (meshStep a b k) a k
+
+theorem uniformPartition_last_rel (a b : ratRep) (k : Nat) :
+    ratRel (partPoint (uniformPartition a b k) (Nat.succ k)) b :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) =>
+      ratRel (partPoint (uniformPartition a b k) (Nat.succ k)) z)
+    (partPoint (uniformPartition a b k) (Nat.succ k)) b
+    (uniformPartition_last a b k)
+    (ratRel_refl (partPoint (uniformPartition a b k) (Nat.succ k)))
+
+theorem uniformPartition_last_at_count (a b : ratRep) (k : Nat) :
+    partPoint (uniformPartition a b k)
+      (partCount (uniformPartition a b k)) = b :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => partPoint (uniformPartition a b k) z = b)
+    (Nat.succ k) (partCount (uniformPartition a b k))
+    (@Eq.symm.{1} Nat (partCount (uniformPartition a b k)) (Nat.succ k)
+      (uniformPartition_count a b k))
+    (uniformPartition_last a b k)
+
+-- `(k+1)` 乘每段宽正好是区间长度。
+theorem meshStep_mul (a b : ratRep) (k : Nat) :
+    ratRel
+      (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k))
+      (ratSubRep b a) :=
+  ratDiv_mul k (ratSubRep b a)
+
+-- 区间非退化时每段宽为正。
+theorem meshStep_pos (a b : ratRep) (k : Nat) (h : ratLtRep a b) :
+    ratLtRep ratZeroRep (meshStep a b k) :=
+  ratDiv_pos k (ratSubRep b a) (ratLtRep_sub_pos b a h)
+
+-- 第 i 个点（`i ≤ k`）就是 `a + i·step`。
+theorem uniformPartition_le (a b : ratRep) (k i : Nat)
+    (hi : LeNat i k) :
+    ratRel (partPoint (uniformPartition a b k) i)
+      (ratAddRep a (ratMulRep (natToRat i) (meshStep a b k))) :=
+  walkPoint_of_le b (meshStep a b k) a i k hi
+
+-- ─────────────────────────────────────────────────────────────
+-- 相邻两点相差一步
+-- ─────────────────────────────────────────────────────────────
+
+-- `a + (i+1)·step ~ (a + i·step) + step`：先把 `(i+1)·step` 拆开，
+-- 再把加法结合到右边。
+theorem add_mul_succ_rel (a step : ratRep) (i : Nat) :
+    ratRel
+      (ratAddRep a (ratMulRep (natToRat (Nat.succ i)) step))
+      (ratAddRep (ratAddRep a (ratMulRep (natToRat i) step)) step) :=
+  ratRel_trans_gen
+    (ratAddRep a (ratMulRep (natToRat (Nat.succ i)) step))
+    (ratAddRep a (ratAddRep (ratMulRep (natToRat i) step) step))
+    (ratAddRep (ratAddRep a (ratMulRep (natToRat i) step)) step)
+    (ratAddRep_wd_snd_gen a
+      (ratMulRep (natToRat (Nat.succ i)) step)
+      (ratAddRep (ratMulRep (natToRat i) step) step)
+      (natMul_succ_rel i step))
+    (ratRel_symm
+      (ratAddRep (ratAddRep a (ratMulRep (natToRat i) step)) step)
+      (ratAddRep a (ratAddRep (ratMulRep (natToRat i) step) step))
+      (ratAdd_assoc a (ratMulRep (natToRat i) step) step))
+
+-- 最后一段：三段拼接。先把 `b` 写成 `a + (b-a)`，再把 `b-a` 换成
+-- `(k+1)·step`，最后把 `(k+1)·step` 拆成 `k·step + step`。
+theorem last_base_rel (a b : ratRep) :
+    ratRel b (ratAddRep a (ratSubRep b a)) :=
+  ratRel_symm (ratAddRep a (ratSubRep b a)) b
+    (ratRel_trans_gen (ratAddRep a (ratSubRep b a))
+      (ratAddRep (ratSubRep b a) a) b
+      (ratAdd_comm a (ratSubRep b a))
+      (ratSubRep_add_self b a))
+
+theorem last_step_rel (a b : ratRep) (k : Nat) :
+    ratRel (ratAddRep a (ratSubRep b a))
+      (ratAddRep a
+        (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k))) :=
+  ratAddRep_wd_snd_gen a (ratSubRep b a)
+    (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k))
+    (ratRel_symm
+      (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k))
+      (ratSubRep b a) (meshStep_mul a b k))
+
+theorem last_shift_rel (a b : ratRep) (k : Nat) :
+    ratRel
+      (ratAddRep a
+        (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k)))
+      (ratAddRep
+        (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+        (meshStep a b k)) :=
+  add_mul_succ_rel a (meshStep a b k) k
+
+theorem uniformPartition_last_adjacent (a b : ratRep) (k : Nat) :
+    ratRel b
+      (ratAddRep
+        (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+        (meshStep a b k)) :=
+  ratRel_trans_gen b
+    (ratAddRep a (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k)))
+    (ratAddRep
+      (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+      (meshStep a b k))
+    (ratRel_trans_gen b (ratAddRep a (ratSubRep b a))
+      (ratAddRep a
+        (ratMulRep (natToRat (Nat.succ k)) (meshStep a b k)))
+      (last_base_rel a b) (last_step_rel a b k))
+    (last_shift_rel a b k)
+
+-- 下标 `i ≤ k` 的相邻两点：下一段是「这一点加一步」。
+theorem uniformPartition_adjacent (a b : ratRep) (k i : Nat)
+    (hi : LeNat (Nat.succ i) (Nat.succ k)) :
+    ratRel (partPoint (uniformPartition a b k) (Nat.succ i))
+      (ratAddRep (partPoint (uniformPartition a b k) i)
+        (meshStep a b k)) :=
+  Or.elim
+    (fun (heq : i = k) =>
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) =>
+          ratRel (partPoint (uniformPartition a b k) (Nat.succ z))
+            (ratAddRep (partPoint (uniformPartition a b k) z)
+              (meshStep a b k)))
+        k i (Eq.symm heq)
+        (ratRel_trans_gen
+          (partPoint (uniformPartition a b k) (Nat.succ k))
+          (ratAddRep
+            (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+            (meshStep a b k))
+          (ratAddRep (partPoint (uniformPartition a b k) k)
+            (meshStep a b k))
+          (ratRel_trans_gen
+            (partPoint (uniformPartition a b k) (Nat.succ k))
+            b
+            (ratAddRep
+              (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+              (meshStep a b k))
+            (uniformPartition_last_rel a b k)
+            (uniformPartition_last_adjacent a b k))
+          (ratAddRep_wd_gen
+            (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+            (partPoint (uniformPartition a b k) k)
+            (meshStep a b k)
+            (ratRel_symm
+              (partPoint (uniformPartition a b k) k)
+              (ratAddRep a (ratMulRep (natToRat k) (meshStep a b k)))
+              (uniformPartition_le a b k k (le_refl k))))))
+    (fun (hlt : LeNat (Nat.succ i) k) =>
+      ratRel_trans_gen
+        (partPoint (uniformPartition a b k) (Nat.succ i))
+        (ratAddRep a
+          (ratMulRep (natToRat (Nat.succ i)) (meshStep a b k)))
+        (ratAddRep (partPoint (uniformPartition a b k) i)
+          (meshStep a b k))
+        (uniformPartition_le a b k (Nat.succ i) hlt)
+        (ratRel_trans_gen
+          (ratAddRep a
+            (ratMulRep (natToRat (Nat.succ i)) (meshStep a b k)))
+          (ratAddRep
+            (ratAddRep a (ratMulRep (natToRat i) (meshStep a b k)))
+            (meshStep a b k))
+          (ratAddRep (partPoint (uniformPartition a b k) i)
+            (meshStep a b k))
+          (add_mul_succ_rel a (meshStep a b k) i)
+          (ratAddRep_wd_gen
+            (ratAddRep a (ratMulRep (natToRat i) (meshStep a b k)))
+            (partPoint (uniformPartition a b k) i)
+            (meshStep a b k)
+            (ratRel_symm
+              (partPoint (uniformPartition a b k) i)
+              (ratAddRep a (ratMulRep (natToRat i) (meshStep a b k)))
+              (uniformPartition_le a b k i
+                (leNat_trans i (Nat.succ i) k
+                  (le_succ i i (le_refl i)) hlt))))))
+    (leNat_eq_or_succ i k (leNat_pred i k hi))
+
+-- 相邻两点的严格上升：`point i < point i + step`，而后者与 `point(i+1)`
+-- 是同一个数。
+theorem uniformPartition_step (a b : ratRep) (k i : Nat)
+    (hab : ratLtRep a b)
+    (hi : LeNat (Nat.succ i)
+      (partCount (uniformPartition a b k))) :
+    ratLtRep (partPoint (uniformPartition a b k) i)
+      (partPoint (uniformPartition a b k) (Nat.succ i)) :=
+  ratLtRep_congr_snd
+    (partPoint (uniformPartition a b k) i)
+    (ratAddRep (partPoint (uniformPartition a b k) i) (meshStep a b k))
+    (partPoint (uniformPartition a b k) (Nat.succ i))
+    (ratLtRep_self_add_pos (partPoint (uniformPartition a b k) i)
+      (meshStep a b k) (meshStep_pos a b k hab))
+    (ratRel_symm
+      (partPoint (uniformPartition a b k) (Nat.succ i))
+      (ratAddRep (partPoint (uniformPartition a b k) i) (meshStep a b k))
+      (uniformPartition_adjacent a b k i
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat (Nat.succ i) z)
+          (partCount (uniformPartition a b k)) (Nat.succ k)
+          (@Eq.symm.{1} Nat (partCount (uniformPartition a b k)) (Nat.succ k)
+            (uniformPartition_count a b k))
+          hi)))
+
+theorem uniformPartition_isPartition (a b : ratRep) (k : Nat)
+    (hab : ratLtRep a b) :
+    IsPartition a b (uniformPartition a b k) :=
+  And.intro
+    (uniformPartition_zero a b k)
+    (And.intro
+      (uniformPartition_last_at_count a b k)
+      (fun (i : Nat)
+          (hi : LeNat (Nat.succ i)
+            (partCount (uniformPartition a b k))) =>
+        uniformPartition_step a b k i hab hi))
+
+-- 每段的宽都等于 `step`：`point(i+1) ~ point i + step`，减去 `point i`
+-- 就剩 `step`。
+theorem uniformPartition_segLen (a b : ratRep) (k i : Nat)
+    (hi : LeNat (Nat.succ i)
+      (partCount (uniformPartition a b k))) :
+    ratRel (segLen (uniformPartition a b k) i) (meshStep a b k) :=
+  ratRel_trans_gen
+    (segLen (uniformPartition a b k) i)
+    (ratSubRep
+      (ratAddRep (partPoint (uniformPartition a b k) i) (meshStep a b k))
+      (partPoint (uniformPartition a b k) i))
+    (meshStep a b k)
+    (ratSubRep_wd
+      (partPoint (uniformPartition a b k) (Nat.succ i))
+      (ratAddRep (partPoint (uniformPartition a b k) i) (meshStep a b k))
+      (partPoint (uniformPartition a b k) i)
+      (partPoint (uniformPartition a b k) i)
+      (uniformPartition_adjacent a b k i
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat (Nat.succ i) z)
+          (partCount (uniformPartition a b k)) (Nat.succ k)
+          (@Eq.symm.{1} Nat (partCount (uniformPartition a b k)) (Nat.succ k)
+            (uniformPartition_count a b k))
+          hi))
+      (ratRel_refl (partPoint (uniformPartition a b k) i)))
+    (ratSubRep_add_self_sub (partPoint (uniformPartition a b k) i)
+      (meshStep a b k))
+
+theorem uniformPartition_mesh (a b : ratRep) (k : Nat) (delta : ratRep)
+    (hstep : ratLtRep (meshStep a b k) delta) :
+    MeshBelow (uniformPartition a b k) delta :=
+  fun (i : Nat)
+      (hi : LeNat (Nat.succ i)
+        (partCount (uniformPartition a b k))) =>
+    ratLtRep_congr_fst (segLen (uniformPartition a b k) i)
+      (meshStep a b k) delta hstep
+      (uniformPartition_segLen a b k i hi)
+
+-- 严格序不能同时成立：两边弱序会给出相等，撞上严格序的另一半。
+theorem ratLtRep_asymm (x y : ratRep)
+    (hxy : ratLtRep x y) (hyx : ratLtRep y x) : False :=
+  (And.right hxy)
+    (ratLeRep_antisymm x y (And.left hxy) (And.left hyx))
+
+-- 区间非退化时，任给正的 `delta` 都有一个每段都短于 `delta` 的分割。
+theorem exists_mesh_partition (a b delta : ratRep)
+    (hab : ratLtRep a b) (hdelta : ratLtRep ratZeroRep delta) :
+    ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta :=
+  Exists.elim
+    (arch_lt_of_nonneg delta (ratSubRep b a) hdelta
+      (ratLtRep_le ratZeroRep (ratSubRep b a)
+        (ratLtRep_sub_pos b a hab)))
+    (fun (n : Nat)
+        (hn : ratLtRep (ratSubRep b a)
+          (ratMulRep (natToRat n) delta)) =>
+      Nat.rec
+        (fun (m : Nat) =>
+          ratLtRep (ratSubRep b a) (ratMulRep (natToRat m) delta) →
+            ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta)
+        (fun (h0 : ratLtRep (ratSubRep b a)
+            (ratMulRep (natToRat Nat.zero) delta)) =>
+          @False.elim
+            (∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta)
+            (ratLtRep_asymm ratZeroRep (ratSubRep b a)
+              (ratLtRep_sub_pos b a hab)
+              (ratLtRep_congr_snd (ratSubRep b a)
+                (ratMulRep (natToRat Nat.zero) delta) ratZeroRep h0
+                (ratMul_zero_left delta))))
+        (fun (k : Nat)
+            (_ih : ratLtRep (ratSubRep b a)
+              (ratMulRep (natToRat k) delta) →
+              ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta)
+            (hsk : ratLtRep (ratSubRep b a)
+              (ratMulRep (natToRat (Nat.succ k)) delta)) =>
+          Exists.intro (uniformPartition a b k)
+            (And.intro (uniformPartition_isPartition a b k hab)
+              (uniformPartition_mesh a b k delta
+                (ratDiv_lt k (ratSubRep b a) delta hsk))))
+        n hn)

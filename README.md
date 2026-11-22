@@ -17,6 +17,7 @@
   远大目标 · 当前进度）
 - [Quickstart](editor/vscode/README.md) — 装上 VS Code 扩展即可用，零工具链
 - [Course](courses/quick-start/README.md) — 逻辑与证明课（单元数与顺序见同目录 `course.json`），判卷由真内核完成
+- [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 的 QA 已完成，发版待内核修复
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
 
@@ -59,6 +60,7 @@ crates/cli      `sokonanoda` command-line front-end for .sokonanoda files
 crates/lsp      `sokonanoda-lsp` language server (tower-lsp)
 editor/vscode   VS Code extension (bundles the LSP + CLI, Marketplace)
 skills/         Agent Skills for code agents (teacher + developer)
+courses/        Three courses: quick-start, set-theory, and analysis
 examples/       Sample .sokonanoda lesson files
 ```
 
@@ -70,12 +72,8 @@ Documentation:
   first if you are picking the project up);
 - [docs/architecture.md](docs/architecture.md) — deep architecture + kernel
   tour;
-- [docs/notes/research.md](docs/notes/research.md) — survey of teaching-oriented proof
-  languages and infrastructure lessons;
-- [docs/design/infrastructure.md](docs/design/infrastructure.md) — gap
-  analysis and design brainstorm for the next milestones;
-- [docs/notes/inductive.md](docs/notes/inductive.md) — what `inductive/ctor/rec/iota` mean
-  and how the kernel reduces them;
+- [docs/README.md](docs/README.md) — documentation map: core references, design
+  records, research notes and the archive;
 - [docs/protocol.md](docs/protocol.md) — CLI/editor/agent feedback protocol
   (human text lines + JSON Lines).
 
@@ -86,17 +84,17 @@ platform-specific package ships both the language server and the `sokonanoda`
 CLI, so checking, the goal view and the course map work offline out of the
 box.
 
-**In this repo**: the `sokonanoda` binary is the single entrypoint (the
-opencode plugin provisions it and puts it on PATH; contributors can
-`cargo build -p sokonanoda-cli` and run `target/debug/sokonanoda`). Design:
-`docs/design/binary-cli.md`（**已删档**，原文 ⇒ `git log --all -- docs/design/binary-cli.md`）.
+**In this repo**: `scripts/soko` is the harness-neutral entrypoint (version-matched
+build, cache, extension, or pinned download). Design: `docs/design/binary-cli.md`
+(archived; see `git log --all -- docs/design/binary-cli.md`).
 
 ```bash
-sokonanoda setup && sokonanoda doctor
+scripts/soko setup && scripts/soko doctor
 ```
 
-opencode users get the same via `/sokonanoda/setup` + `/sokonanoda/doctor`
-(the startup plugin provisions automatically and puts the binaries on PATH).
+With the binaries on PATH (the opencode plugin does this), `sokonanoda setup` and
+`sokonanoda doctor` behave the same; opencode also has `/sokonanoda/setup` +
+`/sokonanoda/doctor`.
 
 **Command line / agents**: download the version-pinned binaries from GitHub
 Releases (the tarballs contain runnable executables — no cargo, no checkout):

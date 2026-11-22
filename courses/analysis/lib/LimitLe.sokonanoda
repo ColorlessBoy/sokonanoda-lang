@@ -1,0 +1,125 @@
+-- 课程库：极限保持非严格序（单元75 的引擎）
+--
+-- 单元75 在画布里证了四条并判卷；这里按「前序证明进库」惯例收进 L2，
+-- 单元82 起直接引用，不再重抄。
+--
+--   · `ratLeRep_of_sub_le_all` —— 任意 ε 内 `x - y ≤ ε` ⇒ `x ≤ y`（75.1）；
+--   · `converges_le_of_eventually` —— 两条序列终究按 `x n ≤ y n` 排列时
+--     极限满足 `L ≤ M`（75.2）；
+--   · `converges_nonneg` —— 终究非负 ⇒ 极限非负（75.3）；
+--   · `converges_le_const` —— 终究不超过常数 `c` ⇒ 极限不超过 `c`（75.4）。
+--
+-- 证明与单元75 的解答逐字同形。全部停在有理代表元层与已判卷的库引理上，
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.RatSub
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.1 单侧界：任意 ε 内 `x - y ≤ ε` ⇒ `x ≤ y`
+-- ─────────────────────────────────────────────────────────────
+
+-- ㊺ 的全性把目标归到 `y ≤ x`；74.4 再把 `y ≤ x` 拆成「y ~ x」（转成
+-- `x ≤ y`）与「y < x」（反证）。反证令 `d := x - y`，74.3 给 `0 < d`，
+-- 假设在 `eps := d/2` 上给 `d ≤ d/2`，而 74.5 给 `d/2 < d`，反对称性
+-- 把 `d/2 ~ d` 夹出来撞矛盾。
+theorem ratLeRep_of_sub_le_all (x y : ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ratLeRep (ratSubRep x y) eps) :
+    ratLeRep x y :=
+  Or.elim
+    (fun (hxy : ratLeRep x y) => hxy)
+    (fun (hyx : ratLeRep y x) =>
+      Or.elim
+        (fun (hyx_eq : ratRel y x) =>
+          ratLeRep_of_ratRel x y (ratRel_symm y x hyx_eq))
+        (fun (hyx_lt : ratLtRep y x) =>
+          @False.elim (ratLeRep x y)
+            (ratLtRep_half_irrel (ratSubRep x y) (ratLtRep_sub_pos x y hyx_lt)
+              (ratRel_symm (ratSubRep x y) (ratHalf (ratSubRep x y))
+                (ratLeRep_antisymm (ratSubRep x y) (ratHalf (ratSubRep x y))
+                  (h (ratHalf (ratSubRep x y))
+                    (ratLtRep_half (ratSubRep x y)
+                      (ratLtRep_sub_pos x y hyx_lt)))
+                  (ratLtRep_le (ratHalf (ratSubRep x y)) (ratSubRep x y)
+                    (ratHalf_lt_self (ratSubRep x y)
+                      (ratLtRep_sub_pos x y hyx_lt)))))))
+        (ratLeRep_eq_or_lt y x hyx))
+    (ratLeRep_total x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.2 极限保持非严格不等式
+-- ─────────────────────────────────────────────────────────────
+
+-- 对任意 `eps > 0` 用 75.1。三条「终究」并到同一个 `N`：
+-- `x N ≤ y N`、`close (x N) L (eps/2)`、`close (y N) M (eps/2)`。
+-- 于是 `L - M = (L - x N) + (x N - M)`：第一项由 `close_symm` 与
+-- `close_sub_le` 给 `eps/2`；第二项先由 `x N ≤ y N` 右加 `-M`，再由
+-- `y N` 的接近性给 `eps/2`。相加后 `eps/2 + eps/2 ~ eps`，整个过程用
+-- `ratLeRep_congr_gen` 换形。
+theorem converges_le_of_eventually (x y : Seq) (L M : ratRep)
+    (hx : Converges x L) (hy : Converges y M)
+    (hxy : Eventually (fun (n : Nat) => ratLeRep (x n) (y n))) :
+    ratLeRep L M :=
+  ratLeRep_of_sub_le_all L M
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (eventually_and
+          (fun (n : Nat) => ratLeRep (x n) (y n))
+          (fun (n : Nat) => close (x n) L (ratHalf eps) ∧
+                            close (y n) M (ratHalf eps))
+          hxy
+          (eventually_and
+            (fun (n : Nat) => close (x n) L (ratHalf eps))
+            (fun (n : Nat) => close (y n) M (ratHalf eps))
+            (hx (ratHalf eps) (ratLtRep_half eps heps))
+            (hy (ratHalf eps) (ratLtRep_half eps heps))))
+        (fun (N : Nat)
+            (hN : ∀ (n : Nat), LeNat N n →
+              ratLeRep (x n) (y n) ∧
+                (close (x n) L (ratHalf eps) ∧
+                 close (y n) M (ratHalf eps))) =>
+          ratLeRep_congr_gen
+            (ratAddRep (ratSubRep L (x N)) (ratSubRep (x N) M))
+            (ratSubRep L M)
+            (ratAddRep (ratHalf eps) (ratHalf eps))
+            eps
+            (ratSubRep_add L (x N) M)
+            (ratHalf_add_self eps)
+            (ratLeRep_add
+              (ratSubRep L (x N)) (ratHalf eps)
+              (ratSubRep (x N) M) (ratHalf eps)
+              (close_sub_le L (x N) (ratHalf eps)
+                (close_symm (x N) L (ratHalf eps)
+                  (And.left (And.right (hN N (LeNat.le_refl N))))))
+              (ratLeRep_trans
+                (ratSubRep (x N) M) (ratSubRep (y N) M) (ratHalf eps)
+                (ratLeRep_add_right (x N) (y N) (ratNegRep M)
+                  (And.left (hN N (LeNat.le_refl N))))
+                (close_sub_le (y N) M (ratHalf eps)
+                  (And.right (And.right (hN N (LeNat.le_refl N)))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.3 推论：终究非负 ⇒ 极限非负
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 75.2 用在常零序列与 `x` 上；`constSeq ratZeroRep n` 定义性归约成
+-- `ratZeroRep`，前提方向正好是「`0 ≤ x n`」。
+theorem converges_nonneg (x : Seq) (L : ratRep) (h : Converges x L)
+    (hx : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n))) :
+    ratLeRep ratZeroRep L :=
+  converges_le_of_eventually (constSeq ratZeroRep) x ratZeroRep L
+    demo_converges_zero h hx
+
+-- ─────────────────────────────────────────────────────────────
+-- 75.4 推论：终究不超过常数 ⇒ 极限不超过该常数
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 75.2 用在 `x` 与常序列 `constSeq c` 上；`constSeq c n` 定义性
+-- 归约成 `c`。
+theorem converges_le_const (x : Seq) (L c : ratRep) (h : Converges x L)
+    (hc : Eventually (fun (n : Nat) => ratLeRep (x n) c)) :
+    ratLeRep L c :=
+  converges_le_of_eventually x (constSeq c) L c h (converges_const c) hc

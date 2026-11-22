@@ -1,0 +1,191 @@
+-- 课程库：有限和
+--
+-- 单元110 在画布里定义了前 n 项和并证明七条基本律；这里收进 L2，单元111
+-- 起直接引用。内容与画布逐条同形：
+--
+--   · `sumTo` —— 前 n 项和（对项数递归）；
+--   · `sumTo_zero` / `sumTo_succ` —— 两条计算规则；
+--   · `sumTo_congr` / `sumTo_zero_fun` / `sumTo_neg` / `sumTo_add` —— 搬运律；
+--   · `ratAdd_swap_mid` / `ratAdd_pair_regroup` —— 两条重配对的辅助律。
+--
+-- 边界：只做有限和。`sumTo` 停在有理代表元层，不进入 ℝ 的商，也不谈无限项。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatGroup
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.0 前 n 项和
+-- ─────────────────────────────────────────────────────────────
+
+def sumTo (f : Nat → ratRep) : Nat → ratRep :=
+  Nat.rec (fun (_ : Nat) => ratRep) ratZeroRep
+    (fun (k : Nat) (acc : ratRep) => ratAddRep acc (f k))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.1 零项和是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_zero (f : Nat → ratRep) : ratRel (sumTo f Nat.zero) ratZeroRep :=
+  ratRel_refl ratZeroRep
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.2 后继项数的计算规则
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_succ (f : Nat → ratRep) (n : Nat) :
+    sumTo f (Nat.succ n) = ratAddRep (sumTo f n) (f n) :=
+  Eq.refl (ratAddRep (sumTo f n) (f n))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.3 逐项相等则和相等
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_congr (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratRel (f k) (g k)) :
+    ratRel (sumTo f n) (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo f n) (sumTo g n))
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat) (ih : ratRel (sumTo f n) (sumTo g n)) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo f n) (f n))
+        (ratAddRep (sumTo g n) (f n))
+        (ratAddRep (sumTo g n) (g n))
+        (ratAddRep_wd_gen (sumTo f n) (sumTo g n) (f n) ih)
+        (ratAddRep_wd_snd_gen (sumTo g n) (f n) (g n) (h n)))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.4 全零项的和是零
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_zero_fun (n : Nat) :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep)
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep)
+        (ratAddRep ratZeroRep ratZeroRep)
+        ratZeroRep
+        (ratAddRep_wd_gen (sumTo (fun (_ : Nat) => ratZeroRep) n) ratZeroRep ratZeroRep ih)
+        (ratAdd_zero ratZeroRep))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.5 取负可以搬进和里
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_neg (f : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+      (ratNegRep (sumTo f n)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+      (ratNegRep (sumTo f n)))
+    (ratRel_refl ratZeroRep)
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+        (ratNegRep (sumTo f n))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (k : Nat) => ratNegRep (f k)) n) (ratNegRep (f n)))
+        (ratAddRep (ratNegRep (sumTo f n)) (ratNegRep (f n)))
+        (ratNegRep (ratAddRep (sumTo f n) (f n)))
+        (ratAddRep_wd_gen
+          (sumTo (fun (k : Nat) => ratNegRep (f k)) n)
+          (ratNegRep (sumTo f n))
+          (ratNegRep (f n)) ih)
+        (ratRel_symm
+          (ratNegRep (ratAddRep (sumTo f n) (f n)))
+          (ratAddRep (ratNegRep (sumTo f n)) (ratNegRep (f n)))
+          (ratNegRep_add (sumTo f n) (f n))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.6 交换后两个加数
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_swap_mid (a b c : ratRep) :
+    ratRel (ratAddRep (ratAddRep a b) c) (ratAddRep (ratAddRep a c) b) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep a b) c)
+    (ratAddRep a (ratAddRep b c))
+    (ratAddRep (ratAddRep a c) b)
+    (ratAdd_assoc a b c)
+    (ratRel_trans_gen
+      (ratAddRep a (ratAddRep b c))
+      (ratAddRep a (ratAddRep c b))
+      (ratAddRep (ratAddRep a c) b)
+      (ratAddRep_wd_snd_gen a (ratAddRep b c) (ratAddRep c b) (ratAdd_comm b c))
+      (ratRel_symm
+        (ratAddRep (ratAddRep a c) b)
+        (ratAddRep a (ratAddRep c b))
+        (ratAdd_assoc a c b)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.7 两对加数重新配对
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratAdd_pair_regroup (F G f g : ratRep) :
+    ratRel (ratAddRep (ratAddRep F G) (ratAddRep f g))
+      (ratAddRep (ratAddRep F f) (ratAddRep G g)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep F G) (ratAddRep f g))
+    (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+    (ratAddRep (ratAddRep F f) (ratAddRep G g))
+    (ratRel_symm
+      (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+      (ratAddRep (ratAddRep F G) (ratAddRep f g))
+      (ratAdd_assoc (ratAddRep F G) f g))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep (ratAddRep F G) f) g)
+      (ratAddRep (ratAddRep (ratAddRep F f) G) g)
+      (ratAddRep (ratAddRep F f) (ratAddRep G g))
+      (ratAddRep_wd_gen
+        (ratAddRep (ratAddRep F G) f)
+        (ratAddRep (ratAddRep F f) G)
+        g
+        (ratAdd_swap_mid F G f))
+      (ratAdd_assoc (ratAddRep F f) G g))
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.8 和保持逐项加法
+-- ─────────────────────────────────────────────────────────────
+
+theorem sumTo_add (f g : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (ratAddRep (sumTo f n) (sumTo g n)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+      (ratAddRep (sumTo f n) (sumTo g n)))
+    (ratRel_symm (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+      (ratAdd_zero ratZeroRep))
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+        (ratAddRep (sumTo f n) (sumTo g n))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+          (ratAddRep (f n) (g n)))
+        (ratAddRep (ratAddRep (sumTo f n) (sumTo g n))
+          (ratAddRep (f n) (g n)))
+        (ratAddRep (ratAddRep (sumTo f n) (f n))
+          (ratAddRep (sumTo g n) (g n)))
+        (ratAddRep_wd_gen
+          (sumTo (fun (k : Nat) => ratAddRep (f k) (g k)) n)
+          (ratAddRep (sumTo f n) (sumTo g n))
+          (ratAddRep (f n) (g n)) ih)
+        (ratAdd_pair_regroup (sumTo f n) (sumTo g n) (f n) (g n)))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 110.9 具体：两个 1 的和是 2
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_sumTo_two : ratRel (sumTo (fun (_ : Nat) => qrep 1 0 0) 2) (qrep 2 0 0) :=
+  ratRel_refl (qrep 2 0 0)

@@ -1,0 +1,152 @@
+-- 课程库：面积值的符号（单元169）
+--
+-- 面积值 `HasIntegral` 夹在所有分割的上下和之间。曲线非负时，常值零台阶
+-- 是一个下界，零乘宽的和为零，于是零是一个下和，面积值不小于零；曲线非正
+-- 时零是上和，面积值不大于零。两条论证都只用两切点分割。候选值换成相等的
+-- 代表元不改变面积值，零曲线于是读出零。
+--
+--   · `stepSum_zero` —— 零台阶的矩形和为零；
+--   · `lowerStep_nonneg` / `upperStep_nonpos` —— 零分别是下界与上界；
+--   · `lowerSum_zero` / `upperSum_zero` —— 零分别是下和与上和；
+--   · `hasIntegral_nonneg` / `hasIntegral_nonpos` —— 面积值的符号；
+--   · `hasIntegral_congr_value` —— 候选值沿相等替换；
+--   · `hasIntegral_zero` —— 零曲线的面积值是零。
+--
+-- 边界：只谈符号，不做面积值的加法与数乘。函数取 `ratRep → ratRep`，停在
+-- 有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatRing
+import lib.Cauchy
+import lib.Sum
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 零台阶的矩形和
+-- ─────────────────────────────────────────────────────────────
+
+-- 矩形和是有限和，每一项是零乘一段宽。逐项把零因子收到零，全零项的有限和
+-- 再由零项和的引理收到零。
+theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep :=
+  ratRel_trans_gen
+    (stepSum p (fun (_ : Nat) => ratZeroRep))
+    (sumTo (fun (_ : Nat) => ratZeroRep) (partCount p))
+    ratZeroRep
+    (sumTo_congr
+      (fun (i : Nat) => ratMulRep ratZeroRep (segLen p i))
+      (fun (_ : Nat) => ratZeroRep)
+      (partCount p)
+      (fun (i : Nat) => ratMul_zero_left (segLen p i)))
+    (sumTo_zero_fun (partCount p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 零是下界，也是上和
+-- ─────────────────────────────────────────────────────────────
+
+-- 下界的义务是逐点比较。非负假设把每一点的函数值垫在零上面，段与点的前提
+-- 在这条比较里用不上。
+theorem lowerStep_nonneg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerStep a b p f (fun (_ : Nat) => ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    hf x
+
+-- 下和由一摞下界和它的矩形和组成。零台阶已经是下界，矩形和是零；下和的
+-- 候选值要等于这个矩形和，方向翻一次就够。
+theorem lowerSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) => ratZeroRep)
+    (And.intro
+      (lowerStep_nonneg a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))
+
+-- 上界与非正假设逐点比较，零压在函数值上面。
+theorem upperStep_nonpos (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperStep a b p f (fun (_ : Nat) => ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+    hf x
+
+-- 上和的构造与下和同形，只是台阶方向反过来。
+theorem upperSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) => ratZeroRep)
+    (And.intro
+      (upperStep_nonpos a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值的符号
+-- ─────────────────────────────────────────────────────────────
+
+-- 面积值不低于每一个下和。两切点分割是合法分割，零是它的一个下和，于是零
+-- 不超过面积值。
+theorem hasIntegral_nonneg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep ratZeroRep I :=
+  hasIntegral_lower a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (lowerSum_zero a b (twoPoint a b) f hf)
+
+-- 面积值不超过每一个上和。同一条分割上零是上和，于是面积值不超过零。
+theorem hasIntegral_nonpos (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    ratLeRep I ratZeroRep :=
+  hasIntegral_upper a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (upperSum_zero a b (twoPoint a b) f hf)
+
+-- ─────────────────────────────────────────────────────────────
+-- 换一个相等的候选值
+-- ─────────────────────────────────────────────────────────────
+
+-- 下界那半只换右边的候选值，上界那半只换左边的候选值，可积性原样保留。
+-- 两条比较都沿候选值的相等搬运，不需要重做分割上的估计。
+theorem hasIntegral_congr_value (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (h : HasIntegral a b f I) (hIJ : ratRel I J) :
+    HasIntegral a b f J :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p f L) =>
+      ratLeRep_congr_gen L L I J (ratRel_refl L) hIJ
+        (hasIntegral_lower a b f I h p L hp hL))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p f U) =>
+        ratLeRep_congr_gen I J U U hIJ (ratRel_refl U)
+          (hasIntegral_upper a b f I h p U hp hU))
+      (hasIntegral_integrable a b f I h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 零曲线的读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值曲线的候选值是 k·(b-a)。取 k 为零，乘积收到零，再把候选值换成这个
+-- 相等的代表元。
+theorem hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
+  hasIntegral_congr_value a b (fun (_ : ratRep) => ratZeroRep)
+    (ratMulRep ratZeroRep (ratSubRep b a)) ratZeroRep
+    (hasIntegral_const a b ratZeroRep hab)
+    (ratMul_zero_left (ratSubRep b a))

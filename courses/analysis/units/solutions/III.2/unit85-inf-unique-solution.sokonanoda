@@ -1,0 +1,106 @@
+-- 单元85 下界与下确界：唯一性与比较（解答）
+--
+-- 84 把序的上侧写成了上界与上确界。同一套论证把序翻过来，就是下界与
+-- 下确界。两者相遇时给出一个不依赖具体集合的不等式：非空集合的下确界
+-- 不超过上确界。后面的区间套与 limsup 都要用这个形状。
+--
+-- 本课程还没有把取负做成 ℝ 上的函数，所以下确界不借助「上确界的相反数」
+-- 来定义，而是照 84 的形状把 `≤` 的方向逐条翻转。翻转之后，证明也要
+-- 跟着换方向：上界的放大变成下界的缩小，最小性变成最大性。
+--
+-- 边界：与 84 相同，只证唯一性与比较，不证存在性。下确界的存在性同样
+-- 要选择公理或 Dedekind 切割，不写成公理。
+
+import lib.Order
+import lib.Sup
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- `LowerBound Real realLe A m` 读作「`m` 是 `A` 的下界」，
+-- `IsInf Real realLe A m` 读作「`m` 是 `A` 的下确界」。
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.1 下界可以缩小
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐个元素把 `m' ≤ m` 与 `m ≤ a` 接起来。
+theorem lowerBound_of_le (A : Real → Prop) (m m' : Real)
+    (hm : LowerBound Real realLe A m) (h : realLe m' m) :
+    LowerBound Real realLe A m' :=
+  fun (a : Real) (ha : A a) => realLe_trans m' m a h (hm a ha)
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.2 下确界处 `M ≤ m` 与「M 是下界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正方向：`M ≤ m` 与 `m ≤ a` 走传递。反方向是第二分量。
+theorem inf_le_iff (A : Real → Prop) (m M : Real)
+    (hi : IsInf Real realLe A m) :
+    realLe M m ↔ LowerBound Real realLe A M :=
+  Iff.intro
+    (fun (h : realLe M m) =>
+      fun (a : Real) (ha : A a) =>
+        realLe_trans M m a h ((And.left hi) a ha))
+    (fun (hM : LowerBound Real realLe A M) => (And.right hi) M hM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.3 下确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个下确界互相不超过，再交给反对称。
+theorem inf_unique (A : Real → Prop) (m m' : Real)
+    (hi : IsInf Real realLe A m) (hj : IsInf Real realLe A m') : m = m' :=
+  realLe_antisymm m m'
+    ((And.right hj) m (And.left hi))
+    ((And.right hi) m' (And.left hj))
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.4 集合含自己的下界时，它就是下确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 下界分量是假设；最大性把任一下界作用在集合内的那个元素上。
+theorem inf_of_min (A : Real → Prop) (m : Real)
+    (hm : A m) (hlb : LowerBound Real realLe A m) :
+    IsInf Real realLe A m :=
+  And.intro hlb (fun (M : Real) (hM : LowerBound Real realLe A M) => hM m hm)
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.5 单点集的下确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 下界：把 `a = mk x` 反向搬进 `realLe (mk x) a`，用自反性收口。
+-- 最大性：任一下界作用在 `mk x` 与 `rfl` 上。
+theorem inf_singleton_mk (x : Seq) (hx : Cauchy x) :
+    IsInf Real realLe (fun (a : Real) => a = Real.mk x) (Real.mk x) :=
+  And.intro
+    (fun (a : Real) (ha : a = Real.mk x) =>
+      @Eq.subst.{1} Real (fun (z : Real) => realLe (Real.mk x) z)
+        (Real.mk x) a (Eq.symm ha) (realLe_refl_mk x hx))
+    (fun (M : Real) (hM : LowerBound Real realLe (fun (a : Real) => a = Real.mk x) M) =>
+      hM (Real.mk x) (@Eq.refl.{1} Real (Real.mk x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.6 非空集合的下确界不超过上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 非空给一个见证 `a`，下确界不超过它，它又不超过上确界。
+theorem inf_le_sup_of_nonempty (A : Real → Prop) (i s : Real)
+    (hne : ∃ (a : Real), A a)
+    (hi : IsInf Real realLe A i) (hs : IsSup Real realLe A s) :
+    realLe i s :=
+  Exists.elim hne
+    (fun (a : Real) (ha : A a) =>
+      realLe_trans i a s ((And.left hi) a ha) ((And.left hs) a ha))
+
+-- ─────────────────────────────────────────────────────────────
+-- 85.7 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- 85.5 在 `zeroSeq` 上，Cauchy 见证由 `cauchy_zero` 付清。
+theorem demo_inf_zero :
+    IsInf Real realLe (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  inf_singleton_mk zeroSeq cauchy_zero

@@ -1,0 +1,35 @@
+import lib.Logic
+import lib.Prod
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def intOfNat (n : Nat) : Int :=
+  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)
+
+theorem demo_intRel :
+    intRel (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) :=
+  Eq.refl 3
+
+theorem demo_quot_sound :
+    intOfNat 2 = @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) (Eq.refl 3)
+
+theorem intRel_refl (p : Prod Nat Nat) : intRel p p :=
+  Eq.refl (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+
+theorem intRel_swap (a b : Prod Nat Nat) (h : intRel a b) : intRel b a :=
+  Eq.symm h
+
+theorem zero_rel :
+    intRel (@prod_mk Nat Nat Nat.zero Nat.zero) (@prod_mk Nat Nat 1 1) :=
+  Eq.refl 1
+
+theorem intOfNat_sound :
+    intOfNat 2 = @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat 3 1) :=
+  @Quot.sound.{1} (Prod Nat Nat) intRel
+    (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 3 1) (Eq.refl 3)

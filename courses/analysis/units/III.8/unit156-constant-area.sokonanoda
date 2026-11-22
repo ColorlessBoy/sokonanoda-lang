@@ -1,0 +1,104 @@
+-- 单元156 常值函数的面积：与分割无关
+--
+-- 矩形和依赖分割：换一组切点，矩形变窄变多，和看起来也会变。对一般的阶梯
+-- 函数，这个和会不会真的改变，目前还不知道；但有一类高度可以立刻检查——
+-- 每一段都取同一个常数。这时每个矩形的高相同，宽随分割变化，面积却只该由
+-- 总长度决定。如果换分割会改变结果，那么「曲线下的面积」连常值函数都定义
+-- 不了。
+--
+-- 先把宽的和收起来：相邻切点之差逐项相加，中间项两两抵消，只剩右端点减左
+-- 端点。再把常数从每一项里提出来：常数乘宽的和等于常数乘上宽的和，这一步
+-- 对项数归纳，用乘法对加法的分配律。两条合起来，常值函数的矩形和是
+-- k 乘 (b 减 a)，与切点怎么选无关。
+--
+-- 边界：只算常值函数，不谈一般阶梯函数在加细下的不变性，也不谈上下和；
+-- 常数与切点取有理代表元，停在 `ratRep` 层。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.Sum
+import lib.SumSplit
+import lib.RatRing
+import lib.DerivShift
+import lib.DerivAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形的宽与面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段的宽：右切点减左切点。段数记作 n 时，第 i 段只在 i < n 时存在。
+def segLen (p : Partition) (i : Nat) : ratRep :=
+  ratSubRep (partPoint p (Nat.succ i)) (partPoint p i)
+
+-- 阶梯函数的矩形和：每段的高度乘上那一段的宽，再把段数那么多项加起来。
+def stepSum (p : Partition) (c : Nat → ratRep) : ratRep :=
+  sumTo (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p)
+
+-- ─────────────────────────────────────────────────────────────
+-- 宽的和只剩两端
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `segLen p i` 认成 `x (i+1) - x i`，其中 x 是切点函数；这正是望远镜引理的形状，相邻差的和只剩首尾。
+-- soko:hint 目标形态：`ratRel (sumTo (fun i => segLen p i) n) (partPoint p n - partPoint p 0)`。
+-- soko:hint 关键件：sumTo_telescope · 定义性展开。
+theorem sumTo_segLen (p : Partition) (n : Nat) :
+    ratRel (sumTo (fun (i : Nat) => segLen p i) n)
+      (ratSubRep (partPoint p n) (partPoint p Nat.zero)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常数乘宽的和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对项数归纳。零项和是零，右边是 `k · (x 0 - x 0)`，由减法自反与右零元收成零。后继时把和拆成前 n 项与第 n 项：前 n 项用归纳假设；第 n 项 `k · (x(n+1) - x n)` 用乘法对减法的分配律换成 `k·x(n+1) - k·x n`。三项再按 `(A-C)+(B-A) ~ B-C` 重排：先用 `ratAdd_sub_sub` 并成 `(A+B)-(C+A)`，交换第一项，用减去同一个加数把 A 消掉，最后把 `k·x(n+1) - k·x 0` 换回 `k · (x(n+1) - x 0)`。
+-- soko:hint 目标形态：`ratRel (sumTo (fun i => k · (x(i+1) - x i)) n) (k · (x n - x 0))`。
+-- soko:hint 关键件：Nat.rec · ratMul_sub · ratAdd_sub_sub · ratAdd_comm · ratSubRep_wd · ratSubRep_add_cancel · ratSubRep_self · ratRel_symm · ratRel_trans_gen。
+theorem sumTo_const_len (x : Nat → ratRep) (k : ratRep) (n : Nat) :
+    ratRel (sumTo (fun (i : Nat) => ratMulRep k
+      (ratSubRep (x (Nat.succ i)) (x i))) n)
+      (ratMulRep k (ratSubRep (x n) (x Nat.zero))) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数的矩形和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值高度的矩形和是 `sumTo (fun i => k · 宽 i)`，交给上一条，得到 `k · (p_n - p_0)`；再用分割的两个端点等式把 p_n 换成 b、p_0 换成 a。这两条都是等式，沿 `Eq.subst` 改写即可。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => k)) (k · (b - a))`。
+-- soko:hint 关键件：sumTo_const_len · isPartition_left · isPartition_right · Eq.subst。
+theorem stepSum_const (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (k : ratRep) :
+    ratRel (stepSum p (fun (_ : Nat) => k))
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry
+
+-- soko:hint 思路：两条常值面积都等于 `k · (b - a)`，把第二条翻向，与第一条串起来。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => k)) (stepSum q (fun _ => k))`。
+-- soko:hint 关键件：stepSum_const · ratRel_symm · ratRel_trans_gen。
+theorem stepSum_const_indep (a b : ratRep) (p q : Partition)
+    (hp : IsPartition a b p) (hq : IsPartition a b q) (k : ratRep) :
+    ratRel (stepSum p (fun (_ : Nat) => k))
+      (stepSum q (fun (_ : Nat) => k)) :=
+  sorry
+
+-- soko:hint 思路：常值 1 的面积是 `1 · (b - a)`，再用左单位元收成区间长度。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => 1)) (b - a)`。
+-- soko:hint 关键件：stepSum_const · ratMul_one_left · ratRel_trans_gen。
+theorem demo_stepSum_one (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) :
+    ratRel (stepSum p (fun (_ : Nat) => ratOneRep)) (ratSubRep b a) :=
+  sorry
+
+-- soko:hint 思路：常值 0 的面积是 `0 · (b - a)`，再用左零元收成零。
+-- soko:hint 目标形态：`ratRel (stepSum p (fun _ => 0)) 0`。
+-- soko:hint 关键件：stepSum_const · ratMul_zero_left · ratRel_trans_gen。
+theorem demo_stepSum_zero (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) :
+    ratRel (stepSum p (fun (_ : Nat) => ratZeroRep)) ratZeroRep :=
+  sorry

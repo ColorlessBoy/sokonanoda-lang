@@ -1,0 +1,292 @@
+-- 单元109 完备性收口：Cauchy 序列的极限类（解答）
+--
+-- 104 到 108 把极限类当已知对象使用：给定一个类，谈它的加、减、取负。
+-- 这里回答最后的问题——每个 Cauchy 序列究竟有没有极限类？有，而且唯一。
+-- 存在性来自 68 的代表元层完备性：Cauchy 序列收敛到自己的类。两条合起来
+-- 说明「Cauchy」与「在 ℝ 中有极限」是同一件事。
+--
+-- 反方向也要补：序列在代表元层收敛到一个 Cauchy 序列时，它自己是 Cauchy
+-- 的。这不是定义展开，要把两条误差界合起来重新估计：四个见证合并到同一个
+-- 下标，两支界各减去中间项，再由绝对值见证收成 `close`。
+--
+-- 边界：只断言 Cauchy 序列有极限类。商里还有不代表 Cauchy 序列的杂点，
+-- 它们不在任何极限类的像里，这里不声称每个实数都是某条序列的极限。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatClose
+import lib.RatHalf
+import lib.Cauchy
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealOrderTrans
+import lib.RealOrderLift
+import lib.LimitClass
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.CauchyAddBounds
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.0 四分之一个误差以下的估计
+-- ─────────────────────────────────────────────────────────────
+
+def eps8 (eps : ratRep) : ratRep := ratHalf (ratHalf (ratHalf eps))
+
+theorem eps8_pos (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (eps8 eps) :=
+  ratLtRep_half (ratHalf (ratHalf eps))
+    (ratLtRep_half (ratHalf eps) (ratLtRep_half eps h))
+
+-- `(a - (b + e)) + e ~ a - b`：把并进减数的误差重新提出来。
+--
+-- 负号推进括号后，`(-e) + e ~ 0` 消掉一层，剩下的零元与 `a + (-b)`
+-- 就是减法的定义。中间的重结合由 `ratAdd_assoc` 做两遍。
+theorem ratSubRep_add_eps (a b e : ratRep) :
+    ratRel (ratAddRep (ratSubRep a (ratAddRep b e)) e) (ratSubRep a b) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep a (ratAddRep b e)) e)
+    (ratAddRep (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e))) e)
+    (ratSubRep a b)
+    (ratAddRep_wd_gen
+      (ratSubRep a (ratAddRep b e))
+      (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e)))
+      e
+      (ratAddRep_wd_snd_gen a (ratNegRep (ratAddRep b e))
+        (ratAddRep (ratNegRep b) (ratNegRep e))
+        (ratNegRep_add b e)))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e))) e)
+      (ratAddRep a (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e))
+      (ratSubRep a b)
+      (ratAdd_assoc a (ratAddRep (ratNegRep b) (ratNegRep e)) e)
+      (ratRel_trans_gen
+        (ratAddRep a (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e))
+        (ratAddRep a (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e)))
+        (ratSubRep a b)
+        (ratAddRep_wd_snd_gen a
+          (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e)
+          (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e))
+          (ratAdd_assoc (ratNegRep b) (ratNegRep e) e))
+        (ratRel_trans_gen
+          (ratAddRep a (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e)))
+          (ratAddRep a (ratAddRep (ratNegRep b) ratZeroRep))
+          (ratSubRep a b)
+          (ratAddRep_wd_snd_gen a
+            (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e))
+            (ratAddRep (ratNegRep b) ratZeroRep)
+            (ratAddRep_wd_snd_gen (ratNegRep b)
+              (ratAddRep (ratNegRep e) e) ratZeroRep
+              (ratNegRep_add_self e)))
+          (ratAddRep_wd_snd_gen a
+            (ratAddRep (ratNegRep b) ratZeroRep) (ratNegRep b)
+            (ratAdd_zero (ratNegRep b))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.1 把并进减数的误差提出来
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 109.0 的恒等式用一次同余：左边换成 `a - b`，右边加上 `e` 换成
+-- `d + e`。中间那步就是 `ratLeRep_add_right` 给前提两边各加 `e`。
+theorem le_sub_add_eps (a b e d : ratRep)
+    (h : ratLeRep (ratSubRep a (ratAddRep b e)) d) :
+    ratLeRep (ratSubRep a b) (ratAddRep d e) :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a (ratAddRep b e)) e)
+    (ratSubRep a b)
+    (ratAddRep d e) (ratAddRep d e)
+    (ratSubRep_add_eps a b e)
+    (ratRel_refl (ratAddRep d e))
+    (ratLeRep_add_right (ratSubRep a (ratAddRep b e)) d e h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.2 两条界合成一条
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条前提先用 109.1 各提出一个 `e`，得到 `p - L K ≤ e + e` 与
+-- `L K - q ≤ e + e`；`ratLeRep_sub_add` 相加时中间项 `L K` 消去。最后
+-- 一步把 `(e+e)+(e+e)` 沿 `hR` 换成目标界。
+theorem bound_pair (p q : ratRep) (L : Seq) (e target : ratRep) (K : Nat)
+    (hA : ∀ (k : Nat), LeNat K k →
+      ratLeRep (ratSubRep p (ratAddRep (L k) e)) e)
+    (hB : ∀ (k : Nat), LeNat K k →
+      ratLeRep (ratSubRep (L k) (ratAddRep q e)) e)
+    (hR : ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) target) :
+    ratLeRep (ratSubRep p q) target :=
+  ratLeRep_trans (ratSubRep p q)
+    (ratAddRep (ratAddRep e e) (ratAddRep e e)) target
+    (ratLeRep_sub_add p (L K) q (ratAddRep e e)
+      (le_sub_add_eps p (L K) e e (hA K (LeNat.le_refl K)))
+      (le_sub_add_eps (L K) q e e (hB K (LeNat.le_refl K))))
+    (ratLeRep_of_ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) target hR)
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.3 两条半个 eps 的界合成 `close`
+-- ─────────────────────────────────────────────────────────────
+
+-- 全性给出差的一个绝对值见证 `d`。两条界把 `d` 压到 `eps/2`：把正支与
+-- 负支分别与 `a - b`、`-(a - b)` 比较，取较大的一支就是 `eps/2`。再用
+-- `eps/2 < eps` 把非严格的 `d ≤ eps/2` 收紧成 `d < eps`。
+theorem close_of_half_bounds (a b eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (h1 : ratLeRep (ratSubRep a b) (ratHalf eps))
+    (h2 : ratLeRep (ratNegRep (ratSubRep a b)) (ratHalf eps)) :
+    close a b eps :=
+  Exists.elim (ratAbsRel_total (ratSubRep a b))
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep a b) d) =>
+      Exists.intro d
+        (And.intro hd
+          (ratLtRep_of_le_lt d (ratHalf eps) eps
+            (ratAbsRel_le_of_bounds (ratSubRep a b) (ratHalf eps) d hd h1 h2)
+            (ratHalf_lt_self eps heps))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.4 有极限类 ⇒ Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 以 `eps8 eps` 调用收敛性，对 `n` 取「`x n` 离 `L` 近」的两条界，对 `m`
+-- 再取两条。四个阈值经两次 `leNat_max` 并在同一个 `K` 上；在 `K` 处：
+--
+--   · 前两条经 109.2 得 `x n - x m ≤ eps/2`；
+--   · 后两条对调 `n`、`m`，经 `ratNegRep_sub` 把 `x m - x n` 认成
+--     `-(x n - x m)`，也得 `≤ eps/2`。
+--
+-- `(eps8+eps8)+(eps8+eps8) ~ eps/2` 是 `ratHalf_four` 在 `ratHalf eps`
+-- 上的实例。两支界交给 109.3。
+theorem tendsTo_cauchy (x L : Seq) (hL : Cauchy L) (hT : TendsTo x L) :
+    Cauchy x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hT (eps8 eps) (eps8_pos eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n : Nat), LeNat N n →
+            realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L (eps8 eps))) ∧
+            realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) (eps8 eps)))) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            Exists.elim
+              (realLeRep_close (constSeq (x n)) (addConst L (eps8 eps))
+                (Iff.mp (realLe_mk (constSeq (x n)) (addConst L (eps8 eps)))
+                  (And.left (hN n hn)))
+                (eps8 eps) (eps8_pos eps heps))
+              (fun (K1 : Nat)
+                  (hK1 : ∀ (k : Nat), LeNat K1 k →
+                    ratLeRep (ratSubRep (x n) (ratAddRep (L k) (eps8 eps))) (eps8 eps)) =>
+                Exists.elim
+                  (realLeRep_close L (addConst (constSeq (x m)) (eps8 eps))
+                    (Iff.mp (realLe_mk L (addConst (constSeq (x m)) (eps8 eps)))
+                      (And.right (hN m hm)))
+                    (eps8 eps) (eps8_pos eps heps))
+                  (fun (K2 : Nat)
+                      (hK2 : ∀ (k : Nat), LeNat K2 k →
+                        ratLeRep (ratSubRep (L k) (ratAddRep (x m) (eps8 eps))) (eps8 eps)) =>
+                    Exists.elim
+                      (realLeRep_close (constSeq (x m)) (addConst L (eps8 eps))
+                        (Iff.mp (realLe_mk (constSeq (x m)) (addConst L (eps8 eps)))
+                          (And.left (hN m hm)))
+                        (eps8 eps) (eps8_pos eps heps))
+                      (fun (K3 : Nat)
+                          (hK3 : ∀ (k : Nat), LeNat K3 k →
+                            ratLeRep (ratSubRep (x m) (ratAddRep (L k) (eps8 eps))) (eps8 eps)) =>
+                        Exists.elim
+                          (realLeRep_close L (addConst (constSeq (x n)) (eps8 eps))
+                            (Iff.mp (realLe_mk L (addConst (constSeq (x n)) (eps8 eps)))
+                              (And.right (hN n hn)))
+                            (eps8 eps) (eps8_pos eps heps))
+                          (fun (K4 : Nat)
+                              (hK4 : ∀ (k : Nat), LeNat K4 k →
+                                ratLeRep (ratSubRep (L k) (ratAddRep (x n) (eps8 eps))) (eps8 eps)) =>
+                            Exists.elim (leNat_max K1 K2)
+                              (fun (Kf : Nat) (hKf : LeNat K1 Kf ∧ LeNat K2 Kf) =>
+                                Exists.elim (leNat_max K3 K4)
+                                  (fun (Kb : Nat) (hKb : LeNat K3 Kb ∧ LeNat K4 Kb) =>
+                                    Exists.elim (leNat_max Kf Kb)
+                                      (fun (K : Nat) (hK : LeNat Kf K ∧ LeNat Kb K) =>
+                                        close_of_half_bounds (x n) (x m) eps heps
+                                          (bound_pair (x n) (x m) L (eps8 eps) (ratHalf eps) K
+                                            (fun (k : Nat) (hk : LeNat K k) =>
+                                              hK1 k (leNat_trans K1 Kf k (And.left hKf)
+                                                (leNat_trans Kf K k (And.left hK) hk)))
+                                            (fun (k : Nat) (hk : LeNat K k) =>
+                                              hK2 k (leNat_trans K2 Kf k (And.right hKf)
+                                                (leNat_trans Kf K k (And.left hK) hk)))
+                                            (ratHalf_four (ratHalf eps)))
+                                          (ratLeRep_congr_gen
+                                            (ratSubRep (x m) (x n))
+                                            (ratNegRep (ratSubRep (x n) (x m)))
+                                            (ratHalf eps) (ratHalf eps)
+                                            (ratRel_symm (ratNegRep (ratSubRep (x n) (x m)))
+                                              (ratSubRep (x m) (x n))
+                                              (ratNegRep_sub (x n) (x m)))
+                                            (ratRel_refl (ratHalf eps))
+                                            (bound_pair (x m) (x n) L (eps8 eps) (ratHalf eps) K
+                                              (fun (k : Nat) (hk : LeNat K k) =>
+                                                hK3 k (leNat_trans K3 Kb k (And.left hKb)
+                                                  (leNat_trans Kb K k (And.right hK) hk)))
+                                              (fun (k : Nat) (hk : LeNat K k) =>
+                                                hK4 k (leNat_trans K4 Kb k (And.right hKb)
+                                                  (leNat_trans Kb K k (And.right hK) hk)))
+                                              (ratHalf_four (ratHalf eps)))))))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.5 极限类的引入
+-- ─────────────────────────────────────────────────────────────
+
+-- 三段依次是 Cauchy 性、收敛性与「类等于自己的类」。最后一段是 `Eq.refl`。
+theorem limitClass_intro (x L : Seq) (hL : Cauchy L) (hT : TendsTo x L) :
+    LimitClass x (Real.mk L) :=
+  Exists.intro L
+    (And.intro hL (And.intro hT (Eq.refl (Real.mk L))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.6 Cauchy 序列有极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 拆开 68 的完备性，把两个见证交给 109.5。
+theorem cauchy_limitClass (x : Seq) (hx : Cauchy x) :
+    ∃ (a : Real), LimitClass x a :=
+  Exists.elim (cauchy_has_limit x hx)
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L) =>
+      Exists.intro (Real.mk L)
+        (limitClass_intro x L (And.left hL) (And.right hL)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.7 Cauchy 与有极限类等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正向是 109.6。反向拆开极限类得到代表元 `L` 与它的两段，109.4 把
+-- 收敛性退回序列自己的 Cauchy 性。
+theorem cauchy_iff_limitClass (x : Seq) :
+    Cauchy x ↔ ∃ (a : Real), LimitClass x a :=
+  Iff.intro
+    (fun (hx : Cauchy x) => cauchy_limitClass x hx)
+    (fun (h : ∃ (a : Real), LimitClass x a) =>
+      Exists.elim h
+        (fun (a : Real) (ha : LimitClass x a) =>
+          Exists.elim ha
+            (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L ∧ a = Real.mk L) =>
+              tendsTo_cauchy x L (And.left hL) (And.left (And.right hL)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.8 极限类存在且唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 存在性是 109.6；唯一性把两个候选取出来交给 104 的 `limitClass_unique`。
+theorem limitClass_exists_unique (x : Seq) (hx : Cauchy x) :
+    ∃ (a : Real), LimitClass x a ∧ ∀ (b : Real), LimitClass x b → b = a :=
+  Exists.elim (cauchy_limitClass x hx)
+    (fun (a : Real) (ha : LimitClass x a) =>
+      Exists.intro a
+        (And.intro ha (fun (b : Real) (hb : LimitClass x b) =>
+          Eq.symm (limitClass_unique x a b ha hb))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.9 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个前提都落在常序列上：Cauchy 性是 68.1，收敛性是 68.7。
+theorem demo_limitClass_const (q : ratRep) :
+    LimitClass (constSeq q) (Real.mk (constSeq q)) :=
+  limitClass_intro (constSeq q) (constSeq q)
+    (cauchy_const q) (cauchy_tends_to_class (constSeq q) (cauchy_const q))

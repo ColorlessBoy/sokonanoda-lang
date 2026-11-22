@@ -1,0 +1,187 @@
+-- 单元143 极限只看邻域：换掉远处的函数值
+--
+-- 求 f 在 a 处的极限时，只让 x 落在 a 附近。f 在很远的地方取什么值，与这个
+-- 极限无关。这句话听起来理所当然，可定义里的全称量词是「对所有满足
+-- 0 < |x - a| < δ 的 x」，并没有禁止远处的 x。要把「远处的值可以随便换」
+-- 变成可用的定理，得把「在 a 附近相等」写成一个明确的假设：存在一个正半径，
+-- 邻域里（除 a 本身外）两个函数逐点相等。
+--
+-- 有了这个假设，证明只是把两个半径取小：原来的极限给一个 δ，相等性给一个
+-- δ₀，落在较小半径里的 x 同时满足两边。接近性从 f x 搬到 g x，靠的是
+-- 「减去同一个数保持等价」：f x - L 与 g x - L 等价，绝对值见证原样保留。
+--
+-- 这条局部性在微分里马上要用。导数是斜率函数的极限，而极限只看 a 附近
+-- 那一小片；讨论斜率函数时，真正要紧的是它在 a 附近的值。反过来，两个在 a
+-- 附近重合的函数若都有极限，它们的极限也重合：局部性给出一边，唯一性收口。
+--
+-- 边界：函数取 ratRep → ratRep，停在有理代表元层；邻域用 `close` 的 ε 半径
+-- 表述，不引入拓扑。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.RealEq
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.LimUnique
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：在 a 附近相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 「f 与 g 在 a 附近相等」：有一个正半径 δ，邻域里凡是不等于 a 的点，
+-- 两个函数值都相等。a 本身不要求：极限本来就不看 a 处的取值。
+
+def AgreeNear (f g : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义与三条最基本的封闭性
+-- ─────────────────────────────────────────────────────────────
+
+-- 把定义展开成合取，后面的证明好投影。
+
+-- soko:hint 思路：两个方向都是同一个命题，直接交出假设或展开后的合取。
+-- soko:hint 目标形态：`AgreeNear f g a ↔ ∃ δ, 0 < δ ∧ ∀ x, close x a δ → x ≠ a → f x ~ g x`。
+-- soko:hint 关键件：Iff.intro。
+theorem agreeNear_iff (f g : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f g a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x) :=
+  sorry
+
+-- 每个函数都与自己相等；半径取 1 就够。
+
+-- soko:hint 思路：取 δ = 1，逐点用 `ratRel_refl`。
+-- soko:hint 目标形态：`AgreeNear f f a`。
+-- soko:hint 关键件：ratOneRep · ratLtRep_zero_one · ratRel_refl。
+theorem agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  sorry
+
+-- 相等性可以交换，半径不用变。
+
+-- soko:hint 思路：沿用同一个 δ，逐点把 `ratRel` 反过来。
+-- soko:hint 目标形态：`AgreeNear f g a → AgreeNear g f a`。
+-- soko:hint 关键件：Exists.elim · ratRel_symm。
+theorem agreeNear_symm (f g : ratRep → ratRep) (a : ratRep)
+    (h : AgreeNear f g a) : AgreeNear g f a :=
+  sorry
+
+-- 若两个函数逐点相等，那么在任意一点附近都相等；半径仍取 1。
+
+-- soko:hint 思路：取 δ = 1，逐点用假设里的相等。
+-- soko:hint 目标形态：`(∀ x, f x ~ g x) → AgreeNear f g a`。
+-- soko:hint 关键件：ratOneRep · ratLtRep_zero_one。
+theorem agreeNear_of_pointwise (f g : ratRep → ratRep) (a : ratRep)
+    (h : ∀ (x : ratRep), ratRel (f x) (g x)) : AgreeNear f g a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 接近性的搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 u 在 ε 内接近 L，而 u 与 v 相等，那么 v 也在 ε 内接近 L。见证 d 不变：
+-- u - L 与 v - L 只差一个等价，绝对值沿这条等价搬过去。
+
+-- soko:hint 思路：取出 `close u L ε` 的见证 d；用 `ratSubRep_wd` 把 `u - L` 换成 `v - L`，再用 `ratAbsRel_wd_left`。
+-- soko:hint 目标形态：`close u L ε → u ~ v → close v L ε`。
+-- soko:hint 关键件：ratSubRep_wd · ratRel_refl · ratAbsRel_wd_left。
+theorem close_transport (u v L eps : ratRep)
+    (h : close u L eps) (huv : ratRel u v) : close v L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个半径取小者
+-- ─────────────────────────────────────────────────────────────
+
+-- 极限给一个半径 d，局部相等给一个半径 d₀。把 x 取在较小的那个半径里，
+-- 两边的条件就同时成立：接近性用 `close_mono_eps` 放大到较小半径，函数值
+-- 的相等把 `f x - L` 换成 `g x - L`。
+
+-- soko:hint 思路：对 `d ≤ d₀` 与 `d₀ ≤ d` 两支分别取较小的半径；较大半径那一侧的接近性用 `close_mono_eps` 放大，最后用 `close_transport` 把函数值换掉。
+-- soko:hint 目标形态：`∃ δ, 0 < δ ∧ ∀ x, close x a δ → x ≠ a → close (g x) L ε`。
+-- soko:hint 关键件：ratLeRep_total · Or.elim · close_mono_eps · close_transport。
+theorem tendsToAt_same_radius (f g : ratRep → ratRep) (a L eps d d0 : ratRep)
+    (hd : ratLtRep ratZeroRep d)
+    (hd0 : ratLtRep ratZeroRep d0)
+    (hclose : ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+      close (f x) L eps)
+    (hagree : ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+      ratRel (f x) (g x)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 极限的局部性
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个 ε，从 f 的极限取出 δ，从局部相等取出 δ₀，把两者交给上一条。
+-- 得到的半径就是 g 的极限所需的半径。
+
+-- soko:hint 思路：逐 ε 取出极限的 δ 与局部相等的 δ₀，直接调用 `tendsToAt_same_radius`。
+-- soko:hint 目标形态：`TendsToAt f a L → AgreeNear f g a → TendsToAt g a L`。
+-- soko:hint 关键件：Exists.elim · tendsToAt_same_radius。
+theorem tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  sorry
+
+-- 两个方向各用一次：局部相等是对称的。
+
+-- soko:hint 思路：正向用上一条；反向先用 `agreeNear_symm` 把假设翻过来，再用上一条。
+-- soko:hint 目标形态：`AgreeNear f g a → (TendsToAt f a L ↔ TendsToAt g a L)`。
+-- soko:hint 关键件：Iff.intro · tendsToAt_congr · agreeNear_symm。
+theorem tendsToAt_congr_iff (f g : ratRep → ratRep) (a L : ratRep)
+    (hfg : AgreeNear f g a) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  sorry
+
+-- 若 f 在 a 附近等于常数 c，那么 f 的极限只能是 c：先把极限搬到常函数上，
+-- 再用常函数极限的唯一性。
+
+-- soko:hint 思路：用 `tendsToAt_congr` 把 f 的极限搬到常函数上，得到常函数以 L 为极限；再与常函数以 c 为极限一起交给唯一性。
+-- soko:hint 目标形态：`TendsToAt f a L → AgreeNear f (fun _ => c) a → L ~ c`。
+-- soko:hint 关键件：tendsToAt_congr · tendsToAt_const · tendsToAt_unique。
+theorem tendsToAt_congr_const (f : ratRep → ratRep) (c a L : ratRep)
+    (h : TendsToAt f a L) (hfc : AgreeNear f (fun (_ : ratRep) => c) a) :
+    ratRel L c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 f 在 a 附近等于恒等函数，而 f 以 L 为极限，那么 L 与 a 相等。这是
+-- 局部性把问题搬到恒等函数上，再用恒等函数的唯一性收口。
+
+-- soko:hint 思路：用 `tendsToAt_congr` 把 f 的极限搬到恒等函数上，得到恒等函数以 L 为极限；再用 `tendsToAt_unique_id` 得到 `a ~ L`，最后交换。
+-- soko:hint 目标形态：`TendsToAt f a L → AgreeNear f (fun x => x) a → L ~ a`。
+-- soko:hint 关键件：tendsToAt_congr · tendsToAt_unique_id · ratRel_symm。
+theorem demo_congr_id (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (hid : AgreeNear f (fun (x : ratRep) => x) a) :
+    ratRel L a :=
+  sorry
+
+-- 与常函数零局部相等的函数，极限只能是零。
+
+-- soko:hint 思路：直接调用 `tendsToAt_congr_const`，常数取零。
+-- soko:hint 目标形态：`TendsToAt f a L → AgreeNear f (fun _ => 0) a → L ~ 0`。
+-- soko:hint 关键件：tendsToAt_congr_const · ratZeroRep。
+theorem demo_congr_zero (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (h0 : AgreeNear f (fun (_ : ratRep) => ratZeroRep) a) :
+    ratRel L ratZeroRep :=
+  sorry

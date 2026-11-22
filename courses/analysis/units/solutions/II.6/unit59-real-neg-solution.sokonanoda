@@ -1,0 +1,150 @@
+-- 单元59 实数的取负：第一次把运算下降到商上（解答）
+--
+-- 58 与 `lib/RealEq` 备齐了 `realRel` 的三条腿（传递 / 自反 / 对称；注意
+-- 自反性只在 Cauchy 序列上成立）。现在可以把**第一个运算**从代表元搬到商上：
+--
+--   negSeq x      := fun n => -(x n)
+--   Real.neg      := Quot.lift (fun x => Real.mk (negSeq x)) …
+--
+-- 要交的两条良定义义务是：
+--
+--   · `cauchy_neg`  : Cauchy x → Cauchy (negSeq x)
+--   · `realRel_neg` : realRel x y → realRel (negSeq x) (negSeq y)
+--
+-- 关键是**绝对值对取负不变**（㊶ 的 `ratAbsRel_neg_gen`）：代表元层
+-- `(-x) - (-y)` 与 `-(x - y)` 只差分子序对的交换与加法交换（㊷ 的
+-- `ratSubRep_neg`），所以 `close` 可以在取负下原样搬过去。
+--
+-- 59.1 是代表元层的形状，59.2 是 `close` 的搬运，59.3/59.4 是两条良定义
+-- 义务，59.5 是 `Quot.lift` 的 ι 规则，59.6 落在常零序列上。
+--
+-- 本单元不引入新公理；`Quot.lift` 就是 ㊱ 立载体时用的那条下降通道。
+
+import lib.RealEq
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 负序列的定义（本单元给出，不是练习）
+-- ─────────────────────────────────────────────────────────────
+
+def negSeq (x : Seq) : Seq := fun (n : Nat) => ratNegRep (x n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.1 代表元层：`(-x) - (-y) ~ -(x - y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- `(-x) - (-y)` 是 `-x + -(-y)`。用 ㉛ 的对合把 `-(-y)` 换成 `y`
+-- （`ratAddRep_wd_snd_gen`），再用 ㊸ 的交换律把 `-x + y` 换成 `y + -x`
+-- （即 `y - x`），最后接上 ㊷ 的 `ratSubRep_neg`。
+
+theorem ratSubRep_neg_neg (x y : ratRep) :
+    ratRel (ratSubRep (ratNegRep x) (ratNegRep y))
+           (ratNegRep (ratSubRep x y)) :=
+  ratRel_trans_gen
+    (ratSubRep (ratNegRep x) (ratNegRep y))
+    (ratSubRep y x)
+    (ratNegRep (ratSubRep x y))
+    (ratRel_trans_gen
+      (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep y)))
+      (ratAddRep (ratNegRep x) y)
+      (ratAddRep y (ratNegRep x))
+      (ratAddRep_wd_snd_gen (ratNegRep x) (ratNegRep (ratNegRep y)) y
+        (ratNegRep_invol y))
+      (ratAdd_comm (ratNegRep x) y))
+    (ratSubRep_neg x y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.2 `close` 在取负下不变
+-- ─────────────────────────────────────────────────────────────
+
+-- 取出 `|x - y| ~ d` 的见证 `d`。先用 ㊶ 的 `ratAbsRel_neg_gen` 把绝对值
+-- 搬到 `|-(x - y)|`，再用 59.1（取对称）沿 `ratAbsRel_wd_left` 搬到
+-- `|(-x) - (-y)|`；`d < eps` 原样。
+
+theorem close_neg (x y eps : ratRep) (h : close x y eps) :
+    close (ratNegRep x) (ratNegRep y) eps :=
+  Exists.elim h
+    (fun (d : ratRep) (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep (ratNegRep x) (ratNegRep y))
+            d
+            (ratRel_symm
+              (ratSubRep (ratNegRep x) (ratNegRep y))
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.3 取负保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个 `n m ≥ N` 调用 59.2；量词结构原样保留。
+
+theorem cauchy_neg (x : Seq) (hx : Cauchy x) : Cauchy (negSeq x) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+           (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_neg (x n) (x m) eps (hN n m hn hm)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.4 取负与 `realRel` 相容
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `Cauchy` 分量由 59.3 给出；第三分量逐点用 59.2。
+
+theorem realRel_neg (x y : Seq) (h : realRel x y) :
+    realRel (negSeq x) (negSeq y) :=
+  And.intro
+    (cauchy_neg x (And.left h))
+    (And.intro
+      (cauchy_neg y (And.left (And.right h)))
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (realRel_close x y h eps heps)
+          (fun (N : Nat)
+               (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                close_neg (x n) (y n) eps (hN n hn)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负下降成 `Real → Real`（本单元给出，不是练习）
+-- ─────────────────────────────────────────────────────────────
+
+def Real.neg : Real → Real :=
+  @Quot.lift.{1, 1} Seq realRel Real
+    (fun (x : Seq) => Real.mk (negSeq x))
+    (fun (x y : Seq) (h : realRel x y) =>
+      Real.sound (negSeq x) (negSeq y) (realRel_neg x y h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.5 `Quot.lift` 的 ι 规则
+-- ─────────────────────────────────────────────────────────────
+
+-- `Real.neg (Real.mk x)` 展开成 `Quot.lift f … (Quot.mk x)`，ι 归约直接给出
+-- `f x = Real.mk (negSeq x)`，所以是 `Eq.refl`。
+
+theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negSeq x) :=
+  @Eq.refl.{1} Real (Real.mk (negSeq x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 59.6 具体：零的取负还是零
+-- ─────────────────────────────────────────────────────────────
+
+-- `negSeq zeroSeq` 与 `zeroSeq` 定义性相同（`-(0/1) = 0/1`），所以
+-- `realRel_refl` 就够；两段分别是 59.5 与 `Real.sound`。
+
+theorem demo_real_neg : Real.neg (Real.mk zeroSeq) = Real.mk zeroSeq :=
+  @Eq.trans.{1} Real
+    (Real.neg (Real.mk zeroSeq))
+    (Real.mk (negSeq zeroSeq))
+    (Real.mk zeroSeq)
+    (Real.neg_mk zeroSeq)
+    (Real.sound (negSeq zeroSeq) zeroSeq (realRel_refl zeroSeq cauchy_zero))

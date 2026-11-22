@@ -1,0 +1,233 @@
+-- 单元109 完备性收口：Cauchy 序列的极限类
+--
+-- 104 到 108 把极限类当已知对象使用：给定一个类，谈它的加、减、取负。
+-- 这里回答最后的问题——每个 Cauchy 序列究竟有没有极限类？有，而且唯一。
+-- 存在性来自 68 的代表元层完备性：Cauchy 序列收敛到自己的类。两条合起来
+-- 说明「Cauchy」与「在 ℝ 中有极限」是同一件事。
+--
+-- 反方向也要补：序列在代表元层收敛到一个 Cauchy 序列时，它自己是 Cauchy
+-- 的。这不是定义展开，要把两条误差界合起来重新估计：四个见证合并到同一个
+-- 下标，两支界各减去中间项，再由绝对值见证收成 `close`。109.0–109.3 备好
+-- 这些估计，109.4 证明反方向，109.5–109.9 把等价、存在唯一与常序列收齐。
+--
+-- 边界：只断言 Cauchy 序列有极限类。商里还有不代表 Cauchy 序列的杂点，
+-- 它们不在任何极限类的像里，这里不声称每个实数都是某条序列的极限。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatClose
+import lib.RatHalf
+import lib.Cauchy
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealOrderTrans
+import lib.RealOrderLift
+import lib.LimitClass
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.CauchyAddBounds
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.0 四分之一个误差以下的估计
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 `eps` 折三次：`eps8 eps` 不到 `eps` 的八分之一。主定理里两条界相加
+-- 要留出余量，才不至于卡在「≤ eps」而拿不到 `close` 要求的严格小于。
+def eps8 (eps : ratRep) : ratRep := ratHalf (ratHalf (ratHalf eps))
+
+-- 折半保正，折三次仍然保正。
+theorem eps8_pos (eps : ratRep) (h : ratLtRep ratZeroRep eps) :
+    ratLtRep ratZeroRep (eps8 eps) :=
+  ratLtRep_half (ratHalf (ratHalf eps))
+    (ratLtRep_half (ratHalf eps) (ratLtRep_half eps h))
+
+-- `(a - (b + e)) + e ~ a - b`：把并进减数的误差重新提出来。
+--
+-- 负号推进括号后，`(-e) + e ~ 0` 消掉一层，剩下的零元与 `a + (-b)`
+-- 就是减法的定义。
+theorem ratSubRep_add_eps (a b e : ratRep) :
+    ratRel (ratAddRep (ratSubRep a (ratAddRep b e)) e) (ratSubRep a b) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep a (ratAddRep b e)) e)
+    (ratAddRep (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e))) e)
+    (ratSubRep a b)
+    (ratAddRep_wd_gen
+      (ratSubRep a (ratAddRep b e))
+      (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e)))
+      e
+      (ratAddRep_wd_snd_gen a (ratNegRep (ratAddRep b e))
+        (ratAddRep (ratNegRep b) (ratNegRep e))
+        (ratNegRep_add b e)))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep e))) e)
+      (ratAddRep a (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e))
+      (ratSubRep a b)
+      (ratAdd_assoc a (ratAddRep (ratNegRep b) (ratNegRep e)) e)
+      (ratRel_trans_gen
+        (ratAddRep a (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e))
+        (ratAddRep a (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e)))
+        (ratSubRep a b)
+        (ratAddRep_wd_snd_gen a
+          (ratAddRep (ratAddRep (ratNegRep b) (ratNegRep e)) e)
+          (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e))
+          (ratAdd_assoc (ratNegRep b) (ratNegRep e) e))
+        (ratRel_trans_gen
+          (ratAddRep a (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e)))
+          (ratAddRep a (ratAddRep (ratNegRep b) ratZeroRep))
+          (ratSubRep a b)
+          (ratAddRep_wd_snd_gen a
+            (ratAddRep (ratNegRep b) (ratAddRep (ratNegRep e) e))
+            (ratAddRep (ratNegRep b) ratZeroRep)
+            (ratAddRep_wd_snd_gen (ratNegRep b)
+              (ratAddRep (ratNegRep e) e) ratZeroRep
+              (ratNegRep_add_self e)))
+          (ratAddRep_wd_snd_gen a
+            (ratAddRep (ratNegRep b) ratZeroRep) (ratNegRep b)
+            (ratAdd_zero (ratNegRep b))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.1 把并进减数的误差提出来
+-- ─────────────────────────────────────────────────────────────
+
+-- 前提是 `a - (b + e) ≤ d`。把左边加上 `e`，109.0 的恒等式把它认成
+-- `a - b`；右边同时加 `e`，得到 `a - b ≤ d + e`。
+--
+-- soko:hint 思路：对 109.0 的恒等式用 `ratLeRep_congr_gen`，序的右端同时换成 `d + e`；中间那步用 `ratLeRep_add_right` 给两边各加 `e`。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep a b) (ratAddRep d e)`。
+-- soko:hint 关键件：ratSubRep_add_eps · ratLeRep_add_right · ratLeRep_congr_gen。
+theorem le_sub_add_eps (a b e d : ratRep)
+    (h : ratLeRep (ratSubRep a (ratAddRep b e)) d) :
+    ratLeRep (ratSubRep a b) (ratAddRep d e) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.2 两条界合成一条
+-- ─────────────────────────────────────────────────────────────
+
+-- `p` 与 `q` 各自离 `L` 的同一项不到 `e + e`：两条界相加时中间项消去，
+-- 左边就是 `p - q`。目标 `target` 与 `(e + e) + (e + e)` 相等，这一步由
+-- 调用方以 `hR` 交出。
+theorem bound_pair (p q : ratRep) (L : Seq) (e target : ratRep) (K : Nat)
+    (hA : ∀ (k : Nat), LeNat K k →
+      ratLeRep (ratSubRep p (ratAddRep (L k) e)) e)
+    (hB : ∀ (k : Nat), LeNat K k →
+      ratLeRep (ratSubRep (L k) (ratAddRep q e)) e)
+    (hR : ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) target) :
+    ratLeRep (ratSubRep p q) target :=
+  ratLeRep_trans (ratSubRep p q)
+    (ratAddRep (ratAddRep e e) (ratAddRep e e)) target
+    (ratLeRep_sub_add p (L K) q (ratAddRep e e)
+      (le_sub_add_eps p (L K) e e (hA K (LeNat.le_refl K)))
+      (le_sub_add_eps (L K) q e e (hB K (LeNat.le_refl K))))
+    (ratLeRep_of_ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) target hR)
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.3 两条半个 eps 的界合成 `close`
+-- ─────────────────────────────────────────────────────────────
+
+-- `close a b eps` 要一个严格小于 `eps` 的绝对值的见证。全性先给出一个
+-- 见证 `d`；两条半个 eps 的界把 `d` 压到 `eps/2`，再由 `eps/2 < eps`
+-- 收紧。两条界分别是差本身与它的相反数。
+--
+-- soko:hint 思路：`ratAbsRel_total` 给出见证 `d`；`ratAbsRel_le_of_bounds` 用两条界把 `d` 压到 `eps/2`；`ratLtRep_of_le_lt` 与 `ratHalf_lt_self` 把 `d` 收到 `eps` 以下。
+-- soko:hint 目标形态：`close a b eps`。
+-- soko:hint 关键件：ratAbsRel_total · ratAbsRel_le_of_bounds · ratLtRep_of_le_lt · ratHalf_lt_self。
+theorem close_of_half_bounds (a b eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (h1 : ratLeRep (ratSubRep a b) (ratHalf eps))
+    (h2 : ratLeRep (ratNegRep (ratSubRep a b)) (ratHalf eps)) :
+    close a b eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.4 有极限类 ⇒ Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0`，以 `eps8 eps` 调用收敛性，得到阈值 `N`。对 `n, m ≥ N`
+-- 抽出四个见证：`x n` 与 `x m` 各自的两条界。四个阈值用 `leNat_max`
+-- 并成同一个下标 `K`，在 `K` 上：
+--
+--   · `x n - L K ≤ e + e`，`L K - x m ≤ e + e`，相加得 `x n - x m`
+--     不超过 `eps/2`；
+--   · 交换 `n` 与 `m` 得另一支，`x m - x n` 也不超过 `eps/2`。
+--
+-- 两支交给 109.3。中间项消去用的是 `ratLeRep_sub_add`，`(e+e)+(e+e)`
+-- 与 `eps/2` 的换算就是 `ratHalf_four` 在 `ratHalf eps` 上的实例。
+--
+-- soko:hint 思路：`hT (eps8 eps)` 给阈值与每条 `x n` 的两条 `realLe`；对 `n`、`m` 各取两条界（四条），`leNat_max` 合并后交给 `bound_pair`；反向那一支把 `n` 与 `m` 对调，再用 `ratNegRep_sub` 把 `x m - x n` 认成 `-(x n - x m)`。
+-- soko:hint 目标形态：`Cauchy x`。
+-- soko:hint 关键件：realLeRep_close · Iff.mp (realLe_mk) · leNat_max · leNat_trans · bound_pair · ratHalf_four · ratNegRep_sub · close_of_half_bounds。
+theorem tendsTo_cauchy (x L : Seq) (hL : Cauchy L) (hT : TendsTo x L) :
+    Cauchy x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.5 极限类的引入
+-- ─────────────────────────────────────────────────────────────
+
+-- `LimitClass x a` 是三段：代表元 `L` 是 Cauchy 的，`x` 收敛到 `L`，
+-- 且 `a` 正是 `L` 的类。给定前两段，第三段用自反性付清。
+--
+-- soko:hint 思路：`Exists.intro L`；三个分量依次是 `cauchy`、`tends`、`Eq.refl (Real.mk L)`。
+-- soko:hint 目标形态：`LimitClass x (Real.mk L)`。
+-- soko:hint 关键件：Exists.intro · And.intro · Eq.refl。
+theorem limitClass_intro (x L : Seq) (hL : Cauchy L) (hT : TendsTo x L) :
+    LimitClass x (Real.mk L) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.6 Cauchy 序列有极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 68 已经有 `cauchy_has_limit`：Cauchy 序列有代表的极限与收敛性。把这份
+-- 见证交给 109.5，就得到极限类本身。
+--
+-- soko:hint 思路：`Exists.elim (cauchy_has_limit x hx)` 得到 `L`、`Cauchy L` 与 `TendsTo x L`，再交 109.5。
+-- soko:hint 目标形态：`∃ (a : Real), LimitClass x a`。
+-- soko:hint 关键件：cauchy_has_limit · limitClass_intro · Exists.elim · Exists.intro。
+theorem cauchy_limitClass (x : Seq) (hx : Cauchy x) :
+    ∃ (a : Real), LimitClass x a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.7 Cauchy 与有极限类等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正向就是 109.6。反向拆开极限类得到代表元 `L`，由 109.4 把收敛性退回
+-- 序列自己的 Cauchy 性。
+--
+-- soko:hint 思路：`Iff.intro`；正向 `cauchy_limitClass`；反向对 `∃ a, LimitClass x a` 做 `Exists.elim`，再拆 `LimitClass` 的三段，把 `Cauchy L` 与 `TendsTo x L` 交 `tendsTo_cauchy`。
+-- soko:hint 目标形态：`Cauchy x ↔ ∃ (a : Real), LimitClass x a`。
+-- soko:hint 关键件：Iff.intro · cauchy_limitClass · tendsTo_cauchy · Exists.elim。
+theorem cauchy_iff_limitClass (x : Seq) :
+    Cauchy x ↔ ∃ (a : Real), LimitClass x a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.8 极限类存在且唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 存在由 109.6 给。唯一性把两个候选取出来，交给 104 的 `limitClass_unique`。
+--
+-- soko:hint 思路：`Exists.elim (cauchy_limitClass x hx)` 得到 `a` 与 `ha`；`Exists.intro a`，唯一性分量写成 `fun b hb => limitClass_unique x a b ha hb`。
+-- soko:hint 目标形态：`∃ (a : Real), LimitClass x a ∧ ∀ (b : Real), LimitClass x b → b = a`。
+-- soko:hint 关键件：cauchy_limitClass · limitClass_unique · Exists.elim · Exists.intro · And.intro。
+theorem limitClass_exists_unique (x : Seq) (hx : Cauchy x) :
+    ∃ (a : Real), LimitClass x a ∧ ∀ (b : Real), LimitClass x b → b = a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 109.9 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的（68.1），并且收敛到自己的类（68.7）。交给 109.5。
+--
+-- soko:hint 思路：把 `limitClass_intro` 的两个前提都实例成 `constSeq q`：Cauchy 用 `cauchy_const`，收敛用 `cauchy_tends_to_class`。
+-- soko:hint 目标形态：`LimitClass (constSeq q) (Real.mk (constSeq q))`。
+-- soko:hint 关键件：limitClass_intro · cauchy_const · cauchy_tends_to_class。
+theorem demo_limitClass_const (q : ratRep) :
+    LimitClass (constSeq q) (Real.mk (constSeq q)) :=
+  sorry

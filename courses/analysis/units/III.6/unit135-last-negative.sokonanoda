@@ -1,0 +1,171 @@
+-- 单元135 最后一个负点：保号性把负点往右推一步
+--
+-- 连续函数在区间上取负值的点，能不能有「最后一个」？如果这个点 m 还在
+-- 区间内部，答案是不能：f m < 0，保号性保证 m 附近一整段都取负值，而
+-- 这段里有点落在 m 的右边，于是 m 不可能是最后一个。符号变化的边界如果
+-- 存在，它因此不会停在负值上；能停的只剩零。
+--
+-- 证明的力气全花在「往右找一点」上。保号性给的只是一个半径 delta，而
+-- 区间右端 b 可能比 m + delta/2 更近。两种情形分开处理：若 m + delta/2
+-- 还没越过 b，就直接迈 delta/2；否则取 m 到 b 的中点，它到 m 的距离
+-- (b-m)/2 小于 b-m，而 b-m 又不超过 delta/2，所以仍落在邻域里。
+--
+-- 中点这一支要用到「减同一个数保持严格序」；剩下真正用到的分析事实只有
+-- 一条：连续函数在一点附近保号。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；「最后一个负点存在」
+-- 在这里是反设，结论是它不存在。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.RatGroup
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.Order
+import lib.MaxOn
+import lib.LocalSign
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：最大元与严格负点集
+-- ─────────────────────────────────────────────────────────────
+
+-- 「m 是 A 的最大元」：m 自己属于 A，且压住 A 里所有点。上确界不要求
+-- 属于集合，最大元要求；介值定理需要的正是这个更强的「被取到」。
+def HasGreatest (A : ratRep → Prop) (m : ratRep) : Prop :=
+  A m ∧ ∀ (x : ratRep), A x → ratLeRep x m
+
+-- 区间里函数值严格为负的点。
+def NegativePoints (f : ratRep → ratRep) (a b : ratRep) : ratRep → Prop :=
+  fun (x : ratRep) => InClosed a b x ∧ ratLtRep (f x) ratZeroRep
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式与投影
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：定义就是合取，两个方向都直接返回假设。
+-- soko:hint 目标形态：`HasGreatest A m ↔ A m ∧ ∀ x, A x → x ≤ m`。
+-- soko:hint 关键件：Iff.intro。
+theorem hasGreatest_iff (A : ratRep → Prop) (m : ratRep) :
+    HasGreatest A m ↔ A m ∧ ∀ (x : ratRep), A x → ratLeRep x m :=
+  sorry
+
+-- soko:hint 思路：先沿 `hasGreatest_iff` 把定义读成合取，再取第一分量。
+-- soko:hint 目标形态：`HasGreatest A m → A m`。
+-- soko:hint 关键件：Iff.mp · And.left。
+theorem hasGreatest_mem (A : ratRep → Prop) (m : ratRep)
+    (h : HasGreatest A m) : A m :=
+  sorry
+
+-- soko:hint 思路：同样先展开成合取，再取第二分量。
+-- soko:hint 目标形态：`HasGreatest A m → ∀ x, A x → x ≤ m`。
+-- soko:hint 关键件：Iff.mp · And.right。
+theorem hasGreatest_upper (A : ratRep → Prop) (m : ratRep)
+    (h : HasGreatest A m) : ∀ (x : ratRep), A x → ratLeRep x m :=
+  sorry
+
+-- soko:hint 思路：两个定义别名展开后就是同一个合取，两个方向直接返回假设。
+-- soko:hint 目标形态：`NegativePoints f a b x ↔ InClosed a b x ∧ f x < 0`。
+-- soko:hint 关键件：Iff.intro。
+theorem negativePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NegativePoints f a b x ↔ InClosed a b x ∧ ratLtRep (f x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：先展开成合取，再投影出区间成员。
+-- soko:hint 目标形态：`NegativePoints f a b x → InClosed a b x`。
+-- soko:hint 关键件：Iff.mp · And.left。
+theorem negativePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : InClosed a b x :=
+  sorry
+
+-- soko:hint 思路：先展开成合取，再投影出严格负的假设。
+-- soko:hint 目标形态：`NegativePoints f a b x → f x < 0`。
+-- soko:hint 关键件：Iff.mp · And.right。
+theorem negativePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : ratLtRep (f x) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 序的换形：减同一个数保持序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`x - z` 就是 `x + (-z)`，把右边交给加法单调。
+-- soko:hint 目标形态：`x < y → x - z < y - z`。
+-- soko:hint 关键件：ratLtRep_add_right。
+theorem ratLtRep_sub_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratSubRep x z) (ratSubRep y z) :=
+  sorry
+
+-- soko:hint 思路：与上一条同一个换形，这次用弱序的加法单调。
+-- soko:hint 目标形态：`x ≤ y → x - z ≤ y - z`。
+-- soko:hint 关键件：ratLeRep_add_right。
+theorem ratLeRep_sub_right (x y z : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x z) (ratSubRep y z) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从 m 向右迈一步仍在 delta 邻域里
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：落脚点取 `m + d`；距离 `(m + d) - m` 与 d 等价，绝对值见证取 d，剩下只要 d < eps。
+-- soko:hint 目标形态：`0 < d → d < eps → close (m + d) m eps`。
+-- soko:hint 关键件：Exists.intro · Or.inl · ratLtRep_sub_pos · ratAdd_sub_self。
+theorem close_add_right (m d eps : ratRep) (hd : ratLtRep ratZeroRep d)
+    (hde : ratLtRep d eps) : close (ratAddRep m d) m eps :=
+  sorry
+
+-- soko:hint 思路：`(b-m)/2 < b-m`（半数小于自身）；`b-m ≤ delta/2` 由 hble 减 m 得到；再 `delta/2 < delta`。
+-- soko:hint 目标形态：`m < b → b ≤ m + delta/2 → 0 < delta → (b-m)/2 < delta`。
+-- soko:hint 关键件：ratHalf_lt_self · ratLtRep_sub_pos · ratLeRep_sub_right · ratAdd_sub_self · ratLtRep_of_le_lt · ratLtRep_trans。
+theorem half_sub_lt_delta (b m delta : ratRep) (hmb : ratLtRep m b)
+    (hble : ratLeRep b (ratAddRep m (ratHalf delta)))
+    (hdelta : ratLtRep ratZeroRep delta) :
+    ratLtRep (ratHalf (ratSubRep b m)) delta :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 保号性把负点往右推一步
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先用 `negativeNear_of_continuousAt` 取保号半径 delta；分 `m + delta/2 ≤ b` 与 `b ≤ m + delta/2` 两支，各自用 `close_add_right` 与中点构造落脚点。
+-- soko:hint 目标形态：`∃ y, y ∈ [a,b] ∧ m < y ∧ f y < 0`。
+-- soko:hint 关键件：negativeNear_of_continuousAt · ratLeRep_total · close_add_right · lt_add_mid · add_mid_lt_right · half_sub_lt_delta。
+theorem exists_negative_right (f : ratRep → ratRep) (a b m : ratRep)
+    (hmem : InClosed a b m) (hmb : ratLtRep m b)
+    (hf : ContinuousAt f m) (hneg : ratLtRep (f m) ratZeroRep) :
+    ∃ (y : ratRep), InClosed a b y ∧ ratLtRep m y ∧
+      ratLtRep (f y) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 严格负点集没有最大元
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上一条给出更靠右的严格负点 y；它属于集合，最大性给 y ≤ m，与 m < y 反对称冲突。
+-- soko:hint 目标形态：`HasGreatest (NegativePoints f a b) m → m < b → ContinuousAt f m → False`。
+-- soko:hint 关键件：exists_negative_right · hasGreatest_upper · negativePoints_mem/value · ratLeRep_antisymm · ratLtRep_right。
+theorem no_greatest_negative_at (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NegativePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) : False :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 打包：严格负点集根本没有最大元
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：反设取出 m 与它的最大性、以及 m < b；连续性由 hcont m 配 m 的区间成员得到，再交给上一条。
+-- soko:hint 目标形态：`¬ ∃ m, HasGreatest (NegativePoints f a b) m ∧ m < b`。
+-- soko:hint 关键件：Exists.elim · no_greatest_negative_at · negativePoints_mem · hasGreatest_mem。
+theorem no_last_negative (f : ratRep → ratRep) (a b : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x) :
+    ¬ (∃ (m : ratRep), HasGreatest (NegativePoints f a b) m ∧
+      ratLtRep m b) :=
+  sorry

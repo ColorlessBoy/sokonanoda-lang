@@ -1,0 +1,282 @@
+-- 单元㊷ `close` 的对称性：实数的相等可以换方向（解答）
+--
+-- ㊱ 把实数的相等定义成
+--
+--   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+--
+-- 其中 `close x y eps` 说的是「`x - y` 的绝对值 < eps」：
+--
+--   close x y eps  :⟺  ∃ d, |x - y| ~ d ∧ d < eps
+--
+-- 要和自反性（㊵）凑成等价关系，还差**对称性**：
+--
+--   close x y eps  ⟹  close y x eps
+--   realRel x y    ⟹  realRel y x
+--
+-- 直觉上「`y - x` 与 `x - y` 只差一个负号，绝对值一样」，但代表元层要真的搬过去：
+--
+--   ① `y - x` 的代表元与 `-(x - y)` 的代表元**不同**（分母字段的次序换了）：
+--      `ratSubRep y x` 的分母字段是 `ratDenRep n m`，`ratNegRep (ratSubRep x y)`
+--      的是 `ratDenRep m n`。两者相等正是 `lib/Rat` 里新收的 `ratDenRep_comm`。
+--      这一步就是 ㊷.1 的 `ratSubRep_neg`。
+--   ② 绝对值对取负不变是 ㊶.3 的 `ratAbsRel_neg`（通用版本 `ratAbsRel_neg_gen`）；但要把它从 `-(x - y)` 搬到
+--      `y - x`，还需要「`ratAbsRel` 只依赖第一个因子的等价类」：㊷.2。
+--   ③ 把 ①② 拼起来就是 `close` 的对称性（㊷.3），逐点作用到 `realRel` 上
+--      就是实数相等的对称性（㊷.4）。
+--
+-- 本单元不引入新定义；`ratDenRep_comm` 是 ㊷.1 的分母换位引擎，已随本单元
+-- 收进 `lib/Rat`（`lib/Cauchy` 经 `lib/RatOrder` 传递可见）。㊷.2 要用的
+-- 通用序替换律收在 `lib/RatOrder`（`ratLeRep_congr` / `ratLeRep_congr_snd`，
+-- 即 ㊴ 两条律的任意代表元版本）。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.1 减法的反交换：`y - x ~ -(x - y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- 先证两个**字面三元组之间**的等式：分子只差两次 `add_comm`，分母只差
+-- `ratDenRep_comm`。左边 `qrep A B (ratDenRep n m)`，右边 `qrep A' B' (ratDenRep m n)`。
+
+theorem ratSubRep_neg_qrep (a b c d m n : Nat) :
+    qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m) =
+    qrep
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (ratDenRep m n) :=
+  @Eq.trans.{1} ratRep
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+      (ratDenRep m n))
+    (@prod_mk (Prod Nat Nat) Nat
+      (@prod_mk Nat Nat
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m))))
+      (ratDenRep m n))
+    (congrArg.{1}
+      (fun (dd : Nat) =>
+        @prod_mk (Prod Nat Nat) Nat
+          (@prod_mk Nat Nat
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n))))
+          dd)
+      (ratDenRep_comm n m))
+    (congrArg.{1}
+      (fun (p : Prod Nat Nat) =>
+        @prod_mk (Prod Nat Nat) Nat p (ratDenRep m n))
+      (prod_mk_congr
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (add_comm (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (add_comm (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))))
+
+-- `ratNegRep` 把 `qrep X Y D` 定义性换成 `qrep Y X D`：把上面等式的左边
+-- 取负，右边就是 `qrep (b(n+1)+c(m+1)) (a(n+1)+d(m+1)) (ratDenRep m n)`。
+
+theorem ratSubRep_neg_negrep (a b c d m n : Nat) :
+    ratNegRep (ratSubRep (qrep a b m) (qrep c d n)) =
+      qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n) :=
+  @congrArg.{1} ratRep ratRep
+    (ratSubRep (qrep a b m) (qrep c d n))
+    (qrep
+      (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+      (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+      (ratDenRep m n))
+    (fun (z : ratRep) => ratNegRep z)
+    (ratSubRep_mk a b c d m n)
+
+-- soko:hint 思路：两边都先用 `ratSubRep_mk` 展开成字面三元组。左边是 `qrep (c(m+1)+b(n+1)) (d(m+1)+a(n+1)) (ratDenRep n m)`；右边的 `ratNegRep` 只是交换分子序对，定义性给出 `qrep (b(n+1)+c(m+1)) (a(n+1)+d(m+1)) (ratDenRep m n)`。于是两边的分子只差两次 `add_comm`、分母只差 `ratDenRep_comm`（这正是 `ratSubRep_neg_qrep` 与 `ratSubRep_neg_negrep` 两条等式）。最后用 `Eq.subst` 把 `ratRel_refl` 从右边三元组搬到左边。
+-- soko:hint 目标形态：`ratRel (ratSubRep (qrep c d n) (qrep a b m)) (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))`。
+-- soko:hint 关键件：ratSubRep_mk · ratSubRep_neg_qrep · ratSubRep_neg_negrep · Eq.subst · ratRel_refl。
+theorem ratSubRep_neg_lit (a b c d m n : Nat) :
+    ratRel (ratSubRep (qrep c d n) (qrep a b m))
+           (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))) :=
+  @Eq.subst.{1} ratRep
+    (fun (z : ratRep) =>
+      ratRel z (ratNegRep (ratSubRep (qrep a b m) (qrep c d n))))
+    (qrep
+      (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+      (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+      (ratDenRep n m))
+    (ratSubRep (qrep c d n) (qrep a b m))
+    (@Eq.symm.{1} ratRep
+      (ratSubRep (qrep c d n) (qrep a b m))
+      (qrep
+        (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+        (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+        (ratDenRep n m))
+      (ratSubRep_mk c d a b n m))
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) =>
+        ratRel
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          z)
+      (qrep
+        (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+        (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+        (ratDenRep m n))
+      (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+      (@Eq.symm.{1} ratRep
+        (ratNegRep (ratSubRep (qrep a b m) (qrep c d n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (ratSubRep_neg_negrep a b c d m n))
+      (@Eq.subst.{1} ratRep
+        (fun (z : ratRep) =>
+          ratRel z
+            (qrep
+              (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+              (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+              (ratDenRep m n)))
+        (qrep
+          (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+          (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+          (ratDenRep m n))
+        (qrep
+          (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+          (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+          (ratDenRep n m))
+        (@Eq.symm.{1} ratRep
+          (qrep
+            (Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n)))
+            (Nat.add (myMul d (Nat.succ m)) (myMul a (Nat.succ n)))
+            (ratDenRep n m))
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n))
+          (ratSubRep_neg_qrep a b c d m n))
+        (ratRel_refl
+          (qrep
+            (Nat.add (myMul b (Nat.succ n)) (myMul c (Nat.succ m)))
+            (Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)))
+            (ratDenRep m n)))))
+
+-- 把字面形式搬到任意代表元。`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的定义别名，
+-- `match` 只认归纳类型本身，所以在展开后的类型上消去。
+
+theorem ratSubRep_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      ratSubRep_neg_lit a b c d m n
+
+-- soko:hint 思路：`ratRep` 是定义别名 ⇒ 先在 `Prod (Prod Nat Nat) Nat` 上 `match x`、`match y`，分支体直接调用字面形式 ㊷.1 的 `ratSubRep_neg_lit`。
+-- soko:hint 目标形态：`ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y))`。
+-- soko:hint 关键件：ratSubRep_neg_lit · match（在展开类型上）。
+theorem ratSubRep_neg (x y : ratRep) :
+    ratRel (ratSubRep y x) (ratNegRep (ratSubRep x y)) :=
+  ratSubRep_neg_aux x y
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.2 `ratAbsRel` 只依赖第一个因子的等价类
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratAbsRel u d` 是两个分支的析取。第一分支 `0 ≤ u ∧ d ~ u` 要落到第一分支：`0 ≤ u` 用 `ratLeRep_congr_snd` 把第二个因子换成 `v`（`0 ≤ v`），`d ~ u` 再用 `ratRel_trans_gen` 沿 `u ~ v` 换成 `d ~ v`。第二分支 `u ≤ 0 ∧ d ~ -u` 要落到第二分支：`u ≤ 0` 用 `ratLeRep_congr` 把**第一个**因子换成 `v`（`v ≤ 0`），`d ~ -v` 由 `d ~ -u` 与 `-u ~ -v`（`ratNegRep_wd`）经 `ratRel_trans_gen` 串起来。
+-- soko:hint 目标形态：`ratRel u v → ratAbsRel u d → ratAbsRel v d`。
+-- soko:hint 关键件：Or.elim · ratLeRep_congr（换第一个因子）· ratLeRep_congr_snd（换第二个因子）· ratNegRep_wd · ratRel_trans_gen · match（在展开类型上消去 u、v）。
+theorem ratAbsRel_wd_left_aux (u v : Prod (Prod Nat Nat) Nat) (d : ratRep) :
+    ratRel u v → ratAbsRel u d → ratAbsRel v d :=
+  match u with
+  | prod_mk (prod_mk a b) m =>
+    match v with
+    | prod_mk (prod_mk a' b') m' =>
+      fun (h : ratRel (prod_mk (prod_mk a b) m) (prod_mk (prod_mk a' b') m'))
+          (hab : ratAbsRel (prod_mk (prod_mk a b) m) d) =>
+        Or.elim
+          (fun (h1 : ratLeRep ratZeroRep (prod_mk (prod_mk a b) m) ∧
+                     ratRel d (prod_mk (prod_mk a b) m)) =>
+            Or.inl (And.intro
+              (ratLeRep_congr_snd Nat.zero Nat.zero a b a' b' Nat.zero m m'
+                h (And.left h1))
+              (ratRel_trans_gen d (prod_mk (prod_mk a b) m)
+                (prod_mk (prod_mk a' b') m') (And.right h1) h)))
+          (fun (h2 : ratLeRep (prod_mk (prod_mk a b) m) ratZeroRep ∧
+                     ratRel d (ratNegRep (prod_mk (prod_mk a b) m))) =>
+            Or.inr (And.intro
+              (ratLeRep_congr a b a' b' Nat.zero Nat.zero m m' Nat.zero
+                h (And.left h2))
+              (ratRel_trans_gen d (ratNegRep (prod_mk (prod_mk a b) m))
+                (ratNegRep (prod_mk (prod_mk a' b') m'))
+                (And.right h2)
+                (ratNegRep_wd (prod_mk (prod_mk a b) m)
+                  (prod_mk (prod_mk a' b') m') h))))
+          hab
+
+theorem ratAbsRel_wd_left (u v : ratRep) (d : ratRep)
+    (h : ratRel u v) (hab : ratAbsRel u d) : ratAbsRel v d :=
+  ratAbsRel_wd_left_aux u v d h hab
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.3 `close` 的对称性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `close x y eps` 拆成 `∃ d, |x-y| ~ d ∧ d < eps`，用同一个 `d` 造 `close y x eps`。第一分量：㊶.3 的 `ratAbsRel_neg`（通用版本 `ratAbsRel_neg_gen`） 把 `|x-y| ~ d` 变成 `|-(x-y)| ~ d`，再用 ㊷.2 沿 `ratRel (-(x-y)) (y-x)`（㊷.1 取对称）搬到 `|y-x| ~ d`；第二分量 `d < eps` 原样。
+-- soko:hint 目标形态：`close x y eps → close y x eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratAbsRel_neg_gen · ratAbsRel_wd_left · ratSubRep_neg · ratRel_symm。
+theorem close_symm (x y eps : ratRep) (h : close x y eps) :
+    close y x eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+         (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left
+            (ratNegRep (ratSubRep x y))
+            (ratSubRep y x)
+            d
+            (ratRel_symm
+              (ratSubRep y x)
+              (ratNegRep (ratSubRep x y))
+              (ratSubRep_neg x y))
+            (ratAbsRel_neg_gen (ratSubRep x y) d (And.left hd)))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊷.4 实数相等的对称性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realRel x y` 是 `Cauchy x ∧ Cauchy y ∧ 逐点 close`。`realRel y x` 只要把两个 `Cauchy` 分量对调，第三分量在每个 `n` 上调用 ㊷.3 把 `close (x n) (y n) eps` 翻成 `close (y n) (x n) eps`。
+-- soko:hint 目标形态：`realRel x y → realRel y x`。
+-- soko:hint 关键件：And.intro · And.left · And.right · Exists.elim · Exists.intro · close_symm。
+theorem realRel_close_symm (x y : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (y n) (x n) eps :=
+  fun (eps : ratRep) (he : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps he)
+      (fun (N : Nat)
+           (hN : ∀ (n : Nat), LeNat N n → close (x n) (y n) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            close_symm (x n) (y n) eps (hN n hn)))
+
+theorem realRel_symm (x y : Seq) (h : realRel x y) : realRel y x :=
+  And.intro
+    (And.left (And.right h))
+    (And.intro
+      (And.left h)
+      (realRel_close_symm x y (And.right (And.right h))))

@@ -1,0 +1,141 @@
+-- 单元129 单侧极限：只看一边
+--
+-- 函数在 a 的左右两侧可以走不同的路。符号函数在 0 的左边取负值、右边取正值，
+-- 它在 0 处没有双侧极限，但两侧各自的行为都很清楚。双侧极限把两边混在同一个
+-- 邻域里，正好丢掉了这种区分；闭区间的端点更麻烦，端点外侧根本没有定义，
+-- 双侧邻域无从谈起。
+--
+-- 单侧极限把「只看右边」与「只看左边」写成两条独立的 ε-δ：半径之外还要一条
+-- `a < x` 或 `x < a`。有了它，函数在端点处的连续性、单调函数的极限、介值定理
+-- 才有地方落脚。两条定义与双侧定义的差别只在方向条件，常函数与恒等函数的
+-- 单侧极限因此可以直接算出来。
+--
+-- 双侧极限推出两个单侧极限是直接的：把「x 不是 a」那条前提用方向条件消掉。
+-- 反方向要把两块半径拼成一块：邻域里的点要么在左边、要么在右边、要么与 a
+-- 相等。前两支交给两个单侧极限，第三支要靠函数在 a 处对代表元的选择不敏感，
+-- 否则 `x ~ a` 而 `f x` 与 `f a` 可以毫不相干。这条对等价的相容性写成显式
+-- 假设，定理对任意函数都成立。
+--
+-- 边界：函数取 `ratRep → ratRep`，左右极限都停在有理代表元层。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Bounded
+import lib.RatClose
+import lib.Limit
+import lib.LimitOrder
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 左极限与右极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 右极限：x 落在 a 的 δ 邻域里，并且严格在 a 的右边。
+def TendsToAtRight (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), ratLtRep a x → close x a delta → close (f x) L eps
+
+-- 左极限把方向反过来，其余逐字相同。
+def TendsToAtLeft (f : ratRep → ratRep) (a L : ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), ratLtRep x a → close x a delta → close (f x) L eps
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条定义的展开形式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：右极限的定义与展开是同一个命题，两个方向都返回假设。
+-- soko:hint 目标形态：`TendsToAtRight f a L ↔ ∀ eps > 0, ∃ delta > 0, ∀ x, a < x → close x a delta → close (f x) L eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem tendsToAtRight_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAtRight f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep a x → close x a delta →
+            close (f x) L eps :=
+  sorry
+
+-- soko:hint 思路：左极限同样只是把定义展开，方向条件原样保留。
+-- soko:hint 目标形态：`TendsToAtLeft f a L ↔ ∀ eps > 0, ∃ delta > 0, ∀ x, x < a → close x a delta → close (f x) L eps`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem tendsToAtLeft_iff (f : ratRep → ratRep) (a L : ratRep) :
+    TendsToAtLeft f a L ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), ratLtRep x a → close x a delta →
+            close (f x) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常函数与恒等函数的右极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：半径取 1；常函数的值恒等于 L，相等落在每个正 ε 内。
+-- soko:hint 目标形态：`TendsToAtRight (fun _ => c) a c`。
+-- soko:hint 关键件：ratOneRep · ratLtRep_zero_one · close_of_ratRel · ratRel_refl。
+theorem tendsToAtRight_const (c a : ratRep) :
+    TendsToAtRight (fun (_ : ratRep) => c) a c :=
+  sorry
+
+-- soko:hint 思路：半径取 ε 本身，邻域前提就是结论，方向条件用不上。
+-- soko:hint 目标形态：`TendsToAtRight (fun x => x) a a`。
+-- soko:hint 关键件：Exists.intro · And.intro · 假设 `close x a eps`。
+theorem tendsToAtRight_id (a : ratRep) :
+    TendsToAtRight (fun (x : ratRep) => x) a a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 双侧极限给出两个单侧极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 函数极限的 δ 对邻域里的每一点给结论，只多要一条「x 不是 a」。右极限的
+-- 方向条件 `a < x` 正好推出它不是 a，于是这条前提被消掉。
+--
+-- soko:hint 思路：沿用双侧极限的 δ；方向条件 `a < x` 与「x 不是 a」只差一次对称，用 `ratLtRep_right` 把方向条件翻成 `¬ ratRel a x`，再对称过去。
+-- soko:hint 目标形态：`TendsToAtRight f a L`。
+-- soko:hint 关键件：TendsToAt 的展开 · ratLtRep_right · ratRel_symm。
+theorem tendsToAtRight_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) : TendsToAtRight f a L :=
+  sorry
+
+-- soko:hint 思路：与右极限相同，方向条件换成 `x < a`。
+-- soko:hint 目标形态：`TendsToAtLeft f a L`。
+-- soko:hint 关键件：TendsToAt 的展开 · ratLtRep_right。
+theorem tendsToAtLeft_of_tendsToAt (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) : TendsToAtLeft f a L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两块单侧极限拼成双侧
+-- ─────────────────────────────────────────────────────────────
+
+-- 邻域里的点按序的全性分成两支：不大于 a 的一支交给左极限，不小于 a 的一支
+-- 交给右极限。每一支再用「相等或严格小」二分一次：相等时函数值只差一次等价
+-- 搬运，严格小时才是单侧极限的用武之地。两块半径也要先取小者。
+--
+-- soko:hint 思路：两个单侧极限各给一条半径，用 `ratLeRep_total` 取小者当公共半径；对邻域里的 x 先用 `ratLeRep_total x a` 分左右，再用 `ratLeRep_eq_or_lt` 分出相等的情形；相等用 `hcong` 搬到 `close_of_ratRel`，严格小用对应的单侧极限。
+-- soko:hint 目标形态：`ContinuousAt f a`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_eq_or_lt · close_mono_eps · close_of_ratRel。
+theorem continuousAt_of_right_left (f : ratRep → ratRep) (a : ratRep)
+    (hcong : ∀ (x : ratRep), ratRel x a → ratRel (f x) (f a))
+    (hr : TendsToAtRight f a (f a)) (hl : TendsToAtLeft f a (f a)) :
+    ContinuousAt f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 具体：恒等函数由两个单侧极限拼出连续
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数的双侧极限在 a 处以 a 为值，所以两个单侧极限都是 a；相容性假设
+-- 退化成「x 与 a 等价就是 x 与 a 等价」。
+--
+-- soko:hint 思路：双侧极限交给两条「双侧推出单侧」的定理，相容性假设取恒等，最后用拼合定理。
+-- soko:hint 目标形态：`ContinuousAt (fun x => x) a`。
+-- soko:hint 关键件：tendsToAt_id · tendsToAtRight_of_tendsToAt · tendsToAtLeft_of_tendsToAt · continuousAt_of_right_left。
+theorem demo_continuousAt_id_one_sided (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => x) a :=
+  sorry

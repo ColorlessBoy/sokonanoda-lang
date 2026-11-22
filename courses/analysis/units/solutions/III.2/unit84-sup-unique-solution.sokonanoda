@@ -1,0 +1,101 @@
+-- 单元84 上界与上确界：唯一性与比较（解答）
+--
+-- 82.3 说单调序列的极限在值域的所有上界之下。把「极限」这一项拿掉，
+-- 剩下的是集合的词汇：上界与最小上界。后面讨论部分和、区间套与 limsup
+-- 时，要反复说「某个数是最小上界」；若一个集合有两个最小上界，那句
+-- 「它的上确界」就没有确定的指称，所以唯一性要先立稳。
+--
+-- `lib/Order` 里已有对任意类型、任意关系的定义：
+--
+--   UpperBound α r A M  :⟺  ∀ a, A a → r a M
+--   IsSup α r A s       :⟺  UpperBound α r A s ∧
+--                            ∀ M, UpperBound α r A M → r s M
+--
+-- 本单元把类型取成 `Real`、关系取成 `realLe`，只证这个实例上的比较律。
+-- 关系 `realLe` 只对带 Cauchy 见证的类有自反性，所以凡是需要自反的地方
+-- 都显式带上 `Cauchy x`，不把「每个实数都与自己可比」当作公理。
+--
+-- 边界：只证唯一性与比较，不证存在性。一般「非空有上界的集合有上确界」
+-- 要选择公理或 Dedekind 切割，本课程的库没有这些；存在性能证到哪里，
+-- 留到后面的单元盘点。不新增公理。
+
+import lib.Order
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.0 读法
+-- ─────────────────────────────────────────────────────────────
+
+-- 下面一律写 `UpperBound Real realLe A M`，读作「`M` 是 `A` 的上界」；
+-- `IsSup Real realLe A s` 读作「`s` 是 `A` 的上确界」。两个定义都在
+-- `lib/Order`，这里不再重写。
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.1 上界可以放大
+-- ─────────────────────────────────────────────────────────────
+
+-- 逐个元素把 `a ≤ M` 与 `M ≤ M'` 接起来。
+theorem upperBound_of_le (A : Real → Prop) (M M' : Real)
+    (hM : UpperBound Real realLe A M) (h : realLe M M') :
+    UpperBound Real realLe A M' :=
+  fun (a : Real) (ha : A a) => realLe_trans a M M' (hM a ha) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.2 上确界处 `s ≤ M` 与「M 是上界」等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 正方向：`a ≤ s`（第一分量）与 `s ≤ M` 走传递。反方向是第二分量。
+theorem sup_le_iff (A : Real → Prop) (s M : Real)
+    (hs : IsSup Real realLe A s) :
+    realLe s M ↔ UpperBound Real realLe A M :=
+  Iff.intro
+    (fun (h : realLe s M) =>
+      fun (a : Real) (ha : A a) =>
+        realLe_trans a s M ((And.left hs) a ha) h)
+    (fun (hM : UpperBound Real realLe A M) => (And.right hs) M hM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.3 上确界唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个上确界互相不超过，再交给反对称。
+theorem sup_unique (A : Real → Prop) (s t : Real)
+    (hs : IsSup Real realLe A s) (ht : IsSup Real realLe A t) : s = t :=
+  realLe_antisymm s t
+    ((And.right hs) t (And.left ht))
+    ((And.right ht) s (And.left hs))
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.4 集合含自己的上界时，它就是上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界分量是假设；最小性把任一上界作用在集合内的那个元素上。
+theorem sup_of_max (A : Real → Prop) (m : Real)
+    (hm : A m) (hub : UpperBound Real realLe A m) :
+    IsSup Real realLe A m :=
+  And.intro hub (fun (M : Real) (hM : UpperBound Real realLe A M) => hM m hm)
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.5 单点集的上确界
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界：把 `a = mk x` 反向搬进 `realLe a (mk x)`，用自反性收口。
+-- 最小性：任一上界作用在 `mk x` 与 `rfl` 上。
+theorem sup_singleton_mk (x : Seq) (hx : Cauchy x) :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk x) (Real.mk x) :=
+  And.intro
+    (fun (a : Real) (ha : a = Real.mk x) =>
+      @Eq.subst.{1} Real (fun (z : Real) => realLe z (Real.mk x))
+        (Real.mk x) a (Eq.symm ha) (realLe_refl_mk x hx))
+    (fun (M : Real) (hM : UpperBound Real realLe (fun (a : Real) => a = Real.mk x) M) =>
+      hM (Real.mk x) (@Eq.refl.{1} Real (Real.mk x)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 84.6 具体：常零序列的类上的单点集
+-- ─────────────────────────────────────────────────────────────
+
+-- 84.5 在 `zeroSeq` 上，Cauchy 见证由 `cauchy_zero` 付清。
+theorem demo_sup_zero :
+    IsSup Real realLe (fun (a : Real) => a = Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  sup_singleton_mk zeroSeq cauchy_zero

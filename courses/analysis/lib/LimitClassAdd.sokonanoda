@@ -1,0 +1,115 @@
+-- 课程库：极限类的加法（单元106 的引擎）
+--
+-- 两个收敛序列的和收敛，并且和类只依赖两个加数类。单元106 把这条结论
+-- 判卷过；这里收进 L2，后面的减法、序与乘积单元直接引用：
+--
+--   · `tendsTo_add`        —— 两条 `TendsTo` 给出和的 `TendsTo`；
+--   · `addRel_limit`      —— `a = [L]`、`b = [M]` 时 `addRel a b [L + M]`；
+--   · `limitClass_add`    —— 两个极限类给出和类与 `addRel`；
+--   · `demo_limitClass_add_const` —— 常序列的实例。
+--
+-- 边界：只在两个已经有极限类的序列上谈加法，不构造实数的减法。
+-- 不新增公理。
+
+import lib.Rat
+import lib.RatHalf
+import lib.Cauchy
+import lib.CauchyAddBounds
+import lib.RealComplete
+import lib.RealOrder
+import lib.RealOrderLift
+import lib.RealAdd
+import lib.RealAddRel
+import lib.LimitClass
+
+theorem tendsTo_add (x y L M : Seq) (hLc : Cauchy L) (hMc : Cauchy M)
+    (hx : TendsTo x L) (hy : TendsTo y M) :
+    TendsTo (addSeq x y) (addSeq L M) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (hN1 : ∀ (n : Nat), LeNat N1 n →
+            realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L (ratHalf eps))) ∧
+            realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) (ratHalf eps)))) =>
+        Exists.elim (hy (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (hN2 : ∀ (n : Nat), LeNat N2 n →
+                realLe (Real.mk (constSeq (y n))) (Real.mk (addConst M (ratHalf eps))) ∧
+                realLe (Real.mk M) (Real.mk (addConst (constSeq (y n)) (ratHalf eps)))) =>
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                Exists.intro N
+                  (fun (n : Nat) (hn : LeNat N n) =>
+                    And.intro
+                      (Iff.mpr (realLe_mk (constSeq (ratAddRep (x n) (y n)))
+                                          (addConst (addSeq L M) eps))
+                        (realLeRep_add_side (x n) (y n) L M eps hLc hMc
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close (constSeq (x n)) (addConst L (ratHalf eps))
+                              (Iff.mp (realLe_mk (constSeq (x n)) (addConst L (ratHalf eps)))
+                                (And.left (hN1 n (leNat_trans N1 N n (And.left hN) hn))))
+                              d hd)
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close (constSeq (y n)) (addConst M (ratHalf eps))
+                              (Iff.mp (realLe_mk (constSeq (y n)) (addConst M (ratHalf eps)))
+                                (And.left (hN2 n (leNat_trans N2 N n (And.right hN) hn))))
+                              d hd)))
+                      (Iff.mpr (realLe_mk (addSeq L M)
+                                          (addConst (constSeq (ratAddRep (x n) (y n))) eps))
+                        (realLeRep_add_side_right L M (x n) (y n) eps hLc hMc
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close L (addConst (constSeq (x n)) (ratHalf eps))
+                              (Iff.mp (realLe_mk L (addConst (constSeq (x n)) (ratHalf eps)))
+                                (And.right (hN1 n (leNat_trans N1 N n (And.left hN) hn))))
+                              d hd)
+                          (fun (d : ratRep) (hd : ratLtRep ratZeroRep d) =>
+                            realLeRep_close M (addConst (constSeq (y n)) (ratHalf eps))
+                              (Iff.mp (realLe_mk M (addConst (constSeq (y n)) (ratHalf eps)))
+                                (And.right (hN2 n (leNat_trans N2 N n (And.right hN) hn))))
+                              d hd)))))))
+
+theorem addRel_limit (L M : Seq) (a b : Real)
+    (hLc : Cauchy L) (hMc : Cauchy M)
+    (ha : a = Real.mk L) (hb : b = Real.mk M) :
+    addRel a b (Real.mk (addSeq L M)) :=
+  @Eq.subst.{1} Real
+    (fun (z : Real) => addRel z b (Real.mk (addSeq L M)))
+    (Real.mk L) a (Eq.symm ha)
+    (@Eq.subst.{1} Real
+      (fun (z : Real) => addRel (Real.mk L) z (Real.mk (addSeq L M)))
+      (Real.mk M) b (Eq.symm hb)
+      (Iff.mpr (addRel_mk L M (Real.mk (addSeq L M)))
+        (And.intro hLc (And.intro hMc (Eq.refl (Real.mk (addSeq L M)))))))
+
+theorem limitClass_add (x y : Seq) (a b : Real)
+    (hx : LimitClass x a) (hy : LimitClass y b) :
+    ∃ (c : Real), addRel a b c ∧ LimitClass (addSeq x y) c :=
+  Exists.elim hx
+    (fun (L : Seq) (hL : Cauchy L ∧ TendsTo x L ∧ a = Real.mk L) =>
+      Exists.elim hy
+        (fun (M : Seq) (hM : Cauchy M ∧ TendsTo y M ∧ b = Real.mk M) =>
+          Exists.intro (Real.mk (addSeq L M))
+            (And.intro
+              (addRel_limit L M a b (And.left hL) (And.left hM)
+                (And.right (And.right hL)) (And.right (And.right hM)))
+              (Exists.intro (addSeq L M)
+                (And.intro
+                  (cauchy_add L M (And.left hL) (And.left hM))
+                  (And.intro
+                    (tendsTo_add x y L M (And.left hL) (And.left hM)
+                      (And.left (And.right hL)) (And.left (And.right hM)))
+                    (Eq.refl (Real.mk (addSeq L M)))))))))
+
+theorem demo_limitClass_add_const (p q : ratRep) :
+    LimitClass (addSeq (constSeq p) (constSeq q))
+      (Real.mk (addSeq (constSeq p) (constSeq q))) :=
+  Exists.intro (addSeq (constSeq p) (constSeq q))
+    (And.intro
+      (cauchy_add (constSeq p) (constSeq q)
+        (cauchy_const p) (cauchy_const q))
+      (And.intro
+        (tendsTo_add (constSeq p) (constSeq q) (constSeq p) (constSeq q)
+          (cauchy_const p) (cauchy_const q)
+          (cauchy_tends_to_class (constSeq p) (cauchy_const p))
+          (cauchy_tends_to_class (constSeq q) (cauchy_const q)))
+        (Eq.refl (Real.mk (addSeq (constSeq p) (constSeq q))))))

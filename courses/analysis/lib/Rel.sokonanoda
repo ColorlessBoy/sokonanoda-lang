@@ -1,0 +1,451 @@
+-- Rel.sokonanoda —— 卷 I 的**关系标准库**（L2 层）
+--
+-- 分层判据（docs/design/course-stdlib.md）：
+--   L2（本文件）= 关系的**词汇 + 定义展开**：`Rel`、逆、复合，以及"逆/复合算在
+--                 元素上是什么"的展开引理——每一条在 Mathlib 里都是 `rfl`、
+--                 一行或纯管道，**没有数学内容**；
+--   L3（units/）= 一切**有数学内容**的陈述（复合结合律、逆的逆、三律、等价类、
+--                 划分↔等价关系、"自反+对称⇏传递"的反例…）——哪怕 Mathlib 早就有，
+--                 课程就是要让学习者自己证一遍（台账 L-05 的教训：L3 放进库，
+--                 练习就作废了）。
+--
+-- 名字一律照抄 **Mathlib/core 取证名**（docs/design/course-stdlib.md §3.1）：
+--   Rel A B ↔ A → B → Prop（Tao §3.3 的"关系"；Mathlib `Relation` 是
+--             `α → β → Prop` 的同义词，本课按 Tao 的写法直接展开成箭头）
+--   Rel.inv（Mathlib `Relation.inv`）
+--   Rel.comp（Mathlib `Relation.comp`；官方定义逐字同款：
+--             `comp r s x z ↔ ∃ y, r x y ∧ s y z`）
+--
+-- 记法：复合 `r • s` 在**本文件里声明**（E01，紧跟 `def Rel.comp`），单元
+-- `import lib.Rel` 即可用；
+-- 逆 `r ⁻¹` 与复合 `r • s` 都在**本文件里声明**（E01/E03）⇒ 单元 `import lib.Rel` 即可用。
+--   ⚠ 引用更正（E01）：本文件原来写"`r • s` 是 Mathlib 的记法"——**不准确**。
+--   Mathlib 的 `Relation.Comp` 用的是 **`local infixr:80 " ∘r "`**
+--   （`Mathlib/Logic/Relation.lean:158` 逐字），而且 `local`（出了那个 section 就没了）。
+--   本课取 `•`（PLAN v0.74.0 指定）：`∘` 已经给了函数复合
+--   （Lean 4 `Init/Notation.lean:274` 的 `infixr:90`），同一符号在一个闭包里
+--   只能有一个目标；优先级沿用 Mathlib `Relation.Comp` 那一档 80。
+--
+-- ⚠ 为什么必须有 `Rel.ext`（**公理**）：
+--   单元⑥ 的必证题 `rel_comp_assoc`（复合结合律）与 `rel_inv_inv`（逆的逆）都是
+--   **关系之间的等式**，即 `f = g`。`rel_inv_inv` 是定义等式，
+--   一个 `Eq.refl` 就够；但两条复合的**结合律**不是定义等式（∃ 要先交换量词顺序），
+--   要证它必须把"∀ a c, f a c ↔ g a c"升级成"f = g"——这正是**函数外延性**。
+--   官方 Mathlib 里 `funext` 由 `Quot.sound` 推出，`Rel.ext` 则是
+--   `funext` + `propext` 的推论；本语言两者都没有（prelude 只有 Nat/Bool/Eq），
+--   所以与 lib/Set.sokonanoda 的 `Set.ext` 完全同款：**就地取一条外延性公理**。
+--   `Set.ext` 与本条是整个卷 I 仅有的两条外延性公理，其余一切照常由内核重查。
+import lib.Logic
+import lib.Exists
+
+-- ── 词汇（Mathlib: Mathlib/Logic/Relation.lean，语义逐字同款）────────────────
+-- 关系就是"两元谓词"：`Rel A B` 与 `A → B → Prop` 是同一个东西（定义等式）。
+def Rel (A B : Type) : Type := A → B → Prop
+
+-- 逆关系：把两个参数对调（记法 r ⁻¹）。
+def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=
+  fun (b : B) => fun (a : A) => r a b
+
+-- ── 记法（E03）：逆关系 `r ⁻¹` ─────────────────────────────────────────────
+-- 与 `r • s` 同族：源级糖、**零事件、不进声明表** ⇒ 加这一行不改变任何计数。
+-- 形状取 `postfix:100`（与 lib/Set 的 `ᶜ`/`𝒫` 同档：贴着操作数、比二元算子都紧）。
+-- ⚠ **取证更正（E03）**：本文件早先写"Mathlib `Relation.inv`，即记法 r ⁻¹"——
+-- mathlib4 master 的 `Mathlib/Logic/Relation.lean` 里**既没有 `Relation.inv`
+-- 也没有 `⁻¹` 记法**（那里只有 `local infixr:80 " ∘r " => Relation.Comp`）
+-- ⇒ 这条记法是**本课自定**（符号按数学书读法，PLAN v0.74.0 指定）。
+-- 与 lib/Set 的 `⁻¹'`（原像，`infixr:80`）是**两个符号**：词法按声明**最长匹配**
+-- ⇒ `f ⁻¹' B` 仍读作 `⁻¹'`（单元⑧⑫ 两个符号同文件共存，已实测 ✓）。
+postfix:100 " ⁻¹ " => Rel.inv
+
+-- 复合（关系串接，Mathlib `Relation.comp`，记法 r • s；参数顺序与 Mathlib 一致：
+-- `r • s` 里 r : Rel A B 先走，s : Rel B C 后走）。中缀的 `∃ b, …`
+-- 在这里就是带标注的 `∃ (b : B), …`；定义体照课程库的统一写法用 `∃` 记法
+-- （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。
+def Rel.comp {A B C : Type} (r : Rel A B) (s : Rel B C) : Rel A C :=
+  fun (a : A) => fun (c : C) =>
+    ∃ (b : B), (r a b) ∧ (s b c)
+
+-- ── 记法（E01）：关系复合 `r • s` ───────────────────────────────────────────
+-- 与 lib/Set 末尾那段记法同族：源级糖、**零事件、不进声明表** ⇒ 加这一行
+-- 不改变课程门禁的任何计数。被 import 的模块声明的记法在**入口文件里从文件头
+-- 就可用**（docs/design/notation-subset.md §10.3）⇒ 单元只要 `import lib.Rel`
+-- 就能写 `r • s`；同一符号全课程只能声明一次（重声明是 parse 错误）。
+-- 点名形式永久可用（N4.3）：`Rel.comp` 写全前导类型参数时，两种写法判卷一致。
+infixr:80 " • " => Rel.comp
+
+-- ── 外延性（**公理**：Mathlib 由 funext + propext 推出，我们两者都没有）──────
+-- 用法与 `Set.ext` 同款：要证两条关系相等，就逐元素证两个方向。
+axiom Rel.ext : (A B : Type) → (r s : Rel A B) →
+  (∀ (a : A) (b : B), r a b ↔ s a b) → r = s
+
+-- ── 定义展开引理（L2：两边是同一个东西，没有数学内容）──────────────────────
+-- 与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍，
+-- 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。
+theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) :
+    (r ⁻¹) b a ↔ r a b :=  Iff.rfl
+
+theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.rfl
+
+-- ── 库自检：两条展开引理合起来，把"逆的逆"退回原关系（`rfl` 级）。────────────
+-- 单元⑥ 的必证题 `rel_inv_inv` 在画布上由学习者自己写：它的证明项与本条同款
+-- （函数外延性在这里用不上——`(r ⁻¹) ⁻¹` 与 `r` 是定义等式）。
+theorem Rel.inv_inv_apply (A B : Type) (r : Rel A B) (a : A) (b : B) :
+    ((r ⁻¹) ⁻¹) a b ↔ r a b :=  Iff.rfl
+
+-- ── Eq 搬运（**具名包装**；本语言里 `Eq.subst` 嵌在别的应用里会被 elaborator 判红）──
+-- 读法：`rel_subst_left r h` 把 `r b c` 沿 `a = c` 搬成 `r b a`（把等式的**左端**换掉）。
+-- 为什么包一层：`Eq.subst.{1} α (fun (x : α) => r b x) c a (Eq.symm …) hbc` 写在
+-- **顶层**判绿 ✓，一旦嵌进 `f … (Eq.subst …)` 这样的实参位就报
+-- 「期望 `Sort(0)`，实际是 `Sort(1)`」（实测；与 G-72 同一族，**登记在案等语言线修**）✓
+theorem rel_subst_left (α : Type) (r : α → α → Prop) (a b c : α) (h : a = c) :
+    r b c → r b a :=
+  @Eq.subst.{1} α (fun (x : α) => r b x) c a (@Eq.symm.{1} α a c h)
+
+-- 读法：把 `r a b` 沿 `b = c` 搬成 `r a c`（把等式的**右端**换掉）。
+theorem rel_subst_right (α : Type) (r : α → α → Prop) (a b c : α) (h : b = c) :
+    r a b → r a c :=
+  @Eq.subst.{1} α (fun (x : α) => r a x) b c h
+
+-- 读法：**一元谓词**版（集合就是一元谓词：`Set α` = `α → Prop`）——
+-- `rel_subst_mem A h` 把 `A a` 沿 `a = b` 搬成 `A b` ✓（与上面两条同族：`r` 只剩一个槽）。
+-- 为什么单列一条：上面两条要求关系是 `α → α → Prop`，**套不进一元谓词** ✗；
+-- 而"把 `a ∈ A` 沿等式搬到 `b ∈ A`"是单元① 练习 4 就要用的动作
+-- （`Set.mem_singleton_iff` 取出等式之后那一步）⇒ 裸 `Eq.subst` 嵌在实参位判红（同上），
+-- 所以要一个具名包装 ✓（台账 **r23**）。
+-- 用法：`rel_subst_mem α A a b h : A a → A b`（`h : a = b`；要反方向就 `Eq.symm h` ✓）。
+theorem rel_subst_mem (α : Type) (A : α → Prop) (a b : α) (h : a = b) :
+    A a → A b :=
+  @Eq.subst.{1} α (fun (x : α) => A x) a b h
+
+-- ── 三种闭包（Enderton §3.5 / Halmos §10 的词汇；L2：都是"一行定义"）──────────
+-- 读法（**关键是传递闭包那条**）：不断言"反复复合"（那要递归，本语言没有 ℕ 上的递归原则
+-- 之外的现成工具），而是照 Halmos 的**交集式**定义 ——
+--   `a (r⁺) b` ⟺ "在**每个**包含 `r` 的传递关系里都有 `a s b`" ✓
+-- 这个写法**不需要任何递归**，三种闭包的定律就都能直接证 ✓
+def Rel.reflClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) => r a b ∨ a = b
+
+def Rel.symClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) => r a b ∨ r b a
+
+def Rel.transClosure (α : Type) (r : Rel α α) : Rel α α :=
+  fun (a : α) (b : α) =>
+    ∀ (s : Rel α α), (∀ (x : α) (y : α) (z : α), s x y → s y z → s x z) →
+      (∀ (x : α) (y : α), r x y → s x y) → s a b
+
+-- ── 展开引理 + 取用子 / 构造子（L2）──────────────────────────────────────────
+theorem Rel.reflClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.reflClosure α r a b ↔ (r a b ∨ a = b) :=
+  Iff.intro (fun (h : Rel.reflClosure α r a b) => h) (fun (h : r a b ∨ a = b) => h)
+
+theorem Rel.symClosure_apply (α : Type) (r : Rel α α) (a b : α) :
+    Rel.symClosure α r a b ↔ (r a b ∨ r b a) :=
+  Iff.intro (fun (h : Rel.symClosure α r a b) => h) (fun (h : r a b ∨ r b a) => h)
+
+-- 传递闭包的**两条**取用子：① 用在具体的 `s` 上；② 用在"闭包自己的传递性"上 ✓
+theorem Rel.transClosure_elim (α : Type) (r s : Rel α α) (a b : α)
+    (h : Rel.transClosure α r a b)
+    (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) : s a b :=
+  (fun (hh : ∀ (s' : Rel α α), (∀ (x : α) (y : α) (z : α), s' x y → s' y z → s' x z) →
+      (∀ (x : α) (y : α), r x y → s' x y) → s' a b) => hh s hs hr) h
+
+-- ── 等价类与商集（L2：`Set α` 就是 `α → Prop`，所以这里直接写谓词，不必 import lib.Set）──
+-- 读法：`Rel.EquivClass α r a` 就是"与 `a` 相关的那些点"（记作 `[a]`）✓
+def Rel.EquivClass (α : Type) (r : Rel α α) (a : α) : α → Prop :=
+  fun (c : α) => r a c
+
+-- 读法：`Rel.Classes α r` 是"**是某个等价类**"这条性质（作用在集合 `C : α → Prop` 上）✓
+-- —— 于是"商集"就是由它切出来的那一族集合，不需要新类型 ✓
+def Rel.Classes (α : Type) (r : Rel α α) : (α → Prop) → Prop :=
+  fun (C : α → Prop) => ∃ (a : α), ∀ (c : α), C c ↔ r a c
+
+theorem Rel.mem_equivClass (α : Type) (r : Rel α α) (a b : α) :
+    Rel.EquivClass α r a b ↔ r a b :=
+  Iff.intro (fun (h : Rel.EquivClass α r a b) => h) (fun (h : r a b) => h)
+
+theorem Rel.mem_classes (α : Type) (r : Rel α α) (C : α → Prop) :
+    Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  Iff.intro (fun (h : Rel.Classes α r C) => h)
+    (fun (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) => h)
+
+-- ── 划分（Enderton §3.5 的另一半；L2：三条的合取）────────────────────────────
+-- 读法：`P` 是**一族集合**（写成 `(α → Prop) → Prop`），三条说：
+--   ① 每个块**非空**；② 每个点**落在某个块里**；③ 有公共点的两块**逐点相同** ✓
+def Rel.Partition (α : Type) (P : (α → Prop) → Prop) : Prop :=
+  (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+  (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+  (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+    ∀ (c : α), A c ↔ B c)
+
+-- 读法：**由划分造出的关系** —— "两个点落在同一个块里" ✓
+-- （这正是"等价关系 = 划分"这一定理的反方向：划分 ⇒ 等价关系）
+def Rel.ofPartition (α : Type) (P : (α → Prop) → Prop) (a b : α) : Prop :=
+  ∃ (A : α → Prop), P A ∧ A a ∧ A b
+
+theorem Rel.partition_def (α : Type) (P : (α → Prop) → Prop) :
+    Rel.Partition α P ↔
+      (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c) :=
+  Iff.intro (fun (h : Rel.Partition α P) => h)
+    (fun (h : (∀ (A : α → Prop), P A → ∃ (a : α), A a) ∧
+      (∀ (a : α), ∃ (A : α → Prop), P A ∧ A a) ∧
+      (∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) →
+        ∀ (c : α), A c ↔ B c)) => h)
+
+theorem Rel.ofPartition_apply (α : Type) (P : (α → Prop) → Prop) (a b : α) :
+    Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  Iff.intro (fun (h : Rel.ofPartition α P a b) => h)
+    (fun (h : ∃ (A : α → Prop), P A ∧ A a ∧ A b) => h)
+
+-- 三条取用子（**参数一次给全**；同 G-73 的处置）
+theorem partition_nonempty (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (A : α → Prop), P A → ∃ (a : α), A a :=
+  And.left h
+
+theorem partition_cover (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (a : α), ∃ (A : α → Prop), P A ∧ A a :=
+  And.left (And.right h)
+
+theorem partition_disjoint (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P) :
+    ∀ (A B : α → Prop), P A → P B → (∃ (x : α), A x ∧ B x) → ∀ (c : α), A c ↔ B c :=
+  And.right (And.right h)
+
+-- 复合对两个关系**都单调**（S-B ✓ I.13）：点式蕴含逐层传下去
+theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
+    (a : A) (c : C) (h : (r • s) a c) : (r' • s') a c :=
+  (fun (hE : ∃ (b : B), r a b ∧ s b c) =>
+    @Exists.elim B (fun (b : B) => r a b ∧ s b c)
+      ((r' • s') a c) hE
+      (fun (b : B) (hb : r a b ∧ s b c) =>
+        Exists.intro b
+          (And.intro (hr a b (And.left hb)) (hs b c (And.right hb))))) h
+
+-- 只放左边（S-B ✓ I.13）：`Rel.comp_mono` 的常用特例
+theorem Rel.comp_mono_left {A B C : Type} (r r' : Rel A B) (s : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C)
+    (h : (r • s) a c) : (r' • s) a c :=
+  Rel.comp_mono r r' s s hr (fun (b : B) (c' : C) (hb : s b c') => hb) a c h
+
+-- 只放右边（S-B ✓ I.13）：`Rel.comp_mono` 的另一半特例
+theorem Rel.comp_mono_right {A B C : Type} (r : Rel A B) (s s' : Rel B C)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C)
+    (h : (r • s) a c) : (r • s') a c :=
+  Rel.comp_mono r r s s' (fun (a' : A) (b : B) (hr : r a' b) => hr) hs a c h
+
+-- 逆的逆（S-B ✓ I.13）：**定义等式**（`Eq.refl` 级 ✓，无需 `Rel.ext`）
+-- soko:notation-ok: 等式族证明项的宇宙层级（手册边界）
+theorem Rel.inv_inv (A B : Type) (r : Rel A B) : ((r ⁻¹) ⁻¹) = r :=
+  @Eq.refl.{1} (Rel A B) r
+
+-- `r` 含于自己的传递闭包（S-B ✓ I.13）：`transClosure` 是 `∀ s, …` 形状 ⇒ **λ 落地**即可
+theorem Rel.subset_transClosure (α : Type) (r : Rel α α) :
+    ∀ (a : α) (b : α), r a b → Rel.transClosure α r a b :=
+  fun (a : α) (b : α) (hab : r a b) =>
+    fun (s : Rel α α) (hst : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+        (hrs : ∀ (x : α) (y : α), r x y → s x y) => hrs a b hab
+
+-- 逆关系对点式蕴含单调（S-B ✓ I.13）：`Rel.inv` 是定义头 ⇒ λ 直接给 ✓
+theorem Rel.inv_mono {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b) :
+    ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a :=
+  fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h a b hba
+
+-- 复合单调的**点式**形（S-B ✓ I.13）：`Rel.comp_mono` 的 λ 包装（末两个参数留作 λ ✓）
+theorem Rel.comp_mono_apply {A B C : Type} (r r' : Rel A B) (s s' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c)
+    (a : A) (c : C) : (r • s) a c → (r' • s') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono r r' s s' hr hs a c h
+
+-- 逆关系单调的**点式**形（S-B ✓ I.13）：`Rel.inv_mono` 的 λ 包装
+theorem Rel.inv_mono_apply {A B : Type} (r r' : Rel A B) (h : ∀ (a : A) (b : B), r a b → r' a b)
+    (b : B) (a : A) : (r ⁻¹) b a → (r' ⁻¹) b a :=
+  fun (hba : (r ⁻¹) b a) => Rel.inv_mono r r' h b a hba
+
+-- 只放左边的**点式**形（S-B ✓ I.13）：`Rel.comp_mono_left` 的 λ 包装
+theorem Rel.comp_mono_left_apply {A B C : Type} (r r' : Rel A B) (s : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (a : A) (c : C) :
+    (r • s) a c → (r' • s) a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_left r r' s hr a c h
+
+-- 只放右边的**点式**形（S-B ✓ I.13）：`Rel.comp_mono_right` 的 λ 包装
+theorem Rel.comp_mono_right_apply {A B C : Type} (r : Rel A B) (s s' : Rel B C)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C) :
+    (r • s) a c → (r • s') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_right r s s' hs a c h
+
+-- 复合单调的**两步**形（S-B ✓ I.13）：`Rel.comp_mono` 两次
+theorem Rel.comp_mono_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c) :
+    ∀ (a : A) (c : C), (r • s) a c → (r'' • s'') a c :=
+  fun (a : A) (c : C) (h : (r • s) a c) =>
+    Rel.comp_mono r' r'' s' s'' hr' hs' a c (Rel.comp_mono r r' s s' hr hs a c h)
+
+-- 两步形的**点式**版（S-B ✓ I.13）：`Rel.comp_mono_trans` 的 λ 包装
+theorem Rel.comp_mono_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s s' s'' : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c)
+    (a : A) (c : C) : (r • s) a c → (r'' • s'') a c :=
+  fun (h : (r • s) a c) => Rel.comp_mono_trans r r' r'' s s' s'' hr hr' hs hs' a c h
+
+-- 只放左边的两步点式形（S-B ✓ I.13）：`Rel.comp_mono_left` 两次 + λ 包装
+theorem Rel.comp_mono_left_apply_trans {A B C : Type} (r r' r'' : Rel A B) (s : Rel B C)
+    (hr : ∀ (a : A) (b : B), r a b → r' a b) (hr' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (a : A) (c : C) : (r • s) a c → (r'' • s) a c :=
+  fun (h : (r • s) a c) =>
+    Rel.comp_mono_left r' r'' s hr' a c (Rel.comp_mono_left r r' s hr a c h)
+
+-- 只放右边的两步点式形（S-B ✓ I.13）：`Rel.comp_mono_right` 两次 + λ 包装
+theorem Rel.comp_mono_right_apply_trans {A B C : Type} (r : Rel A B) (s s' s'' : Rel B C)
+    (hs : ∀ (b : B) (c : C), s b c → s' b c) (hs' : ∀ (b : B) (c : C), s' b c → s'' b c)
+    (a : A) (c : C) : (r • s) a c → (r • s'') a c :=
+  fun (h : (r • s) a c) =>
+    Rel.comp_mono_right r s' s'' hs' a c (Rel.comp_mono_right r s s' hs a c h)
+
+-- 逆关系单调的**两步**形（S-B ✓ I.13）：两次点式蕴含直接串起来
+theorem Rel.inv_mono_trans {A B : Type} (r r' r'' : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b) :
+    ∀ (b : B) (a : A), (r ⁻¹) b a → (r'' ⁻¹) b a :=
+  fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h' a b (h a b hba)
+
+-- 两步形的**点式**版（S-B ✓ I.13）：`Rel.inv_mono_trans` 的 λ 包装
+theorem Rel.inv_mono_apply_trans {A B : Type} (r r' r'' : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r' a b) (h' : ∀ (a : A) (b : B), r' a b → r'' a b)
+    (b : B) (a : A) : (r ⁻¹) b a → (r'' ⁻¹) b a :=
+  fun (hba : (r ⁻¹) b a) => Rel.inv_mono_trans r r' r'' h h' b a hba
+
+-- 点式序在**逆**下不变（S-B ✓ I.13）：两向都靠定义展开 ✓
+theorem Rel.inv_mono_iff {A B : Type} (r r' : Rel A B) :
+    (∀ (a : A) (b : B), r a b → r' a b) ↔
+      (∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) :=
+  Iff.intro
+    (fun (h : ∀ (a : A) (b : B), r a b → r' a b) =>
+      fun (b : B) (a : A) (hba : (r ⁻¹) b a) => h a b hba)
+    (fun (h : ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) =>
+      fun (a : A) (b : B) (hab : r a b) => h b a hab)
+
+-- 逆的逆保持点式序（S-B ✓ I.13）：两侧都是定义展开 ⇒ λ 直接给 ✓
+theorem Rel.inv_inv_mono {A B : Type} (r r' : Rel A B)
+    (h : ∀ (a : A) (b : B), r a b → r' a b) :
+    ∀ (a : A) (b : B), ((r ⁻¹) ⁻¹) a b → ((r' ⁻¹) ⁻¹) a b :=
+  fun (a : A) (b : B) (hab : ((r ⁻¹) ⁻¹) a b) => h a b hab
+
+-- 从逆上的单调**反推**原关系的单调（S-B ✓ I.13）：`Rel.inv_mono_iff` 的 `mpr` 方向
+theorem Rel.inv_mono_of_inv {A B : Type} (r r' : Rel A B)
+    (h : ∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a) :
+    ∀ (a : A) (b : B), r a b → r' a b :=
+  (fun (hh : (∀ (a : A) (b : B), r a b → r' a b) ↔
+      (∀ (b : B) (a : A), (r ⁻¹) b a → (r' ⁻¹) b a)) => Iff.mpr hh h)
+    (Rel.inv_mono_iff r r')
+
+-- 每个等价类**是**一个类（S-B ✓ I.13）：见证就是 `a` 自己 ✓ 逐点定义展开 ✓
+theorem Rel.equivClass_is_class (α : Type) (r : Rel α α) (a : α) :
+    Rel.Classes α r (Rel.EquivClass α r a) :=
+  Exists.intro a
+    (fun (c : α) => Iff.intro (fun (h : Rel.EquivClass α r a c) => h) (fun (h : r a c) => h))
+
+-- 自反点属于自己的等价类（S-B ✓ I.13）：两侧是**定义等式** ⇒ 证明就是 `h` ✓
+theorem Rel.equivClass_self (α : Type) (r : Rel α α) (a : α) (h : r a a) :
+    Rel.EquivClass α r a a :=
+  h
+
+-- `Classes` 的取件子（S-B ✓ I.13）：λ 落地 + `Rel.mem_classes` 的 `Iff.mp`（已判绿形态 ✓）
+theorem Rel.mem_classes_elim (α : Type) (r : Rel α α) (C : α → Prop)
+    (h : Rel.Classes α r C) : ∃ (a : α), ∀ (c : α), C c ↔ r a c :=
+  (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mp hh h)
+    (Rel.mem_classes α r C)
+
+-- `Classes` 的构造子（S-B ✓ I.13）：λ 落地 + `Rel.mem_classes` 的 `Iff.mpr`（结论是 def 头 Prop ✓ 规律 ⑤）
+theorem Rel.mem_classes_intro (α : Type) (r : Rel α α) (C : α → Prop)
+    (h : ∃ (a : α), ∀ (c : α), C c ↔ r a c) : Rel.Classes α r C :=
+  (fun (hh : Rel.Classes α r C ↔ ∃ (a : α), ∀ (c : α), C c ↔ r a c) => Iff.mpr hh h)
+    (Rel.mem_classes α r C)
+
+-- `ofPartition` 的取件子（S-B ✓ I.13）：λ 落地 + `Rel.ofPartition_apply` 的 `Iff.mp`（已判绿形态 ✓）
+theorem Rel.ofPartition_mem (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : ∃ (A : α → Prop), P A ∧ A a ∧ A b :=
+  (fun (hh : Rel.ofPartition α P a b ↔ ∃ (A : α → Prop), P A ∧ A a ∧ A b) => Iff.mp hh h)
+    (Rel.ofPartition_apply α P a b)
+
+-- `ofPartition` 的自反性（S-B ✓ I.13）：同块两点 ⇒ 自反，见证就是那一块 ✓
+theorem Rel.ofPartition_refl (α : Type) (P : (α → Prop) → Prop) (A : α → Prop) (a : α)
+    (hA : P A) (ha : A a) : Rel.ofPartition α P a a :=
+  Exists.intro A
+    (And.intro hA (And.intro ha ha))
+
+-- `ofPartition` 的对称性（S-B ✓ I.13）：见证那一块不变，两点对调 ✓
+theorem Rel.ofPartition_symm (α : Type) (P : (α → Prop) → Prop) (a b : α)
+    (h : Rel.ofPartition α P a b) : Rel.ofPartition α P b a :=
+  (fun (hE : ∃ (A : α → Prop), P A ∧ A a ∧ A b) =>
+    @Exists.elim (α → Prop) (fun (A : α → Prop) => P A ∧ A a ∧ A b)
+      (Rel.ofPartition α P b a) hE
+      (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+        Exists.intro A
+          (And.intro (And.left hA)
+            (And.intro (And.right (And.right hA)) (And.left (And.right hA))))))
+    (Rel.ofPartition_mem α P a b h)
+
+-- 覆盖性的**点式**版（S-B ✓ I.13）：`partition_cover` 的直接应用
+theorem Rel.partition_cover_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (a : α) : ∃ (A : α → Prop), P A ∧ A a :=
+  partition_cover α P h a
+
+-- 非空性的**点式**版（S-B ✓ I.13）：`partition_nonempty` 的直接应用
+theorem Rel.partition_nonempty_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (A : α → Prop) (hA : P A) : ∃ (a : α), A a :=
+  partition_nonempty α P h A hA
+
+-- 互斥性的**点式**版（S-B ✓ I.13）：`partition_disjoint` 的直接应用
+theorem Rel.partition_disjoint_apply (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (A B : α → Prop) (hA : P A) (hB : P B) (hAB : ∃ (x : α), A x ∧ B x) :
+    ∀ (c : α), A c ↔ B c :=
+  partition_disjoint α P h A B hA hB hAB
+
+-- 划分关系的**传递性**（C-128 收口 ✓ 2026-10-08）：两块有公共点 ⇒ 两块逐点相同 ⇒ 接力 ✓
+-- 题注：必须把 `h : Rel.Partition α P` 作参数（`ofPartition` 自身不带划分性质 ✓）。
+theorem Rel.ofPartition_trans (α : Type) (P : (α → Prop) → Prop) (h : Rel.Partition α P)
+    (a b c : α) (hab : Rel.ofPartition α P a b) (hbc : Rel.ofPartition α P b c) :
+    Rel.ofPartition α P a c :=
+  Exists.elim (Rel.ofPartition_mem α P a b hab)
+    (fun (A : α → Prop) (hA : P A ∧ A a ∧ A b) =>
+      Exists.elim (Rel.ofPartition_mem α P b c hbc)
+        (fun (B : α → Prop) (hB : P B ∧ B b ∧ B c) =>
+          Iff.mpr (Rel.ofPartition_apply α P a c)
+            (Exists.intro A
+              (And.intro (And.left hA)
+                (And.intro (And.left (And.right hA))
+                  (Iff.mpr
+                    (partition_disjoint α P h A B (And.left hA) (And.left hB)
+                      (Exists.intro b
+                        (And.intro (And.right (And.right hA)) (And.left (And.right hB))))
+                      c)
+                    (And.right (And.right hB))))))))
+
+-- 逆与复合的**交换律**（点式；C-123 ① 收口 ✓ 2026-10-08）：`(r • s) ⁻¹` 与 `s ⁻¹ • r ⁻¹` 逐点同 ✓
+-- 写法：`Iff.intro` 的**前导两个命题实参写全**（分支里含记法/`def`-应用时补不出来 ⇒ 手册 G-30 ✓）。
+theorem Rel.inv_comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :
+    (r • s) ⁻¹ c a ↔ (s ⁻¹ • r ⁻¹) c a :=
+  @Iff.intro ((r • s) ⁻¹ c a) ((s ⁻¹ • r ⁻¹) c a)  -- soko:notation-ok: 前导命题实参补不出来（手册 G-30）
+    (fun (h : (r • s) ⁻¹ c a) =>
+      Exists.elim h
+        (fun (b : B) (hb : r a b ∧ s b c) =>
+          Exists.intro b (And.intro (And.right hb) (And.left hb))))
+    (fun (h : (s ⁻¹ • r ⁻¹) c a) =>
+      Exists.elim h
+        (fun (b : B) (hb : s b c ∧ r a b) =>
+          Exists.intro b (And.intro (And.right hb) (And.left hb))))
+
+-- 传递闭包**自身**的传递性（C-123 ② 收口 ✓ 2026-10-08）：
+-- **不需要不动点论证** ✗ —— `transClosure` 的定义对**任意**传递的 `s ⊇ r` 都给出结论
+-- ⇒ 把 `hab`/`hbc` 用在**同一条 `s`** 上、再用 `s` 的传递性接起来即可 ✓。
+theorem Rel.transClosure_trans (α : Type) (r : Rel α α) (a b c : α)
+    (hab : Rel.transClosure α r a b) (hbc : Rel.transClosure α r b c) :
+    Rel.transClosure α r a c :=
+  fun (s : Rel α α) (hs : ∀ (x : α) (y : α) (z : α), s x y → s y z → s x z)
+    (hr : ∀ (x : α) (y : α), r x y → s x y) =>
+    hs a b c (Rel.transClosure_elim α r s a b hab hs hr)
+      (Rel.transClosure_elim α r s b c hbc hs hr)

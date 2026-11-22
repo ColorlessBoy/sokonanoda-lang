@@ -1,0 +1,1309 @@
+{
+  "schema": "soko.course/2",
+  "name": "analysis",
+  "title": "从集合论到实分析",
+  "volumes": [
+    {
+      "id": "II",
+      "title": "卷 II 数系与实数",
+      "chapters": [
+        {
+          "id": "II.1",
+          "title": "整数：从 ℕ 到 ℤ",
+          "prereqs": [],
+          "tags": [
+            "int-quotient",
+            "int-rel"
+          ],
+          "quota": {
+            "exercises": 94
+          },
+          "units": [
+            {
+              "file": "units/II.1/unit01-int-quotient.sokonanoda",
+              "title": "单元① 整数与商构造",
+              "title_en": "Unit 1 — Integers via Quotient",
+              "unit": 1
+            },
+            {
+              "file": "units/II.1/unit02-quotients-review.sokonanoda",
+              "title": "单元② 商类型与良定义性（复习）",
+              "title_en": "Unit 2 — Quotients Review",
+              "unit": 2
+            },
+            {
+              "file": "units/II.1/unit03-nat-arith-review.sokonanoda",
+              "title": "单元③ ℕ 的算术律（复习）",
+              "title_en": "Unit 3 — Nat Arithmetic Review",
+              "unit": 3
+            },
+            {
+              "file": "units/II.1/unit04-int-reps.sokonanoda",
+              "title": "单元④ 整数加法 / 负 / 减的代表元公式",
+              "title_en": "Unit 4 — Integer Operations on Representatives",
+              "unit": 4
+            },
+            {
+              "file": "units/II.1/unit05-int-mul-reps.sokonanoda",
+              "title": "单元⑤ 整数乘法的代表元公式",
+              "title_en": "Unit 5 — Integer Multiplication on Representatives",
+              "unit": 5
+            },
+            {
+              "file": "units/II.1/unit06-int-add-wd.sokonanoda",
+              "title": "单元⑥ 整数加法的良定义性",
+              "title_en": "Unit 6 — Addition is Well-Defined",
+              "unit": 6
+            },
+            {
+              "file": "units/II.1/unit07-int-add-laws.sokonanoda",
+              "title": "单元⑦ 整数加法的交换律与结合律",
+              "title_en": "Unit 7 — Addition Laws on Integers",
+              "unit": 7
+            },
+            {
+              "file": "units/II.1/unit08-int-add-group.sokonanoda",
+              "title": "单元⑧ 整数加法的零元与负元",
+              "title_en": "Unit 8 — Additive Identity and Inverse",
+              "unit": 8
+            },
+            {
+              "file": "units/II.1/unit09-int-sub.sokonanoda",
+              "title": "单元⑨ 整数减法的良定义性与基本律",
+              "title_en": "Unit 9 — Subtraction is Well-Defined",
+              "unit": 9
+            },
+            {
+              "file": "units/II.1/unit10-int-mul-identity.sokonanoda",
+              "title": "单元⑩ 整数乘法的零元与单位元",
+              "title_en": "Unit 10 — Multiplication: Zero and One",
+              "unit": 10
+            },
+            {
+              "file": "units/II.1/unit11-int-mul-wd.sokonanoda",
+              "title": "单元⑪ 整数乘法的良定义性",
+              "title_en": "Unit 11 — Multiplication is Well-Defined",
+              "unit": 11
+            },
+            {
+              "file": "units/II.1/unit12-int-order-reps.sokonanoda",
+              "title": "单元⑫ 整数序的代表元公式",
+              "title_en": "Unit 12 — Order on Representatives",
+              "unit": 12
+            },
+            {
+              "file": "units/II.1/unit13-nat-order-lemmas.sokonanoda",
+              "title": "单元⑬ ℕ 序的传递性与单调性",
+              "title_en": "Unit 13 — Order: Transitivity and Monotonicity",
+              "unit": 13
+            },
+            {
+              "file": "units/II.1/unit14-leNat-cancel.sokonanoda",
+              "title": "单元⑭ ℕ 序的加法消去律",
+              "title_en": "Unit 14 — Cancelling an Addend in the Order",
+              "unit": 14
+            },
+            {
+              "file": "units/II.1/unit15-leRep-wd.sokonanoda",
+              "title": "单元⑮ 整数序的良定义性",
+              "title_en": "Unit 15 — Order is Well-Defined",
+              "unit": 15
+            },
+            {
+              "file": "units/II.1/unit16-int-order-axioms.sokonanoda",
+              "title": "单元⑯ 整数序的传递性与加法单调",
+              "title_en": "Unit 16 — Transitivity and Translation Invariance",
+              "unit": 16
+            },
+            {
+              "file": "units/II.1/unit17-int-mul-comm.sokonanoda",
+              "title": "单元⑰ 整数乘法的交换律（代表元层）",
+              "title_en": "Unit 17 — Multiplication is Commutative",
+              "unit": 17
+            },
+            {
+              "file": "units/II.1/unit18-int-mul-wd-snd.sokonanoda",
+              "title": "单元⑱ 整数乘法的第二个因子良定义（代表元层）",
+              "title_en": "Unit 18 — Multiplication is Well-Defined in the Second Factor",
+              "unit": 18
+            },
+            {
+              "file": "units/II.1/unit19-quot-lift.sokonanoda",
+              "title": "单元⑲ 把取负下降成函数（`Quot.lift`）",
+              "title_en": "Unit 19 — Descending Negation with Quot.lift",
+              "unit": 19
+            }
+          ]
+        },
+        {
+          "id": "II.2",
+          "title": "有理数：从 ℤ 到 ℚ",
+          "prereqs": [
+            "II.1"
+          ],
+          "tags": [
+            "rat-quotient",
+            "rat-rel"
+          ],
+          "quota": {
+            "exercises": 38
+          },
+          "units": [
+            {
+              "file": "units/II.2/unit20-rat-quotient.sokonanoda",
+              "title": "单元⑳ 有理数与商构造",
+              "title_en": "Unit 20 — Rationals via Quotient",
+              "unit": 20
+            },
+            {
+              "file": "units/II.2/unit21-int-rel-trans.sokonanoda",
+              "title": "单元㉑ 整数相等的传递性",
+              "title_en": "Unit 21 — Transitivity of Integer Equality",
+              "unit": 21
+            },
+            {
+              "file": "units/II.2/unit22-nat-mul-laws.sokonanoda",
+              "title": "单元㉒ ℕ 乘法的分配律与结合律",
+              "title_en": "Unit 22 — Distributivity and Associativity of Nat Multiplication",
+              "unit": 22
+            },
+            {
+              "file": "units/II.2/unit23-int-mul-assoc.sokonanoda",
+              "title": "单元㉓ ℤ 乘法的结合律（代表元层）",
+              "title_en": "Unit 23 — Associativity of Integer Multiplication",
+              "unit": 23
+            },
+            {
+              "file": "units/II.2/unit24-nat-mul-cancel.sokonanoda",
+              "title": "单元㉔ ℕ 正因子的消去律",
+              "title_en": "Unit 24 — Cancelling a Positive Factor in ℕ",
+              "unit": 24
+            },
+            {
+              "file": "units/II.2/unit25-rat-rel-trans.sokonanoda",
+              "title": "单元㉕ 有理数相等的传递性",
+              "title_en": "Unit 25 — Transitivity of Rational Equality",
+              "unit": 25
+            },
+            {
+              "file": "units/II.2/unit26-rat-add.sokonanoda",
+              "title": "单元㉖ 有理数加法的代表元公式与良定义性",
+              "title_en": "Unit 26 — Addition of Rationals",
+              "unit": 26
+            },
+            {
+              "file": "units/II.2/unit27-rat-mul.sokonanoda",
+              "title": "单元㉗ 有理数乘法的代表元公式与具体计算",
+              "title_en": "Unit 27 — Multiplication of Rationals",
+              "unit": 27
+            },
+            {
+              "file": "units/II.2/unit28-rat-mul-wd.sokonanoda",
+              "title": "单元㉘ 有理数乘法的良定义性",
+              "title_en": "Unit 28 — Multiplication is Well-Defined",
+              "unit": 28
+            }
+          ]
+        },
+        {
+          "id": "II.3",
+          "title": "有理数的性质：序、绝对值、幂与间隙",
+          "prereqs": [
+            "II.2"
+          ],
+          "tags": [
+            "rat-order",
+            "rat-abs",
+            "rat-pow"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.3/unit29-rat-order.sokonanoda",
+              "title": "单元㉙ 有理数的序：代表元公式与自反性",
+              "title_en": "Unit 29 — Order on Rationals",
+              "unit": 29
+            },
+            {
+              "file": "units/II.3/unit30-rat-strict-order.sokonanoda",
+              "title": "单元㉚ 有理数的严格序：< 与不相等",
+              "title_en": "Unit 30 — Strict Order on Rationals",
+              "unit": 30
+            },
+            {
+              "file": "units/II.3/unit31-rat-neg.sokonanoda",
+              "title": "单元㉛ 有理数的负元：代表元层定义与良定义性",
+              "title_en": "Unit 31 — Negation of Rationals",
+              "unit": 31
+            },
+            {
+              "file": "units/II.3/unit32-rat-sub.sokonanoda",
+              "title": "单元㉜ 有理数的减法：加法与负元的组合",
+              "title_en": "Unit 32 — Subtraction of Rationals",
+              "unit": 32
+            },
+            {
+              "file": "units/II.3/unit33-rat-abs.sokonanoda",
+              "title": "单元㉝ 有理数的绝对值：关系定义与两条引入规则",
+              "title_en": "Unit 33 — Absolute Value of Rationals",
+              "unit": 33
+            },
+            {
+              "file": "units/II.3/unit34-rat-pow.sokonanoda",
+              "title": "单元㉞ 有理数的幂：定义与计算规则",
+              "title_en": "Unit 34 — Powers of Rationals",
+              "unit": 34
+            }
+          ]
+        },
+        {
+          "id": "II.4",
+          "title": "有理 Cauchy 序列与实数的载体",
+          "prereqs": [
+            "II.3"
+          ],
+          "tags": [
+            "cauchy",
+            "real"
+          ],
+          "quota": {
+            "exercises": 44
+          },
+          "units": [
+            {
+              "file": "units/II.4/unit35-cauchy-def.sokonanoda",
+              "title": "单元㉟ 有理 Cauchy 序列：close 与 Cauchy 的定义",
+              "title_en": "Unit 35 — Cauchy Sequences: Definitions",
+              "unit": 35
+            },
+            {
+              "file": "units/II.4/unit36-real-carrier.sokonanoda",
+              "title": "单元㊱ 实数的载体：Real := Quot realRel",
+              "title_en": "Unit 36 — The Carrier of the Reals",
+              "unit": 36
+            },
+            {
+              "file": "units/II.4/unit37-order-den.sokonanoda",
+              "title": "单元㊲ 序与正分母：乘法、消去与配对搬运",
+              "title_en": "Unit 37 — Order and Positive Denominators",
+              "unit": 37
+            },
+            {
+              "file": "units/II.4/unit38-order-trans.sokonanoda",
+              "title": "单元㊳ 有理数的序：传递性",
+              "title_en": "Unit 38 — Transitivity of the Order",
+              "unit": 38
+            },
+            {
+              "file": "units/II.4/unit39-order-wd.sokonanoda",
+              "title": "单元㊴ 有理数的序与相等相容",
+              "title_en": "Unit 39 — The Order Respects Equality",
+              "unit": 39
+            },
+            {
+              "file": "units/II.4/unit40-real-refl.sokonanoda",
+              "title": "单元㊵ 实数的相等：自反性",
+              "title_en": "Unit 40 — Reflexivity of Real Equality",
+              "unit": 40
+            },
+            {
+              "file": "units/II.4/unit41-neg-order.sokonanoda",
+              "title": "单元㊶ 取负与序：绝对值的对称性",
+              "title_en": "Unit 41 — Negation, Order and Absolute Value",
+              "unit": 41
+            },
+            {
+              "file": "units/II.4/unit42-close-symm.sokonanoda",
+              "title": "单元㊷ close 的对称性：实数的相等可以换方向",
+              "title_en": "Unit 42 — Symmetry of Close and Real Equality",
+              "unit": 42
+            },
+            {
+              "file": "units/II.4/unit43-add-laws.sokonanoda",
+              "title": "单元㊸ 有理数加法的代表元律：交换与零元",
+              "title_en": "Unit 43 — Addition Laws on Representatives: Commutativity and Zero",
+              "unit": 43
+            },
+            {
+              "file": "units/II.4/unit44-order-add.sokonanoda",
+              "title": "单元㊹ 序与加法相容：x ≤ y ⇒ x + z ≤ y + z",
+              "title_en": "Unit 44 — Order Compatible with Addition",
+              "unit": 44
+            }
+          ]
+        },
+        {
+          "id": "II.5",
+          "title": "ℝ 的商、代数与序",
+          "prereqs": [
+            "II.4"
+          ],
+          "tags": [
+            "real",
+            "order",
+            "equivalence"
+          ],
+          "quota": {
+            "exercises": 44
+          },
+          "units": [
+            {
+              "file": "units/II.5/unit45-order-total.sokonanoda",
+              "title": "单元㊺ 序的全性：每个有理数都有绝对值",
+              "title_en": "Unit 45 — Totality of the Order; Existence of Absolute Values",
+              "unit": 45
+            },
+            {
+              "file": "units/II.5/unit46-order-antisymm.sokonanoda",
+              "title": "单元㊻ 序的反对称性：两边夹出相等",
+              "title_en": "Unit 46 — Antisymmetry of the Order",
+              "unit": 46
+            },
+            {
+              "file": "units/II.5/unit47-abs-unique.sokonanoda",
+              "title": "单元㊼ 绝对值的唯一性：同一个数的两个见证相等",
+              "title_en": "Unit 47 — Uniqueness of the Absolute Value",
+              "unit": 47
+            },
+            {
+              "file": "units/II.5/unit48-triangle.sokonanoda",
+              "title": "单元㊽ 三角不等式：|u + v| ≤ |u| + |v|",
+              "title_en": "Unit 48 — Triangle Inequality",
+              "unit": 48
+            },
+            {
+              "file": "units/II.5/unit49-lt-close-mono.sokonanoda",
+              "title": "单元㊾ 严格序的传递与 close 对 ε 的单调性",
+              "title_en": "Unit 49 — Transitivity of the Strict Order; Monotonicity of close in ε",
+              "unit": 49
+            },
+            {
+              "file": "units/II.5/unit50-lt-add.sokonanoda",
+              "title": "单元㊿ 严格序与加法相容：加法消去",
+              "title_en": "Unit 50 — Strict Order Compatible with Addition; Cancellation",
+              "unit": 50
+            },
+            {
+              "file": "units/II.5/unit51-lt-trans-add.sokonanoda",
+              "title": "单元51 严格序的传递与加法相容",
+              "title_en": "Unit 51 — Transitivity of the Strict Order and Compatibility with Addition",
+              "unit": 51
+            },
+            {
+              "file": "units/II.5/unit52-eps-half.sokonanoda",
+              "title": "单元52 ε 折半：半数的存在与加倍",
+              "title_en": "Unit 52 — Halving: Existence of ε/2 and x/2 + x/2 = x",
+              "unit": 52
+            },
+            {
+              "file": "units/II.5/unit53-half-pos.sokonanoda",
+              "title": "单元53 半数的正性：0 < ε ⇒ 0 < ε/2",
+              "title_en": "Unit 53 — Positivity of the Half: 0 < ε implies 0 < ε/2",
+              "unit": 53
+            },
+            {
+              "file": "units/II.5/unit54-rat-add-assoc.sokonanoda",
+              "title": "单元54 有理数加法的结合律：公分母的三层嵌套",
+              "title_en": "Unit 54 — Associativity of Rational Addition",
+              "unit": 54
+            }
+          ]
+        },
+        {
+          "id": "II.6",
+          "title": "实数的商与完备性",
+          "prereqs": [
+            "II.5"
+          ],
+          "tags": [
+            "cauchy",
+            "real",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/II.6/unit55-rat-add-neg.sokonanoda",
+              "title": "单元55 有理数的加法逆元：x + (-x) = 0",
+              "title_en": "Unit 55 — Additive Inverses in the Rationals",
+              "unit": 55
+            },
+            {
+              "file": "units/II.6/unit56-sub-add.sokonanoda",
+              "title": "单元56 两次减法的相加：中间项消去",
+              "title_en": "Unit 56 — Adding Two Differences: Cancelling the Middle Term",
+              "unit": 56
+            },
+            {
+              "file": "units/II.6/unit57-close-trans.sokonanoda",
+              "title": "单元57 close 的传递性：两个 ε/2 的界加起来",
+              "title_en": "Unit 57 — Transitivity of Close: Adding Two ε/2 Bounds",
+              "unit": 57
+            },
+            {
+              "file": "units/II.6/unit58-real-trans.sokonanoda",
+              "title": "单元58 实数的相等：传递性",
+              "title_en": "Unit 58 — Transitivity of Real Equality",
+              "unit": 58
+            },
+            {
+              "file": "units/II.6/unit59-real-neg.sokonanoda",
+              "title": "单元59 实数的取负：第一次把运算下降到商上",
+              "title_en": "Unit 59 — Negation on the Reals: Lifting an Operation to the Quotient",
+              "unit": 59
+            },
+            {
+              "file": "units/II.6/unit60-real-add.sokonanoda",
+              "title": "单元60 实数的加法：下降之前的两条义务",
+              "title_en": "Unit 60 — Addition on the Reals: Two Obligations Before Descending",
+              "unit": 60
+            },
+            {
+              "file": "units/II.6/unit61-real-addrel.sokonanoda",
+              "title": "单元61 实数的加法：三元关系（存在 + 唯一）",
+              "title_en": "Unit 61 — Addition on the Reals: A Ternary Relation (Existence + Uniqueness)",
+              "unit": 61
+            },
+            {
+              "file": "units/II.6/unit62-real-add-laws.sokonanoda",
+              "title": "单元62 实数的加法：交换律与零元（三元关系版）",
+              "title_en": "Unit 62 — Addition on the Reals: Commutativity and Zero (Ternary Relation)",
+              "unit": 62
+            },
+            {
+              "file": "units/II.6/unit63-real-add-assoc.sokonanoda",
+              "title": "单元63 实数的加法：结合律（三元关系版）",
+              "title_en": "Unit 63 — Addition on the Reals: Associativity (Ternary Relation)",
+              "unit": 63
+            },
+            {
+              "file": "units/II.6/unit64-real-order.sokonanoda",
+              "title": "单元64 实数的序：代表元关系与自反性",
+              "title_en": "Unit 64 — Order on the Reals: Representative Relation and Reflexivity",
+              "unit": 64
+            },
+            {
+              "file": "units/II.6/unit65-real-order-trans.sokonanoda",
+              "title": "单元65 实数的序：传递性",
+              "title_en": "Unit 65 — Order on the Reals: Transitivity",
+              "unit": 65
+            },
+            {
+              "file": "units/II.6/unit66-real-order-lift.sokonanoda",
+              "title": "单元66 实数的序：沿 realRel 下降成 Real 上的关系",
+              "title_en": "Unit 66 — Order on the Reals: Descending to a Relation on Real",
+              "unit": 66
+            },
+            {
+              "file": "units/II.6/unit67-real-order-laws.sokonanoda",
+              "title": "单元67 实数的序：自反、传递、反对称",
+              "title_en": "Unit 67 — Order on the Reals: Reflexivity, Transitivity, Antisymmetry",
+              "unit": 67
+            },
+            {
+              "file": "units/II.6/unit68-complete.sokonanoda",
+              "title": "单元68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类",
+              "title_en": "Unit 68 — Completeness: Rational Cauchy Sequences Converge in ℝ",
+              "unit": 68
+            }
+          ]
+        },
+        {
+          "id": "II.7",
+          "title": "数系综合与读证明",
+          "prereqs": [
+            "II.6"
+          ],
+          "tags": [
+            "synthesis",
+            "embedding",
+            "quotient"
+          ],
+          "quota": {
+            "exercises": 16
+          },
+          "units": [
+            {
+              "file": "units/II.7/unit69-number-chain-order.sokonanoda",
+              "title": "单元69 数系链：从 ℕ 到 ℝ 的保序嵌入",
+              "title_en": "Unit 69 — The Number Chain: Order-Preserving Embeddings from ℕ to ℝ",
+              "unit": 69
+            },
+            {
+              "file": "units/II.7/unit70-number-chain-add.sokonanoda",
+              "title": "单元70 数系链：加法在四层间的迁移",
+              "title_en": "Unit 70 — The Number Chain: Addition Across the Four Layers",
+              "unit": 70
+            },
+            {
+              "file": "units/II.7/unit71-quotient-cost.sokonanoda",
+              "title": "单元71 数系综合：商的代价——一座桥与两座桥",
+              "title_en": "Unit 71 — The Cost of Quotients: One Bridge and Two Bridges",
+              "unit": 71
+            },
+            {
+              "file": "units/II.7/unit72-completeness-inventory.sokonanoda",
+              "title": "单元72 数系综合：完备性盘点——代表元层与集合层",
+              "title_en": "Unit 72 — Completeness Inventory: Representatives and Sets",
+              "unit": 72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "III",
+      "title": "卷 III 序列与级数",
+      "chapters": [
+        {
+          "id": "III.1",
+          "title": "序列与极限",
+          "prereqs": [
+            "II.7"
+          ],
+          "tags": [
+            "sequence",
+            "limit",
+            "epsilon-n"
+          ],
+          "quota": {
+            "exercises": 55
+          },
+          "units": [
+            {
+              "file": "units/III.1/unit73-seq-limit.sokonanoda",
+              "title": "单元73 序列与极限：ε-N 的定义形状",
+              "title_en": "Unit 73 — Sequences and Limits: The ε-N Definition",
+              "unit": 73
+            },
+            {
+              "file": "units/III.1/unit74-limit-unique.sokonanoda",
+              "title": "单元74 极限的唯一性",
+              "title_en": "Unit 74 — Uniqueness of Limits",
+              "unit": 74
+            },
+            {
+              "file": "units/III.1/unit75-limit-order.sokonanoda",
+              "title": "单元75 极限与序",
+              "title_en": "Unit 75 — Limits and Order",
+              "unit": 75
+            },
+            {
+              "file": "units/III.1/unit76-limit-algebra-add.sokonanoda",
+              "title": "单元76 极限的代数：加法、减法、取负",
+              "title_en": "Unit 76 — Algebra of Limits: Addition, Subtraction, Negation",
+              "unit": 76
+            },
+            {
+              "file": "units/III.1/unit77-converges-bounded.sokonanoda",
+              "title": "单元77 收敛序列有界",
+              "title_en": "Unit 77 — Convergent Sequences are Bounded",
+              "unit": 77
+            },
+            {
+              "file": "units/III.1/unit78-limit-squeeze.sokonanoda",
+              "title": "单元78 夹逼定理",
+              "title_en": "Unit 78 — The Squeeze Theorem",
+              "unit": 78
+            },
+            {
+              "file": "units/III.1/unit79-limit-sign.sokonanoda",
+              "title": "单元79 极限的保号性",
+              "title_en": "Unit 79 — Sign Preservation for Limits",
+              "unit": 79
+            },
+            {
+              "file": "units/III.1/unit80-shift.sokonanoda",
+              "title": "单元80 极限只看尾部：平移",
+              "title_en": "Unit 80 — Limits Only See the Tail: Shifts",
+              "unit": 80
+            },
+            {
+              "file": "units/III.1/unit81-tail-eq.sokonanoda",
+              "title": "单元81 尾部等价：改动有限项",
+              "title_en": "Unit 81 — Tail Equivalence: Finite Changes Do Not Move the Limit",
+              "unit": 81
+            },
+            {
+              "file": "units/III.1/unit82-mono-lub.sokonanoda",
+              "title": "单元82 单调序列的极限是上确界",
+              "title_en": "Unit 82 — The Limit of a Monotone Sequence is its Supremum",
+              "unit": 82
+            },
+            {
+              "file": "units/III.1/unit83-converges-cauchy.sokonanoda",
+              "title": "单元83 收敛序列是 Cauchy 序列",
+              "title_en": "Unit 83 — Convergent Sequences are Cauchy",
+              "unit": 83
+            }
+          ]
+        },
+        {
+          "id": "III.2",
+          "title": "扩展实数、上下确界与单调收敛",
+          "prereqs": [
+            "III.1"
+          ],
+          "tags": [
+            "supremum",
+            "infimum",
+            "extended-real",
+            "monotone-convergence"
+          ],
+          "quota": {
+            "exercises": 45
+          },
+          "units": [
+            {
+              "file": "units/III.2/unit84-sup-unique.sokonanoda",
+              "title": "单元84 上界与上确界：唯一性与比较",
+              "title_en": "Unit 84 — Upper Bounds and Suprema: Uniqueness and Comparison",
+              "unit": 84
+            },
+            {
+              "file": "units/III.2/unit85-inf-unique.sokonanoda",
+              "title": "单元85 下界与下确界：唯一性与比较",
+              "title_en": "Unit 85 — Lower Bounds and Infima: Uniqueness and Comparison",
+              "unit": 85
+            },
+            {
+              "file": "units/III.2/unit86-ext-real.sokonanoda",
+              "title": "单元86 扩展实数：±∞ 与序",
+              "title_en": "Unit 86 — Extended Reals and Their Order",
+              "unit": 86
+            },
+            {
+              "file": "units/III.2/unit87-ext-sup.sokonanoda",
+              "title": "单元87 扩展实数上的上界与上确界",
+              "title_en": "Unit 87 — Upper Bounds and Suprema over the Extended Reals",
+              "unit": 87
+            },
+            {
+              "file": "units/III.2/unit88-sup-fin-bridge.sokonanoda",
+              "title": "单元88 实数上确界与扩展上确界的相容",
+              "title_en": "Unit 88 — Real and Extended Suprema Agree",
+              "unit": 88
+            },
+            {
+              "file": "units/III.2/unit89-ext-inf.sokonanoda",
+              "title": "单元89 扩展实数上的下界与下确界",
+              "title_en": "Unit 89 — Lower Bounds and Infima over the Extended Reals",
+              "unit": 89
+            },
+            {
+              "file": "units/III.2/unit90-inf-fin-bridge.sokonanoda",
+              "title": "单元90 实数下确界与扩展下确界的相容",
+              "title_en": "Unit 90 — Real and Extended Infima Agree",
+              "unit": 90
+            }
+          ]
+        },
+        {
+          "id": "III.3",
+          "title": "子序列、极限点与上下极限",
+          "prereqs": [
+            "III.2"
+          ],
+          "tags": [
+            "subsequence",
+            "limit-point",
+            "limsup-liminf"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.3/unit91-subsequence.sokonanoda",
+              "title": "单元91 子序列",
+              "title_en": "Unit 91 — Subsequences",
+              "unit": 91
+            },
+            {
+              "file": "units/III.3/unit92-limit-point.sokonanoda",
+              "title": "单元92 极限点",
+              "title_en": "Unit 92 — Limit Points",
+              "unit": 92
+            },
+            {
+              "file": "units/III.3/unit93-limsup.sokonanoda",
+              "title": "单元93 上极限",
+              "title_en": "Unit 93 — Limit Superior",
+              "unit": 93
+            },
+            {
+              "file": "units/III.3/unit94-liminf.sokonanoda",
+              "title": "单元94 下极限",
+              "title_en": "Unit 94 — Limit Inferior",
+              "unit": 94
+            },
+            {
+              "file": "units/III.3/unit95-subseq-limsup.sokonanoda",
+              "title": "单元95 子序列与上下极限",
+              "title_en": "Unit 95 — Subsequences and Limsup",
+              "unit": 95
+            },
+            {
+              "file": "units/III.3/unit96-limsup-bound.sokonanoda",
+              "title": "单元96 上下极限与常数界",
+              "title_en": "Unit 96 — Limsup and Constant Bounds",
+              "unit": 96
+            },
+            {
+              "file": "units/III.3/unit97-tail-limsup.sokonanoda",
+              "title": "单元97 上下极限只看尾部",
+              "title_en": "Unit 97 — Limsup and Liminf Only See the Tail",
+              "unit": 97
+            },
+            {
+              "file": "units/III.3/unit98-limsup-converges.sokonanoda",
+              "title": "单元98 上下极限与收敛",
+              "title_en": "Unit 98 — Limsup, Liminf, and Convergence",
+              "unit": 98
+            },
+            {
+              "file": "units/III.3/unit99-cauchy-limit.sokonanoda",
+              "title": "单元99 Cauchy 序列与极限点",
+              "title_en": "Unit 99 — Cauchy Sequences and Limit Points",
+              "unit": 99
+            }
+          ]
+        },
+        {
+          "id": "III.4",
+          "title": "Cauchy 序列与完备性",
+          "prereqs": [
+            "III.3"
+          ],
+          "tags": [
+            "cauchy-sequence",
+            "completeness"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.4/unit100-cauchy-tail.sokonanoda",
+              "title": "单元100 Cauchy 序列的尾部刻画",
+              "title_en": "Unit 100 — Tail Characterisation of Cauchy Sequences",
+              "unit": 100
+            },
+            {
+              "file": "units/III.4/unit101-cauchy-bounded.sokonanoda",
+              "title": "单元101 Cauchy 序列有界",
+              "title_en": "Unit 101 — Cauchy Sequences are Bounded",
+              "unit": 101
+            },
+            {
+              "file": "units/III.4/unit102-cauchy-shapes.sokonanoda",
+              "title": "单元102 Cauchy 性的等价写法",
+              "title_en": "Unit 102 — Equivalent Forms of the Cauchy Condition",
+              "unit": 102
+            },
+            {
+              "file": "units/III.4/unit103-realrel-diff.sokonanoda",
+              "title": "单元103 实数相等与差趋于零",
+              "title_en": "Unit 103 — Real Equality and Differences Tending to Zero",
+              "unit": 103
+            },
+            {
+              "file": "units/III.4/unit104-limit-class.sokonanoda",
+              "title": "单元104 极限类的唯一性",
+              "title_en": "Unit 104 — Uniqueness of the Limit Class",
+              "unit": 104
+            },
+            {
+              "file": "units/III.4/unit105-cauchy-add-bounds.sokonanoda",
+              "title": "单元105 极限加法的估计：两个 ε/2 界相加",
+              "title_en": "Unit 105 — Adding Two ε/2 Bounds",
+              "unit": 105
+            },
+            {
+              "file": "units/III.4/unit106-limit-class-add.sokonanoda",
+              "title": "单元106 极限类的加法",
+              "title_en": "Unit 106 — Addition of Limit Classes",
+              "unit": 106
+            },
+            {
+              "file": "units/III.4/unit107-limit-class-neg.sokonanoda",
+              "title": "单元107 极限类的取负",
+              "title_en": "Unit 107 — Negation of Limit Classes",
+              "unit": 107
+            },
+            {
+              "file": "units/III.4/unit108-limit-class-sub.sokonanoda",
+              "title": "单元108 极限类的减法",
+              "title_en": "Unit 108 — Subtraction of Limit Classes",
+              "unit": 108
+            },
+            {
+              "file": "units/III.4/unit109-limit-class-complete.sokonanoda",
+              "title": "单元109 完备性收口：Cauchy 序列的极限类",
+              "title_en": "Unit 109 — Completeness: Limit Classes of Cauchy Sequences",
+              "unit": 109
+            }
+          ]
+        },
+        {
+          "id": "III.5",
+          "title": "级数",
+          "prereqs": [
+            "III.4"
+          ],
+          "tags": [
+            "series",
+            "finite-sum"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.5/unit110-finite-sum.sokonanoda",
+              "title": "单元110 有限和：递归定义与基本律",
+              "title_en": "Unit 110 — Finite Sums: Recursive Definition and Basic Laws",
+              "unit": 110
+            },
+            {
+              "file": "units/III.5/unit111-sum-split.sokonanoda",
+              "title": "单元111 有限和的拆分与望远镜",
+              "title_en": "Unit 111 — Splitting Finite Sums and Telescoping",
+              "unit": 111
+            },
+            {
+              "file": "units/III.5/unit112-series.sokonanoda",
+              "title": "单元112 级数：部分和与和类",
+              "title_en": "Unit 112 — Series: Partial Sums and Sum Classes",
+              "unit": 112
+            },
+            {
+              "file": "units/III.5/unit113-term-test.sokonanoda",
+              "title": "单元113 收敛级数的通项趋于零",
+              "title_en": "Unit 113 — The Term Test for Series",
+              "unit": 113
+            },
+            {
+              "file": "units/III.5/unit114-series-tail.sokonanoda",
+              "title": "单元114 级数的尾巴与 Cauchy 判别",
+              "title_en": "Unit 114 — Series Tails and the Cauchy Criterion",
+              "unit": 114
+            },
+            {
+              "file": "units/III.5/unit115-series-linear.sokonanoda",
+              "title": "单元115 可和级数的加法、取负与减法",
+              "title_en": "Unit 115 — Linearity of Summable Series",
+              "unit": 115
+            },
+            {
+              "file": "units/III.5/unit116-nonneg-monotone.sokonanoda",
+              "title": "单元116 非负项的部分和不会下降",
+              "title_en": "Unit 116 — Partial Sums of Nonnegative Terms",
+              "unit": 116
+            },
+            {
+              "file": "units/III.5/unit117-abs-sum.sokonanoda",
+              "title": "单元117 有限和的绝对值",
+              "title_en": "Unit 117 — Absolute Values of Finite Sums",
+              "unit": 117
+            },
+            {
+              "file": "units/III.5/unit118-comparison.sokonanoda",
+              "title": "单元118 比较判别法",
+              "title_en": "Unit 118 — The Comparison Test",
+              "unit": 118
+            },
+            {
+              "file": "units/III.5/unit119-abs-convergence.sokonanoda",
+              "title": "单元119 绝对收敛推出收敛",
+              "title_en": "Unit 119 — Absolute Convergence Implies Convergence",
+              "unit": 119
+            },
+            {
+              "file": "units/III.5/unit120-telescope-series.sokonanoda",
+              "title": "单元120 望远镜级数",
+              "title_en": "Unit 120 — Telescoping Series",
+              "unit": 120
+            },
+            {
+              "file": "units/III.5/unit121-series-tail.sokonanoda",
+              "title": "单元121 级数的尾块",
+              "title_en": "Unit 121 — Tails of Series",
+              "unit": 121
+            },
+            {
+              "file": "units/III.5/unit122-tail-reverse.sokonanoda",
+              "title": "单元122 尾块判别（反方向）",
+              "title_en": "Unit 122 — The Reverse Tail Criterion",
+              "unit": 122
+            },
+            {
+              "file": "units/III.5/unit123-series-swap.sokonanoda",
+              "title": "单元123 级数的重排：交换前两项",
+              "title_en": "Unit 123 — Rearranging a Series: Swapping the First Two Terms",
+              "unit": 123
+            }
+          ]
+        },
+        {
+          "id": "III.6",
+          "title": "连续函数",
+          "prereqs": [
+            "III.5"
+          ],
+          "tags": [
+            "continuity",
+            "function-limit"
+          ],
+          "quota": {
+            "exercises": 60
+          },
+          "units": [
+            {
+              "file": "units/III.6/unit124-function-limit.sokonanoda",
+              "title": "单元124 函数极限：ε-δ 定义",
+              "title_en": "Unit 124 — Function Limits: The ε-δ Definition",
+              "unit": 124
+            },
+            {
+              "file": "units/III.6/unit125-continuity.sokonanoda",
+              "title": "单元125 连续：极限值就是函数值",
+              "title_en": "Unit 125 — Continuity: The Limit Is the Function Value",
+              "unit": 125
+            },
+            {
+              "file": "units/III.6/unit126-sequential-criterion.sokonanoda",
+              "title": "单元126 函数极限与序列：顺序判据",
+              "title_en": "Unit 126 — Function Limits and Sequences: The Sequential Criterion",
+              "unit": 126
+            },
+            {
+              "file": "units/III.6/unit127-limit-algebra.sokonanoda",
+              "title": "单元127 函数极限的代数：和、差与取负",
+              "title_en": "Unit 127 — Algebra of Function Limits: Sums, Differences, Negation",
+              "unit": 127
+            },
+            {
+              "file": "units/III.6/unit128-continuity-algebra.sokonanoda",
+              "title": "单元128 连续函数的代数：和、差与取负",
+              "title_en": "Unit 128 — Algebra of Continuous Functions: Sums, Differences, Negation",
+              "unit": 128
+            },
+            {
+              "file": "units/III.6/unit129-one-sided-limits.sokonanoda",
+              "title": "单元129 单侧极限：只看一边",
+              "title_en": "Unit 129 — One-Sided Limits: Looking Only One Way",
+              "unit": 129
+            },
+            {
+              "file": "units/III.6/unit130-uniform-continuity.sokonanoda",
+              "title": "单元130 一致连续：一个 δ 管住整片定义域",
+              "title_en": "Unit 130 — Uniform Continuity: One δ for the Whole Domain",
+              "unit": 130
+            },
+            {
+              "file": "units/III.6/unit131-uniform-continuity-sequences.sokonanoda",
+              "title": "单元131 一致连续与序列：Cauchy 序列的像",
+              "title_en": "Unit 131 — Uniform Continuity and Sequences: Images of Cauchy Sequences",
+              "unit": 131
+            },
+            {
+              "file": "units/III.6/unit132-local-boundedness.sokonanoda",
+              "title": "单元132 局部有界：极限给出的第一个盒子",
+              "title_en": "Unit 132 — Local Boundedness: The First Box a Limit Gives",
+              "unit": 132
+            },
+            {
+              "file": "units/III.6/unit133-local-sign.sokonanoda",
+              "title": "单元133 局部保号：连续函数在一点附近不变号",
+              "title_en": "Unit 133 — Local Sign Preservation: A Continuous Function Keeps Its Sign",
+              "unit": 133
+            },
+            {
+              "file": "units/III.6/unit134-extreme-values.sokonanoda",
+              "title": "单元134 闭区间上的最值：上确界与达到",
+              "title_en": "Unit 134 — Extreme Values on a Closed Interval: The Supremum Must Be Attained",
+              "unit": 134
+            },
+            {
+              "file": "units/III.6/unit135-last-negative.sokonanoda",
+              "title": "单元135 最后一个负点：保号性把负点往右推一步",
+              "title_en": "Unit 135 — The Last Negative Point: Sign Preservation Pushes It Right",
+              "unit": 135
+            },
+            {
+              "file": "units/III.6/unit136-ivt.sokonanoda",
+              "title": "单元136 介值定理：最后一个非正点",
+              "title_en": "Unit 136 — The Intermediate Value Theorem: The Last Nonpositive Point",
+              "unit": 136
+            },
+            {
+              "file": "units/III.6/unit137-limit-at-infinity.sokonanoda",
+              "title": "单元137 无穷远处的极限：越过分界线之后靠近 L",
+              "title_en": "Unit 137 — Limits at Infinity: Getting Close Beyond a Threshold",
+              "unit": 137
+            },
+            {
+              "file": "units/III.6/unit138-limit-at-infinity-algebra.sokonanoda",
+              "title": "单元138 无穷远处极限的代数与序列判据",
+              "title_en": "Unit 138 — Algebra of Limits at Infinity and the Sequential Criterion",
+              "unit": 138
+            },
+            {
+              "file": "units/III.6/unit139-monotone-ivp.sokonanoda",
+              "title": "单元139 单调函数：介值性反过来给出连续",
+              "title_en": "Unit 139 — Monotone Functions: Intermediate Values Force Continuity",
+              "unit": 139
+            }
+          ]
+        },
+        {
+          "id": "III.7",
+          "title": "微分",
+          "prereqs": [
+            "III.6"
+          ],
+          "tags": [
+            "derivative",
+            "differentiation"
+          ],
+          "quota": {
+            "exercises": 40
+          },
+          "units": [
+            {
+              "file": "units/III.7/unit140-derivative-definition.sokonanoda",
+              "title": "单元140 导数的定义：斜率函数与它的极限",
+              "title_en": "Unit 140 — The Derivative: Slope Functions and Their Limits",
+              "unit": 140
+            },
+            {
+              "file": "units/III.7/unit141-deriv-shift-neg.sokonanoda",
+              "title": "单元141 导数的代数：垂直平移与取负",
+              "title_en": "Unit 141 — Algebra of Derivatives: Vertical Shifts and Negation",
+              "unit": 141
+            },
+            {
+              "file": "units/III.7/unit142-limit-unique.sokonanoda",
+              "title": "单元142 极限唯一：一条曲线不能同时逼近两个值",
+              "title_en": "Unit 142 — Uniqueness of the Limit: A Curve Cannot Approach Two Values at Once",
+              "unit": 142
+            },
+            {
+              "file": "units/III.7/unit143-limit-local.sokonanoda",
+              "title": "单元143 极限只看邻域：换掉远处的函数值",
+              "title_en": "Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away",
+              "unit": 143
+            },
+            {
+              "file": "units/III.7/unit144-cancel-nonzero.sokonanoda",
+              "title": "单元144 非零因子消去：导数为什么只有一个值",
+              "title_en": "Unit 144 — Cancelling a Nonzero Factor: Why the Derivative Has One Value",
+              "unit": 144
+            },
+            {
+              "file": "units/III.7/unit145-deriv-sum.sokonanoda",
+              "title": "单元145 导数的和与差：先让乘法对加法分配",
+              "title_en": "Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition",
+              "unit": 145
+            },
+            {
+              "file": "units/III.7/unit146-mul-order.sokonanoda",
+              "title": "单元146 乘法的保序性：正因子不改变不等号",
+              "title_en": "Unit 146 — Multiplication Preserves Order: Positive Factors Do Not Flip Inequalities",
+              "unit": 146
+            },
+            {
+              "file": "units/III.7/unit147-mul-sign.sokonanoda",
+              "title": "单元147 乘法的符号：负因子把不等号翻过来",
+              "title_en": "Unit 147 — Signs of Products: Negative Factors Flip Inequalities",
+              "unit": 147
+            },
+            {
+              "file": "units/III.7/unit148-deriv-sign.sokonanoda",
+              "title": "单元148 导数的符号：曲线从切点往哪一边抬高",
+              "title_en": "Unit 148 — The Sign of the Derivative: Which Side of the Tangent Point Rises",
+              "unit": 148
+            },
+            {
+              "file": "units/III.7/unit149-local-extremum.sokonanoda",
+              "title": "单元149 极值点的导数为零：曲线在最高处没有斜率",
+              "title_en": "Unit 149 — The Derivative Vanishes at Interior Extrema",
+              "unit": 149
+            },
+            {
+              "file": "units/III.7/unit150-monotone-deriv.sokonanoda",
+              "title": "单元150 单调与导数的符号：不下降的曲线不会往下斜",
+              "title_en": "Unit 150 — Monotonicity and the Sign of the Derivative",
+              "unit": 150
+            }
+          ]
+        },
+        {
+          "id": "III.8",
+          "title": "Riemann 积分",
+          "prereqs": [
+            "III.7"
+          ],
+          "tags": [
+            "riemann-integral",
+            "partition",
+            "integrability"
+          ],
+          "quota": {
+            "exercises": 50
+          },
+          "units": [
+            {
+              "file": "units/III.8/unit151-partition.sokonanoda",
+              "title": "单元151 分割：把区间切成有限段",
+              "title_en": "Unit 151 — Partitions: Cutting an Interval into Finitely Many Pieces",
+              "unit": 151
+            },
+            {
+              "file": "units/III.8/unit152-partition-order.sokonanoda",
+              "title": "单元152 切点只往前走：分割上的序",
+              "title_en": "Unit 152 — Partition Points Move Forward: Order on a Partition",
+              "unit": 152
+            },
+            {
+              "file": "units/III.8/unit153-step-function.sokonanoda",
+              "title": "单元153 阶梯函数：每一段上取常值",
+              "title_en": "Unit 153 — Step Functions: Constant on Each Piece",
+              "unit": 153
+            },
+            {
+              "file": "units/III.8/unit154-rectangle-sum.sokonanoda",
+              "title": "单元154 矩形和：把每一段的面积加起来",
+              "title_en": "Unit 154 — The Rectangle Sum: Adding Up the Area of Each Piece",
+              "unit": 154
+            },
+            {
+              "file": "units/III.8/unit155-sum-linearity.sokonanoda",
+              "title": "单元155 矩形和保持加法与取负",
+              "title_en": "Unit 155 — Rectangular Sums Preserve Addition and Negation",
+              "unit": 155
+            },
+            {
+              "file": "units/III.8/unit156-constant-area.sokonanoda",
+              "title": "单元156 常值函数的面积：与分割无关",
+              "title_en": "Unit 156 — The Area of a Constant Function Is Independent of the Partition",
+              "unit": 156
+            },
+            {
+              "file": "units/III.8/unit157-step-bounds.sokonanoda",
+              "title": "单元157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间",
+              "title_en": "Unit 157 — Upper and Lower Step Bounds: Trapping a Curve Between Two Staircases",
+              "unit": 157
+            },
+            {
+              "file": "units/III.8/unit158-upper-lower-sums.sokonanoda",
+              "title": "单元158 上下和与可积性：两条台阶之间的宽度",
+              "title_en": "Unit 158 — Upper and Lower Sums: Integrability as a Small Gap",
+              "unit": 158
+            },
+            {
+              "file": "units/III.8/unit159-integrability-criterion.sokonanoda",
+              "title": "单元159 可积性的直接判据：把上下和搬到台阶上",
+              "title_en": "Unit 159 — A Direct Criterion for Integrability",
+              "unit": 159
+            },
+            {
+              "file": "units/III.8/unit160-integrability-neg.sokonanoda",
+              "title": "单元160 取负与逐点等价：可积性只看函数值",
+              "title_en": "Unit 160 — Negation and Pointwise Equality Preserve Integrability",
+              "unit": 160
+            },
+            {
+              "file": "units/III.8/unit161-sum-add.sokonanoda",
+              "title": "单元161 上和与下和的加法：先分开算再相加",
+              "title_en": "Unit 161 — Adding Upper and Lower Sums: Computing the Pieces Separately",
+              "unit": 161
+            },
+            {
+              "file": "units/III.8/unit162-vertical-shift.sokonanoda",
+              "title": "单元162 整条曲线抬高：面积差只认起伏",
+              "title_en": "Unit 162 — Lifting the Whole Curve: The Area Gap Only Sees Oscillation",
+              "unit": 162
+            },
+            {
+              "file": "units/III.8/unit163-archimedean.sokonanoda",
+              "title": "单元163 阿基米德性质：反复相加总能超过",
+              "title_en": "Unit 163 — The Archimedean Property: Repeated Addition Eventually Wins",
+              "unit": 163
+            },
+            {
+              "file": "units/III.8/unit164-strip-estimate.sokonanoda",
+              "title": "单元164 细分割上的振幅：一致连续把曲线压成窄带",
+              "title_en": "Unit 164 — Oscillation on a Fine Partition: Uniform Continuity Traps the Curve in a Strip",
+              "unit": 164
+            },
+            {
+              "file": "units/III.8/unit165-uniform-partition.sokonanoda",
+              "title": "单元165 等分分割：把区间切得足够细",
+              "title_en": "Unit 165 — Uniform Partitions: Cutting the Interval Fine Enough",
+              "unit": 165
+            },
+            {
+              "file": "units/III.8/unit166-uniformly-continuous-integrable.sokonanoda",
+              "title": "单元166 一致连续函数可积：把误差分给段数",
+              "title_en": "Unit 166 — Integrability of Uniformly Continuous Functions: Sharing the Error Among Segments",
+              "unit": 166
+            }
+          ]
+        },
+        {
+          "id": "III.9",
+          "title": "综合、读证明、小项目",
+          "prereqs": [
+            "III.8"
+          ],
+          "tags": [
+            "synthesis",
+            "integral",
+            "capstone"
+          ],
+          "quota": {
+            "exercises": 25
+          },
+          "units": [
+            {
+              "file": "units/III.9/unit167-integral-value.sokonanoda",
+              "title": "单元167 面积值：把上下和钉在同一个数上",
+              "title_en": "Unit 167 — The Integral Value: Pinning Upper and Lower Sums",
+              "unit": 167
+            },
+            {
+              "file": "units/III.9/unit168-integral-neg.sokonanoda",
+              "title": "单元168 面积值的取负：把曲线翻到轴下方",
+              "title_en": "Unit 168 — Negating the Integral Value: Flipping the Curve Below the Axis",
+              "unit": 168
+            },
+            {
+              "file": "units/III.9/unit169-area-sign.sokonanoda",
+              "title": "单元169 面积值的符号：非负曲线不会算出负面积",
+              "title_en": "Unit 169 — The Sign of the Integral Value: Nonnegative Curves Give Nonnegative Area",
+              "unit": 169
+            },
+            {
+              "file": "units/III.9/unit170-integral-mono.sokonanoda",
+              "title": "单元170 面积值的比较：曲线更高，面积不会更小",
+              "title_en": "Unit 170 — Comparing Integral Values: A Higher Curve Has No Smaller Area",
+              "unit": 170
+            },
+            {
+              "file": "units/III.9/unit171-integral-shift.sokonanoda",
+              "title": "单元171 面积值的平移：整条曲线抬高一块矩形",
+              "title_en": "Unit 171 — Shifting the Integral Value: Lifting the Whole Curve by a Rectangle",
+              "unit": 171
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

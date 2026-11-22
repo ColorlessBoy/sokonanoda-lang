@@ -1,0 +1,9 @@
+-- Probe-local prelude: only what the M0 probes need from logic.
+-- The real courses/analysis/lib will be ported from courses/set-theory/lib
+-- when M1 starts; probes stay self-contained so they can run before that.
+
+inductive Exists (A : Type) (p : A → Prop) : Prop
+ctor Exists.intro (w : A) (h : p w) : Exists A p
+end
+
+binder_notation "∃" => Exists

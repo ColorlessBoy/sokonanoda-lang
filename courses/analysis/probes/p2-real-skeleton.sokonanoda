@@ -1,0 +1,66 @@
+-- P2 probe: Cauchy / Real quotient skeleton over an abstract ordered field Q.
+import probes.Prelude
+-- Purpose: type-level feasibility only; no course units and no arithmetic proofs.
+-- The hard parts (Q construction, well-definedness, completeness) are deliberately
+-- left as axioms so this file tests the Quot / Quot.lift / Quot.exact shape.
+
+axiom Q : Type
+axiom Q.zero : Q
+axiom Q.add : Q → Q → Q
+axiom Q.neg : Q → Q
+axiom Q.abs : Q → Q
+axiom Q.lt : Q → Q → Prop
+
+
+def NatLe (a b : Nat) : Prop := ∃ (k : Nat), b = Nat.add a k
+
+def Seq : Type := Nat → Q
+
+def close (x y : Q) (eps : Q) : Prop :=
+  Q.lt (Q.abs (Q.add x (Q.neg y))) eps
+
+def Cauchy (x : Seq) : Prop :=
+  ∀ (eps : Q), Q.lt Q.zero eps →
+    ∃ (N : Nat), ∀ (n m : Nat), NatLe N n → NatLe N m → close (x n) (x m) eps
+
+def realRel (x y : Seq) : Prop :=
+  Cauchy x ∧ Cauchy y ∧
+    ∀ (eps : Q), Q.lt Q.zero eps →
+      ∃ (N : Nat), ∀ (n : Nat), NatLe N n → close (x n) (y n) eps
+
+axiom realRel_refl : ∀ (x : Seq), realRel x x
+axiom realRel_symm : ∀ (x y : Seq), realRel x y → realRel y x
+axiom realRel_trans : ∀ (x y z : Seq), realRel x y → realRel y z → realRel x z
+
+def Real : Type := @Quot.{1} Seq realRel
+
+def Real.mk (x : Seq) : Real := @Quot.mk.{1} Seq realRel x
+
+def negRep (x : Seq) : Seq := fun (n : Nat) => Q.neg (x n)
+
+axiom negRep_rel : ∀ (x y : Seq), realRel x y → realRel (negRep x) (negRep y)
+
+def negRep_wd : ∀ (x y : Seq), realRel x y →
+    (@Quot.mk.{1} Seq realRel (negRep x)) =
+      (@Quot.mk.{1} Seq realRel (negRep y)) :=
+  fun (x y : Seq) (h : realRel x y) =>
+    @Quot.sound.{1} Seq realRel (negRep x) (negRep y) (negRep_rel x y h)
+
+def Real.neg (a : Real) : Real :=
+  @Quot.lift.{1,1} Seq realRel Real
+    (fun (x : Seq) => @Quot.mk.{1} Seq realRel (negRep x))
+    negRep_wd a
+
+theorem Real.neg_mk (x : Seq) :
+    Real.neg (Real.mk x) = Real.mk (negRep x) :=
+  @Eq.refl.{1} Real (Real.mk (negRep x))
+
+def zeroRep : Seq := fun (_ : Nat) => Q.zero
+
+axiom zeroRep_cauchy : Cauchy zeroRep
+
+def Real.zero : Real := Real.mk zeroRep
+
+-- Reflection direction: equality in the quotient reflects the relation.
+theorem realRel_of_mk_eq (x y : Seq) (h : Real.mk x = Real.mk y) : realRel x y :=
+  @Quot.exact.{1} Seq realRel realRel_refl realRel_symm realRel_trans x y h

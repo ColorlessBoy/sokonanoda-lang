@@ -1,0 +1,146 @@
+-- 单元142 极限唯一：一条曲线不能同时逼近两个值
+--
+-- 一条曲线在一点附近最像哪一条直线？如果两条不同的直线都「最像」，导数就
+-- 没有确定的值。极限的定义只写「存在一个 L，使得……」：它保证至少有一个，
+-- 没有直接说至多有一个。要把「那个极限」当成一个对象来用，先得把这件事
+-- 补上。
+--
+-- 证明的想法很朴素：如果 L 与 M 都是 f 在 a 处的极限，那么 a 附近总可以
+-- 找到一点 x（不等于 a），让 f x 同时靠近 L 与 M。L 与 M 之间的距离不超过
+-- 两段距离之和；每段都能压到 ε/2 以内，合起来就压到 ε 以内。ε 任意，两个
+-- 数就只能相等。
+--
+-- 两个细节需要落地。第一，两份 ε/2 的接近性各自带一个半径，必须把 x 取在
+-- 两个半径都管得到的地方；序是全的，取较小的那个半径即可。第二，邻域里
+-- 必须真的有一点不等于 a：取 a + δ/2，它离 a 不到 δ，而「等于 a」会逼出
+-- δ/2 = 0，与 δ/2 > 0 冲突。
+--
+-- 有了唯一性，极限值就可以沿等价替换：若 f 在 a 处以 L 为极限，而 L 与 M
+-- 相等，那么 M 也是极限。常函数与恒等函数是两个可以逐字读出的样本：它们的
+-- 极限只能是自己。最后给一个反例式的读数：常函数零不可能以 1 为极限。
+--
+-- 边界：函数取 ratRep → ratRep，停在有理代表元层。这里证明的是极限值的
+-- 唯一性；同一个函数的两条斜率函数是否逐点相同，要从 (x-a)·q x ~ (x-a)·r x
+-- 里消去非零因子，那是另一件事。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.RealEq
+import lib.LastNegative
+import lib.LimAt
+import lib.LimAtAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 邻域里有异于中心的一点
+-- ─────────────────────────────────────────────────────────────
+
+-- 取 a + δ/2。它离 a 的距离是 δ/2，比 δ 小；若它等于 a，两边同时减去 a
+-- 就得到 δ/2 = 0，而 δ/2 是正的。
+
+-- soko:hint 思路：用 `a + δ/2` 作见证。接近性交给 `close_add_right`（距离取 δ/2），非相等交给 `ratLtRep_right`：若它等于 a，减去 a 后 δ/2 与 0 等价，撞上 δ/2 > 0。
+-- soko:hint 目标形态：`∃ x, close x a δ ∧ ¬ ratRel x a`。
+-- soko:hint 关键件：close_add_right · ratLtRep_half · ratHalf_lt_self · ratAdd_sub_self · ratSubRep_wd · ratSubRep_self · ratLtRep_right。
+theorem exists_close_ne (a delta : ratRep)
+    (hd : ratLtRep ratZeroRep delta) :
+    ∃ (x : ratRep), close x a delta ∧ ¬ ratRel x a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 换掉极限值：等价的数可以互换
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 u 在 ε 内接近 L，而 L 与 M 相等，那么同一个见证 d 也把 u - M 压住：
+-- 两个被减数只差一个等价，绝对值沿这条等价搬过去。
+
+-- soko:hint 思路：取出 `close u L ε` 的见证 d；用 `ratSubRep_wd` 把 `u - L` 换成 `u - M`，再让 `ratAbsRel_wd_left` 把绝对值见证搬过去。
+-- soko:hint 目标形态：`close u L ε → L ~ M → close u M ε`。
+-- soko:hint 关键件：ratSubRep_wd · ratRel_refl · ratAbsRel_wd_left。
+theorem close_of_ratRel_right (u L M eps : ratRep)
+    (h : close u L eps) (hLM : ratRel L M) : close u M eps :=
+  sorry
+
+-- 极限值也能这样换：对每个 ε，原来的半径照用，只是把终点的名字从 L 换成 M。
+
+-- soko:hint 思路：逐字沿用原来的 δ；唯一的改动是把 `close (f x) L ε` 换成 `close (f x) M ε`，用上一条。
+-- soko:hint 目标形态：`TendsToAt f a L → L ~ M → TendsToAt f a M`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · close_of_ratRel_right。
+theorem tendsToAt_congr_value (f : ratRep → ratRep) (a L M : ratRep)
+    (h : TendsToAt f a L) (hLM : ratRel L M) : TendsToAt f a M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两份半径取小者
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条极限各给一个半径。把 x 取在两份半径都管得到的地方：若 d ≤ d'，就取
+-- d；否则取 d'。接近性各给 ε/2，`close_trans` 合成 ε。
+
+-- soko:hint 思路：对 `d ≤ d'` 与 `d' ≤ d` 两支分别取较小的半径；x 由 `exists_close_ne` 给出，较大半径那一侧的接近性用 `close_mono_eps` 放大到较小半径，最后两条 ε/2 交给 `close_trans`。
+-- soko:hint 目标形态：两条 ε/2 的接近性 + 两个正半径 ⇒ `close L M ε`。
+-- soko:hint 关键件：ratLeRep_total · Or.elim · exists_close_ne · close_mono_eps · close_symm · close_trans。
+theorem close_of_two_limits (f : ratRep → ratRep) (a L M eps dL dM : ratRep)
+    (hdL : ratLtRep ratZeroRep dL)
+    (hdM : ratLtRep ratZeroRep dM)
+    (heps : ratLtRep ratZeroRep eps)
+    (hL : ∀ (x : ratRep), close x a dL → ¬ ratRel x a →
+      close (f x) L (ratHalf eps))
+    (hM : ∀ (x : ratRep), close x a dM → ¬ ratRel x a →
+      close (f x) M (ratHalf eps)) :
+    close L M eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 极限唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个 ε > 0，两条极限各把 ε 折半，取小半径，在 a + δ/2 上接起来，
+-- 得到 L 与 M 在 ε 内接近。ε 任意，`ratRel_of_close_all` 把它收成 L = M。
+
+-- soko:hint 思路：对任意 ε，把 `hL` 与 `hM` 各用在 ε/2 上；把两个 δ 交给上一条；最后用 `ratRel_of_close_all` 收口。
+-- soko:hint 目标形态：`TendsToAt f a L → TendsToAt f a M → L ~ M`。
+-- soko:hint 关键件：ratLtRep_half · ratRel_of_close_all · close_of_two_limits。
+theorem tendsToAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : TendsToAt f a L) (hM : TendsToAt f a M) : ratRel L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个样本与一个反例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常函数在 a 处的极限只能是那个常数本身。把常函数的极限与「常函数以 c 为
+-- 极限」这条事实一起交给唯一性即可。
+
+-- soko:hint 思路：常函数以 c 为极限是现成的 `tendsToAt_const`，与假设一起交给上一条。
+-- soko:hint 目标形态：`TendsToAt (fun _ => c) a L → c ~ L`。
+-- soko:hint 关键件：tendsToAt_const · tendsToAt_unique。
+theorem tendsToAt_unique_const (c a L : ratRep)
+    (h : TendsToAt (fun (_ : ratRep) => c) a L) : ratRel c L :=
+  sorry
+
+-- 恒等函数在 a 处的极限只能是 a。
+
+-- soko:hint 思路：恒等函数以 a 为极限是 `tendsToAt_id`，与假设一起交给唯一性。
+-- soko:hint 目标形态：`TendsToAt (fun x => x) a L → a ~ L`。
+-- soko:hint 关键件：tendsToAt_id · tendsToAt_unique。
+theorem tendsToAt_unique_id (a L : ratRep)
+    (h : TendsToAt (fun (x : ratRep) => x) a L) : ratRel a L :=
+  sorry
+
+-- 常函数零不可能以 1 为极限：唯一性会给出 0 = 1，而 0 < 1 的严格性正是
+-- 「不相等」。
+
+-- soko:hint 思路：假设常函数零以 1 为极限，用上一条得出 `0 ~ 1`；`ratLtRep_zero_one` 的第二分量正好否定它。
+-- soko:hint 目标形态：`¬ TendsToAt (fun _ => 0) a 1`。
+-- soko:hint 关键件：tendsToAt_unique_const · ratLtRep_zero_one · ratLtRep_right。
+theorem demo_zero_not_one (a : ratRep) :
+    ¬ TendsToAt (fun (_ : ratRep) => ratZeroRep) a ratOneRep :=
+  sorry

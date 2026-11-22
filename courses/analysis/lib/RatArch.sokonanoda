@@ -1,0 +1,612 @@
+-- 课程库：有理数的阿基米德性质（单元163）
+--
+-- 要把面积误差压到 ε 以下，得先把区间切得足够细；「足够细」要求一个正数
+-- 反复相加能超过区间长度。这一步在 ℚ 上是可以算出来的：把正数写成
+-- `(p - q)/(m+1)`（`p > q`），乘上 `(r+1)(m+1)` 之后分子至少是 `(r+1)`，
+-- 已经超过任何形如 `r/(j+1)` 的待超过量。
+--
+-- 模块按四段排列：
+--
+--   · 比较：`natToRat`（n/1）、`natToRat_mul_rep`（乘法的分子公式）与
+--     `ratLeRep_zero_lit`（`0 ≤ x` 就是分子第二格不超过第一格）；
+--   · ℕ 上的算术：`myMul_one_left` / `myMul_succ_le` / `leNat_one_mul` /
+--     `leNat_self_mul` / `leNat_left_of_add`；
+--   · 交叉相乘后的估计：`arch_uE_le` / `arch_n_le` / `arch_G`——把待证不等式
+--     化成「一个乘积不超过另一个乘积」；
+--   · 主定理：`arch_le_lit`（字面形式）、`arch_le`（任意代表元）、
+--     `arch_lt_of_nonneg`（严格版本）与一条可算读数 `demo_arch_two`。
+--
+-- 边界：只证「倍数可以任意大」，不证「倍数可以任意接近」；不构造倒数，
+-- 也不进入 ℝ 的商。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatZero
+import lib.RatRing
+import lib.RatMulOrder
+import lib.RatClose
+import lib.LocalSign
+import lib.MaxOn
+
+-- ─────────────────────────────────────────────────────────────
+-- 把正数写成 n/1 的倍数
+-- ─────────────────────────────────────────────────────────────
+
+-- 自然数作为有理数：n/1。
+def natToRat (n : Nat) : ratRep := qrep n Nat.zero Nat.zero
+
+-- 分母字段：`ratDenRep 0 m` 就是 m。
+theorem ratDenRep_zero_left (m : Nat) : ratDenRep Nat.zero m = m :=
+  @Eq.trans.{1} Nat
+    (ratDenRep Nat.zero m)
+    (ratDenRep m Nat.zero)
+    m
+    (ratDenRep_comm Nat.zero m)
+    (ratAdd_zero_den m)
+
+-- `n · (p - q)/(m+1) = (n·p - n·q)/(m+1)`：分子两个坐标各用 `myMul 0` 的零律。
+theorem natToRat_mul_rep (n p q m : Nat) :
+    ratMulRep (natToRat n) (qrep p q m) =
+      qrep (myMul n p) (myMul n q) m :=
+  @Eq.trans.{1} ratRep
+    (ratMulRep (natToRat n) (qrep p q m))
+    (qrep
+      (Nat.add (myMul n p) (myMul Nat.zero q))
+      (Nat.add (myMul n q) (myMul Nat.zero p))
+      (ratDenRep Nat.zero m))
+    (qrep (myMul n p) (myMul n q) m)
+    (@Eq.refl.{1} ratRep
+      (qrep
+        (Nat.add (myMul n p) (myMul Nat.zero q))
+        (Nat.add (myMul n q) (myMul Nat.zero p))
+        (ratDenRep Nat.zero m)))
+    (qrep_congr
+      (Nat.add (myMul n p) (myMul Nat.zero q))
+      (myMul n p)
+      (Nat.add (myMul n q) (myMul Nat.zero p))
+      (myMul n q)
+      (ratDenRep Nat.zero m)
+      m
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul n p) (myMul Nat.zero q))
+        (Nat.add (myMul n p) Nat.zero)
+        (myMul n p)
+        (@congrArg.{1} Nat Nat (myMul Nat.zero q) Nat.zero
+          (fun (z : Nat) => Nat.add (myMul n p) z) (zero_mul q))
+        (add_zero (myMul n p)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul n q) (myMul Nat.zero p))
+        (Nat.add (myMul n q) Nat.zero)
+        (myMul n q)
+        (@congrArg.{1} Nat Nat (myMul Nat.zero p) Nat.zero
+          (fun (z : Nat) => Nat.add (myMul n q) z) (zero_mul p))
+        (add_zero (myMul n q)))
+      (ratDenRep_zero_left m))
+
+-- 零作左因子：交叉相乘的第一半是 (0,0)。
+theorem leNum_zero_lit (a b m : Nat) :
+    leNum ratZeroRep (qrep a b m) = @prod_mk Nat Nat Nat.zero Nat.zero :=
+  mulRep_zero_pair (Nat.succ m) Nat.zero
+
+-- 零作右因子：交叉相乘的第二半是原来的分子。
+theorem leNum_lit_zero (a b m : Nat) :
+    leNum (qrep a b m) ratZeroRep = @prod_mk Nat Nat a b :=
+  prod_mk_congr
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+    a
+    (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+    b
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (@Eq.refl.{1} Nat (Nat.add (Nat.add a Nat.zero) Nat.zero))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+      (Nat.add Nat.zero (Nat.add b Nat.zero))
+      b
+      (@Eq.refl.{1} Nat (Nat.add Nat.zero (Nat.add b Nat.zero)))
+      (@Eq.trans.{1} Nat
+        (Nat.add Nat.zero (Nat.add b Nat.zero))
+        (Nat.add b Nat.zero)
+        b
+        (zero_add (Nat.add b Nat.zero))
+        (add_zero b)))
+
+-- `0 ≤ x` 在字面代表元上就是「分子第二格不超过第一格」。
+theorem ratLeRep_zero_lit (a b m : Nat) :
+    ratLeRep ratZeroRep (qrep a b m) ↔ LeNat b a :=
+  Iff.intro
+    (fun (h : ratLeRep ratZeroRep (qrep a b m)) =>
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat b z)
+        (Nat.add a Nat.zero) a (add_zero a)
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat z (Nat.add a Nat.zero))
+          (Nat.add Nat.zero b) b (zero_add b)
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (p : Prod Nat Nat) => leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m)
+            (@Eq.subst.{1} (Prod Nat Nat)
+              (fun (p : Prod Nat Nat) =>
+                leRep p (leNum (qrep a b m) ratZeroRep))
+              (leNum ratZeroRep (qrep a b m))
+              (@prod_mk Nat Nat Nat.zero Nat.zero)
+              (leNum_zero_lit a b m) h))))
+    (fun (h : LeNat b a) =>
+      @Eq.subst.{1} (Prod Nat Nat)
+        (fun (p : Prod Nat Nat) =>
+          leRep p (leNum (qrep a b m) ratZeroRep))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (leNum ratZeroRep (qrep a b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (leNum ratZeroRep (qrep a b m))
+          (@prod_mk Nat Nat Nat.zero Nat.zero)
+          (leNum_zero_lit a b m))
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (p : Prod Nat Nat) => leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+          (@prod_mk Nat Nat a b) (leNum (qrep a b m) ratZeroRep)
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m))
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) => LeNat z (Nat.add a Nat.zero))
+            b (Nat.add Nat.zero b)
+            (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b))
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) => LeNat b z)
+              a (Nat.add a Nat.zero)
+              (@Eq.symm.{1} Nat (Nat.add a Nat.zero) a (add_zero a)) h))))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- ℕ 上的算术引理
+-- ─────────────────────────────────────────────────────────────
+
+-- 1 乘任何数还是它自己。
+theorem myMul_one_left (n : Nat) :
+    myMul (Nat.succ Nat.zero) n = n :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.succ Nat.zero) n)
+    (Nat.add (myMul Nat.zero n) n)
+    n
+    (succ_mul Nat.zero n)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero n) n)
+      (Nat.add Nat.zero n)
+      n
+      (@congrArg.{1} Nat Nat (myMul Nat.zero n) Nat.zero
+        (fun (z : Nat) => Nat.add z n) (zero_mul n))
+      (zero_add n))
+
+-- `r·E ≤ (r+1)·E`：右边是左边加上一段 E。
+theorem myMul_succ_le (r E : Nat) :
+    LeNat (myMul r E) (myMul (Nat.succ r) E) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => LeNat (myMul r E) z)
+    (Nat.add (myMul r E) E)
+    (myMul (Nat.succ r) E)
+    (@Eq.symm.{1} Nat
+      (myMul (Nat.succ r) E) (Nat.add (myMul r E) E) (succ_mul r E))
+    (leNat_self_add (myMul r E) E)
+
+-- 两个至少为 1 的数的积也至少为 1。
+theorem leNat_one_mul (t D : Nat)
+    (ht : LeNat (Nat.succ Nat.zero) t)
+    (hD : LeNat (Nat.succ Nat.zero) D) :
+    LeNat (Nat.succ Nat.zero) (myMul t D) :=
+  leNat_trans (Nat.succ Nat.zero) D (myMul t D)
+    hD
+    (@Eq.subst.{1} Nat
+      (fun (z : Nat) => LeNat z (myMul t D))
+      (myMul (Nat.succ Nat.zero) D) D
+      (myMul_one_left D)
+      (leNat_mul_right (Nat.succ Nat.zero) t D ht))
+
+-- 一个至少为 1 的因子乘上去，数不会变小。
+theorem leNat_self_mul (n x : Nat)
+    (hx : LeNat (Nat.succ Nat.zero) x) :
+    LeNat n (myMul n x) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => LeNat n z)
+    (myMul x n) (myMul n x)
+    (myMul_comm x n)
+    (@Eq.subst.{1} Nat
+      (fun (z : Nat) => LeNat z (myMul x n))
+      (myMul (Nat.succ Nat.zero) n) n
+      (myMul_one_left n)
+      (leNat_mul_right (Nat.succ Nat.zero) x n hx))
+
+-- 分子两格相等时这个有理数就是零。
+theorem ratRel_zero_of_num_eq (a b m : Nat) (h : b = a) :
+    ratRel ratZeroRep (qrep a b m) :=
+  ratRel_symm (qrep a b m) ratZeroRep
+    (Iff.mpr (ratRel_zero_iff_num_zero a b m)
+      (@Eq.trans.{1} Nat
+        (Nat.add a Nat.zero)
+        a
+        (Nat.add Nat.zero b)
+        (add_zero a)
+        (@Eq.trans.{1} Nat
+          a b (Nat.add Nat.zero b)
+          (@Eq.symm.{1} Nat b a h)
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b)))))
+
+-- `0 < qrep p q m` 说分子第一格严格大于第二格。
+theorem ratLtRep_zero_num (a b m : Nat)
+    (h : ratLtRep ratZeroRep (qrep a b m)) : LeNat (Nat.succ b) a :=
+  Or.elim
+    (fun (hba : b = a) =>
+      @False.elim (LeNat (Nat.succ b) a)
+        ((And.right h) (ratRel_zero_of_num_eq a b m hba)))
+    (fun (hlt : LeNat (Nat.succ b) a) => hlt)
+    (leNat_eq_or_succ b a
+      (Iff.mp (ratLeRep_zero_lit a b m) (And.left h)))
+
+-- `u ≤ s + u`：加法的第二格永远不会更小。
+theorem leNat_left_of_add (s u : Nat) : LeNat u (Nat.add s u) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => LeNat u z)
+    (Nat.add u s) (Nat.add s u)
+    (add_comm u s)
+    (leNat_self_add u s)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 交叉相乘之后的估计
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一段：`u·E ≤ (r+1)·E`（用 `r = s + u`）。
+theorem arch_uE_le (r s u m : Nat) (hu : r = Nat.add s u) :
+    LeNat (myMul u (Nat.succ m))
+      (myMul (Nat.succ r) (Nat.succ m)) :=
+  leNat_trans (myMul u (Nat.succ m))
+    (myMul r (Nat.succ m))
+    (myMul (Nat.succ r) (Nat.succ m))
+    (leNat_mul_right u r (Nat.succ m)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat u z)
+        (Nat.add s u) r
+        (@Eq.symm.{1} Nat r (Nat.add s u) hu)
+        (leNat_left_of_add s u)))
+    (myMul_succ_le r (Nat.succ m))
+
+-- 第二段：`(r+1)·E ≤ ((r+1)·E · t) · D`（两个因子都至少为 1）。
+theorem arch_n_le (r m k j : Nat) :
+    LeNat (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j)) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => LeNat (myMul (Nat.succ r) (Nat.succ m)) z)
+    (myMul (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (Nat.succ k) (Nat.succ j)))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (@Eq.symm.{1} Nat
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j))
+      (myMul (myMul (Nat.succ r) (Nat.succ m))
+        (myMul (Nat.succ k) (Nat.succ j)))
+      (myMul_assoc (myMul (Nat.succ r) (Nat.succ m))
+        (Nat.succ k) (Nat.succ j)))
+    (leNat_self_mul (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (Nat.succ k) (Nat.succ j))
+      (leNat_one_mul (Nat.succ k) (Nat.succ j)
+        (leNat_succ_succ Nat.zero k (leNat_zero_le k))
+        (leNat_succ_succ Nat.zero j (leNat_zero_le j))))
+
+-- 合起来：`u·E ≤ ((r+1)·E · t) · D`。
+theorem arch_uE_le_nt (r s u m k j : Nat) (hu : r = Nat.add s u) :
+    LeNat (myMul u (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j)) :=
+  leNat_trans (myMul u (Nat.succ m))
+    (myMul (Nat.succ r) (Nat.succ m))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (arch_uE_le r s u m hu)
+    (arch_n_le r m k j)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 把两个和归位
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 `u·E + s·E` 重排成 `r·E`：结合律把公共段挪到后面，再用 `r = s + u`。
+theorem arch_LHS_eq (r s u m n q j : Nat) (hu : r = Nat.add s u) :
+    Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m))
+    = Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+      (myMul (myMul n q) (Nat.succ j)))
+    (Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+    (add_rotate (myMul u (Nat.succ m))
+      (myMul (myMul n q) (Nat.succ j))
+      (myMul s (Nat.succ m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (@congrArg.{1} Nat Nat
+        (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (fun (z : Nat) => Nat.add z (myMul (myMul n q) (Nat.succ j)))
+        (add_comm (myMul u (Nat.succ m)) (myMul s (Nat.succ m))))
+      (@congrArg.{1} Nat Nat
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (myMul r (Nat.succ m))
+        (fun (z : Nat) => Nat.add z (myMul (myMul n q) (Nat.succ j)))
+        (@Eq.trans.{1} Nat
+          (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+          (myMul (Nat.add s u) (Nat.succ m))
+          (myMul r (Nat.succ m))
+          (@Eq.symm.{1} Nat
+            (myMul (Nat.add s u) (Nat.succ m))
+            (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+            (mul_add_right s u (Nat.succ m)))
+          (@congrArg.{1} Nat Nat
+            (Nat.add s u) r (fun (z : Nat) => myMul z (Nat.succ m))
+            (@Eq.symm.{1} Nat r (Nat.add s u) hu)))))
+
+-- 右边两项换位，再把 `n·p` 拆成 `n·q + n·t`。
+theorem arch_RHS_eq (p q m n s k j : Nat)
+    (hnp : myMul n p =
+      Nat.add (myMul n q) (myMul n (Nat.succ k))) :
+    Nat.add
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m))
+    = Nat.add (myMul (myMul n p) (Nat.succ j)) (myMul s (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add (myMul (myMul n p) (Nat.succ j)) (myMul s (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (fun (z : Nat) => Nat.add z (myMul s (Nat.succ m)))
+      (add_comm (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j))))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (myMul (myMul n p) (Nat.succ j))
+      (fun (z : Nat) => Nat.add z (myMul s (Nat.succ m)))
+      (@Eq.symm.{1} Nat
+        (myMul (myMul n p) (Nat.succ j))
+        (Nat.add (myMul (myMul n q) (Nat.succ j))
+          (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+        (@Eq.trans.{1} Nat
+          (myMul (myMul n p) (Nat.succ j))
+          (myMul (Nat.add (myMul n q) (myMul n (Nat.succ k))) (Nat.succ j))
+          (Nat.add (myMul (myMul n q) (Nat.succ j))
+            (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+          (@congrArg.{1} Nat Nat
+            (myMul n p) (Nat.add (myMul n q) (myMul n (Nat.succ k)))
+            (fun (z : Nat) => myMul z (Nat.succ j)) hnp)
+          (mul_add_right (myMul n q) (myMul n (Nat.succ k)) (Nat.succ j)))))
+
+-- 中间一步：两个和的下界各自加上同一摞面积。
+theorem arch_h10 (r s u m q k j : Nat) (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add (myMul u (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+          (Nat.succ j))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j))) :=
+  leNat_add_right (myMul u (Nat.succ m))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j))
+    (arch_uE_le_nt r s u m k j hu)
+
+-- 再两边同加常数那一截。
+theorem arch_h11 (r s u m q k j : Nat) (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m)))
+      (Nat.add
+        (Nat.add
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+            (Nat.succ j))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m))) :=
+  leNat_add_right
+    (Nat.add (myMul u (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (Nat.add
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (myMul s (Nat.succ m))
+    (arch_h10 r s u m q k j hu)
+
+-- 右边换成 `n·p` 那一摞。
+theorem arch_h12 (p q m r s u k j : Nat)
+    (hnp : myMul (myMul (Nat.succ r) (Nat.succ m)) p =
+      Nat.add (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k)))
+    (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+        (myMul s (Nat.succ m))) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =>
+      LeNat
+        (Nat.add
+          (Nat.add (myMul u (Nat.succ m))
+            (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+          (myMul s (Nat.succ m)))
+        z)
+    (Nat.add
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+          (Nat.succ j))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+      (myMul s (Nat.succ m)))
+    (arch_RHS_eq p q m (myMul (Nat.succ r) (Nat.succ m)) s k j hnp)
+    (arch_h11 r s u m q k j hu)
+
+-- 收口：把右边的 `n·q + n·(k+1)` 合成 `n·p`，左边用 `r = s + u` 归位。
+theorem arch_G (p q m r s u k j : Nat)
+    (hk : p = Nat.add (Nat.succ q) k)
+    (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add (myMul r (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+        (myMul s (Nat.succ m))) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =>
+      LeNat z
+        (Nat.add
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+          (myMul s (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add (myMul r (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (arch_LHS_eq r s u m (myMul (Nat.succ r) (Nat.succ m)) q j hu)
+    (arch_h12 p q m r s u k j
+      (@Eq.trans.{1} Nat
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.add q (Nat.succ k)))
+        (Nat.add (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+          (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k)))
+        (@congrArg.{1} Nat Nat p (Nat.add q (Nat.succ k))
+          (fun (z : Nat) => myMul (myMul (Nat.succ r) (Nat.succ m)) z)
+          (@Eq.trans.{1} Nat
+            p (Nat.add (Nat.succ q) k) (Nat.add q (Nat.succ k))
+            hk
+            (@Eq.trans.{1} Nat
+              (Nat.add (Nat.succ q) k)
+              (Nat.succ (Nat.add q k))
+              (Nat.add q (Nat.succ k))
+              (succ_add q k)
+              (@Eq.symm.{1} Nat
+                (Nat.add q (Nat.succ k))
+                (Nat.succ (Nat.add q k))
+                (add_succ q k)))))
+        (mul_add (myMul (Nat.succ r) (Nat.succ m)) q (Nat.succ k)))
+      hu)
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 阿基米德性质
+-- ─────────────────────────────────────────────────────────────
+
+-- 字面形式：`0 < (p - q)/(m+1)` 且 `0 ≤ (r - s)/(j+1)` 时，取
+-- `n = (r+1)(m+1)` 就有 `(r-s)/(j+1) ≤ n·(p-q)/(m+1)`。
+theorem arch_le_lit (p q m : Nat) (hpq : ratLtRep ratZeroRep (qrep p q m))
+    (r s j : Nat) (hc : ratLeRep ratZeroRep (qrep r s j)) :
+    ∃ (n : Nat), ratLeRep (qrep r s j)
+      (ratMulRep (natToRat n) (qrep p q m)) :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ q) p (ratLtRep_zero_num p q m hpq))
+    (fun (k : Nat) (hk : p = Nat.add (Nat.succ q) k) =>
+      Exists.elim
+        (leNat_exists_add s r (Iff.mp (ratLeRep_zero_lit r s j) hc))
+        (fun (u : Nat) (hu : r = Nat.add s u) =>
+          Exists.intro (myMul (Nat.succ r) (Nat.succ m))
+            (@Eq.subst.{1} ratRep
+              (fun (z : ratRep) => ratLeRep (qrep r s j) z)
+              (qrep
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                m)
+              (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                (qrep p q m))
+              (@Eq.symm.{1} ratRep
+                (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                  (qrep p q m))
+                (qrep
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (natToRat_mul_rep (myMul (Nat.succ r) (Nat.succ m)) p q m))
+              (Iff.mpr
+                (ratLeRep_lit r s j
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (arch_G p q m r s u k j hk hu)))))
+
+-- 任意代表元：两条前提换成「正」与「非负」，直接交给字面形式。
+theorem arch_le (x c : Prod (Prod Nat Nat) Nat) :
+    ratLtRep ratZeroRep x → ratLeRep ratZeroRep c →
+      ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  match x with
+  | prod_mk (prod_mk p q) m =>
+    match c with
+    | prod_mk (prod_mk r s) j =>
+      fun (hx : ratLtRep ratZeroRep (qrep p q m))
+          (hc : ratLeRep ratZeroRep (qrep r s j)) =>
+        arch_le_lit p q m hx r s j hc
+
+-- 严格版本：把 `c` 换成 `c + 1` 再取同一个倍数。
+theorem arch_lt_of_nonneg (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  Exists.elim
+    (arch_le x (ratAddRep c ratOneRep) hx
+      (ratLeRep_zero_add_nonneg c ratOneRep hc
+        (ratLtRep_le ratZeroRep ratOneRep ratLtRep_zero_one)))
+    (fun (n : Nat)
+        (hn : ratLeRep (ratAddRep c ratOneRep) (ratMulRep (natToRat n) x)) =>
+      Exists.intro n
+        (ratLtRep_of_lt_le c (ratAddRep c ratOneRep)
+          (ratMulRep (natToRat n) x)
+          (ratLtRep_self_add_pos c ratOneRep ratLtRep_zero_one)
+          hn))
+
+-- 具体读数：半的三倍是 3/2，超过 1；两倍恰好是 1，所以弱序也成立。
+theorem demo_arch_two :
+    ratLeRep ratOneRep
+      (ratMulRep (natToRat (Nat.succ (Nat.succ Nat.zero)))
+        (qrep 1 Nat.zero (Nat.succ Nat.zero))) :=
+  Iff.mpr
+    (ratLeRep_lit 1 Nat.zero Nat.zero
+      (myMul (Nat.succ (Nat.succ Nat.zero)) 1)
+      (myMul (Nat.succ (Nat.succ Nat.zero)) Nat.zero)
+      (Nat.succ Nat.zero))
+    (le_refl (myMul (Nat.succ (Nat.succ Nat.zero)) 1))

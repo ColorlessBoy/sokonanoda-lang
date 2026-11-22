@@ -1,0 +1,103 @@
+-- 单元79 极限的保号性
+--
+-- 75 说明极限保持非严格序：两条序列终究按 x n ≤ y n 排列时，极限也满足
+-- L ≤ M。反过来问就出现一个缺口：L 为正，能不能断言序列自身为正？
+-- 非严格序只能给 0 ≤ x n，它允许前几项取零。例如 x 0 = 0、之后恒为 1 的
+-- 序列收敛到 1，而第 0 项并不正。所以结论只能是「终究为正」，而且需要
+-- 一个固定的正下界；ε 取 L 的一半就够。
+--
+-- 79.1 做这件事。close 的负侧给 L - x n ≤ L/2；两边加 x n，左边收回 L；
+-- 再两边减 L/2，左边是 L - L/2 ~ L/2，右边是 x n。于是 x n ≥ L/2 > 0。
+-- 79.2 把同一段估计收成一条引理，79.3 用它处理负的极限：若 L < 0，
+-- 序列终究落在 0 以下，与「终究非负」冲突。79.4 得到非负极限，79.5 把
+-- 正的极限换成「终究不为零」。
+--
+-- 这里只处理有理代表元层的 `Converges`；类层的保号性要先把 ε-N 接到
+-- `TendsTo`，留给后面的单元。不新增公理。
+
+import lib.LimitAbs
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0 具体数字 1
+-- ─────────────────────────────────────────────────────────────
+
+def ratOneRep : ratRep := qrep 1 Nat.zero Nat.zero
+
+-- `0 < 1`：序的部分是 `0 ≤ 1`，不等的部分把 `ratRel 0 1` 化成 `0 = 1`
+-- 后交给 `succ_ne_zero`。这条证明直接给出，不作练习。
+theorem ratLtRep_zero_one : ratLtRep ratZeroRep ratOneRep :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel ratZeroRep ratOneRep) =>
+      succ_ne_zero Nat.zero (Eq.symm h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.1 正的极限把序列的尾部抬到零以上
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：ε 取 L/2，严格性由 74.5 的 `ratLtRep_half` 给；原极限给终究 `close (x n) L (L/2)`。逐点用 `close_neg_bound` 得 `L - x n ≤ L/2`，右加 x n 并把左边沿 `ratSubRep_add_self` 收回 L；再右加 -(L/2)，两条恒等式 `ratSubRep_half` 与 `ratAdd_sub_self` 把两边分别认成 L/2 与 x n。最后 `ratLtRep_of_lt_le` 把 `0 < L/2` 与 `L/2 ≤ x n` 接起来。
+-- soko:hint 目标形态：`Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n))`。
+-- soko:hint 关键件：eventually_mono · ratLtRep_half · close_neg_bound · ratSubRep_add_self · ratLeRep_add_right · ratLeRep_congr_gen · ratSubRep_half · ratAdd_sub_self · ratLtRep_of_lt_le。
+theorem converges_pos_of_pos (x : Seq) (L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : Converges x L) :
+    Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.2 在负极限的 ε/2 邻域里，点落在零以下
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`close_sub_le` 给 `x - L ≤ -L/2`，`le_of_sub_le` 抬成 `x ≤ -L/2 + L`；交换两项并把 `-L/2` 认成 `-(L/2)`，由 `ratSubRep_half` 得 `x ≤ L/2`。`ratLtRep_half_neg` 给 `L/2 < 0`，传递即得 `x < 0`。
+-- soko:hint 目标形态：`ratLtRep x ratZeroRep`。
+-- soko:hint 关键件：close_sub_le · le_of_sub_le · ratAdd_comm · ratSubRep_half · ratLtRep_half_neg · ratLeRep_trans · ratLeRep_congr_gen · ratLtRep_of_le_lt。
+theorem close_half_neg_lt (x L : ratRep) (hL : ratLtRep L ratZeroRep)
+    (hc : close x L (ratHalf (ratNegRep L))) : ratLtRep x ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.3 负的极限与「终究非负」不能共存
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLtRep_pos_of_neg` 给 `0 < -L`，ε 取 `-L/2`；两条终究性并到同一个 N 后取 `n = N`，79.2 直接把 `close` 变成 `x N < 0`；与 `0 ≤ x N` 由反对称性夹出 `0 ~ x N`，撞上严格性的第二分量。
+-- soko:hint 目标形态：`False`。
+-- soko:hint 关键件：ratLtRep_pos_of_neg · ratLtRep_half · eventually_and · close_half_neg_lt · ratLeRep_antisymm · ratLtRep_right · ratRel_symm。
+theorem neg_limit_absurd (x : Seq) (L : ratRep) (h : Converges x L)
+    (hn : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n)))
+    (hL : ratLtRep L ratZeroRep) : False :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.4 终究非负的序列，其极限非负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLeRep_total` 把目标拆成 `0 ≤ L` 或 `L ≤ 0`。第二支用 74.4 的 `ratLeRep_eq_or_lt` 再分：`L ~ 0` 时沿等价搬回 `0 ≤ L`，`L < 0` 时交给 79.3。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep L`。
+-- soko:hint 关键件：ratLeRep_total · ratLeRep_eq_or_lt · ratLeRep_of_ratRel · neg_limit_absurd · False.elim。
+theorem converges_nonneg_of_eventually_nonneg (x : Seq) (L : ratRep)
+    (h : Converges x L)
+    (hn : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n))) :
+    ratLeRep ratZeroRep L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.5 正的极限让尾部不为零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：79.1 给终究 `0 < x n`；若 `x n ~ 0`，对称后与 `0 < x n` 的第二分量冲突。
+-- soko:hint 目标形态：`Eventually (fun (n : Nat) => ¬ ratRel (x n) ratZeroRep)`。
+-- soko:hint 关键件：converges_pos_of_pos · eventually_mono · ratRel_symm · ratLtRep_right。
+theorem converges_ne_zero_of_pos (x : Seq) (L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : Converges x L) :
+    Eventually (fun (n : Nat) => ¬ ratRel (x n) ratZeroRep) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.6 具体：极限为 1
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 79.1 用在 `ratOneRep` 上，严格性由 79.0 的 `ratLtRep_zero_one` 给。
+-- soko:hint 目标形态：`Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n))`。
+-- soko:hint 关键件：converges_pos_of_pos · ratLtRep_zero_one。
+theorem demo_pos_one (x : Seq) (h : Converges x ratOneRep) :
+    Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n)) :=
+  sorry

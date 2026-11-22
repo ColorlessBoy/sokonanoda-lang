@@ -1,0 +1,81 @@
+-- 单元99 Cauchy 序列与极限点（解答）
+--
+-- Cauchy 性控制尾巴内部的距离，极限点给出一条子序列的落点。两者合起来，
+-- 整条序列收敛到那个极限点，这也是后面讨论 Cauchy 完备性的入口。
+--
+-- 99.0 用 ε/2 把尾部距离与到 P 的距离接起来。99.1 说明极限点唯一。
+-- 99.2 把上下极限接到同一个点。99.3 与任意极限比较。99.4 是常序列。
+--
+-- 边界：Cauchy 序列未必有有理极限点；主定理保留极限点前提。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.0 Cauchy 序列有一个极限点就收敛到它
+-- ─────────────────────────────────────────────────────────────
+
+-- 对任意 eps > 0，取 ε/2（正性由 `ratLtRep_half` 付清）。Cauchy 性给阈值 N，
+-- 极限点在 N 之后给出 k ≥ N 与 `close (x k) P (ε/2)`。对 n ≥ N，
+-- `close (x n) (x k) (ε/2)` 与后者经 `close_trans` 合成 `close (x n) P eps`。
+theorem cauchy_limitPoint_converges (x : Seq) (P : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) : Converges x P :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hC (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) (ratHalf eps)) =>
+        Exists.elim
+          (limitPoint_frequently x P hP (ratHalf eps)
+            (ratLtRep_half eps heps) N)
+          (fun (k : Nat)
+              (hk : LeNat N k ∧ close (x k) P (ratHalf eps)) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                close_trans (x n) (x k) P eps heps
+                  (hN n k hn (And.left hk))
+                  (And.right hk))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.1 Cauchy 序列的极限点至多一个等价类
+-- ─────────────────────────────────────────────────────────────
+
+-- 99.0 把 P 变成整条序列的极限，`limitPoint_unique_of_converges` 再把它与 Q 比较。
+theorem cauchy_limitPoint_unique (x : Seq) (P Q : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  limitPoint_unique_of_converges x P Q
+    (cauchy_limitPoint_converges x P hC hP) hQ
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.2 上下极限也落在这个点上
+-- ─────────────────────────────────────────────────────────────
+
+-- 收敛到 P 之后，L 与 P 相等、M 与 P 相等，两条接起来。
+theorem cauchy_limsup_liminf_rel (x : Seq) (P L M : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P)
+    (hL : Limsup x L) (hM : Liminf x M) : ratRel L M :=
+  ratRel_trans_gen L P M
+    (limsup_unique_of_converges x P L
+      (cauchy_limitPoint_converges x P hC hP) hL)
+    (ratRel_symm M P
+      (liminf_unique_of_converges x P M
+        (cauchy_limitPoint_converges x P hC hP) hM))
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.3 与任意极限比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 99.0 的极限与 L 都收敛到同一个序列，`converges_unique` 把它们认成同一个数。
+theorem cauchy_converges_rel (x : Seq) (P L : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hL : Converges x L) : ratRel P L :=
+  ratRel_symm L P
+    (converges_unique x L P hL (cauchy_limitPoint_converges x P hC hP))
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.4 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，也以它的值为极限点。
+theorem demo_cauchy_const (q : ratRep) : Converges (constSeq q) q :=
+  cauchy_limitPoint_converges (constSeq q) q
+    (cauchy_const q) (limitPoint_const q)

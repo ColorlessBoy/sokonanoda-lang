@@ -1,0 +1,84 @@
+-- 单元99 Cauchy 序列与极限点
+--
+-- 极限点说明存在一条子序列落向 P，Cauchy 性说明尾巴上的任意两项彼此靠近。
+-- 两条合起来，整条序列都落向 P：尾巴上的项先靠近子序列的某一项，再靠近 P。
+-- 这补上本章一直缺的反方向——极限点本身不保证整条序列收敛，Cauchy 性补上
+-- 尾巴内部的控制。
+--
+-- 99.0 是主定理：Cauchy 序列只要有一个极限点，就收敛到它。99.1 说明这样的
+-- 极限点至多一个等价类。99.2 把上下极限接到同一个点上。99.3 与任意极限比较。
+-- 99.4 是常序列的实例。
+--
+-- 边界：只处理已经存在的极限点。Cauchy 序列在有理数上未必有极限点
+-- （截断的 √2 近似是一例），所以主定理不能去掉极限点前提；一般 Cauchy
+-- 序列的收敛性要在实数层谈。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.0 Cauchy 序列有一个极限点就收敛到它
+-- ─────────────────────────────────────────────────────────────
+
+-- 给定 ε > 0，Cauchy 性在 ε/2 上给出阈值 N；极限点在任意阈值之后仍反复
+-- 靠近，于是能挑到 k ≥ N 使 x k 离 P 不到 ε/2。对 n ≥ N，x n 与 x k 也
+-- 不到 ε/2，三角不等式合成 x n 与 P 的距离。
+--
+-- soko:hint 思路：ε 折半并付清正性。Cauchy 给阈值 N 与 `close (x n) (x k) (ε/2)`；`limitPoint_frequently` 在同一个 N 之后给出 k 与 `close (x k) P (ε/2)`；两者交给 `close_trans`。
+-- soko:hint 目标形态：`Converges x P`。
+-- soko:hint 关键件：ratLtRep_half · limitPoint_frequently · close_trans · Exists.elim · Exists.intro。
+theorem cauchy_limitPoint_converges (x : Seq) (P : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) : Converges x P :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.1 Cauchy 序列的极限点至多一个等价类
+-- ─────────────────────────────────────────────────────────────
+
+-- 99.0 把 P 变成整条序列的极限，另一个极限点 Q 由 92.3 与它比较。
+--
+-- soko:hint 思路：先用 99.0 得 `Converges x P`，再把它与 `LimitPoint x Q` 交给 `limitPoint_unique_of_converges`。
+-- soko:hint 目标形态：`ratRel P Q`。
+-- soko:hint 关键件：cauchy_limitPoint_converges · limitPoint_unique_of_converges。
+theorem cauchy_limitPoint_unique (x : Seq) (P Q : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.2 上下极限也落在这个点上
+-- ─────────────────────────────────────────────────────────────
+
+-- 收敛到 P 之后，上极限与 P 相等、下极限也与 P 相等，两条接起来。
+--
+-- soko:hint 思路：先用 99.0 得 `Converges x P`，分别用 `limsup_unique_of_converges` 与 `liminf_unique_of_converges` 把 L、M 认成 P，再传递。
+-- soko:hint 目标形态：`ratRel L M`。
+-- soko:hint 关键件：cauchy_limitPoint_converges · limsup_unique_of_converges · liminf_unique_of_converges · ratRel_trans_gen · ratRel_symm。
+theorem cauchy_limsup_liminf_rel (x : Seq) (P L M : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P)
+    (hL : Limsup x L) (hM : Liminf x M) : ratRel L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.3 与任意极限比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 整条序列若另有极限 L，99.0 给出的 P 与 L 是同一个数。
+--
+-- soko:hint 思路：99.0 给 `Converges x P`，与 `hL : Converges x L` 一起交给 `converges_unique`，得到 `ratRel L P`；翻向即目标。
+-- soko:hint 目标形态：`ratRel P L`。
+-- soko:hint 关键件：cauchy_limitPoint_converges · converges_unique · ratRel_symm。
+theorem cauchy_converges_rel (x : Seq) (P L : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hL : Converges x L) : ratRel P L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 99.4 常序列的实例
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列是 Cauchy 的，也以它的值为极限点；99.0 因此给出收敛。
+--
+-- soko:hint 思路：`cauchy_const` 给 Cauchy 性，`limitPoint_const` 给极限点，交给 99.0。
+-- soko:hint 目标形态：`Converges (constSeq q) q`。
+-- soko:hint 关键件：cauchy_const · limitPoint_const · cauchy_limitPoint_converges。
+theorem demo_cauchy_const (q : ratRep) : Converges (constSeq q) q :=
+  sorry

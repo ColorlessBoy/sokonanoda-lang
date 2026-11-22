@@ -1,0 +1,96 @@
+-- 课程库：函数极限的加群
+--
+-- 单元127 在画布上判卷的下面四条收进 L2，128 起的单元直接引用：半径放大律
+-- `close_mono_eps`，以及和、取负、差的极限律。函数极限的和律与序列极限的
+-- 和律同形：ε 折半，两个正半径用序的全性取小者，再用放大律统一。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层。乘积与商要有「局部有界」
+-- 与乘法对序的相容性，不在这个模块。不新增公理，不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.RealAdd
+import lib.RealNeg
+import lib.LimAt
+
+-- ─────────────────────────────────────────────────────────────
+-- 放大 ε 不破坏接近性
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_mono_eps (x y eps eps' : ratRep)
+    (h : close x y eps) (hle : ratLeRep eps eps') :
+    close x y eps' :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep x y) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro (And.left hd)
+          (ratLtRep_of_lt_le d eps eps' (And.right hd) hle)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 和的极限
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : TendsToAt f a L) (hg : TendsToAt g a M) :
+    TendsToAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (df : ratRep)
+          (hdf : ratLtRep ratZeroRep df ∧
+            ∀ (x : ratRep), close x a df → ¬ ratRel x a →
+              close (f x) L (ratHalf eps)) =>
+        Exists.elim (hg (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (dg : ratRep)
+              (hdg : ratLtRep ratZeroRep dg ∧
+                ∀ (x : ratRep), close x a dg → ¬ ratRel x a →
+                  close (g x) M (ratHalf eps)) =>
+            Or.elim
+              (fun (hle : ratLeRep df dg) =>
+                Exists.intro df
+                  (And.intro (And.left hdf)
+                    (fun (x : ratRep) (hx : close x a df)
+                        (hne : ¬ ratRel x a) =>
+                      close_add (f x) L (g x) M eps
+                        ((And.right hdf) x hx hne)
+                        ((And.right hdg) x
+                          (close_mono_eps x a df dg hx hle) hne))))
+              (fun (hle : ratLeRep dg df) =>
+                Exists.intro dg
+                  (And.intro (And.left hdg)
+                    (fun (x : ratRep) (hx : close x a dg)
+                        (hne : ¬ ratRel x a) =>
+                      close_add (f x) L (g x) M eps
+                        ((And.right hdf) x
+                          (close_mono_eps x a dg df hx hle) hne)
+                        ((And.right hdg) x hx hne))))
+              (ratLeRep_total df dg)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负与差
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAt_neg (f : ratRep → ratRep) (a L : ratRep)
+    (hf : TendsToAt f a L) :
+    TendsToAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (f x) L eps) =>
+        Exists.intro delta
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a delta)
+                (hne : ¬ ratRel x a) =>
+              close_neg (f x) L eps ((And.right hd) x hx hne))))
+
+theorem tendsToAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : TendsToAt f a L) (hg : TendsToAt g a M) :
+    TendsToAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  tendsToAt_add f (fun (x : ratRep) => ratNegRep (g x)) a L (ratNegRep M)
+    hf (tendsToAt_neg g a M hg)

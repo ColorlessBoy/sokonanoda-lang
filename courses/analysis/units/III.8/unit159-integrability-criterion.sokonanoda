@@ -1,0 +1,132 @@
+-- 单元159 可积性的直接判据：把上下和搬到台阶上
+--
+-- 可积的定义先取两个数，一个来自上界那摞台阶，一个来自下界那摞台阶，再要求
+-- 这两个数之差小于 ε。做估计时，这两层存在量词总要一次走完：给定 ε，先取
+-- 分割，再从上和与下和里各自取出产生它们的台阶。把这两步合成一条判据，估
+-- 计就只谈台阶本身，不必每回都先把两个数拆开。
+--
+-- 判据的两个方向各是一段搬动。从可积到台阶：已知 `U - L < ε`，而上和 `U`
+-- 与上界的矩形和只差一次等价，下和同理；把两条等价送进减法，就得到两摞台
+-- 阶的矩形和之差小于 ε。从台阶到可积：把下界的矩形和直接当作下和、上界的
+-- 矩形和直接当作上和，它们与自己的等价关系是自反的。
+--
+-- 这条判据还带来两个小读数。差已经小于 ε 时，把 ε 放大仍然成立；上界与下
+-- 界取同一摞高度时，两个矩形和是同一个数，差为零。常值函数的可积性可以直接
+-- 引用库里已经判过的结论，这里只把它作为判据的一个例子。
+--
+-- 边界：只改写可积性的陈述，不证明新的函数可积，也不定义积分值。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+
+-- ─────────────────────────────────────────────────────────────
+-- 同一个分割上的两个和
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：逐段用下界不超过上界，乘上同一个正宽；矩形和的保序把每段的不等式收成整条和。
+-- soko:hint 目标形态：`ratLeRep (stepSum p l) (stepSum p u)`。
+-- soko:hint 关键件：stepSum_mono · lowerStep_le_upperStep。
+theorem stepGap_nonneg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u) :
+    ratLeRep (stepSum p l) (stepSum p u) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从可积到两摞台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先把上和与下和换成台阶；`stepSum u - stepSum l` 沿减法等价于 `U - L`，再把「差小于 ε」搬过去。
+-- soko:hint 目标形态：`∃ l, ∃ u, LowerStep … ∧ UpperStep … ∧ stepSum u - stepSum l < ε`。
+-- soko:hint 关键件：lowerSum_witness · upperSum_witness · ratSubRep_wd · ratLtRep_congr_fst。
+theorem gap_of_sums (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (L U eps : ratRep) (hL : LowerSum a b p f L) (hU : UpperSum a b p f U)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u ∧
+        ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps :=
+  sorry
+
+-- soko:hint 思路：把 `Integrable` 给出的分割与两个和依次拆开，每一步只消一层存在量词；最后交给上一条。
+-- soko:hint 目标形态：`∀ ε > 0, ∃ p, IsPartition … ∧ ∃ l u, …`。
+-- soko:hint 关键件：Exists.elim · And.left · gap_of_sums。
+theorem gap_of_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (h : Integrable a b f) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 从两摞台阶回到可积
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下和取 `stepSum l`、上和取 `stepSum u`；`LowerSum` 与 `UpperSum` 要的等价关系用自反性付清，差直接是假设里的那条。
+-- soko:hint 目标形态：`Integrable a b f`。
+-- soko:hint 关键件：Exists.intro · ratRel_refl · And.left · And.right。
+theorem integrable_of_gap (a b : ratRep) (f : ratRep → ratRep)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (p : Partition), IsPartition a b p ∧
+        ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+          LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) :
+    Integrable a b f :=
+  sorry
+
+-- soko:hint 思路：两个方向分别是 `gap_of_integrable` 与 `integrable_of_gap`，装进 `Iff.intro`。
+-- soko:hint 目标形态：`Integrable a b f ↔ (… ε 判据 …)`。
+-- soko:hint 关键件：Iff.intro · gap_of_integrable · integrable_of_gap。
+theorem integrable_iff_gap (a b : ratRep) (f : ratRep → ratRep) :
+    Integrable a b f ↔
+      (∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (p : Partition), IsPartition a b p ∧
+          ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+            LowerStep a b p f l ∧ UpperStep a b p f u ∧
+              ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 放大 ε 与两摞相同的台阶
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：严格序与弱序混串：差小于 ε，而 ε 不超过 ε'。
+-- soko:hint 目标形态：`ratLtRep (stepSum u - stepSum l) eps'`。
+-- soko:hint 关键件：ratLtRep_of_lt_le。
+theorem stepGap_lt_of_le (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (eps eps' : ratRep)
+    (h : ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps)
+    (he : ratLeRep eps eps') :
+    ratLtRep (ratSubRep (stepSum p u) (stepSum p l)) eps' :=
+  sorry
+
+-- soko:hint 思路：两摞高度相同，两个矩形和是同一个数，差等于零。
+-- soko:hint 目标形态：`ratRel (stepSum p c - stepSum p c) 0`。
+-- soko:hint 关键件：ratSubRep_self。
+theorem stepGap_self (p : Partition) (c : Nat → ratRep) :
+    ratRel (ratSubRep (stepSum p c) (stepSum p c)) ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值函数的可积性已经在库里判过，这里直接引用，不再走一遍 ε 与两切点分割。
+-- soko:hint 目标形态：`Integrable a b (fun _ => 0)`。
+-- soko:hint 关键件：integrable_const。
+theorem demo_integrable_zero (a b : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratZeroRep) :=
+  sorry

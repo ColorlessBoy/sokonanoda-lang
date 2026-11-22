@@ -1,0 +1,203 @@
+-- 单元143 极限只看邻域：换掉远处的函数值
+--
+-- 求 f 在 a 处的极限时，只让 x 落在 a 附近。f 在很远的地方取什么值，与这个
+-- 极限无关。这句话听起来理所当然，可定义里的全称量词是「对所有满足
+-- 0 < |x - a| < δ 的 x」，并没有禁止远处的 x。要把「远处的值可以随便换」
+-- 变成可用的定理，得把「在 a 附近相等」写成一个明确的假设：存在一个正半径，
+-- 邻域里（除 a 本身外）两个函数逐点相等。
+--
+-- 有了这个假设，证明只是把两个半径取小：原来的极限给一个 δ，相等性给一个
+-- δ₀，落在较小半径里的 x 同时满足两边。接近性从 f x 搬到 g x，靠的是
+-- 「减去同一个数保持等价」：f x - L 与 g x - L 等价，绝对值见证原样保留。
+--
+-- 这条局部性在微分里马上要用。导数是斜率函数的极限，而极限只看 a 附近
+-- 那一小片；讨论斜率函数时，真正要紧的是它在 a 附近的值。反过来，两个在 a
+-- 附近重合的函数若都有极限，它们的极限也重合：局部性给出一边，唯一性收口。
+--
+-- 边界：函数取 ratRep → ratRep，停在有理代表元层；邻域用 `close` 的 ε 半径
+-- 表述，不引入拓扑。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.RealEq
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.LimUnique
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：在 a 附近相等
+-- ─────────────────────────────────────────────────────────────
+
+def AgreeNear (f g : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义与三条最基本的封闭性
+-- ─────────────────────────────────────────────────────────────
+
+theorem agreeNear_iff (f g : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f g a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x) :=
+  Iff.intro
+    (fun (h : AgreeNear f g a) => h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)) => h)
+
+theorem agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) => ratRel_refl (f x)))
+
+theorem agreeNear_symm (f g : ratRep → ratRep) (a : ratRep)
+    (h : AgreeNear f g a) : AgreeNear g f a :=
+  Exists.elim h
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            ratRel (f x) (g x)) =>
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta)
+              (hne : ¬ ratRel x a) =>
+            ratRel_symm (f x) (g x) ((And.right hd) x hx hne))))
+
+theorem agreeNear_of_pointwise (f g : ratRep → ratRep) (a : ratRep)
+    (h : ∀ (x : ratRep), ratRel (f x) (g x)) : AgreeNear f g a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) => h x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 接近性的搬运
+-- ─────────────────────────────────────────────────────────────
+
+theorem close_transport (u v L eps : ratRep)
+    (h : close u L eps) (huv : ratRel u v) : close v L eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep u L) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left (ratSubRep u L) (ratSubRep v L) d
+            (ratSubRep_wd u v L L huv (ratRel_refl L))
+            (And.left hd))
+          (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个半径取小者
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAt_same_radius (f g : ratRep → ratRep) (a L eps d d0 : ratRep)
+    (hd : ratLtRep ratZeroRep d)
+    (hd0 : ratLtRep ratZeroRep d0)
+    (hclose : ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+      close (f x) L eps)
+    (hagree : ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+      ratRel (f x) (g x)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps :=
+  @Or.elim (ratLeRep d d0) (ratLeRep d0 d)
+    (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps)
+    (fun (hle : ratLeRep d d0) =>
+      Exists.intro d
+        (And.intro hd
+          (fun (x : ratRep) (hx : close x a d)
+              (hne : ¬ ratRel x a) =>
+            close_transport (f x) (g x) L eps
+              (hclose x hx hne)
+              (hagree x (close_mono_eps x a d d0 hx hle) hne))))
+    (fun (hle : ratLeRep d0 d) =>
+      Exists.intro d0
+        (And.intro hd0
+          (fun (x : ratRep) (hx : close x a d0)
+              (hne : ¬ ratRel x a) =>
+            close_transport (f x) (g x) L eps
+              (hclose x (close_mono_eps x a d0 d hx hle) hne)
+              (hagree x hx hne))))
+    (ratLeRep_total d d0)
+
+-- ─────────────────────────────────────────────────────────────
+-- 极限的局部性
+-- ─────────────────────────────────────────────────────────────
+
+theorem tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    @Exists.elim ratRep
+      (fun (d : ratRep) => ratLtRep ratZeroRep d ∧
+        ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+          close (f x) L eps)
+      (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          close (g x) L eps)
+      (h eps heps)
+      (fun (d : ratRep)
+          (hd : ratLtRep ratZeroRep d ∧
+            ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+              close (f x) L eps) =>
+        @Exists.elim ratRep
+          (fun (d0 : ratRep) => ratLtRep ratZeroRep d0 ∧
+            ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+              ratRel (f x) (g x))
+          (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (g x) L eps)
+          hfg
+          (fun (d0 : ratRep)
+              (hd0 : ratLtRep ratZeroRep d0 ∧
+                ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+                  ratRel (f x) (g x)) =>
+            tendsToAt_same_radius f g a L eps d d0
+              (And.left hd) (And.left hd0)
+              (And.right hd) (And.right hd0)))
+
+theorem tendsToAt_congr_iff (f g : ratRep → ratRep) (a L : ratRep)
+    (hfg : AgreeNear f g a) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  Iff.intro
+    (fun (h : TendsToAt f a L) => tendsToAt_congr f g a L h hfg)
+    (fun (h : TendsToAt g a L) =>
+      tendsToAt_congr g f a L h (agreeNear_symm f g a hfg))
+
+theorem tendsToAt_congr_const (f : ratRep → ratRep) (c a L : ratRep)
+    (h : TendsToAt f a L) (hfc : AgreeNear f (fun (_ : ratRep) => c) a) :
+    ratRel L c :=
+  tendsToAt_unique (fun (_ : ratRep) => c) a L c
+    (tendsToAt_congr f (fun (_ : ratRep) => c) a L h hfc)
+    (tendsToAt_const c a)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个读数
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_congr_id (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (hid : AgreeNear f (fun (x : ratRep) => x) a) :
+    ratRel L a :=
+  ratRel_symm a L
+    (tendsToAt_unique_id a L
+      (tendsToAt_congr f (fun (x : ratRep) => x) a L h hid))
+
+theorem demo_congr_zero (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (h0 : AgreeNear f (fun (_ : ratRep) => ratZeroRep) a) :
+    ratRel L ratZeroRep :=
+  tendsToAt_congr_const f ratZeroRep a L h h0

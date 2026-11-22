@@ -1,0 +1,306 @@
+-- 单元141 导数的代数：垂直平移与取负
+--
+-- 导数的定义只看一点附近：曲线在那里最像哪一条直线，直线的斜率就是导数。
+-- 既然如此，对整条曲线做两种最简单的整体操作——沿 y 轴抬高一段、关于 x 轴
+-- 翻过来——斜率应当怎样变？抬高的图像与原来的图像只差一个常数，每一处的
+-- 倾斜都没有变；翻过来的图像把上升改成下降，斜率应当整体变号。这两条直觉
+-- 都容易说出口，却要回到 ε-δ 的定义里才能落实：差商是一个分式，分子的变化
+-- 才是关键。
+--
+-- 设 f 在 a 处有斜率函数 q，也就是在 a 之外逐点满足
+-- `q x * (x - a) ~ f x - f a`。把 f 抬高 c，分子成为
+-- `(f x + c) - (f a + c)`，c 在减法里抵消，仍然等价于 `f x - f a`；于是
+-- 同一个 q 就是抬高后函数的斜率函数。把 f 取负，分子成为
+-- `(-f x) - (-f a)`，它等于 `-(f x - f a)`；斜率函数整体取负，乘积等式
+-- 的两边同时变号就够了。最后，斜率函数的极限也照旧或取负：常函数的极限
+-- 与取负律都已经在函数极限的加群里。
+--
+-- 证明停在代表元层。这里没有除法，斜率是乘积等式而不是商，所以「分子抵消」
+-- 必须写成有理数的等式：减去同一个加数、乘一个负数、取负过减法。三条都不
+-- 长，却正好是把图像操作翻译成差商操作的桥。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；和、差与常数倍要让
+-- 乘法对加法分配，留到后面的单元。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatGroup
+import lib.RatSub
+import lib.RatRing
+import lib.RatAbsOrder
+import lib.LimitOrder
+import lib.Bounded
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+
+-- ─────────────────────────────────────────────────────────────
+-- 减去同一个加数
+-- ─────────────────────────────────────────────────────────────
+
+-- 平移要证明的第一件事：两个差 `x - y` 与 `(x + c) - (y + c)` 相等。
+-- 直接摊开括号会得到一长串加数；把它们各自加上 `y + c` 反而更省——
+-- `(u - v) + v` 回到 u，两条都回到 `x + c`，公共的加数一消就完了。
+
+-- soko:hint 思路：把要证的两边都加上 `y + c`，分别用 `(u - v) + v ~ u` 收回 `x + c`，再用加法消去律去掉公共加数。
+-- soko:hint 目标形态：`(x + c) - (y + c) ~ x - y`。
+-- soko:hint 关键件：ratSubRep_add_self · ratRel_add_cancel_gen · ratAddAssoc 方向 · ratAddRep_wd_gen。
+theorem ratSubRep_add_cancel (x y c : ratRep) :
+    ratRel (ratSubRep (ratAddRep x c) (ratAddRep y c)) (ratSubRep x y) :=
+  ratRel_add_cancel_gen
+    (ratSubRep (ratAddRep x c) (ratAddRep y c))
+    (ratSubRep x y)
+    (ratAddRep y c)
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep (ratAddRep x c) (ratAddRep y c)) (ratAddRep y c))
+      (ratAddRep x c)
+      (ratAddRep (ratSubRep x y) (ratAddRep y c))
+      (ratSubRep_add_self (ratAddRep x c) (ratAddRep y c))
+      (ratRel_symm (ratAddRep (ratSubRep x y) (ratAddRep y c))
+        (ratAddRep x c)
+        (ratRel_trans_gen
+          (ratAddRep (ratSubRep x y) (ratAddRep y c))
+          (ratAddRep (ratAddRep (ratSubRep x y) y) c)
+          (ratAddRep x c)
+          (ratRel_symm (ratAddRep (ratAddRep (ratSubRep x y) y) c)
+            (ratAddRep (ratSubRep x y) (ratAddRep y c))
+            (ratAdd_assoc (ratSubRep x y) y c))
+          (ratAddRep_wd_gen (ratAddRep (ratSubRep x y) y) x c
+            (ratSubRep_add_self x y)))))
+
+-- 减去同一个被减数是同一条等式的换装：`x - c` 按定义就是 `x + (-c)`，
+-- 把上一条的 c 换成 `-c` 即可。
+
+-- soko:hint 思路：`x - c` 与 `y - c` 分别是 `x + (-c)` 与 `y + (-c)`，直接引用上一条。
+-- soko:hint 目标形态：`(x - c) - (y - c) ~ x - y`。
+-- soko:hint 关键件：ratSubRep_add_cancel。
+theorem ratSubRep_neg_cancel (x y c : ratRep) :
+    ratRel (ratSubRep (ratSubRep x c) (ratSubRep y c)) (ratSubRep x y) :=
+  ratSubRep_add_cancel x y (ratNegRep c)
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负与乘法、减法
+-- ─────────────────────────────────────────────────────────────
+
+-- 取负后的斜率函数是 `-q`，乘积里会多出一个负号。乘法与取负的关系
+-- 在代表元层几乎不用算：两个因子按 `qrep` 铺开，`x * (-y)` 与
+-- `-(x * y)` 的两个分量只是把同一对乘积换个次序相加。
+--
+-- 下面的辅助声明把 `x`、`y` 拆成三个分量；写成 `Prod` 的显式类型是因为
+-- `ratRep` 是类型别名，内核不把它当作可模式匹配的归纳类型。
+
+theorem ratMul_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x (ratNegRep y)) (ratNegRep (ratMulRep x y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      ratRel_refl
+        (@prod_mk (Prod Nat Nat) Nat
+          (@prod_mk Nat Nat
+            (Nat.add (myMul a d) (myMul b c))
+            (Nat.add (myMul a c) (myMul b d)))
+          (ratDenRep m n))
+
+-- soko:hint 思路：把两个因子拆成 `qrep`，两边的分子都化成同一个序对，交给自反性；辅助声明已经替你把这一步按分量做完。
+-- soko:hint 目标形态：`x * (-y) ~ -(x * y)`。
+-- soko:hint 关键件：ratMul_neg_aux。
+theorem ratMul_neg (x y : ratRep) :
+    ratRel (ratMulRep x (ratNegRep y)) (ratNegRep (ratMulRep x y)) :=
+  ratMul_neg_aux x y
+
+-- 取负还要穿过减法。`-(x - y)` 先摊成 `-x + -(-y)`（取负对加法分配），
+-- 再让 `-(-y)` 回到 y；右边 `(-x) - (-y)` 按定义正是 `-x + -(-y)`。
+
+-- soko:hint 思路：把 `x - y` 展开成 `x + (-y)`，用取负对加法的分配律得到 `-x + -(-y)`，右边按定义就是它。
+-- soko:hint 目标形态：`-(x - y) ~ (-x) - (-y)`。
+-- soko:hint 关键件：ratNegRep_add · ratNegRep_invol。
+theorem ratNeg_sub (x y : ratRep) :
+    ratRel (ratNegRep (ratSubRep x y))
+      (ratSubRep (ratNegRep x) (ratNegRep y)) :=
+  ratNegRep_add x (ratNegRep y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 垂直平移
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数原样保留。给定 x 与 `x ≠ a`，把假设里的 `f x - f a` 换成
+-- `(f x + c) - (f a + c)`；这一步正是上一条减法等式，方向取反。
+
+-- soko:hint 思路：逐点把 `f x - f a` 换成 `(f x + c) - (f a + c)`，前一条减法等式反向用即可。
+-- soko:hint 目标形态：`IsSlope f a q → IsSlope (fun x => f x + c) a q`。
+-- soko:hint 关键件：ratSubRep_add_cancel · ratRel_symm · ratRel_trans_gen。
+theorem isSlope_add_const (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (c : ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratAddRep (f x) c) a q :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a))
+      (ratSubRep (ratAddRep (f x) c) (ratAddRep (f a) c))
+      (h x hne)
+      (ratRel_symm (ratSubRep (ratAddRep (f x) c) (ratAddRep (f a) c))
+        (ratSubRep (f x) (f a)) (ratSubRep_add_cancel (f x) (f a) c))
+
+-- 斜率函数不变，导数也不变：把同一个 q 交出去，极限那一半逐字照抄。
+
+-- soko:hint 思路：从 `HasDerivAt` 取出斜率函数与它的极限，斜率那一半换上一条，极限原样保留。
+-- soko:hint 目标形态：`HasDerivAt f a L → HasDerivAt (fun x => f x + c) a L`。
+-- soko:hint 关键件：Exists.elim · And.intro · isSlope_add_const。
+theorem hasDerivAt_add_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) c) a L :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro q
+        (And.intro (isSlope_add_const f a q c (And.left hq))
+          (And.right hq)))
+
+-- 可导是「存在一个导数」，把上一条里那个 L 原样交出去。
+
+-- soko:hint 思路：取出导数 L，套上一条，再把 L 重新打包成存在量词。
+-- soko:hint 目标形态：`DifferentiableAt f a → DifferentiableAt (fun x => f x + c) a`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · hasDerivAt_add_const。
+theorem differentiableAt_add_const (f : ratRep → ratRep) (a c : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratAddRep (f x) c) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro L (hasDerivAt_add_const f a L c hL))
+
+-- 把加常数换成减常数，证明只换一条减法等式。
+
+-- soko:hint 思路：`f x - c` 就是 `f x + (-c)`，逐点把差换成 `(f x - c) - (f a - c)`。
+-- soko:hint 目标形态：`IsSlope f a q → IsSlope (fun x => f x - c) a q`。
+-- soko:hint 关键件：ratSubRep_neg_cancel · ratRel_symm · ratRel_trans_gen。
+theorem isSlope_sub_const (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (c : ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratSubRep (f x) c) a q :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a))
+      (ratSubRep (ratSubRep (f x) c) (ratSubRep (f a) c))
+      (h x hne)
+      (ratRel_symm (ratSubRep (ratSubRep (f x) c) (ratSubRep (f a) c))
+        (ratSubRep (f x) (f a)) (ratSubRep_neg_cancel (f x) (f a) c))
+
+-- 导数不变，理由与加常数相同。
+
+-- soko:hint 思路：与加常数逐字相同，只把斜率那一半换成减常数的版本。
+-- soko:hint 目标形态：`HasDerivAt f a L → HasDerivAt (fun x => f x - c) a L`。
+-- soko:hint 关键件：Exists.elim · And.intro · isSlope_sub_const。
+theorem hasDerivAt_sub_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) c) a L :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro q
+        (And.intro (isSlope_sub_const f a q c (And.left hq))
+          (And.right hq)))
+
+-- 可导同样照搬。
+
+-- soko:hint 思路：取出导数 L，套上一条，再把 L 打包回去。
+-- soko:hint 目标形态：`DifferentiableAt f a → DifferentiableAt (fun x => f x - c) a`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · hasDerivAt_sub_const。
+theorem differentiableAt_sub_const (f : ratRep → ratRep) (a c : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratSubRep (f x) c) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro L (hasDerivAt_sub_const f a L c hL))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数整体取负，乘积等式要走三步：`(x-a) * (-q x)` 收到
+-- `-((x-a) * q x)`，假设把它换成 `-(f x - f a)`，最后摊成
+-- `(-f x) - (-f a)`。每一步都是前面备好的等式，链起来即可。
+
+-- soko:hint 思路：先证 `(x-a) * (-q x) ~ -((x-a) * q x)`，再把负号搬过假设里的等式，最后用取负过减法摊成两个函数值的差。
+-- soko:hint 目标形态：`IsSlope f a q → IsSlope (fun x => -f x) a (fun x => -q x)`。
+-- soko:hint 关键件：ratMul_neg · ratNegRep_wd · ratNeg_sub · ratRel_trans_gen。
+theorem isSlope_neg (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratNegRep (f x)) a
+      (fun (x : ratRep) => ratNegRep (q x)) :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (ratNegRep (q x)))
+      (ratNegRep (ratMulRep (ratSubRep x a) (q x)))
+      (ratSubRep (ratNegRep (f x)) (ratNegRep (f a)))
+      (ratMul_neg (ratSubRep x a) (q x))
+      (ratRel_trans_gen
+        (ratNegRep (ratMulRep (ratSubRep x a) (q x)))
+        (ratNegRep (ratSubRep (f x) (f a)))
+        (ratSubRep (ratNegRep (f x)) (ratNegRep (f a)))
+        (ratNegRep_wd (ratMulRep (ratSubRep x a) (q x))
+          (ratSubRep (f x) (f a)) (h x hne))
+        (ratNeg_sub (f x) (f a)))
+
+-- 斜率函数的极限是 `-L`。取负把 ε 邻域翻到另一侧，但接近性不变；
+-- 函数极限的取负律直接可用。
+
+-- soko:hint 思路：斜率函数取 `-q`，斜率那一半用上一条，极限那一半用函数极限的取负律。
+-- soko:hint 目标形态：`HasDerivAt f a L → HasDerivAt (fun x => -f x) a (-L)`。
+-- soko:hint 关键件：Exists.elim · isSlope_neg · tendsToAt_neg。
+theorem hasDerivAt_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro (fun (x : ratRep) => ratNegRep (q x))
+        (And.intro (isSlope_neg f a q (And.left hq))
+          (tendsToAt_neg q a L (And.right hq))))
+
+-- 可导：取出 L，交出 `-L`。
+
+-- soko:hint 思路：取出导数 L，套上一条，把 `-L` 重新打包成存在量词。
+-- soko:hint 目标形态：`DifferentiableAt f a → DifferentiableAt (fun x => -f x) a`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · hasDerivAt_neg。
+theorem differentiableAt_neg (f : ratRep → ratRep) (a : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratNegRep (f x)) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro (ratNegRep L) (hasDerivAt_neg f a L hL))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数在零点有导数一。把它抬高一格，仍然是一；翻过来，是负一。
+-- 第三个读数减去三，仍然是一。
+
+-- soko:hint 思路：把恒等函数的导数一交给加常数律，常数取一。
+-- soko:hint 目标形态：`HasDerivAt (fun x => x + 1) 0 1`。
+-- soko:hint 关键件：hasDerivAt_add_const · hasDerivAt_id · ratOneRep。
+theorem demo_deriv_shift_id :
+    HasDerivAt (fun (x : ratRep) => ratAddRep x ratOneRep) ratZeroRep
+      ratOneRep :=
+  hasDerivAt_add_const (fun (x : ratRep) => x) ratZeroRep ratOneRep ratOneRep
+    (hasDerivAt_id ratZeroRep)
+
+-- soko:hint 思路：把恒等函数的导数一交给取负律。
+-- soko:hint 目标形态：`HasDerivAt (fun x => -x) 0 (-1)`。
+-- soko:hint 关键件：hasDerivAt_neg · hasDerivAt_id。
+theorem demo_deriv_neg_id :
+    HasDerivAt (fun (x : ratRep) => ratNegRep x) ratZeroRep
+      (ratNegRep ratOneRep) :=
+  hasDerivAt_neg (fun (x : ratRep) => x) ratZeroRep ratOneRep
+    (hasDerivAt_id ratZeroRep)
+
+-- soko:hint 思路：把恒等函数在二处的导数一交给减常数律，常数取三。
+-- soko:hint 目标形态：`HasDerivAt (fun x => x - 3) 2 1`。
+-- soko:hint 关键件：hasDerivAt_sub_const · hasDerivAt_id · qrep。
+theorem demo_deriv_sub_const :
+    HasDerivAt (fun (x : ratRep) => ratSubRep x (qrep 3 Nat.zero Nat.zero))
+      (qrep 2 Nat.zero Nat.zero) ratOneRep :=
+  hasDerivAt_sub_const (fun (x : ratRep) => x) (qrep 2 Nat.zero Nat.zero)
+    ratOneRep (qrep 3 Nat.zero Nat.zero) (hasDerivAt_id (qrep 2 Nat.zero Nat.zero))

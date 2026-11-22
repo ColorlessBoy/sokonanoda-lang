@@ -1,0 +1,193 @@
+-- 课程库：ℝ 的完备性（单元68 的引擎）
+--
+-- 单元68 在画布上把「有理 Cauchy 序列在 ℝ 中收敛到自己的类」判卷；
+-- 这里按「引擎进库」惯例收进 L2，II.7 起直接引用：
+--
+--   · `constSeq` / `cauchy_const` —— 常序列与它的 Cauchy 性；
+--   · `addConst` / `cauchy_add_const` —— 加常数仍 Cauchy；
+--   · `close_sub_le` —— `close` 给减法界；
+--   · `ratLeRep_sub_add_right` —— `a - b ≤ eps ⇒ a - (b + eps) ≤ e`；
+--   · `TendsTo` —— 代表元层的收敛（两条 `≤ 极限 + eps` 的界）；
+--   · `cauchy_tends_to_class` —— 每个有理 Cauchy 序列收敛到自己的类；
+--   · `cauchy_has_limit` —— 存在极限代表元；
+--   · `demo_cauchy_limit` —— 常零序列收敛到零。
+--
+-- **边界**：本模块与单元68 一样只做**代表元序列**完备性；集合版最小
+-- 上界需要 `Classical.choice`，不在本课程 L2，差额记在 issue #18。
+--
+-- 证明只用已判卷的库引理（66 的 `realLe`、60 的 `cauchy_add`、㊽ 的
+-- 三角不等式、56/54 的加法代数），不新增信任，也不碰 kernel/front。
+
+import lib.RealOrderLift
+import lib.RealAdd
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.0 常序列
+-- ─────────────────────────────────────────────────────────────
+
+def constSeq (q : ratRep) : Seq := fun (_ : Nat) => q
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.1 常序列是 Cauchy 的
+-- ─────────────────────────────────────────────────────────────
+
+-- 任意两个位置都相等，`x n - x n ~ 0`，绝对值取见证 `0`。
+theorem cauchy_const (q : ratRep) : Cauchy (constSeq q) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.intro Nat.zero
+      (fun (n m : Nat) (_hn : LeNat Nat.zero n) (_hm : LeNat Nat.zero m) =>
+        Exists.intro ratZeroRep
+          (And.intro
+            (ratAbsRel_wd_left ratZeroRep (ratSubRep q q) ratZeroRep
+              (ratRel_symm (ratSubRep q q) ratZeroRep (ratAdd_neg_gen q))
+              ratAbsRel_zero)
+            heps))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.2 给序列加一个常数
+-- ─────────────────────────────────────────────────────────────
+
+def addConst (x : Seq) (q : ratRep) : Seq :=
+  fun (n : Nat) => ratAddRep (x n) q
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.3 加常数保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 就是 60 的 `cauchy_add` 用在 `x` 与常序列 `q` 上；两个定义在
+-- `fun n => x n + q` 上定义性相等。
+theorem cauchy_add_const (x : Seq) (q : ratRep) (hx : Cauchy x) :
+    Cauchy (addConst x q) :=
+  cauchy_add x (constSeq q) hx (cauchy_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.4 `close` 给减法界
+-- ─────────────────────────────────────────────────────────────
+
+-- `close a b eps` 给见证 `d`：`|a-b| ~ d` 且 `d < eps`。
+-- `ratAbsRel_le` 把绝对值压成 `a-b ≤ d`，`ratLtRep_le` 把 `d < eps`
+-- 投成 `d ≤ eps`，再传递。
+theorem close_sub_le (a b eps : ratRep) (h : close a b eps) :
+    ratLeRep (ratSubRep a b) eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep a b) d ∧ ratLtRep d eps) =>
+      ratLeRep_trans (ratSubRep a b) d eps
+        (ratAbsRel_le (ratSubRep a b) d (And.left hd))
+        (ratLtRep_le d eps (And.right hd)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.5 减去 `eps` 之后落到 0 以下
+-- ─────────────────────────────────────────────────────────────
+
+-- 代数恒等式 `a - (b + eps) ~ (a - b) - eps`：
+-- ① `-(b + eps) ~ -b + -eps`（㊽.4 `ratNegRep_add`）；
+-- ② 右端同余把 `a + -(b + eps)` 搬成 `a + (-b + -eps)`；
+-- ③ 结合律反向把它认成 `(a + -b) + -eps`。
+--
+-- 序：`(a - b) ≤ eps` 右加 `-eps` 得 `(a-b) + -eps ≤ eps + -eps ~ 0`，
+-- 再用 `0 ≤ e` 传递。最后沿 ①–③ 的等式把结论搬回 `a - (b + eps)`。
+theorem ratLeRep_sub_add_right (a b eps e : ratRep)
+    (h : ratLeRep (ratSubRep a b) eps)
+    (he : ratLeRep ratZeroRep e) :
+    ratLeRep (ratSubRep a (ratAddRep b eps)) e :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep a b) (ratNegRep eps))
+    (ratSubRep a (ratAddRep b eps))
+    e e
+    (ratRel_symm
+      (ratSubRep a (ratAddRep b eps))
+      (ratAddRep (ratSubRep a b) (ratNegRep eps))
+      (ratRel_trans_gen
+        (ratSubRep a (ratAddRep b eps))
+        (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep eps)))
+        (ratAddRep (ratSubRep a b) (ratNegRep eps))
+        (ratAddRep_wd_snd_gen a
+          (ratNegRep (ratAddRep b eps))
+          (ratAddRep (ratNegRep b) (ratNegRep eps))
+          (ratNegRep_add b eps))
+        (ratRel_symm
+          (ratAddRep (ratAddRep a (ratNegRep b)) (ratNegRep eps))
+          (ratAddRep a (ratAddRep (ratNegRep b) (ratNegRep eps)))
+          (ratAdd_assoc a (ratNegRep b) (ratNegRep eps)))))
+    (ratRel_refl e)
+    (ratLeRep_trans
+      (ratAddRep (ratSubRep a b) (ratNegRep eps))
+      ratZeroRep e
+      (ratLeRep_trans
+        (ratAddRep (ratSubRep a b) (ratNegRep eps))
+        (ratAddRep eps (ratNegRep eps))
+        ratZeroRep
+        (ratLeRep_add_right (ratSubRep a b) eps (ratNegRep eps) h)
+        (ratLeRep_of_ratRel
+          (ratAddRep eps (ratNegRep eps)) ratZeroRep
+          (ratAdd_neg_gen eps)))
+      he)
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.6 代表元层的收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- `TendsTo x L`：有理序列 `x` 的类收敛到 `L` 的类。两条界都用
+-- 「≤ 极限 + eps」的非严格形式，避免在 `Real` 上另立绝对值。
+def TendsTo (x L : Seq) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L eps)) ∧
+      realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) eps))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.7 主定理：有理 Cauchy 序列收敛到自己的类
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `eps > 0` 取 Cauchy 性的阈值 `N`。固定 `n ≥ N` 后，
+-- 对每个 `e > 0`：
+--   · 上界：`hN n k` 给 `x n - x k ≤ eps`，68.5 得 `x n - (x k + eps) ≤ e`；
+--   · 下界：`hN k n` 给 `x k - x n ≤ eps`，68.5 得 `x k - (x n + eps) ≤ e`。
+-- 两条 `realLeRep` 经 66.4 的 ι 规则送回商上的 `realLe`。
+theorem cauchy_tends_to_class (x : Seq) (hx : Cauchy x) :
+    TendsTo x x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            And.intro
+              (Iff.mpr (realLe_mk (constSeq (x n)) (addConst x eps))
+                (And.intro (cauchy_const (x n))
+                  (And.intro (cauchy_add_const x eps hx)
+                    (fun (e : ratRep) (he : ratLtRep ratZeroRep e) =>
+                      Exists.intro N
+                        (fun (k : Nat) (hk : LeNat N k) =>
+                          ratLeRep_sub_add_right (x n) (x k) eps e
+                            (close_sub_le (x n) (x k) eps (hN n k hn hk))
+                            (ratLtRep_le ratZeroRep e he))))))
+              (Iff.mpr (realLe_mk x (addConst (constSeq (x n)) eps))
+                (And.intro hx
+                  (And.intro
+                    (cauchy_add_const (constSeq (x n)) eps
+                      (cauchy_const (x n)))
+                    (fun (e : ratRep) (he : ratLtRep ratZeroRep e) =>
+                      Exists.intro N
+                        (fun (k : Nat) (hk : LeNat N k) =>
+                          ratLeRep_sub_add_right (x k) (x n) eps e
+                            (close_sub_le (x k) (x n) eps (hN k n hk hn))
+                            (ratLtRep_le ratZeroRep e he))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.8 存在极限代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- 极限代表元就是 `x` 自己；实数层面的极限是 `Real.mk x`。
+theorem cauchy_has_limit (x : Seq) (hx : Cauchy x) :
+    ∃ (L : Seq), Cauchy L ∧ TendsTo x L :=
+  Exists.intro x (And.intro hx (cauchy_tends_to_class x hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.9 具体：常零序列收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_cauchy_limit : TendsTo zeroSeq zeroSeq :=
+  cauchy_tends_to_class zeroSeq cauchy_zero

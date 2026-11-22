@@ -1,0 +1,76 @@
+-- 课程库：子序列
+--
+-- 收敛只谈整个序列的尾巴。若把下标换成一条严格递增的轨道 `g`，取
+-- `n ↦ x (g n)`，就得到原序列的一个子序列：它跳过若干项，但不改变
+-- 「最终落在哪里」。本模块把这条轨道与它的两条基本性质收进课程库，供
+-- 极限点与 limsup 的单元引用。
+--
+--   · `Subseq g` —— 轨道严格递增（`g n < g (n+1)`）；
+--   · `subseq_id` —— 恒等轨道是子序列；
+--   · `subseq_ge` —— 严格递增的轨道不回头：`n ≤ g n`；
+--   · `subseq_le` —— 轨道保序：`a ≤ b ⇒ g a ≤ g b`；
+--   · `subseq_comp` —— 两条子序列的复合仍是子序列；
+--   · `shiftIndex_subseq` —— 平移 `n ↦ n + k` 是子序列；
+--   · `subseq_converges` —— 子序列继承原序列的极限。
+--
+-- 边界：这里只用 `LeNat` 与 `Nat` 的加法，不引入新的序类型；也不反过来
+-- 声称「一条子序列收敛 ⇒ 原序列收敛」——那是假的，反方向要所有子序列。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Limit
+import lib.Rat
+import lib.RatAbs
+
+-- 轨道严格递增：第 n 步之后至少再走一格。
+def Subseq (g : Nat → Nat) : Prop :=
+  ∀ (n : Nat), LeNat (Nat.succ (g n)) (g (Nat.succ n))
+
+theorem subseq_id : Subseq (fun (n : Nat) => n) :=
+  fun (n : Nat) => leNat_succ_succ n n (LeNat.le_refl n)
+
+theorem subseq_ge (g : Nat → Nat) (h : Subseq g) :
+    ∀ (n : Nat), LeNat n (g n) :=
+  fun (n : Nat) =>
+    @Nat.rec (fun (k : Nat) => LeNat k (g k))
+      (leNat_zero_le (g Nat.zero))
+      (fun (k : Nat) (ih : LeNat k (g k)) =>
+        leNat_trans (Nat.succ k) (Nat.succ (g k)) (g (Nat.succ k))
+          (leNat_succ_succ k (g k) ih) (h k))
+      n
+
+theorem subseq_le (g : Nat → Nat) (h : Subseq g) :
+    ∀ (a b : Nat), LeNat a b → LeNat (g a) (g b) :=
+  fun (a b : Nat) (hab : LeNat a b) =>
+    @LeNat.rec (fun (m n : Nat) (_ : LeNat m n) => LeNat (g m) (g n))
+      (fun (n : Nat) => LeNat.le_refl (g n))
+      (fun (m n : Nat) (_ : LeNat m n) (ih : LeNat (g m) (g n)) =>
+        leNat_trans (g m) (g n) (g (Nat.succ n)) ih
+          (leNat_trans (g n) (Nat.succ (g n)) (g (Nat.succ n))
+            (LeNat.le_succ (g n) (g n) (LeNat.le_refl (g n))) (h n)))
+      a b hab
+
+theorem subseq_comp (g h : Nat → Nat) (hg : Subseq g) (hh : Subseq h) :
+    Subseq (fun (n : Nat) => g (h n)) :=
+  fun (n : Nat) =>
+    leNat_trans (Nat.succ (g (h n))) (g (Nat.succ (h n))) (g (h (Nat.succ n)))
+      (hg (h n))
+      (subseq_le g hg (Nat.succ (h n)) (h (Nat.succ n)) (hh n))
+
+theorem shiftIndex_subseq (k : Nat) : Subseq (fun (n : Nat) => Nat.add n k) :=
+  fun (n : Nat) =>
+    @Eq.subst.{1} Nat
+      (fun (m : Nat) => LeNat (Nat.succ (Nat.add n k)) m)
+      (Nat.succ (Nat.add n k)) (Nat.add (Nat.succ n) k)
+      (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) k) (Nat.succ (Nat.add n k))
+        (succ_add n k))
+      (LeNat.le_refl (Nat.succ (Nat.add n k)))
+
+theorem subseq_converges (x : Seq) (L : ratRep) (hx : Converges x L)
+    (g : Nat → Nat) (hg : Subseq g) :
+    Converges (fun (n : Nat) => x (g n)) L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hx eps heps)
+      (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → close (x n) L eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            hN (g n) (leNat_trans N n (g n) hn (subseq_ge g hg n))))

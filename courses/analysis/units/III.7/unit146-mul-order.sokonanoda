@@ -1,0 +1,123 @@
+-- 单元146 乘法的保序性：正因子不改变不等号
+--
+-- 导数要回答的一个问题是：曲线整体乘上一个常数，斜率会怎么变？把逐点
+-- 相乘写成差商，绕不开一条关于乘法的常识——正数乘在不等式两边，不等号
+-- 的方向不变。这条常识在 ℚ 上不是免费的：乘法先通分再运算，正因子在
+-- 分母里留下的因子要靠约分消掉，而约分本身要用乘法的交换、结合与分配。
+--
+-- 证明把 `x ≤ y` 与 `0 < z` 都拆到整数代表元。`x ≤ y` 是交叉相乘之后两个
+-- ℕ 的和的大小比较；`0 < z` 说明 z 的分子两格一严一宽（`f ≤ e`），并且两
+-- 格不相等，于是第二格可以写成第一格加上一个正数 `t`。把 `e = f + t` 代进
+-- 目标，交叉乘积的两边都长出相同的四项，相消之后剩下的是 `x ≤ y` 两边同乘
+-- `t`。ℕ 的乘法保序（`leNat_mul_right`）负责这一步，分配律负责把多出来的项
+-- 摆回原位。
+--
+-- 严格版本多一步：若乘完之后两边相等，就用非零因子消去律把 z 约掉，得到
+-- `x ~ y`，与严格小矛盾。两个正数的积为正，是把 `0 < y` 乘上正数 x，得到
+-- `x·0 < x·y`，再把左边收回零。
+--
+-- 边界：只做正因子。负因子要把不等号翻过来，需要先接上取负与乘法的交换；
+-- 常数倍的导数还要一条更细的估计，都留到后面的单元。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatRing
+import lib.Cauchy
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 正因子乘在右边
+-- ─────────────────────────────────────────────────────────────
+
+-- 变量写成展开后的序对类型，`match` 才能在证明里拆开三个代表元；结论里的
+-- `ratRep` 只是它的定义别名，调用处照旧传有理数。
+--
+-- soko:hint 思路：依次拆开 x、y、z；`x ≤ y` 用 `mulRep_den_form` 化成两个 ℕ 和的大小比较；`0 < z` 给出 `f ≤ e` 与「两格不相等」，由此把 e 写成 `f + t`。两边交叉相乘、约掉公共因子 `(k+1)` 之后，剩下的正是 `x ≤ y` 两边同乘 t。
+-- soko:hint 目标形态：`ratLeRep x y → 0 < z → ratLeRep (x*z) (y*z)`。
+-- soko:hint 关键件：mulRep_den_form · ratDenRep_succ · leNat_mul_right · mul_add_right · leNat_mul_cancel。
+theorem ratLeRep_mul_pos_right (x y z : Prod (Prod Nat Nat) Nat) :
+    ratLeRep x y → ratLtRep ratZeroRep z →
+      ratLeRep (ratMulRep x z) (ratMulRep y z) :=
+  sorry
+
+-- soko:hint 思路：先把两个积交换成 `z * x` 与 `z * y`，再把右边那条保序定理搬过来（`ratLeRep_congr_gen` 沿 `ratRel` 搬运弱序）。
+-- soko:hint 目标形态：`ratLeRep (ratMulRep z x) (ratMulRep z y)`。
+-- soko:hint 关键件：ratMul_comm · ratLeRep_congr_gen · ratLeRep_mul_pos_right。
+theorem ratLeRep_mul_pos_left (x y z : ratRep) (hxy : ratLeRep x y)
+    (hz : ratLtRep ratZeroRep z) :
+    ratLeRep (ratMulRep z x) (ratMulRep z y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 严格版本
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：弱序那一半直接搬。若乘完之后两边相等，把 z 移到前面来用 `ratMul_cancel` 约掉（z 不为零来自 `0 < z`），得到 `x ~ y`，与严格小矛盾。
+-- soko:hint 目标形态：`ratLtRep (ratMulRep x z) (ratMulRep y z)`。
+-- soko:hint 关键件：ratLtRep_le · ratLeRep_mul_pos_right · ratMul_cancel · ratMul_comm · ratRel_trans_gen。
+theorem ratLtRep_mul_pos_right (x y z : ratRep) (hxy : ratLtRep x y)
+    (hz : ratLtRep ratZeroRep z) :
+    ratLtRep (ratMulRep x z) (ratMulRep y z) :=
+  sorry
+
+-- soko:hint 思路：与左边版本同构：先把乘积交换到右边，用完严格保序再沿 `ratRel` 把两个端点换回来。
+-- soko:hint 目标形态：`ratLtRep (ratMulRep z x) (ratMulRep z y)`。
+-- soko:hint 关键件：ratLtRep_congr_fst · ratLtRep_congr_snd · ratMul_comm · ratLtRep_mul_pos_right。
+theorem ratLtRep_mul_pos_left (x y z : ratRep) (hxy : ratLtRep x y)
+    (hz : ratLtRep ratZeroRep z) :
+    ratLtRep (ratMulRep z x) (ratMulRep z y) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘积为正
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `0 < y` 乘上正数 x，得到 `x·0 < x·y`；再把左边的 `x·0` 收回零（`ratMul_zero_right` 的反方向）。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep x y)`。
+-- soko:hint 关键件：ratLtRep_mul_pos_left · ratMul_zero_right · ratRel_symm · ratLtRep_congr_fst。
+theorem ratMul_pos (x y : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hy : ratLtRep ratZeroRep y) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  sorry
+
+-- soko:hint 思路：同一个正数用两次，交给上一条。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep x x)`。
+-- soko:hint 关键件：ratMul_pos。
+theorem ratMul_pos_self (x : ratRep) (hx : ratLtRep ratZeroRep x) :
+    ratLtRep ratZeroRep (ratMulRep x x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `1` 当作正因子，直接实例化弱序版本。
+-- soko:hint 目标形态：`ratLeRep (ratMulRep x ratOneRep) (ratMulRep y ratOneRep)`。
+-- soko:hint 关键件：ratLeRep_mul_pos_right。
+theorem demo_scale_le (x y : ratRep) (hxy : ratLeRep x y)
+    (hone : ratLtRep ratZeroRep ratOneRep) :
+    ratLeRep (ratMulRep x ratOneRep) (ratMulRep y ratOneRep) :=
+  sorry
+
+-- soko:hint 思路：同一个实例，换成严格版本。
+-- soko:hint 目标形态：`ratLtRep (ratMulRep x ratOneRep) (ratMulRep y ratOneRep)`。
+-- soko:hint 关键件：ratLtRep_mul_pos_right。
+theorem demo_scale_strict (x y : ratRep) (hxy : ratLtRep x y)
+    (hone : ratLtRep ratZeroRep ratOneRep) :
+    ratLtRep (ratMulRep x ratOneRep) (ratMulRep y ratOneRep) :=
+  sorry
+
+-- soko:hint 思路：两个正数的积为正，直接实例化 `ratMul_pos`。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep x y)`。
+-- soko:hint 关键件：ratMul_pos。
+theorem demo_pos_mul_pos (x y : ratRep)
+    (hx : ratLtRep ratZeroRep x) (hy : ratLtRep ratZeroRep y) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  sorry
+
+-- soko:hint 思路：一的正性已经在库里（`ratLtRep_zero_one`），代进乘积为正。
+-- soko:hint 目标形态：`ratLtRep ratZeroRep (ratMulRep ratOneRep ratOneRep)`。
+-- soko:hint 关键件：ratMul_pos · ratLtRep_zero_one。
+theorem demo_one_mul_one_pos :
+    ratLtRep ratZeroRep (ratMulRep ratOneRep ratOneRep) :=
+  sorry

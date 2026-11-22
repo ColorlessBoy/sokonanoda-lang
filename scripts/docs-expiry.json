@@ -332,16 +332,16 @@
       "reason": "初始登记：版本切换自动全量预热的设计档（2026-10-11 用户要求，最小改动）（分档 spec = 365 天）"
     },
     "docs/notes/HANDOFF-kernel.md": {
-      "expires": "2026-11-15",
-      "reason": "内核线换会话交接单（临时产物，换完即删）",
-      "renewed": "2026-10-03",
-      "tier": "process"
+      "expires": "2027-02-21",
+      "renewed": "2026-11-21",
+      "tier": "process",
+      "reason": "仍是 Lean 4 对照的第二落点（check-lean4-alignment.py 读它的暂存增量），并被 kernel/front 注释与缺口复现件引用；内核线当前无在办项，下次内核改动覆盖式重写"
     },
     "docs/notes/PLAN-align-lean4.md": {
-      "expires": "2026-11-07",
-      "renewed": "2026-10-08",
+      "expires": "2027-05-21",
+      "renewed": "2026-11-21",
       "tier": "process",
-      "reason": "新规划文档（对齐 Lean 4 交互性能机制）—— 由本线代为登记，避免未登记文档阻塞所有提交"
+      "reason": "9 行墓碑，指向已归档正文；docs/design/goals-payload-slimming.md 与 docs/notes/PLAN-cli-editor-perf.md 仍按这个路径引用，删除会留死指针"
     },
     "docs/notes/PLAN-cli-editor-perf.md": {
       "expires": "2027-01-06",
@@ -368,10 +368,10 @@
       "tier": "spec"
     },
     "docs/ux-findings-2026-10-12.md": {
-      "expires": "2026-11-12",
-      "renewed": "2026-10-12",
+      "expires": "2027-02-21",
+      "renewed": "2026-11-21",
       "tier": "process",
-      "reason": "UX 探针与缺口台账：四条探针线的可执行索引（process 档，缺口修完即按三选一处置）"
+      "reason": "仍是 UX 队列的开项索引，ONBOARDING §0.2 与编辑器 CHANGELOG 都引用它；开项处置在 docs/ux-queue-extras.jsonl，队列清零后再按三选一处置"
     },
     "docs/visible-changes.md": {
       "expires": "2027-09-30",

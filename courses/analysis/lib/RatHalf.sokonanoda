@@ -1,0 +1,245 @@
+-- 课程库：有理数的半数（单元52 已判卷事实进库）
+--
+-- `close` 的传递性要把两个 `ε/2` 的界加起来；半数在代表元层不需要除法：
+-- `(a-b)/(m+1)` 的一半就是 `(a-b)/(2m+2)`，即把分母字段 `m` 换成 `2m+1`。
+--
+--   · `halfDen` / `twoDen` / `ratHalf` —— 半数的分母字段、两倍分母、半数本身
+--   · `ratHalf_add_self` —— `x/2 + x/2 ~ x`
+--
+-- 证明与单元52 的画布逐字同形；52 起的单元直接引用，不再重抄。
+
+import lib.RatAbsOrder
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：半数
+-- ─────────────────────────────────────────────────────────────
+
+-- 半数在分母字段上的写法：`(a-b)/(m+1)` 的一半是 `(a-b)/(2m+2)`，
+-- 所以新分母字段是 `2m+1`。
+
+def halfDen (m : Nat) : Nat := Nat.succ (Nat.add m m)
+
+-- 两倍的分母字段：`2m+2 = succ (2m+1)`，也正是 `(m+1)+(m+1)`。
+
+def twoDen (m : Nat) : Nat := Nat.succ (halfDen m)
+
+def ratHalf (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (numOf x) (halfDen (denOf x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.1 两倍的分母就是 `(m+1)+(m+1)`
+-- ─────────────────────────────────────────────────────────────
+
+theorem half_den_two (m : Nat) :
+    twoDen m = Nat.add (Nat.succ m) (Nat.succ m) :=
+  @Eq.symm.{1} Nat
+    (Nat.add (Nat.succ m) (Nat.succ m))
+    (Nat.succ (Nat.succ (Nat.add m m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (Nat.succ (Nat.add m (Nat.succ m)))
+      (Nat.succ (Nat.succ (Nat.add m m)))
+      (succ_add m (Nat.succ m))
+      (@congrArg.{1} Nat Nat
+        (Nat.add m (Nat.succ m))
+        (Nat.succ (Nat.add m m))
+        Nat.succ
+        (add_succ m m)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.2 两倍分母乘一个正分母：`D·(m+1) + D·(m+1) = D·D`
+-- ─────────────────────────────────────────────────────────────
+
+theorem den_two_mul (m : Nat) :
+    Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)) =
+    myMul (twoDen m) (twoDen m) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (myMul (twoDen m) (Nat.succ m))
+      (myMul (twoDen m) (Nat.succ m)))
+    (myMul (twoDen m)
+      (Nat.add (Nat.succ m) (Nat.succ m)))
+    (myMul (twoDen m) (twoDen m))
+    (@Eq.symm.{1} Nat
+      (myMul (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m)))
+      (Nat.add
+        (myMul (twoDen m) (Nat.succ m))
+        (myMul (twoDen m) (Nat.succ m)))
+      (mul_add (twoDen m) (Nat.succ m) (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (Nat.succ m) (Nat.succ m))
+      (twoDen m)
+      (fun (z : Nat) => myMul (twoDen m) z)
+      (@Eq.symm.{1} Nat
+        (twoDen m)
+        (Nat.add (Nat.succ m) (Nat.succ m))
+        (half_den_two m)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.3 分子乘开：`(x·D + x·D)·(m+1) = x·(D·D)`
+-- ─────────────────────────────────────────────────────────────
+
+theorem half_num_mul (x m : Nat) :
+    myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m) =
+    myMul x (myMul (twoDen m) (twoDen m)) :=
+  @Eq.trans.{1} Nat
+    (myMul
+      (Nat.add (myMul x (twoDen m)) (myMul x (twoDen m)))
+      (Nat.succ m))
+    (Nat.add
+      (myMul (myMul x (twoDen m)) (Nat.succ m))
+      (myMul (myMul x (twoDen m)) (Nat.succ m)))
+    (myMul x (myMul (twoDen m) (twoDen m)))
+    (mul_add_right (myMul x (twoDen m)) (myMul x (twoDen m)) (Nat.succ m))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul (myMul x (twoDen m)) (Nat.succ m)))
+      (Nat.add
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (myMul x (myMul (twoDen m) (Nat.succ m))))
+      (myMul x (myMul (twoDen m) (twoDen m)))
+      (@congrArg.{1} Nat Nat
+        (myMul (myMul x (twoDen m)) (Nat.succ m))
+        (myMul x (myMul (twoDen m) (Nat.succ m)))
+        (fun (z : Nat) => Nat.add z z)
+        (myMul_assoc x (twoDen m) (Nat.succ m)))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (myMul x (myMul (twoDen m) (Nat.succ m)))
+          (myMul x (myMul (twoDen m) (Nat.succ m))))
+        (myMul x
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (myMul x (myMul (twoDen m) (twoDen m)))
+        (@Eq.symm.{1} Nat
+          (myMul x
+            (Nat.add
+              (myMul (twoDen m) (Nat.succ m))
+              (myMul (twoDen m) (Nat.succ m))))
+          (Nat.add
+            (myMul x (myMul (twoDen m) (Nat.succ m)))
+            (myMul x (myMul (twoDen m) (Nat.succ m))))
+          (mul_add x
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m))))
+        (@congrArg.{1} Nat Nat
+          (Nat.add
+            (myMul (twoDen m) (Nat.succ m))
+            (myMul (twoDen m) (Nat.succ m)))
+          (myMul (twoDen m) (twoDen m))
+          (fun (z : Nat) => myMul x z)
+          (den_two_mul m))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.4 字面三元组上的加倍：`x/2 + x/2 ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratHalf_add_self_mk (a b m : Nat) :
+    ratRel (ratAddRep (ratHalf (qrep a b m)) (ratHalf (qrep a b m))) (qrep a b m) :=
+  intRel_of_eq
+    (mulRep
+      (@prod_mk Nat Nat
+        (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+        (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+      (den m))
+    (mulRep (@prod_mk Nat Nat a b)
+      (den (ratDenRep (halfDen m) (halfDen m))))
+    (@Eq.trans.{1} (Prod Nat Nat)
+      (mulRep
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        (den m))
+      (@prod_mk Nat Nat
+        (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+        (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat a b)
+        (den (ratDenRep (halfDen m) (halfDen m))))
+      (mulRep_den_form
+        (@prod_mk Nat Nat
+          (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m)))
+          (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))))
+        m)
+      (@Eq.trans.{1} (Prod Nat Nat)
+        (@prod_mk Nat Nat
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m)))
+        (@prod_mk Nat Nat
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul b (myMul (twoDen m) (twoDen m))))
+        (mulRep (@prod_mk Nat Nat a b)
+          (den (ratDenRep (halfDen m) (halfDen m))))
+        (prod_mk_congr
+          (myMul (Nat.add (myMul a (twoDen m)) (myMul a (twoDen m))) (Nat.succ m))
+          (myMul a (myMul (twoDen m) (twoDen m)))
+          (myMul (Nat.add (myMul b (twoDen m)) (myMul b (twoDen m))) (Nat.succ m))
+          (myMul b (myMul (twoDen m) (twoDen m)))
+          (half_num_mul a m)
+          (half_num_mul b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (mulRep (@prod_mk Nat Nat a b)
+            (den (ratDenRep (halfDen m) (halfDen m))))
+          (@prod_mk Nat Nat
+            (myMul a (myMul (twoDen m) (twoDen m)))
+            (myMul b (myMul (twoDen m) (twoDen m))))
+          (@Eq.trans.{1} (Prod Nat Nat)
+            (mulRep (@prod_mk Nat Nat a b)
+              (den (ratDenRep (halfDen m) (halfDen m))))
+            (@prod_mk Nat Nat
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m)))))
+            (@prod_mk Nat Nat
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (myMul (twoDen m) (twoDen m))))
+            (mulRep_den_form (@prod_mk Nat Nat a b)
+              (ratDenRep (halfDen m) (halfDen m)))
+            (prod_mk_congr
+              (myMul a (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul a (myMul (twoDen m) (twoDen m)))
+              (myMul b (Nat.succ (ratDenRep (halfDen m) (halfDen m))))
+              (myMul b (myMul (twoDen m) (twoDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) => myMul a z)
+                (ratDenRep_succ (halfDen m) (halfDen m)))
+              (@congrArg.{1} Nat Nat
+                (Nat.succ (ratDenRep (halfDen m) (halfDen m)))
+                (myMul (twoDen m) (twoDen m))
+                (fun (z : Nat) => myMul b z)
+                (ratDenRep_succ (halfDen m) (halfDen m))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 52.5 任意代表元上的加倍
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratHalf_add_self_aux (x : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  match x with
+  | prod_mk (prod_mk a b) m => ratHalf_add_self_mk a b m
+
+theorem ratHalf_add_self (x : ratRep) :
+    ratRel (ratAddRep (ratHalf x) (ratHalf x)) x :=
+  ratHalf_add_self_aux x
+
+-- ─────────────────────────────────────────────────────────────
+-- 51 的左加进库：`x ≤ y ⇒ z + x ≤ z + y`
+-- ─────────────────────────────────────────────────────────────
+
+-- ㊹ 只给了右加；左加用 ㊸ 的 `ratAdd_comm` 把两边换过来，再借
+-- `ratLeRep_congr_gen` 把 `ratLeRep` 搬回去（与单元51 的画布逐字同形）。
+
+theorem ratLeRep_add_left (x y z : ratRep)
+    (h : ratLeRep x y) : ratLeRep (ratAddRep z x) (ratAddRep z y) :=
+  ratLeRep_congr_gen
+    (ratAddRep x z) (ratAddRep z x) (ratAddRep y z) (ratAddRep z y)
+    (ratAdd_comm x z) (ratAdd_comm y z)
+    (ratLeRep_add_right x y z h)

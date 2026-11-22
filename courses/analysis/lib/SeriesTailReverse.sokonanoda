@@ -1,0 +1,117 @@
+-- 课程库：尾块判别的反方向
+--
+-- 单元122 把 121 的「可和 ⇒ 尾块可和」反过来：只要某个尾块自己可和，原级数
+-- 就可和。这里收进 L2，后面的重排与判别法直接引用：
+--
+--   · `tailSum_shift` —— 尾块的下标平移与「先平移再取尾块」对齐；
+--   · `summable_of_tail` —— 尾块可和推出原级数可和；
+--   · `summable_tail_iff` —— 两个方向合起来；
+--   · `demo_summable_of_tail_zero` —— 零级数的尾块实例。
+--
+-- 边界：只处理尾块，不涉及重排，也不给一般通项判别法。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTail
+import lib.SeriesTailSum
+import lib.RealComplete
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.0 尾块平移后的部分和
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾块 `TailSum f (m+a) k` 与「先平移再取尾块」是同一串项。两个下标只差
+-- ℕ 加法的结合律，逐项用 `Eq.subst` 把 `(m+a)+j` 认成 `m+(a+j)`。
+theorem tailSum_shift (f : Nat → ratRep) (m a k : Nat) :
+    ratRel (TailSum f (Nat.add m a) k)
+      (TailSum (fun (j : Nat) => f (Nat.add m j)) a k) :=
+  sumTo_congr
+    (fun (j : Nat) => f (Nat.add (Nat.add m a) j))
+    (fun (j : Nat) => f (Nat.add m (Nat.add a j)))
+    k
+    (fun (j : Nat) =>
+      @Eq.subst.{1} Nat
+        (fun (t : Nat) => ratRel (f (Nat.add (Nat.add m a) j)) (f t))
+        (Nat.add (Nat.add m a) j) (Nat.add m (Nat.add a j))
+        (add_assoc m a j)
+        (ratRel_refl (f (Nat.add (Nat.add m a) j))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.1 尾块可和推出原级数可和
+-- ─────────────────────────────────────────────────────────────
+
+-- `summable_iff_tail` 把可和性写成「所有足够靠后的尾块都一致地小」。尾块
+-- 可和时，同一个判据作用在平移后的级数上；把下标从 `m+a` 读回 `p`，就得到
+-- 原级数的尾块估计。
+theorem summable_of_tail (f : Nat → ratRep) (m : Nat)
+    (h : Summable (fun (k : Nat) => f (Nat.add m k))) :
+    Summable f :=
+  Iff.mpr (summable_iff_tail f)
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim
+        (@Iff.mp
+          (Summable (fun (k : Nat) => f (Nat.add m k)))
+          (∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+            ∃ (N : Nat), ∀ (a : Nat), LeNat N a → ∀ (k : Nat),
+              close (TailSum (fun (j : Nat) => f (Nat.add m j)) a k)
+                ratZeroRep eps)
+          (summable_iff_tail (fun (k : Nat) => f (Nat.add m k))) h eps heps)
+        (fun (N : Nat)
+            (hN : ∀ (a : Nat), LeNat N a → ∀ (k : Nat),
+              close (TailSum (fun (j : Nat) => f (Nat.add m j)) a k)
+                ratZeroRep eps) =>
+          Exists.intro (Nat.add m N)
+            (fun (p : Nat) (hp : LeNat (Nat.add m N) p) (k : Nat) =>
+              Exists.elim
+                (leNat_exists_add m p
+                  (leNat_trans m (Nat.add m N) p (leNat_self_add m N) hp))
+                (fun (a : Nat) (ha : p = Nat.add m a) =>
+                  close_wd_left
+                    (TailSum (fun (j : Nat) => f (Nat.add m j)) a k)
+                    (TailSum f p k)
+                    ratZeroRep eps
+                    (ratRel_symm
+                      (TailSum f p k)
+                      (TailSum (fun (j : Nat) => f (Nat.add m j)) a k)
+                      (@Eq.subst.{1} Nat
+                        (fun (t : Nat) => ratRel (TailSum f t k)
+                          (TailSum (fun (j : Nat) => f (Nat.add m j)) a k))
+                        (Nat.add m a) p
+                        (@Eq.symm.{1} Nat p (Nat.add m a) ha)
+                        (tailSum_shift f m a k)))
+                    (hN a
+                      (leNat_add_cancel_right N a m
+                        (@Eq.subst.{1} Nat
+                          (fun (t : Nat) => LeNat t (Nat.add a m))
+                          (Nat.add m N) (Nat.add N m) (add_comm m N)
+                          (@Eq.subst.{1} Nat
+                            (fun (t : Nat) => LeNat (Nat.add m N) t)
+                            (Nat.add m a) (Nat.add a m) (add_comm m a)
+                            (@Eq.subst.{1} Nat
+                              (fun (t : Nat) => LeNat (Nat.add m N) t)
+                              p (Nat.add m a) ha hp))))
+                      k)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.2 尾块判别的充要条件
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 121 的 `summable_tail` 与 122.1 给出。
+theorem summable_tail_iff (f : Nat → ratRep) (m : Nat) :
+    Summable f ↔ Summable (fun (k : Nat) => f (Nat.add m k)) :=
+  Iff.intro
+    (fun (h : Summable f) => summable_tail f m h)
+    (fun (h : Summable (fun (k : Nat) => f (Nat.add m k))) =>
+      summable_of_tail f m h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 122.3 具体：零级数的尾块还是零级数
+-- ─────────────────────────────────────────────────────────────
+
+-- 零级数的任意尾块仍是零级数，所以反方向把它送回原级数。
+theorem demo_summable_of_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_of_tail (fun (_ : Nat) => ratZeroRep) m summable_zero

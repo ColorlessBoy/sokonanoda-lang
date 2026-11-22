@@ -1,0 +1,137 @@
+-- 单元68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类
+--
+-- 实数按 Cauchy 序列商构造。本单元证明这个构造的**完备性在代表元层**
+-- 的形式：每个有理 Cauchy 序列 `x`，其类 `Real.mk x` 是常序列
+--
+--   n ↦ Real.mk (constSeq (x n))
+--
+-- 的极限。极限不引入 `Real` 上的绝对值或减法，而写成两条非严格界：
+--
+--   a ≤ L + eps   且   L ≤ a + eps
+--
+-- 两条界都归约到同一个代表元引理：
+--
+--   `a - b ≤ eps  ⇒  a - (b + eps) ≤ e`（任意 `e > 0`）。
+--
+-- Cauchy 性同时给出 `x n - x k ≤ eps` 与 `x k - x n ≤ eps`，正好供
+-- 两条界使用；`Real.mk` 的 ι 规则（66.4）把代表元层的结论送回商。
+--
+-- **边界（明说，不静默绕过）**：本课程 L2 没有 `Classical.choice`，
+-- 「任意非空有上界集合有最小上界」的**集合版 LUB** 不在本单元；这里
+-- 只做不需要选择的**代表元序列**完备性。差额记在 issue #18 的收口报告，
+-- 不新增公理、不把 ℝ 直接立成公理。
+--
+-- 本单元：
+--   · 68.0 `constSeq` / 68.1 `cauchy_const` —— 常序列与它的 Cauchy 性；
+--   · 68.2 `addConst` / 68.3 `cauchy_add_const` —— 加常数仍 Cauchy；
+--   · 68.4 `close_sub_le` —— `close` 给减法界；
+--   · 68.5 `ratLeRep_sub_add_right` —— 减 `eps` 后仍 ≤ 0 ≤ e；
+--   · 68.6 `TendsTo` —— 代表元层的收敛；
+--   · 68.7 `cauchy_tends_to_class` —— 主定理；
+--   · 68.8 `cauchy_has_limit` —— 存在极限代表元；
+--   · 68.9 常零序列的具体例。
+
+import lib.RealOrderLift
+import lib.RealAdd
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.0 常序列
+-- ─────────────────────────────────────────────────────────────
+
+def constSeq (q : ratRep) : Seq := fun (_ : Nat) => q
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.1 常序列是 Cauchy 的
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：任意两个位置都相等，取见证 `d := 0`。`x n - x n` 就是 `x + (-x)`，用 55 的 `ratAdd_neg_gen` 收成 0；`ratAbsRel_wd_left` 把 `|0|` 的见证搬到 `|x - x|` 上（注意方向：先把 `0` 换成 `x - x` 再喂给 `ratAbsRel_zero`），严格性直接用 `heps`。
+-- soko:hint 目标形态：`Cauchy (constSeq q)`。
+-- soko:hint 关键件：Exists.intro ratZeroRep · ratAdd_neg_gen · ratRel_symm · ratAbsRel_wd_left · ratAbsRel_zero。
+theorem cauchy_const (q : ratRep) : Cauchy (constSeq q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.2 给序列加一个常数
+-- ─────────────────────────────────────────────────────────────
+
+def addConst (x : Seq) (q : ratRep) : Seq :=
+  fun (n : Nat) => ratAddRep (x n) q
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.3 加常数保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `addConst x q` 看成 `addSeq x (constSeq q)`（两者在 `fun n => x n + q` 上定义性相等），交给 60 的 `cauchy_add`；常序列的 Cauchy 性用 68.1。
+-- soko:hint 目标形态：`Cauchy x → Cauchy (addConst x q)`。
+-- soko:hint 关键件：cauchy_add · cauchy_const。
+theorem cauchy_add_const (x : Seq) (q : ratRep) (hx : Cauchy x) :
+    Cauchy (addConst x q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.4 `close` 给减法界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`close` 给见证 `d`：`|a - b| ~ d` 且 `d < eps`。`ratAbsRel_le` 把绝对值压成 `a - b ≤ d`，`ratLtRep_le` 把 `d < eps` 投成 `d ≤ eps`，再用 `ratLeRep_trans` 传递。
+-- soko:hint 目标形态：`close a b eps → ratLeRep (ratSubRep a b) eps`。
+-- soko:hint 关键件：Exists.elim · ratAbsRel_le · ratLtRep_le · ratLeRep_trans。
+theorem close_sub_le (a b eps : ratRep) (h : close a b eps) :
+    ratLeRep (ratSubRep a b) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.5 减去 `eps` 之后落到 0 以下
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：分两段。① **代数**：`a - (b + eps) ~ (a - b) - eps`——`ratNegRep_add` 把 `-(b+eps)` 换成 `-b + -eps`，`ratAddRep_wd_snd_gen` 搬进 `a + ...`，`ratAdd_assoc` 反向收成 `(a + -b) + -eps`。② **序**：`h` 右加 `-eps` 得 `(a-b) + -eps ≤ eps + -eps`，`ratAdd_neg_gen` 把右端收成 0，再用 `he : 0 ≤ e` 传递；最后用 `ratLeRep_congr_gen` 沿 ① 的等式把结论搬回 `a - (b + eps)`。
+-- soko:hint 目标形态：`a - b ≤ eps → 0 ≤ e → a - (b + eps) ≤ e`。
+-- soko:hint 关键件：ratNegRep_add · ratAddRep_wd_snd_gen · ratAdd_assoc · ratLeRep_add_right · ratAdd_neg_gen · ratLeRep_of_ratRel · ratLeRep_trans · ratLeRep_congr_gen · ratRel_symm · ratRel_refl。
+theorem ratLeRep_sub_add_right (a b eps e : ratRep)
+    (h : ratLeRep (ratSubRep a b) eps)
+    (he : ratLeRep ratZeroRep e) :
+    ratLeRep (ratSubRep a (ratAddRep b eps)) e :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.6 代表元层的收敛
+-- ─────────────────────────────────────────────────────────────
+
+-- `TendsTo x L`：有理序列 `x` 的类收敛到 `L` 的类。两条界都用
+-- 「≤ 极限 + eps」的非严格形式，避免在 `Real` 上另立绝对值。
+def TendsTo (x L : Seq) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      realLe (Real.mk (constSeq (x n))) (Real.mk (addConst L eps)) ∧
+      realLe (Real.mk L) (Real.mk (addConst (constSeq (x n)) eps))
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.7 主定理：有理 Cauchy 序列收敛到自己的类
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：对 `eps > 0` 取 Cauchy 性的阈值 `N`。固定 `n ≥ N` 后，对每个 `e > 0`：上界用 `hN n k` 得 `x n - x k ≤ eps`，68.5 给 `x n - (x k + eps) ≤ e`；下界用 `hN k n` 得 `x k - x n ≤ eps`，68.5 给 `x k - (x n + eps) ≤ e`。两条 `realLeRep` 的 Cauchy 守卫分别由 68.1/68.3 付清，再经 66.4 的 `realLe_mk` 送回 `realLe`。
+-- soko:hint 目标形态：`Cauchy x → TendsTo x x`。
+-- soko:hint 关键件：hx · close_sub_le · ratLeRep_sub_add_right · ratLtRep_le · cauchy_const · cauchy_add_const · realLe_mk · Iff.mpr。
+theorem cauchy_tends_to_class (x : Seq) (hx : Cauchy x) :
+    TendsTo x x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.8 存在极限代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：极限代表元取 `x` 自己；Cauchy 分量是 `hx`，收敛性用 68.7。实数层面的极限就是 `Real.mk x`。
+-- soko:hint 目标形态：`∃ L, Cauchy L ∧ TendsTo x L`。
+-- soko:hint 关键件：Exists.intro · cauchy_tends_to_class。
+theorem cauchy_has_limit (x : Seq) (hx : Cauchy x) :
+    ∃ (L : Seq), Cauchy L ∧ TendsTo x L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 68.9 具体：常零序列收敛到零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 68.7 用在常零序列上；`Cauchy zeroSeq` 是 ㉟ 的 `cauchy_zero`。
+-- soko:hint 目标形态：`TendsTo zeroSeq zeroSeq`。
+-- soko:hint 关键件：cauchy_tends_to_class · cauchy_zero。
+theorem demo_cauchy_limit : TendsTo zeroSeq zeroSeq :=
+  sorry

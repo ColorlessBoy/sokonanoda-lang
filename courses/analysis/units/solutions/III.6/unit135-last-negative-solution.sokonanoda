@@ -1,0 +1,245 @@
+-- 单元135 最后一个负点：保号性把负点往右推一步
+--
+-- 连续函数在区间上取负值的点，能不能有「最后一个」？如果这个点 m 还在
+-- 区间内部，答案是不能：f m < 0，保号性保证 m 附近一整段都取负值，而
+-- 这段里有点落在 m 的右边，于是 m 不可能是最后一个。换句话说，符号变化
+-- 的边界如果存在，它不会停在负值上；它只能停在零上（下一单元）。
+--
+-- 证明的力气全花在「往右找一点」上。保号性给的只是一个半径 delta，而
+-- 区间右端 b 可能比 m + delta/2 更近。两种情形分开处理：若 m + delta/2
+-- 还没越过 b，就直接迈 delta/2；否则取 m 到 b 的中点，它到 m 的距离
+-- (b-m)/2 小于 b-m，而 b-m 又不超过 delta/2，所以仍落在邻域里。
+--
+-- 中点这一支要用到「减同一个数保持严格序」与「不 ≤ 就是反向 ≤」，两条
+-- 都是序的换形，不带分析内容。真正用到的分析事实只有一条：连续函数在
+-- 一点附近保号。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；「最后一个负点存在」
+-- 在这里是反设，结论是它不存在。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.Cauchy
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatHalf
+import lib.RatSub
+import lib.RatAssoc
+import lib.RatGroup
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.Order
+import lib.MaxOn
+import lib.LocalSign
+import lib.Cont
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义：最大元与严格负点集
+-- ─────────────────────────────────────────────────────────────
+
+-- 「m 是 A 的最大元」：m 自己属于 A，且压住 A 里所有点。上确界不要求
+-- 属于集合，最大元要求；介值定理需要的正是这个更强的「被取到」。
+def HasGreatest (A : ratRep → Prop) (m : ratRep) : Prop :=
+  A m ∧ ∀ (x : ratRep), A x → ratLeRep x m
+
+-- 函数尊重代表元的等价：等价的两个输入给出等价的输出。这是「函数定义在
+-- 实数上」而不是「定义在代表元上」的形式说法。
+
+-- 区间里函数值严格为负的点。
+def NegativePoints (f : ratRep → ratRep) (a b : ratRep) : ratRep → Prop :=
+  fun (x : ratRep) => InClosed a b x ∧ ratLtRep (f x) ratZeroRep
+
+-- 区间里函数值不为正的点。介值定理的切点从这个集合的最大元里来。
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的展开形式与投影
+-- ─────────────────────────────────────────────────────────────
+
+theorem hasGreatest_iff (A : ratRep → Prop) (m : ratRep) :
+    HasGreatest A m ↔ A m ∧ ∀ (x : ratRep), A x → ratLeRep x m :=
+  Iff.intro
+    (fun (h : HasGreatest A m) => h)
+    (fun (h : A m ∧ ∀ (x : ratRep), A x → ratLeRep x m) => h)
+
+theorem hasGreatest_mem (A : ratRep → Prop) (m : ratRep)
+    (h : HasGreatest A m) : A m :=
+  And.left (Iff.mp (hasGreatest_iff A m) h)
+
+theorem hasGreatest_upper (A : ratRep → Prop) (m : ratRep)
+    (h : HasGreatest A m) : ∀ (x : ratRep), A x → ratLeRep x m :=
+  And.right (Iff.mp (hasGreatest_iff A m) h)
+
+theorem negativePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NegativePoints f a b x ↔ InClosed a b x ∧ ratLtRep (f x) ratZeroRep :=
+  Iff.intro
+    (fun (h : NegativePoints f a b x) => h)
+    (fun (h : InClosed a b x ∧ ratLtRep (f x) ratZeroRep) => h)
+
+-- 点集的投影单独取名：`HasGreatest` 的见证是定义别名，直接在它上面用
+-- `And.left` / `And.right` 时，隐式参数补不出来；先展开成合取再投影。
+theorem negativePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : InClosed a b x :=
+  And.left (Iff.mp (negativePoints_iff f a b x) h)
+
+theorem negativePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : ratLtRep (f x) ratZeroRep :=
+  And.right (Iff.mp (negativePoints_iff f a b x) h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 序的换形：减同一个数保持序
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLtRep_sub_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratSubRep x z) (ratSubRep y z) :=
+  ratLtRep_add_right x y (ratNegRep z) h
+
+-- 同一个换形对弱序也成立，第二条分支只要 `b ≤ m + delta/2` 就够用。
+
+theorem ratLeRep_sub_right (x y z : ratRep) (h : ratLeRep x y) :
+    ratLeRep (ratSubRep x z) (ratSubRep y z) :=
+  ratLeRep_add_right x y (ratNegRep z) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 从 m 向右迈一步仍在 delta 邻域里
+-- ─────────────────────────────────────────────────────────────
+
+-- 这一步的落脚点是 `m + d`。距离 `(m + d) - m` 与 d 等价，d 是正的，
+-- 所以绝对值见证取 d 本身；剩下只要 d < eps。
+theorem close_add_right (m d eps : ratRep) (hd : ratLtRep ratZeroRep d)
+    (hde : ratLtRep d eps) : close (ratAddRep m d) m eps :=
+  Exists.intro d
+    (And.intro
+      (Or.inl
+        (And.intro
+          (ratLtRep_le ratZeroRep (ratSubRep (ratAddRep m d) m)
+            (ratLtRep_sub_pos (ratAddRep m d) m
+              (ratLtRep_self_add_pos m d hd)))
+          (ratRel_symm (ratSubRep (ratAddRep m d) m) d
+            (ratAdd_sub_self m d))))
+      hde)
+
+-- 若 b 还落在 m + delta/2 以内，m 到 b 的中点与 m 的距离就小于 delta：
+-- 这个距离是 (b-m)/2，小于 b-m，而 b-m ≤ delta/2 < delta。
+theorem half_sub_lt_delta (b m delta : ratRep) (hmb : ratLtRep m b)
+    (hble : ratLeRep b (ratAddRep m (ratHalf delta)))
+    (hdelta : ratLtRep ratZeroRep delta) :
+    ratLtRep (ratHalf (ratSubRep b m)) delta :=
+  ratLtRep_trans (ratHalf (ratSubRep b m)) (ratSubRep b m) delta
+    (ratHalf_lt_self (ratSubRep b m) (ratLtRep_sub_pos b m hmb))
+    (ratLtRep_of_le_lt (ratSubRep b m) (ratHalf delta) delta
+      (ratLeRep_trans (ratSubRep b m)
+        (ratSubRep (ratAddRep m (ratHalf delta)) m) (ratHalf delta)
+        (ratLeRep_sub_right b (ratAddRep m (ratHalf delta)) m hble)
+        (ratLeRep_of_ratRel
+          (ratSubRep (ratAddRep m (ratHalf delta)) m) (ratHalf delta)
+          (ratAdd_sub_self m (ratHalf delta))))
+      (ratHalf_lt_self delta hdelta))
+
+-- ─────────────────────────────────────────────────────────────
+-- 保号性把负点往右推一步
+-- ─────────────────────────────────────────────────────────────
+
+theorem exists_negative_right (f : ratRep → ratRep) (a b m : ratRep)
+    (hmem : InClosed a b m) (hmb : ratLtRep m b)
+    (hf : ContinuousAt f m) (hneg : ratLtRep (f m) ratZeroRep) :
+    ∃ (y : ratRep), InClosed a b y ∧ ratLtRep m y ∧
+      ratLtRep (f y) ratZeroRep :=
+  Exists.elim (negativeNear_of_continuousAt f m hf hneg)
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x m delta →
+            ratLtRep (f x) ratZeroRep) =>
+      Or.elim
+        (fun (hle : ratLeRep (ratAddRep m (ratHalf delta)) b) =>
+          Exists.intro (ratAddRep m (ratHalf delta))
+            (And.intro
+              (And.intro
+                (ratLeRep_trans a m (ratAddRep m (ratHalf delta))
+                  (inClosed_left a b m hmem)
+                  (ratLtRep_le m (ratAddRep m (ratHalf delta))
+                    (ratLtRep_self_add_pos m (ratHalf delta)
+                      (ratLtRep_half delta (And.left hd)))))
+                hle)
+              (And.intro
+                (ratLtRep_self_add_pos m (ratHalf delta)
+                  (ratLtRep_half delta (And.left hd)))
+                ((fun (x : ratRep) (hx : close x m delta) =>
+                    (And.right hd) x hx)
+                  (ratAddRep m (ratHalf delta))
+                  (close_add_right m (ratHalf delta) delta
+                    (ratLtRep_half delta (And.left hd))
+                    (ratHalf_lt_self delta (And.left hd)))))))
+        (fun (hble : ratLeRep b (ratAddRep m (ratHalf delta))) =>
+          Exists.intro (ratAddRep m (ratHalf (ratSubRep b m)))
+            (And.intro
+              (And.intro
+                (ratLeRep_trans a m (ratAddRep m (ratHalf (ratSubRep b m)))
+                  (inClosed_left a b m hmem)
+                  (ratLtRep_le m (ratAddRep m (ratHalf (ratSubRep b m)))
+                    (lt_add_mid b m hmb)))
+                (ratLtRep_le (ratAddRep m (ratHalf (ratSubRep b m))) b
+                  (add_mid_lt_right b m hmb)))
+              (And.intro
+                (lt_add_mid b m hmb)
+                ((fun (x : ratRep) (hx : close x m delta) =>
+                    (And.right hd) x hx)
+                  (ratAddRep m (ratHalf (ratSubRep b m)))
+                  (close_add_right m (ratHalf (ratSubRep b m)) delta
+                    (ratLtRep_half (ratSubRep b m)
+                      (ratLtRep_sub_pos b m hmb))
+                    (half_sub_lt_delta b m delta hmb hble (And.left hd)))))))
+        (ratLeRep_total (ratAddRep m (ratHalf delta)) b))
+
+-- ─────────────────────────────────────────────────────────────
+-- 严格负点集没有最大元
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 m 是严格负点集的最大元且 m 在区间内部，上一条给出一个更靠右的严格
+-- 负点 y；它属于集合，于是 y ≤ m，与 m < y 冲突。
+theorem no_greatest_negative_at (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NegativePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) : False :=
+  @Exists.elim ratRep
+    (fun (y : ratRep) => InClosed a b y ∧ ratLtRep m y ∧
+      ratLtRep (f y) ratZeroRep)
+    False
+    (exists_negative_right f a b m
+      (negativePoints_mem f a b m
+        (hasGreatest_mem (NegativePoints f a b) m hgreat))
+      hmb hf
+      (negativePoints_value f a b m
+        (hasGreatest_mem (NegativePoints f a b) m hgreat)))
+    (fun (y : ratRep)
+        (hy : InClosed a b y ∧ ratLtRep m y ∧
+          ratLtRep (f y) ratZeroRep) =>
+      ratLtRep_right m y (And.left (And.right hy))
+        (ratRel_symm y m
+          (ratLeRep_antisymm y m
+            (hasGreatest_upper (NegativePoints f a b) m hgreat y
+              (And.intro (And.left hy) (And.right (And.right hy))))
+            (ratLtRep_le m y (And.left (And.right hy))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 打包：严格负点集根本没有最大元
+-- ─────────────────────────────────────────────────────────────
+
+-- 上一条是「给定 m，若 m 是最大元则矛盾」；把它写成对 m 的否定，就是
+-- 这个单元要说的事：在区间内部，严格负点集不会有最后一个点。
+theorem no_last_negative (f : ratRep → ratRep) (a b : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x) :
+    ¬ (∃ (m : ratRep), HasGreatest (NegativePoints f a b) m ∧
+      ratLtRep m b) :=
+  fun (h : ∃ (m : ratRep), HasGreatest (NegativePoints f a b) m ∧
+      ratLtRep m b) =>
+    @Exists.elim ratRep
+      (fun (m : ratRep) => HasGreatest (NegativePoints f a b) m ∧
+        ratLtRep m b)
+      False h
+      (fun (m : ratRep)
+          (hm : HasGreatest (NegativePoints f a b) m ∧ ratLtRep m b) =>
+        no_greatest_negative_at f a b m (And.left hm) (And.right hm)
+          (hcont m
+            (negativePoints_mem f a b m
+              (hasGreatest_mem (NegativePoints f a b) m (And.left hm)))))

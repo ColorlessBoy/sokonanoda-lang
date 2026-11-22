@@ -1,0 +1,108 @@
+-- 课程库：有限和的拆分与望远镜
+--
+-- 单元111 在画布里证明下面四条；这里收进 L2，后续部分和的估计直接引用。
+--
+--   · `sumTo_shift` —— 前 m+n 项和拆成前 m 项与从 m 起的 n 项；
+--   · `sumTo_telescope` —— 相邻差的和只剩首尾；
+--   · `sumTo_le` —— 逐项比较把和放大；
+--   · `demo_telescope_three` —— 三个差的和等于首尾之差。
+--
+-- 边界：只对有限前缀做拆分，不重排项，也不涉及无限和。不新增公理。
+
+import lib.Sum
+import lib.RatAbs
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.0 把和切成两段
+-- ─────────────────────────────────────────────────────────────
+
+-- 对第二段的长度归纳。第一段保持不动，第二段的项是原序列的平移
+-- `k ↦ f (m + k)`。
+theorem sumTo_shift (f : Nat → ratRep) (m n : Nat) :
+    ratRel (sumTo f (Nat.add m n))
+      (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo f (Nat.add m n))
+      (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n)))
+    (ratRel_symm (ratAddRep (sumTo f m) ratZeroRep) (sumTo f m)
+      (ratAdd_zero (sumTo f m)))
+    (fun (n : Nat)
+      (ih : ratRel (sumTo f (Nat.add m n))
+        (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo f (Nat.add m n)) (f (Nat.add m n)))
+        (ratAddRep (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n)) (f (Nat.add m n)))
+        (ratAddRep (sumTo f m) (ratAddRep (sumTo (fun (k : Nat) => f (Nat.add m k)) n) (f (Nat.add m n))))
+        (ratAddRep_wd_gen (sumTo f (Nat.add m n))
+          (ratAddRep (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n))
+          (f (Nat.add m n)) ih)
+        (ratAdd_assoc (sumTo f m) (sumTo (fun (k : Nat) => f (Nat.add m k)) n) (f (Nat.add m n))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.1 望远镜：相邻差的和
+-- ─────────────────────────────────────────────────────────────
+
+-- 归纳步把最后一项 `b (n+1) - b n` 接到前面，用交换律把两项差排成
+-- `(b (n+1) - b n) + (b n - b 0)`，中间项由 `ratSubRep_add` 消去。
+theorem sumTo_telescope (b : Nat → ratRep) (n : Nat) :
+    ratRel (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+      (ratSubRep (b n) (b Nat.zero)) :=
+  Nat.rec
+    (fun (n : Nat) => ratRel (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+      (ratSubRep (b n) (b Nat.zero)))
+    (ratRel_symm (ratSubRep (b Nat.zero) (b Nat.zero)) ratZeroRep
+      (ratAdd_neg_gen (b Nat.zero)))
+    (fun (n : Nat)
+      (ih : ratRel (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+        (ratSubRep (b n) (b Nat.zero))) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+          (ratSubRep (b (Nat.succ n)) (b n)))
+        (ratAddRep (ratSubRep (b n) (b Nat.zero))
+          (ratSubRep (b (Nat.succ n)) (b n)))
+        (ratSubRep (b (Nat.succ n)) (b Nat.zero))
+        (ratAddRep_wd_gen
+          (sumTo (fun (k : Nat) => ratSubRep (b (Nat.succ k)) (b k)) n)
+          (ratSubRep (b n) (b Nat.zero))
+          (ratSubRep (b (Nat.succ n)) (b n)) ih)
+        (ratRel_trans_gen
+          (ratAddRep (ratSubRep (b n) (b Nat.zero))
+            (ratSubRep (b (Nat.succ n)) (b n)))
+          (ratAddRep (ratSubRep (b (Nat.succ n)) (b n))
+            (ratSubRep (b n) (b Nat.zero)))
+          (ratSubRep (b (Nat.succ n)) (b Nat.zero))
+          (ratAdd_comm (ratSubRep (b n) (b Nat.zero))
+            (ratSubRep (b (Nat.succ n)) (b n)))
+          (ratSubRep_add (b (Nat.succ n)) (b n) (b Nat.zero))))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.2 逐项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 归纳步把两条不等式相加；加法保序由 `ratLeRep_add` 给出。
+theorem sumTo_le (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), ratLeRep (f k) (g k)) :
+    ratLeRep (sumTo f n) (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) => ratLeRep (sumTo f n) (sumTo g n))
+    (ratLeRep_refl ratZeroRep)
+    (fun (n : Nat) (ih : ratLeRep (sumTo f n) (sumTo g n)) =>
+      ratLeRep_add (sumTo f n) (sumTo g n) (f n) (g n) ih (h n))
+    n
+
+-- ─────────────────────────────────────────────────────────────
+-- 111.3 具体：三个差的和等于首尾之差
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_telescope_three :
+    ratRel (sumTo (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  ratRel_trans_gen
+    (sumTo (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+    (ratSubRep (qrep 3 0 0) (qrep Nat.zero 0 0))
+    (qrep 3 0 0)
+    (sumTo_telescope (fun (k : Nat) => qrep k 0 0) 3)
+    (ratRel_refl (qrep 3 0 0))

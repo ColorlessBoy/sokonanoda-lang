@@ -1,0 +1,59 @@
+-- 课程库：一致连续沿序列搬运
+--
+-- 单元131 在画布上判卷的两条收进 L2，132 起的单元直接引用：
+--
+--   · `uniformlyContinuous_cauchy` —— 一致连续把 Cauchy 序列送到 Cauchy 序列：
+--     给定 ε 先向一致连续要 δ，δ 交给原序列的 Cauchy 条件换回阈值 N；
+--   · `uniformlyContinuous_converges` —— 收敛序列的像收敛到函数值的极限，
+--     证明同形，只把「两项互相接近」换成「每一项接近极限」。
+--
+-- 这两条是一致连续与逐点连续的分水岭：逐点连续的 δ 随基点变，沿序列搬运
+-- 时无法统一；一致连续的 δ 对整片定义域通用，量词可以直接交出去。
+--
+-- 边界：只做正方向。反方向要从每个失败的 δ 挑见证点列，课程库没有选择
+-- 函数。函数取 `ratRep → ratRep`，序列取 `Nat → ratRep`，都停在有理代表元层。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.Cauchy
+import lib.Limit
+import lib.Uniform
+
+-- ─────────────────────────────────────────────────────────────
+-- 131.0 Cauchy 序列的像
+-- ─────────────────────────────────────────────────────────────
+
+theorem uniformlyContinuous_cauchy (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) (x : Seq) (hx : Cauchy x) :
+    Cauchy (fun (n : Nat) => f (x n)) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (y z : ratRep), close y z delta → close (f y) (f z) eps) =>
+        Exists.elim (hx delta (And.left hd))
+          (fun (N : Nat)
+              (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+                close (x n) (x m) delta) =>
+            Exists.intro N
+              (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+                (And.right hd) (x n) (x m) (hN n m hn hm))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 131.1 收敛序列的像
+-- ─────────────────────────────────────────────────────────────
+
+theorem uniformlyContinuous_converges (f : ratRep → ratRep)
+    (hf : UniformlyContinuous f) (x : Seq) (L : ratRep)
+    (hx : Converges x L) : Converges (fun (n : Nat) => f (x n)) (f L) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hf eps heps)
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (y z : ratRep), close y z delta → close (f y) (f z) eps) =>
+        Exists.elim (hx delta (And.left hd))
+          (fun (N : Nat)
+              (hN : ∀ (n : Nat), LeNat N n → close (x n) L delta) =>
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =>
+                (And.right hd) (x n) L (hN n hn))))

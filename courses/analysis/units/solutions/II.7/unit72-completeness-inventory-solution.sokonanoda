@@ -1,0 +1,88 @@
+-- 单元72 数系综合：完备性盘点——代表元层与集合层（解答）
+--
+-- 68 证了**代表元层**的完备性：每个有理 Cauchy 序列 `x`，其类 `mk x` 是
+-- 常序列 `n ↦ mk (constSeq (x n))` 的极限（`TendsTo x x`）。
+-- 本单元把这条定理放进「集合层」的语言里盘点：
+--
+--   · 上界与最小上界只用 `realLe` 陈述，不引入新公理、不用
+--     `Classical.choice`；
+--   · 具体集合 `S := {x | x ≤ 0}` 有最小上界 0——这是本课程能诚实
+--     拿到的集合层 LUB 实例；
+--   · 68.7 在常序列上重新落地：常序列收敛到自己的类。
+--
+-- **边界（明说）**：一般定理「每个非空有上界的 `S` 都有 LUB」需要
+-- `Classical.choice`（或 Dedekind 切割），L2 没有，差额记在 issue #18。
+-- 本单元不把这条一般定理写成 axiom，也不把 ℝ 直接立成公理；`HasLUB`
+-- 只对上面的具体集合证明。
+
+import lib.RealComplete
+import lib.RealOrderLift
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.0 集合层的词汇：上界、最小上界、有 LUB
+-- ─────────────────────────────────────────────────────────────
+
+def UpperBound (S : Real → Prop) (b : Real) : Prop :=
+  ∀ (x : Real), S x → realLe x b
+
+def IsLUB (S : Real → Prop) (b : Real) : Prop :=
+  UpperBound S b ∧ ∀ (b' : Real), UpperBound S b' → realLe b b'
+
+def HasLUB (S : Real → Prop) : Prop := ∃ (b : Real), IsLUB S b
+
+-- 本单元用的零：常零序列的类。66.4 的 `realLe_mk` 之后，关于它的序
+-- 都回到代表元层。
+def zeroReal : Real := Real.mk zeroSeq
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.2 0 是 `{x | x ≤ 0}` 的上界
+-- ─────────────────────────────────────────────────────────────
+
+-- 展开 `UpperBound` 后目标就是 `∀ x, realLe x zeroReal → realLe x zeroReal`。
+theorem upperBound_nonpos :
+    UpperBound (fun (x : Real) => realLe x zeroReal) zeroReal :=
+  fun (x : Real) (h : realLe x zeroReal) => h
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.3 0 是最小上界
+-- ─────────────────────────────────────────────────────────────
+
+-- `hb` 对任意 `x ∈ S` 给 `x ≤ b`；取 `x = 0`，只需交 `0 ≤ 0`。
+-- 后者经 66.4 的 `realLe_mk` 回到 `realLeRep zeroSeq zeroSeq`，
+-- 由 64.1 的自反（`cauchy_zero` 付守卫）给出。
+theorem least_nonpos (b : Real)
+    (hb : UpperBound (fun (x : Real) => realLe x zeroReal) b) :
+    realLe zeroReal b :=
+  hb zeroReal
+    (Iff.mpr (realLe_mk zeroSeq zeroSeq)
+      (realLeRep_refl zeroSeq cauchy_zero))
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.4 具体集合有 LUB：构造性的存在
+-- ─────────────────────────────────────────────────────────────
+
+-- `HasLUB` 是一个 `∃ b`；见证取 `zeroReal`，两部分交给 72.2 与 72.3。
+-- 这里没有 `Classical.choice`：见证是显式给出的。
+theorem hasLUB_nonpos :
+    HasLUB (fun (x : Real) => realLe x zeroReal) :=
+  Exists.intro zeroReal (And.intro upperBound_nonpos least_nonpos)
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.5 代表元层完备性的常序列版
+-- ─────────────────────────────────────────────────────────────
+
+-- 68.7 对任意 Cauchy 序列给 `TendsTo x x`；常序列的 Cauchy 性是
+-- 68.1 的 `cauchy_const`。
+theorem const_tends_to_class (q : ratRep) :
+    TendsTo (constSeq q) (constSeq q) :=
+  cauchy_tends_to_class (constSeq q) (cauchy_const q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 72.6 具体：常 1 序列收敛到 1
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 72.5 用在 `q := qrep 1 0 0` 上（分母字段 0 就是分母 1）。
+theorem demo_const_tends_to_one :
+    TendsTo (constSeq (qrep 1 Nat.zero Nat.zero))
+      (constSeq (qrep 1 Nat.zero Nat.zero)) :=
+  const_tends_to_class (qrep 1 Nat.zero Nat.zero)

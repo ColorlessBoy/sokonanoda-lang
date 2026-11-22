@@ -1,0 +1,178 @@
+-- 单元79 极限的保号性
+--
+-- 75 说明极限保持非严格序：两条序列终究按 x n ≤ y n 排列时，极限也满足
+-- L ≤ M。反过来问就出现一个缺口：L 为正，能不能断言序列自身为正？
+-- 非严格序只能给 0 ≤ x n，它允许前几项取零。例如 x 0 = 0、之后恒为 1 的
+-- 序列收敛到 1，而第 0 项并不正。所以结论只能是「终究为正」，而且需要
+-- 一个固定的正下界；ε 取 L 的一半就够。
+--
+-- 79.1 做这件事。close 的负侧给 L - x n ≤ L/2；两边加 x n，左边收回 L；
+-- 再两边减 L/2，左边是 L - L/2 ~ L/2，右边是 x n。于是 x n ≥ L/2 > 0。
+-- 79.2 把同一段论证反过来用：极限若是负数，序列终究落在 0 以下，与
+-- 「终究非负」冲突。79.3 由此得到非负极限，79.4 把正的极限换成「终究
+-- 不为零」。
+--
+-- 这里只处理有理代表元层的 `Converges`；类层的保号性要先把 ε-N 接到
+-- `TendsTo`，留给后面的单元。不新增公理。
+
+import lib.LimitAbs
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.0 具体数字 1
+-- ─────────────────────────────────────────────────────────────
+
+def ratOneRep : ratRep := qrep 1 Nat.zero Nat.zero
+
+-- `0 < 1`：序的部分是 `0 ≤ 1`，不等的部分把 `ratRel 0 1` 化成 `0 = 1`
+-- 后交给 `succ_ne_zero`。
+theorem ratLtRep_zero_one : ratLtRep ratZeroRep ratOneRep :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel ratZeroRep ratOneRep) =>
+      succ_ne_zero Nat.zero (Eq.symm h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.1 正的极限把序列的尾部抬到零以上
+-- ─────────────────────────────────────────────────────────────
+
+-- ε 取 `L/2`。`close_neg_bound` 给 `L - x n ≤ L/2`。右加 `x n`：
+-- `(L - x n) + x n ~ L`，得到 `L ≤ L/2 + x n`。再右加 `-(L/2)`：
+-- 左边 `L - L/2 ~ L/2`，右边 `(L/2 + x n) - L/2 ~ x n`。
+-- 于是 `L/2 ≤ x n`，配上 `0 < L/2` 就是 `0 < x n`。
+theorem converges_pos_of_pos (x : Seq) (L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : Converges x L) :
+    Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n)) :=
+  eventually_mono
+    (fun (n : Nat) => close (x n) L (ratHalf L))
+    (fun (n : Nat) => ratLtRep ratZeroRep (x n))
+    (h (ratHalf L) (ratLtRep_half L hL))
+    (fun (n : Nat) (hc : close (x n) L (ratHalf L)) =>
+      ratLtRep_of_lt_le ratZeroRep (ratHalf L) (x n)
+        (ratLtRep_half L hL)
+        (ratLeRep_congr_gen
+          (ratAddRep L (ratNegRep (ratHalf L)))
+          (ratHalf L)
+          (ratAddRep (ratAddRep (ratHalf L) (x n))
+            (ratNegRep (ratHalf L)))
+          (x n)
+          (ratSubRep_half L)
+          (ratAdd_sub_self (ratHalf L) (x n))
+          (ratLeRep_add_right L
+            (ratAddRep (ratHalf L) (x n))
+            (ratNegRep (ratHalf L))
+            (ratLeRep_congr_gen
+              (ratAddRep (ratSubRep L (x n)) (x n)) L
+              (ratAddRep (ratHalf L) (x n))
+              (ratAddRep (ratHalf L) (x n))
+              (ratSubRep_add_self L (x n))
+              (ratRel_refl (ratAddRep (ratHalf L) (x n)))
+              (ratLeRep_add_right (ratSubRep L (x n))
+                (ratHalf L) (x n)
+                (close_neg_bound (x n) L (ratHalf L) hc))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.2 在负极限的 ε/2 邻域里，点落在零以下
+-- ─────────────────────────────────────────────────────────────
+
+-- `close_sub_le` 给 `x - L ≤ -L/2`；`le_of_sub_le` 抬成 `x ≤ -L/2 + L`。
+-- 交换两项后 `-L/2` 就是 `-(L/2)`，`ratSubRep_half` 把它收成 `L/2`。
+-- 而 `L/2 < 0`，传递即得 `x < 0`。
+theorem close_half_neg_lt (x L : ratRep) (hL : ratLtRep L ratZeroRep)
+    (hc : close x L (ratHalf (ratNegRep L))) : ratLtRep x ratZeroRep :=
+  ratLtRep_of_le_lt x (ratHalf L) ratZeroRep
+    (ratLeRep_trans x
+      (ratAddRep (ratHalf (ratNegRep L)) L)
+      (ratHalf L)
+      (le_of_sub_le x L (ratHalf (ratNegRep L))
+        (close_sub_le x L (ratHalf (ratNegRep L)) hc))
+      (ratLeRep_congr_gen
+        (ratAddRep L (ratHalf (ratNegRep L)))
+        (ratAddRep (ratHalf (ratNegRep L)) L)
+        (ratHalf L) (ratHalf L)
+        (ratAdd_comm L (ratHalf (ratNegRep L)))
+        (ratRel_refl (ratHalf L))
+        (ratLeRep_of_ratRel
+          (ratAddRep L (ratHalf (ratNegRep L)))
+          (ratHalf L)
+          (ratSubRep_half L))))
+    (ratLtRep_half_neg L hL)
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.3 负的极限与「终究非负」不能共存
+-- ─────────────────────────────────────────────────────────────
+
+-- `0 < -L`，ε 取 `-L/2`。两条终究性并到同一个 N 后取 `n = N`：
+-- `close_sub_le` 给 `x N - L ≤ ε`，`le_of_sub_le` 抬成 `x N ≤ ε + L`；
+-- 交换两项并把 `ε` 认成 `-(L/2)`，得到 `x N ≤ L/2`。而 `L/2 < 0`，
+-- 所以 `x N < 0`，与 `0 ≤ x N` 由反对称性夹出 `0 ~ x N`，冲突。
+theorem neg_limit_absurd (x : Seq) (L : ratRep) (h : Converges x L)
+    (hn : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n)))
+    (hL : ratLtRep L ratZeroRep) : False :=
+  Exists.elim
+    (eventually_and
+      (fun (n : Nat) => close (x n) L (ratHalf (ratNegRep L)))
+      (fun (n : Nat) => ratLeRep ratZeroRep (x n))
+      (h (ratHalf (ratNegRep L))
+        (ratLtRep_half (ratNegRep L) (ratLtRep_pos_of_neg L hL)))
+      hn)
+    (fun (N : Nat)
+        (hN : ∀ (n : Nat), LeNat N n →
+          close (x n) L (ratHalf (ratNegRep L)) ∧
+          ratLeRep ratZeroRep (x n)) =>
+      (ratLtRep_right (x N) ratZeroRep
+        (close_half_neg_lt (x N) L hL
+          (And.left (hN N (le_refl N)))))
+        (ratRel_symm ratZeroRep (x N)
+          (ratLeRep_antisymm ratZeroRep (x N)
+            (And.right (hN N (le_refl N)))
+            (ratLtRep_le (x N) ratZeroRep
+              (close_half_neg_lt (x N) L hL
+                (And.left (hN N (le_refl N))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.4 终究非负的序列，其极限非负
+-- ─────────────────────────────────────────────────────────────
+
+-- 全性把目标拆成 `0 ≤ L` 与 `L ≤ 0`。后者再用 74.4 分成
+-- `L ~ 0`（此时 `0 ≤ L` 沿等价搬过去）与 `L < 0`（交给 79.3）。
+theorem converges_nonneg_of_eventually_nonneg (x : Seq) (L : ratRep)
+    (h : Converges x L)
+    (hn : Eventually (fun (n : Nat) => ratLeRep ratZeroRep (x n))) :
+    ratLeRep ratZeroRep L :=
+  Or.elim
+    (fun (h0L : ratLeRep ratZeroRep L) => h0L)
+    (fun (hL0 : ratLeRep L ratZeroRep) =>
+      Or.elim
+        (fun (heq : ratRel L ratZeroRep) =>
+          ratLeRep_of_ratRel ratZeroRep L
+            (ratRel_symm L ratZeroRep heq))
+        (fun (hlt : ratLtRep L ratZeroRep) =>
+          False.elim (neg_limit_absurd x L h hn hlt))
+        (ratLeRep_eq_or_lt L ratZeroRep hL0))
+    (ratLeRep_total ratZeroRep L)
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.5 正的极限让尾部不为零
+-- ─────────────────────────────────────────────────────────────
+
+-- 79.1 给终究 `0 < x n`。若同时 `x n ~ 0`，对称后与 `0 < x n`
+-- 的第二分量冲突。
+theorem converges_ne_zero_of_pos (x : Seq) (L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : Converges x L) :
+    Eventually (fun (n : Nat) => ¬ ratRel (x n) ratZeroRep) :=
+  eventually_mono
+    (fun (n : Nat) => ratLtRep ratZeroRep (x n))
+    (fun (n : Nat) => ¬ ratRel (x n) ratZeroRep)
+    (converges_pos_of_pos x L hL h)
+    (fun (n : Nat) (hp : ratLtRep ratZeroRep (x n)) =>
+      fun (hz : ratRel (x n) ratZeroRep) =>
+        (ratLtRep_right ratZeroRep (x n) hp)
+          (ratRel_symm (x n) ratZeroRep hz))
+
+-- ─────────────────────────────────────────────────────────────
+-- 79.6 具体：极限为 1
+-- ─────────────────────────────────────────────────────────────
+
+theorem demo_pos_one (x : Seq) (h : Converges x ratOneRep) :
+    Eventually (fun (n : Nat) => ratLtRep ratZeroRep (x n)) :=
+  converges_pos_of_pos x ratOneRep ratLtRep_zero_one h

@@ -1,0 +1,117 @@
+-- 单元160 取负与逐点等价：可积性只看函数值
+--
+-- 上和与下和由每一段上的函数值定出，所以两个逐点相等的函数应当有同一套台
+-- 阶、同一个可积性。把这条搬运写成等价关系，取负就能直接作用在可积性上：
+-- 曲线在上界下面，取负之后它就在下界的上面，上和与下和互换，差却仍是原来
+-- 那个数。
+--
+-- 搬运从上下界开始。上界压住 `f`，而 `f x` 与 `g x` 只差一次等价，于是同一个上界
+-- 也压住 `g`；下界的方向相反，函数值换到不等式的右边。上和与下和各自沿着
+-- 这一步换过去，可积性的见证于是整条搬完：分割不动，两个和换成新函数的和，
+-- 严格界仍是原来那条。
+--
+-- 取负时两摞台阶互换：上界 `u` 变成下界 `-u`，下界 `l` 变成上界 `-l`。矩形
+-- 和也跟着取负，两个差 `(-l) - (-u)` 与 `u - l` 只差一个负号，所以「差小于
+-- ε」原样成立。反方向把取负用两次，`-(-f)` 与 `f` 逐点相等，先沿点式等价
+-- 换回 `f`，再用一次取负。
+--
+-- 边界：只做逐点等价与取负，不做加法、乘法或常数倍。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RealNeg
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+
+-- ─────────────────────────────────────────────────────────────
+-- 上下界沿点式等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`f x ~ g x`，把 `g x` 送到上界不等式的左边，右端 `u i` 不动；反方向交换等价的方向。
+-- soko:hint 目标形态：`UpperStep a b p f u ↔ UpperStep a b p g u`。
+-- soko:hint 关键件：Iff.intro · ratLeRep_congr_gen · ratRel_symm · ratRel_refl。
+theorem upperStep_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    UpperStep a b p f u ↔ UpperStep a b p g u :=
+  sorry
+
+-- soko:hint 思路：下界在左边，函数值在右边，沿 `f x ~ g x` 换右边；反方向同样交换。
+-- soko:hint 目标形态：`LowerStep a b p f l ↔ LowerStep a b p g l`。
+-- soko:hint 关键件：Iff.intro · ratLeRep_congr_gen · ratRel_symm · ratRel_refl。
+theorem lowerStep_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    LowerStep a b p f l ↔ LowerStep a b p g l :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个和沿点式等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把上和展开成一摞上界，上界沿上一条换到 `g`，矩形和与 `U` 的关系原样保留。
+-- soko:hint 目标形态：`UpperSum a b p f U ↔ UpperSum a b p g U`。
+-- soko:hint 关键件：upperSum_witness · upperStep_congr_fun · Iff.mp · Iff.mpr。
+theorem upperSum_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    UpperSum a b p f U ↔ UpperSum a b p g U :=
+  sorry
+
+-- soko:hint 思路：与上和同形，只是把下界那一摞换过去。
+-- soko:hint 目标形态：`LowerSum a b p f L ↔ LowerSum a b p g L`。
+-- soko:hint 关键件：lowerSum_witness · lowerStep_congr_fun · Iff.mp · Iff.mpr。
+theorem lowerSum_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    LowerSum a b p f L ↔ LowerSum a b p g L :=
+  sorry
+
+-- soko:hint 思路：可积性的见证是分割、两个和与严格界；两个和各自沿上面的等价换到 `g`，分割与差不动。
+-- soko:hint 目标形态：`Integrable a b f ↔ Integrable a b g`。
+-- soko:hint 关键件：upperSum_congr_fun · lowerSum_congr_fun · Iff.mp · Iff.mpr · Exists.elim。
+theorem integrable_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    Integrable a b f ↔ Integrable a b g :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界取负变成下界，下界取负变成上界，上和与下和跟着对调；差的负号用 `ratSubRep_neg_neg` 与 `ratSubRep_neg` 合成原来的差。
+-- soko:hint 目标形态：`Integrable a b (fun x => - f x)`。
+-- soko:hint 关键件：upperSum_neg · lowerSum_neg · ratSubRep_neg_neg · ratSubRep_neg · ratLtRep_congr_fst。
+theorem integrable_neg (a b : ratRep) (f : ratRep → ratRep)
+    (h : Integrable a b f) :
+    Integrable a b (fun (x : ratRep) => ratNegRep (f x)) :=
+  sorry
+
+-- soko:hint 思路：反方向把取负用两次；`-(-f)` 与 `f` 逐点等价，先沿 `integrable_congr_fun` 换回 `f`，再用一次 `integrable_neg`。
+-- soko:hint 目标形态：`Integrable a b (fun x => - f x) ↔ Integrable a b f`。
+-- soko:hint 关键件：integrable_congr_fun · integrable_neg · ratNegRep_invol · Iff.mp。
+theorem integrable_neg_iff (a b : ratRep) (f : ratRep → ratRep) :
+    Integrable a b (fun (x : ratRep) => ratNegRep (f x)) ↔
+      Integrable a b f :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值函数可积，取负保持可积；两条接起来。
+-- soko:hint 目标形态：`Integrable a b (fun _ => - k)`。
+-- soko:hint 关键件：integrable_const · integrable_neg。
+theorem demo_integrable_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
+  sorry

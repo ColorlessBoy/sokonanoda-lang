@@ -1,0 +1,102 @@
+-- 单元㊸ 有理数加法的代表元律：交换与零元
+--
+-- ㉖ 立了 ℚ 加法的代表元公式
+--
+--   (a-b)/(m+1) + (c-d)/(n+1) = [a(n+1)+c(m+1) - (b(n+1)+d(m+1))] / ((m+1)(n+1))
+--
+-- 并结清了两条良定义义务；但**运算律**还没证。本单元结清两条：
+--
+--   x + y ~ y + x          （㊸.3）
+--   x + 0 ~ x              （㊸.4）
+--   0 + x ~ x              （㊸.5，由交换律与 ㊸.4）
+--
+-- 为什么先做这两条：下一单元的「序与加法相容」要把 `x ≤ y` 搬到 `x + z ≤ y + z`，
+-- 而**左**加（`z + x ≤ z + y`）靠的是「先交换、用右加、再交换回来」——
+-- 没有 ㊸.3 就无法把右加版本变成左加版本。
+--
+-- 证明路线：
+--
+--   ㊸.1 / ㊸.2 是加零的**算术小件**：`a·1` 定义性展开成 `a + a*0`，`a*0 = 0`
+--   再 `add_zero` 消掉；分母 `ratDenRep m 0 = (m*0 + m) + 0` 同理退化成 `m`。
+--
+--   ㊸.3 在**代表元层**比较：`x + y` 与 `y + x` 的分子只差两次 `add_comm`，
+--   分母只差 `ratDenRep_comm`。所以先把两边都用 `mulRep_den_form` 化成
+--   「分子 × 正分母」的规范形（`ratRel` 的交叉乘积），再用
+--   `prod_mk_congr` + `congrArg` 把两个规范形证成**相等**，最后 `intRel_of_eq`。
+--
+--   ㊸.4 先把 `x + 0` 这个**三元组**搬成 `qrep a b m`（㊸.1/㊸.2 消掉零项），
+--   再用 `ratRel_refl`。
+--
+--   ㊸.5 是 `ratRel` 的传递链：`0 + x ~ x + 0`（㊸.3）→ `x`（㊸.4）。
+--
+--   ㊸.6 是具体计算：`1/2 + 1/3` 的代表元公式定义性归约成 `5/6 = qrep 5 0 5`。
+--
+-- 写法提醒：`ratRep` 是 `Prod (Prod Nat Nat) Nat` 的**定义别名**，`match` 只认
+-- 归纳类型本身。所以通用陈述（㊸.3–㊸.5）要先在一个 `_aux`（展开类型上的）
+-- 定理里 match 到字面三元组，再把字面结果转发给通用陈述 —— ㊷ 的
+-- `ratSubRep_neg_aux` 就是同一个写法。
+
+import lib.Cauchy
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.1 加零的分子形状：`a·1 + 0·(m+1) = a`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`myMul a (succ 0)` 定义性展开成 `a + a*0`；`myMul_zero a` 把 `a*0` 换成 `0`，`add_zero` 消掉 `+0` 得 `a`。第二个加数 `0*(m+1)` 用 `zero_mul` 换成 `0`，再用一次 `add_zero`。
+-- soko:hint 目标形态：`Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a`。
+-- soko:hint 关键件：myMul_succ · myMul_zero · zero_mul · add_zero · congrArg · Eq.trans。
+theorem ratAdd_zero_num (a m : Nat) :
+    Nat.add (myMul a (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ m)) = a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.2 加零的分母形状：`ratDenRep m 0 = m`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratDenRep m 0` 定义性展开成 `(m*0 + m) + 0`。`myMul_zero m` 把 `m*0` 换成 `0`，`zero_add m` 把 `0 + m` 换成 `m`，最后 `add_zero m` 消掉尾巴。
+-- soko:hint 目标形态：`ratDenRep m Nat.zero = m`。
+-- soko:hint 关键件：myMul_zero · zero_add · add_zero · congrArg · Eq.trans。
+theorem ratAdd_zero_den (m : Nat) : ratDenRep m Nat.zero = m :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.3 交换律：`x + y ~ y + x`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：在展开类型上 match 到 `qrep a b m`、`qrep p q n`。`x + y` 的分子是 `a(n+1) + p(m+1)`，`y + x` 的是 `p(m+1) + a(n+1)`（差一次 `add_comm`）；分母字段是 `ratDenRep m n` 与 `ratDenRep n m`（差 `ratDenRep_comm`）。两边各用 `mulRep_den_form` 化成 `(分子·(m+1)(n+1), …)` 的规范形；`prod_mk_congr` + 两次 `congrArg` 把两个规范形证成相等，`intRel_of_eq` 收口，中间用 `intRel_trans` 串。
+-- soko:hint 目标形态：`ratRel (ratAddRep x y) (ratAddRep y x)`；字面形式的目标里分母字段分别是 `ratDenRep n m` 与 `ratDenRep m n`。
+-- soko:hint 关键件：mulRep_den_form · ratDenRep_comm · add_comm · prod_mk_congr · intRel_of_eq · intRel_trans · intRel_symm · congrArg。
+theorem ratAdd_comm (x y : ratRep) :
+    ratRel (ratAddRep x y) (ratAddRep y x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.4 右加零：`x + 0 ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`x + 0` 的代表元是 `qrep (a·1 + 0·(m+1)) (b·1 + 0·(m+1)) (ratDenRep m 0)`。用 ㊸.1、㊸.2 把它搬成 `qrep a b m`（`prod_mk_congr` 拼分子，`congrArg` 改分母字段），再把等式用 `Eq.subst` 代进 `ratRel · (qrep a b m)`，目标就变成自反性 `ratRel_refl`。
+-- soko:hint 目标形态：`ratRel (ratAddRep x ratZeroRep) x`；字面形式是 `ratRel (qrep (a·1+0·(m+1)) (b·1+0·(m+1)) (ratDenRep m 0)) (qrep a b m)`。
+-- soko:hint 关键件：ratAdd_zero_num · ratAdd_zero_den · prod_mk_congr · congrArg · Eq.trans · Eq.symm · Eq.subst · ratRel_refl。
+theorem ratAdd_zero (x : ratRep) : ratRel (ratAddRep x ratZeroRep) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.5 左加零：`0 + x ~ x`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先 ㊸.3 把 `0 + x` 换成 `x + 0`，再用 ㊸.4 换成 `x`；两段用 `ratRel_trans_gen`（`lib/Cauchy` 已经收好的任意代表元传递律）串起来。
+-- soko:hint 目标形态：`ratRel (ratAddRep ratZeroRep x) x`。
+-- soko:hint 关键件：ratAdd_comm · ratAdd_zero · ratRel_trans_gen。
+theorem ratAdd_zero_left (x : ratRep) : ratRel (ratAddRep ratZeroRep x) x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊸.6 具体计算：`1/2 + 1/3 = 5/6`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `1/2 + 1/3` 按代表元公式算出来：分子第一坐标 `1·3 + 1·2 = 5`，第二坐标 `0·3 + 0·2 = 0`，分母字段 `ratDenRep 1 2 = 1*2 + 1 + 2 = 5`。`qrep 5 0 5` 的分母是 `5+1 = 6`，正好是 `5/6`。两个三元组定义性相等，所以 `ratRel_refl (qrep 5 0 5)` 直接判。
+-- soko:hint 目标形态：`ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5)`。
+-- soko:hint 关键件：ratRel_refl（两边定义性归约成同一个三元组）。
+theorem demo_add_compute :
+    ratRel (ratAddRep (qrep 1 0 1) (qrep 1 0 2)) (qrep 5 0 5) :=
+  sorry

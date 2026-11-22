@@ -1,0 +1,136 @@
+-- 单元149 极值点的导数为零：曲线在最高处没有斜率
+--
+-- 山坡的最高点处，切线若还是斜的，曲线就会有一侧继续往上走，那里也就不再
+-- 是最高点。换成函数的语言：在局部极大值点附近，函数值不能随 x 往右增大，
+-- 也不能随 x 往左增大；单元148 已经把导数的正负翻译成曲线往哪一侧抬高，
+-- 于是一个局部极大值点把导数的两个符号都排除，只剩零。
+--
+-- 定义先把「局部」写成半径为 delta 的邻域：邻域内每一点的函数值都不超过
+-- f a，就是局部极大；反过来每一点都不低于 f a，就是局部极小。邻域同时管
+-- 两侧，所以 a 必须是定义域的内点；端点上的极值不在讨论范围内。
+--
+-- 证明只做极大。若 L > 0，`risesRight_of_deriv_pos` 在 a 的右侧给出一点 x，
+-- 使 f a < f x，与局部极大的 f x ≤ f a 冲突；若 L < 0，
+-- `risesLeft_of_deriv_neg` 在左侧给出同样的冲突。两个严格不等式都被排除，
+-- 再用 ℚ 的序全性把 0 ≤ L 与 L ≤ 0 两支各收到 0 ~ L 或 L ~ 0 上。极小值
+-- 不重做一遍：把曲线关于 x 轴翻过来，极小变极大，导数变成 -L，而 -L 为零
+-- 与 L 为零是同一件事。
+--
+-- 边界：只讨论内点上的双侧极值，单侧极值与整段区间上的最值需要别的工具。
+-- 恒等函数在零点可导，却既不是局部极大也不是局部极小，这条反例说明可导
+-- 本身不保证任何极值。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.Cauchy
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LastNegative
+import lib.Monotone
+import lib.LimitOrder
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+import lib.DerivShift
+import lib.DerivSign
+
+-- ─────────────────────────────────────────────────────────────
+-- 局部极大与局部极小
+-- ─────────────────────────────────────────────────────────────
+
+-- 「局部极大」：有一个正半径，邻域内每一点的函数值都不超过 f a。邻域不
+-- 排除 a 本身，这与单元133 的保号邻域不同；把 a 算进来不影响结论。
+def LocalMaxAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a)
+
+-- 「局部极小」：邻域内每一点的函数值都不低于 f a。
+def LocalMinAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)
+
+-- soko:hint 思路：定义就是右边那串量词，两个方向都直接返回假设。
+-- soko:hint 目标形态：`LocalMaxAt f a ↔ ∃ delta, 0 < delta ∧ ∀ x, close x a delta → f x ≤ f a`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem localMaxAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMaxAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a) :=
+  sorry
+
+-- soko:hint 思路：同上，把不等式两端对调即可。
+-- soko:hint 目标形态：`LocalMinAt f a ↔ ∃ delta, 0 < delta ∧ ∀ x, close x a delta → f a ≤ f x`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem localMinAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMinAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 极大值把两个方向都挡住
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：反证。取极大邻域与抬高邻域的较小半径 d，在 a 右侧取 x = a + d/2。它同时落在两个邻域里：抬高给出 `f a < f x`，极大给出 `f x ≤ f a`；反对称性把这两个不等式合成 `f a ~ f x`，与严格小的第二分量冲突。
+-- soko:hint 目标形态：`LocalMaxAt f a → ¬ RisesRight f a`。
+-- soko:hint 关键件：exists_min_pos · close_add_right · close_mono_eps · ratLtRep_self_add_pos · ratLeRep_antisymm · And.right。
+theorem not_risesRight_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesRight f a :=
+  sorry
+
+-- soko:hint 思路：与右侧同构。这次在 a 左侧取 x = a - d/2，`close_sub_half` 把它送进邻域，`ratLtRep_self_sub_pos` 给出 x < a；剩下的一步不变。
+-- soko:hint 目标形态：`LocalMaxAt f a → ¬ RisesLeft f a`。
+-- soko:hint 关键件：exists_min_pos · close_sub_half · close_mono_eps · ratLtRep_self_sub_pos · ratLeRep_antisymm · And.right。
+theorem not_risesLeft_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesLeft f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 导数只能是零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：若 0 < L，右侧抬高与上一条的「不抬高」冲突；若 L < 0，左侧抬高同样冲突。于是 ¬ 0 < L 与 ¬ L < 0。序全性给 0 ≤ L 或 L ≤ 0，每支再用 `ratLeRep_eq_or_lt` 拆成相等或严格小，严格小那一支撞上刚得到的否定，相等那一支就是目标（必要时把等式两端对调）。
+-- soko:hint 目标形态：`HasDerivAt f a L → LocalMaxAt f a → L ~ 0`。
+-- soko:hint 关键件：risesRight_of_deriv_pos · risesLeft_of_deriv_neg · ratLeRep_total · ratLeRep_eq_or_lt · ratRel_symm · False.elim。
+theorem deriv_zero_of_localMax (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmax : LocalMaxAt f a) :
+    ratRel L ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 极小值：把曲线翻过来
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：极小说 `f a ≤ f x`；两边取负，不等号翻成 `-f x ≤ -f a`，这正是 -f 的局部极大，半径原样沿用。
+-- soko:hint 目标形态：`LocalMinAt f a → LocalMaxAt (fun x => -f x) a`。
+-- soko:hint 关键件：ratLeRep_neg_gen · Exists.intro · And.intro。
+theorem localMaxAt_neg_of_localMin (f : ratRep → ratRep) (a : ratRep)
+    (h : LocalMinAt f a) : LocalMaxAt (fun (x : ratRep) => ratNegRep (f x)) a :=
+  sorry
+
+-- soko:hint 思路：对 -f 用极大版本，得到 `-L ~ 0`；两边同时取负，`-(-L)` 收回 L、`-0` 收回 0，就有 `L ~ 0`。
+-- soko:hint 目标形态：`HasDerivAt f a L → LocalMinAt f a → L ~ 0`。
+-- soko:hint 关键件：hasDerivAt_neg · deriv_zero_of_localMax · ratNegRep_wd · ratNegRep_invol · ratRel_symm · ratRel_trans_gen。
+theorem deriv_zero_of_localMin (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmin : LocalMinAt f a) :
+    ratRel L ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个反例
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：任取极大邻域的半径 delta，右侧点 0 + delta/2 落在邻域里。极大要求它 ≤ 0，而它严格大于 0；反对称性给出 `0 ~ (0 + delta/2)`，与严格小的第二分量冲突。
+-- soko:hint 目标形态：`¬ LocalMaxAt (fun x => x) 0`。
+-- soko:hint 关键件：close_add_right · ratLtRep_self_add_pos · ratLeRep_antisymm · not_ratRel_symm · And.right。
+theorem demo_id_not_localMax : ¬ LocalMaxAt (fun (x : ratRep) => x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：把右侧换成左侧：点 0 - delta/2 落在邻域里，极小要求它 ≥ 0，而它严格小于 0；反对称性给出它与 0 相等，与严格小的第二分量冲突。
+-- soko:hint 目标形态：`¬ LocalMinAt (fun x => x) 0`。
+-- soko:hint 关键件：close_sub_half · ratLtRep_self_sub_pos · ratLeRep_antisymm · And.right。
+theorem demo_id_not_localMin : ¬ LocalMinAt (fun (x : ratRep) => x) ratZeroRep :=
+  sorry

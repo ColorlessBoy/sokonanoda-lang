@@ -1,0 +1,229 @@
+-- 课程库：导数的垂直平移与取负（141 的代数准备）
+--
+-- 导数只看差商 `f x - f a`。把整条曲线沿 y 轴抬高一个常数 c，分子变成
+-- `(f x + c) - (f a + c)`，c 在减法里抵消；把曲线关于 x 轴翻过来，分子变成
+-- `(-f x) - (-f a) = -(f x - f a)`，整条式子变号。两种操作都只改「分子」，
+-- 斜率函数照旧（第二种整体取负），导数的极限也就照旧（或取负）。
+--
+-- 代表元层的准备是三条等式：减去同一个加数不改变差、乘一个负数等于把积
+-- 取负、取负过减法。前两条负责把平移与翻折翻译回原来的差商；第三条把
+-- `-(f x - f a)` 收成 `(-f x) - (-f a)`，正是取负后函数值的差。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatAssoc
+import lib.RatGroup
+import lib.RatSub
+import lib.RatRing
+import lib.RatAbsOrder
+import lib.LimitOrder
+import lib.Bounded
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+
+-- ─────────────────────────────────────────────────────────────
+-- 141.1 减去同一个加数
+-- ─────────────────────────────────────────────────────────────
+
+-- `(x + c) - (y + c) ~ x - y`。证明把两边都加上 `y + c`，用
+-- `(u - v) + v ~ u` 各自收回 `x + c`，再消去公共加数。这样只需要结合律、
+-- 减法自反与加法消去，不必把括号逐层摊开。
+
+theorem ratSubRep_add_cancel (x y c : ratRep) :
+    ratRel (ratSubRep (ratAddRep x c) (ratAddRep y c)) (ratSubRep x y) :=
+  ratRel_add_cancel_gen
+    (ratSubRep (ratAddRep x c) (ratAddRep y c))
+    (ratSubRep x y)
+    (ratAddRep y c)
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep (ratAddRep x c) (ratAddRep y c)) (ratAddRep y c))
+      (ratAddRep x c)
+      (ratAddRep (ratSubRep x y) (ratAddRep y c))
+      (ratSubRep_add_self (ratAddRep x c) (ratAddRep y c))
+      (ratRel_symm (ratAddRep (ratSubRep x y) (ratAddRep y c))
+        (ratAddRep x c)
+        (ratRel_trans_gen
+          (ratAddRep (ratSubRep x y) (ratAddRep y c))
+          (ratAddRep (ratAddRep (ratSubRep x y) y) c)
+          (ratAddRep x c)
+          (ratRel_symm (ratAddRep (ratAddRep (ratSubRep x y) y) c)
+            (ratAddRep (ratSubRep x y) (ratAddRep y c))
+            (ratAdd_assoc (ratSubRep x y) y c))
+          (ratAddRep_wd_gen (ratAddRep (ratSubRep x y) y) x c
+            (ratSubRep_add_self x y)))))
+
+-- 减去同一个被减数：`(x - c) - (y - c) ~ x - y`。这是上一条把 c 换成 `-c`，
+-- 因为 `x - c` 按定义就是 `x + (-c)`。
+
+theorem ratSubRep_neg_cancel (x y c : ratRep) :
+    ratRel (ratSubRep (ratSubRep x c) (ratSubRep y c)) (ratSubRep x y) :=
+  ratSubRep_add_cancel x y (ratNegRep c)
+
+-- ─────────────────────────────────────────────────────────────
+-- 141.2 取负与乘法、减法
+-- ─────────────────────────────────────────────────────────────
+
+-- `x * (-y) ~ -(x * y)`。两边按 `qrep` 展开后只是两个乘积次序不同：
+-- 左边第一格是 `a·d + b·c`，右边取负后第一格也是 `a·d + b·c`。
+
+theorem ratMul_neg_aux (x y : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x (ratNegRep y)) (ratNegRep (ratMulRep x y)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      ratRel_refl
+        (@prod_mk (Prod Nat Nat) Nat
+          (@prod_mk Nat Nat
+            (Nat.add (myMul a d) (myMul b c))
+            (Nat.add (myMul a c) (myMul b d)))
+          (ratDenRep m n))
+
+theorem ratMul_neg (x y : ratRep) :
+    ratRel (ratMulRep x (ratNegRep y)) (ratNegRep (ratMulRep x y)) :=
+  ratMul_neg_aux x y
+
+-- `-(x - y) ~ (-x) - (-y)`。先把 `-(x + (-y))` 拆成 `-x + -(-y)`
+-- （取负对加法分配），再让 `-(-y)` 回到 y。右边按定义就是 `-x + -(-y)`。
+
+theorem ratNeg_sub (x y : ratRep) :
+    ratRel (ratNegRep (ratSubRep x y))
+      (ratSubRep (ratNegRep x) (ratNegRep y)) :=
+  ratNegRep_add x (ratNegRep y)
+
+-- ─────────────────────────────────────────────────────────────
+-- 141.3 垂直平移
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数原样保留。逐点把 `f x - f a` 换成 `(f x + c) - (f a + c)`，
+-- 由 141.1 保证两者等价。
+
+theorem isSlope_add_const (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (c : ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratAddRep (f x) c) a q :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a))
+      (ratSubRep (ratAddRep (f x) c) (ratAddRep (f a) c))
+      (h x hne)
+      (ratRel_symm (ratSubRep (ratAddRep (f x) c) (ratAddRep (f a) c))
+        (ratSubRep (f x) (f a)) (ratSubRep_add_cancel (f x) (f a) c))
+
+theorem hasDerivAt_add_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) c) a L :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro q
+        (And.intro (isSlope_add_const f a q c (And.left hq))
+          (And.right hq)))
+
+theorem differentiableAt_add_const (f : ratRep → ratRep) (a c : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratAddRep (f x) c) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro L (hasDerivAt_add_const f a L c hL))
+
+-- `f - c` 是 `f + (-c)` 的写法，斜率函数同样不变。
+
+theorem isSlope_sub_const (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (c : ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratSubRep (f x) c) a q :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (q x))
+      (ratSubRep (f x) (f a))
+      (ratSubRep (ratSubRep (f x) c) (ratSubRep (f a) c))
+      (h x hne)
+      (ratRel_symm (ratSubRep (ratSubRep (f x) c) (ratSubRep (f a) c))
+        (ratSubRep (f x) (f a)) (ratSubRep_neg_cancel (f x) (f a) c))
+
+theorem hasDerivAt_sub_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) c) a L :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro q
+        (And.intro (isSlope_sub_const f a q c (And.left hq))
+          (And.right hq)))
+
+theorem differentiableAt_sub_const (f : ratRep → ratRep) (a c : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratSubRep (f x) c) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro L (hasDerivAt_sub_const f a L c hL))
+
+-- ─────────────────────────────────────────────────────────────
+-- 141.4 取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 斜率函数整体取负。逐点走三步：`(x-a) * (-q x)` 收到 `-((x-a) * q x)`，
+-- 再用假设把它换成 `-(f x - f a)`，最后摊成 `(-f x) - (-f a)`。
+
+theorem isSlope_neg (f : ratRep → ratRep) (a : ratRep)
+    (q : ratRep → ratRep) (h : IsSlope f a q) :
+    IsSlope (fun (x : ratRep) => ratNegRep (f x)) a
+      (fun (x : ratRep) => ratNegRep (q x)) :=
+  fun (x : ratRep) (hne : ¬ ratRel x a) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (ratNegRep (q x)))
+      (ratNegRep (ratMulRep (ratSubRep x a) (q x)))
+      (ratSubRep (ratNegRep (f x)) (ratNegRep (f a)))
+      (ratMul_neg (ratSubRep x a) (q x))
+      (ratRel_trans_gen
+        (ratNegRep (ratMulRep (ratSubRep x a) (q x)))
+        (ratNegRep (ratSubRep (f x) (f a)))
+        (ratSubRep (ratNegRep (f x)) (ratNegRep (f a)))
+        (ratNegRep_wd (ratMulRep (ratSubRep x a) (q x))
+          (ratSubRep (f x) (f a)) (h x hne))
+        (ratNeg_sub (f x) (f a)))
+
+theorem hasDerivAt_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  Exists.elim h
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =>
+      Exists.intro (fun (x : ratRep) => ratNegRep (q x))
+        (And.intro (isSlope_neg f a q (And.left hq))
+          (tendsToAt_neg q a L (And.right hq))))
+
+theorem differentiableAt_neg (f : ratRep → ratRep) (a : ratRep)
+    (h : DifferentiableAt f a) :
+    DifferentiableAt (fun (x : ratRep) => ratNegRep (f x)) a :=
+  Exists.elim h
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =>
+      Exists.intro (ratNegRep L) (hasDerivAt_neg f a L hL))
+
+-- ─────────────────────────────────────────────────────────────
+-- 141.5 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 恒等函数抬高一格，在零点仍然是斜率一；翻过来，在零点斜率是负一。
+
+theorem demo_deriv_shift_id :
+    HasDerivAt (fun (x : ratRep) => ratAddRep x ratOneRep) ratZeroRep
+      ratOneRep :=
+  hasDerivAt_add_const (fun (x : ratRep) => x) ratZeroRep ratOneRep ratOneRep
+    (hasDerivAt_id ratZeroRep)
+
+theorem demo_deriv_neg_id :
+    HasDerivAt (fun (x : ratRep) => ratNegRep x) ratZeroRep
+      (ratNegRep ratOneRep) :=
+  hasDerivAt_neg (fun (x : ratRep) => x) ratZeroRep ratOneRep
+    (hasDerivAt_id ratZeroRep)
+
+theorem demo_deriv_sub_const :
+    HasDerivAt (fun (x : ratRep) => ratSubRep x (qrep 3 Nat.zero Nat.zero))
+      (qrep 2 Nat.zero Nat.zero) ratOneRep :=
+  hasDerivAt_sub_const (fun (x : ratRep) => x) (qrep 2 Nat.zero Nat.zero)
+    ratOneRep (qrep 3 Nat.zero Nat.zero) (hasDerivAt_id (qrep 2 Nat.zero Nat.zero))

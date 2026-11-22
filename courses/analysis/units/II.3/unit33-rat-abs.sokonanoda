@@ -1,0 +1,66 @@
+-- 单元㉝ 有理数的绝对值：关系定义与两条引入规则
+--
+-- 绝对值 `|x|` 在代表元上要按 `x ≥ 0` / `x ≤ 0` 分情况，但本语言没有
+-- 可判定的序（也就没有 `if`）⇒ 我们用**关系**而不是函数来定义它：
+--
+--   ratAbsRel x y  :⟺  (0 ≤ x ∧ y ~ x) ∨ (x ≤ 0 ∧ y ~ -x)
+--
+-- 读作「y 是 x 的绝对值」。两条引入规则正好对应两个分支；具体计算
+-- `|-1/2| = 1/2` 走右分支。
+--
+-- 唯一性（`|x|` 真的只有一个值）需要序的三歧性，留到后续单元；本单元
+-- 只把定义与两条引入规则立起来，供 Cauchy 序列的 `|x_n - x_m|` 使用。
+--
+-- 本单元自带定义与前序地基（L3：律必须留在单元里）。
+
+import lib.Rat
+
+def ratLeRep (x y : ratRep) : Prop :=
+  leRep (mulRep (numOf x) (den (denOf y)))
+        (mulRep (numOf y) (den (denOf x)))
+
+def ratNegRep (x : ratRep) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat (negRep (numOf x)) (denOf x)
+
+def ratZeroRep : ratRep := qrep Nat.zero Nat.zero Nat.zero
+
+def ratAbsRel (x y : ratRep) : Prop :=
+  (ratLeRep ratZeroRep x ∧ ratRel y x) ∨
+    (ratLeRep x ratZeroRep ∧ ratRel y (ratNegRep x))
+
+-- ─────────────────────────────────────────────────────────────
+-- ㉝.1 零的绝对值是零
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：走左分支；`0 ≤ 0` 用 `leRep_refl`，`0 ~ 0` 用 `ratRel_refl`。
+-- soko:hint 目标形态：`ratAbsRel ratZeroRep ratZeroRep`。
+-- soko:hint 关键件：Or.inl · And.intro · leRep_refl · ratRel_refl。
+theorem ratAbsRel_zero : ratAbsRel ratZeroRep ratZeroRep :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：假设 `0 ≤ x`，走左分支；相等用自反性。
+-- soko:hint 目标形态：`ratLeRep ratZeroRep x → ratAbsRel x x`。
+-- soko:hint 关键件：Or.inl · And.intro · ratRel_refl。
+theorem ratAbsRel_of_nonneg (x : ratRep) (h : ratLeRep ratZeroRep x) :
+    ratAbsRel x x :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：假设 `x ≤ 0`，走右分支；`y` 取 `-x`，相等用自反性。
+-- soko:hint 目标形态：`ratLeRep x ratZeroRep → ratAbsRel x (ratNegRep x)`。
+-- soko:hint 关键件：Or.inr · And.intro · ratRel_refl。
+theorem ratAbsRel_of_nonpos (x : ratRep) (h : ratLeRep x ratZeroRep) :
+    ratAbsRel x (ratNegRep x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：走右分支。`-1/2 = (0,1)/2 ≤ 0` 交叉相乘得 `0 ≤ 1`；`1/2` 与 `-(0,1)/2 = (1,0)/2` 定义性相同，用自反性。
+-- soko:hint 目标形态：`ratAbsRel (qrep 0 1 1) (qrep 1 0 1)`。
+-- soko:hint 关键件：Or.inr · le_succ · le_refl · ratRel_refl · ratNegRep 的 ι 归约。
+theorem demo_abs_neg_half :
+    ratAbsRel (qrep Nat.zero 1 1) (qrep 1 Nat.zero 1) :=
+  sorry

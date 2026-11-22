@@ -1,0 +1,79 @@
+-- 课程库：扩展实数 ±∞ 与它们的序
+--
+-- 84 与 85 只谈「有实数上界」或「有实数下界」的集合。一个无上界的集合
+-- （例如全体实数）在 ℝ 里没有上界，也就没有上确界。为了让上确界这个词
+-- 对任意集合都有指称，这里在 ℝ 的两端各加一个形式端点：
+--
+--   · `negInf` —— 比每个有限点都小；
+--   · `fin x`  —— 实数 `x` 的嵌入；
+--   · `posInf` —— 比每个有限点都大。
+--
+-- 序 `ele` 只在这三个构造子上按行定义。`eleFin` 与 `eleTop` 是 `ele`
+-- 的两行，单独命名是因为本语言不允许在 `def` 里嵌套 `match`；它们没有
+-- 独立的数学含义。
+--
+-- 本文件只放载体、序与定义性展开的否定事实。序的传递、反对称与端点分离
+-- 在单元86 的画布上证明，按惯例之后再收回本模块。
+--
+-- 判别式 `isNegInf` 与 `isPosInf` 用来区分构造子。它们不依赖序，因此
+-- 能在没有 Cauchy 见证的点上使用。
+--
+-- 边界：本模块不声明任何公理，也不替 ℝ 补上选择公理。
+
+import lib.RealOrderLift
+
+-- ─────────────────────────────────────────────────────────────
+-- 载体
+-- ─────────────────────────────────────────────────────────────
+
+inductive ExtReal : Type
+ctor negInf : ExtReal
+ctor fin (x : Real) : ExtReal
+ctor posInf : ExtReal
+end
+
+-- ─────────────────────────────────────────────────────────────
+-- 序：`ele a b` 读作「a ≤ b」
+-- ─────────────────────────────────────────────────────────────
+
+-- `ele` 的第一行：负无穷不超过任何点。
+def eleFin (x : Real) (b : ExtReal) : Prop :=
+  @ExtReal.rec (fun (_ : ExtReal) => Prop) False
+    (fun (y : Real) => realLe x y) True b
+
+-- `ele` 的第三行：正无穷只与自己对得上。
+def eleTop (b : ExtReal) : Prop :=
+  @ExtReal.rec (fun (_ : ExtReal) => Prop) False
+    (fun (y : Real) => False) True b
+
+def ele (a b : ExtReal) : Prop :=
+  @ExtReal.rec (fun (_ : ExtReal) => Prop) True
+    (fun (x : Real) => eleFin x b) (eleTop b) a
+
+-- 有限实数的嵌入。
+def ofReal (x : Real) : ExtReal := fin x
+
+-- ─────────────────────────────────────────────────────────────
+-- 构造子判别
+-- ─────────────────────────────────────────────────────────────
+
+def isNegInf (a : ExtReal) : Prop :=
+  @ExtReal.rec (fun (_ : ExtReal) => Prop) True (fun (x : Real) => False) False a
+
+def isPosInf (a : ExtReal) : Prop :=
+  @ExtReal.rec (fun (_ : ExtReal) => Prop) False (fun (x : Real) => False) True a
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义性展开：不可能的三行
+-- ─────────────────────────────────────────────────────────────
+
+-- `ele (fin x) negInf` 按定义就是 `False`。这三条让证明在不可能的分支上
+-- 可以直接消去，不需要另外的构造子分离原理。
+theorem not_ele_fin_negInf (x : Real) : ¬ ele (fin x) negInf :=
+  fun (h : ele (fin x) negInf) => h
+
+theorem not_ele_posInf_negInf : ¬ ele posInf negInf :=
+  fun (h : ele posInf negInf) => h
+
+theorem not_ele_posInf_fin (x : Real) : ¬ ele posInf (fin x) :=
+  fun (h : ele posInf (fin x)) => h

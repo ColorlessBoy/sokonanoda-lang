@@ -1,29 +1,11 @@
 #!/usr/bin/env node
-// **G-96 自断言复现**：内建记法 `=` 上没有 F12 落点 + 指令注释行里的目标名不可跳。
-//
-// 用户动作（判据必须打在这里 ✗ 不许拿别处当替身）：光标停在
-//   * `a = b` 里那个 **`=` 字符**上（有 `import` 的项目 + 单文件两种都要）；
-//   * prelude 里 `-- sokonanoda:builtin-notation "∧" => And` 这行的 **`And` 字符**上。
-//
-// 台账 `today`（2026-10-10 实测，真 LSP）：
-//   * `=` ⇒ `textDocument/definition` = **null**（三处特例叠加：词法剔除 `=` ·
-//     prelude 不登记它 ⇒ `Span::default()` · LSP 的 `span.start.offset != 0` 闸门
-//     把 offset 0 的内建直接放过）—— 既不报错也不跳 ✗；
-//   * 注释里的 `And` ⇒ **null**（`notation_target_at` 是**词法**扫描，注释不产生
-//     token ⇒ F12 / hover / documentHighlight 三条消费者全空 ✗）—— 与仓库白纸黑字的
-//     **两跳模型**（`G23-notation-navigation.js`）矛盾；
-//   * 同行的 `∧`（对照）**跳得动** ⇒ 用户看到的「有的能跳、有的不能」。
-//
-// 修后契约（2026-10-10，`docs/design/notation-subset.md` 的 T-D20 段）：
-//   ① prelude 登记区补 `-- sokonanoda:builtin-notation "=" => Eq` ⇒ `=` 的 F12 落
-//      **那一行**（与另外 5 条内建记法对称）；
-//   ② `notation_target_at` 同时认**注释形态** ⇒ 注释里的目标名走已有真相通道
-//      （`project_definition` → `prelude_def_span`）落到**定义那一行**
-//      （`And` ⇒ `inductive And`，`Eq` ⇒ `axiom Eq`）——**必须断言落点行号**，
-//      只断言「非 null」会放过**原地跳**（E05/G-37 的教训 ✗）。
-//
-// 退出码约定（全部 repro 脚本一致，见 docs/gaps/README.md）：
-//   0 = 缺口仍在 · 1 = 已修 · 2 = 环境/形状异常（需要人看）
+// G-96 自断言复现：内建记法 `=` 上没有 F12 落点，指令注释行里的目标名也不可跳。
+// 判据打在用户动作上：光标停在 `a = b` 里那个 `=` 字符，或者 prelude 里
+// `-- sokonanoda:builtin-notation "∧" => And` 这行的 `And` 字符上。`=` 要在有
+// import 的项目与单文件两种形态下都断言。修后契约是 `=` 落 prelude 登记行、
+// 注释里的目标名落定义那一行（`And` ⇒ `inductive And`），并且必须断言落点行号；
+// 只断言非 null 会放过原地跳。根因与历史见台账 G-96 的 today。
+// 退出码：0 = 缺口仍在 · 1 = 已修 · 2 = 环境/形状异常。
 
 'use strict';
 
@@ -35,7 +17,17 @@ const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const SOKO = path.join(ROOT, 'scripts', 'soko');
 const PRELUDE = path.join(ROOT, 'prelude', 'Prelude.sokonanoda');
-const PRELUDE_R = path.resolve(PRELUDE);
+
+/// 落点是不是 prelude 视图。仓库构建落 `<repo>/prelude/Prelude.sokonanoda`，
+/// 缓存/发布产物落 `<cache>/prelude/Prelude.sokonanoda`，两处字节相同。所以断言
+/// 目录形状与行文本，不钉死绝对路径；落到用户文件或原处仍然判红。
+function isPreludeView(file) {
+  return (
+    typeof file === 'string' &&
+    path.basename(file) === 'Prelude.sokonanoda' &&
+    path.basename(path.dirname(file)) === 'prelude'
+  );
+}
 
 const uri = (f) => 'file://' + f;
 
@@ -180,7 +172,7 @@ const ok = (cond, msg) => {
   ok(at !== null, '`=`（项目模式）上 F12 仍是 null ✗');
   if (at) {
     ok(
-      at.file === PRELUDE_R && at.text.startsWith('-- sokonanoda:builtin-notation "=" =>'),
+      isPreludeView(at.file) && at.text.startsWith('-- sokonanoda:builtin-notation "=" =>'),
       `\`=\` 的 F12 落点不对：${at.file}:${at.line} = ${JSON.stringify(at.text)}`,
     );
   }
@@ -200,7 +192,7 @@ const ok = (cond, msg) => {
   ok(at !== null, '`=`（单文件）上 F12 仍是 null ✗');
   if (at) {
     ok(
-      at.file === PRELUDE_R && at.text.startsWith('-- sokonanoda:builtin-notation "=" =>'),
+      isPreludeView(at.file) && at.text.startsWith('-- sokonanoda:builtin-notation "=" =>'),
       `\`=\`（单文件）的 F12 落点不对：${at.file}:${at.line} = ${JSON.stringify(at.text)}`,
     );
   }
@@ -218,7 +210,7 @@ const ok = (cond, msg) => {
   ok(at !== null, '`∧` 上 F12 变成 null 了（回归 ✗）');
   if (at) {
     ok(
-      at.file === PRELUDE_R && at.text.startsWith('-- sokonanoda:builtin-notation "∧" =>'),
+      isPreludeView(at.file) && at.text.startsWith('-- sokonanoda:builtin-notation "∧" =>'),
       `\`∧\` 的 F12 落点不对：${at.file}:${at.line} = ${JSON.stringify(at.text)}`,
     );
   }
@@ -237,7 +229,7 @@ const ok = (cond, msg) => {
   ok(at !== null, '注释登记行里的 `And` 上 F12 仍是 null ✗');
   if (at) {
     ok(
-      at.file === PRELUDE_R && at.text.startsWith('inductive And'),
+      isPreludeView(at.file) && at.text.startsWith('inductive And'),
       `注释里 \`And\` 的落点不是定义那一行：${at.file}:${at.line} = ${JSON.stringify(at.text)}`,
     );
   }

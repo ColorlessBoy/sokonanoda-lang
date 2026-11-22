@@ -1,0 +1,197 @@
+-- 课程库：函数极限的唯一性（单元142 的引擎）
+--
+-- 函数极限 `TendsToAt f a L` 只说「存在一个半径，把 a 的邻域送进 L 的
+-- ε 邻域」，并没有说 L 只有一个。可一条曲线在一点附近不可能同时贴着两条
+-- 不同的水平线；把两份 ε/2 的接近性在同一个 `x ≠ a` 上接起来，
+-- `close_trans` 就给出 `close L M ε`，对每个 ε 成立，于是 `L ~ M`。
+--
+-- 两个细节决定这条证明能不能落地：
+--
+--   · 两份半径要先取到同一个点上。序是全的，取较小的半径即可；
+--   · 邻域里必须有 `x ≠ a` 的点可取。`a + δ/2` 就是这样一个点：它离 a
+--     不到 δ，而「等于 a」会逼出 `δ/2 ~ 0`，与 `δ/2 > 0` 冲突。
+--
+-- 这条唯一性是对极限值说的。同一个函数的两条斜率函数是否逐点相同，还要
+-- 从 `(x - a)·q x ~ (x - a)·r x` 里消去非零因子，那是另一件事。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；不新增公理，也不碰
+-- kernel/front。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatOrder
+import lib.RatRing
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.Bounded
+import lib.RealEq
+import lib.LastNegative
+import lib.LimAt
+import lib.LimAtAlgebra
+
+-- ─────────────────────────────────────────────────────────────
+-- 142.1 邻域里有异于中心的一点
+-- ─────────────────────────────────────────────────────────────
+
+-- `a + δ/2` 落在 a 的 δ 邻域里：`(a + δ/2) - a ~ δ/2`，而 `δ/2 < δ`。
+-- 它不等于 a：若相等，把两边同时减去 a，就得到 `δ/2 ~ 0`，撞上
+-- `δ/2 > 0` 的严格性。
+
+theorem exists_close_ne (a delta : ratRep)
+    (hd : ratLtRep ratZeroRep delta) :
+    ∃ (x : ratRep), close x a delta ∧ ¬ ratRel x a :=
+  Exists.intro (ratAddRep a (ratHalf delta))
+    (And.intro
+      (close_add_right a (ratHalf delta) delta
+        (ratLtRep_half delta hd)
+        (ratHalf_lt_self delta hd))
+      (fun (h : ratRel (ratAddRep a (ratHalf delta)) a) =>
+        ratLtRep_right ratZeroRep (ratHalf delta)
+          (ratLtRep_half delta hd)
+          (ratRel_symm (ratHalf delta) ratZeroRep
+            (ratRel_trans_gen (ratHalf delta)
+              (ratSubRep (ratAddRep a (ratHalf delta)) a)
+              ratZeroRep
+              (ratRel_symm (ratSubRep (ratAddRep a (ratHalf delta)) a)
+                (ratHalf delta)
+                (ratAdd_sub_self a (ratHalf delta)))
+              (ratRel_trans_gen
+                (ratSubRep (ratAddRep a (ratHalf delta)) a)
+                (ratSubRep a a)
+                ratZeroRep
+                (ratSubRep_wd (ratAddRep a (ratHalf delta)) a a a h
+                  (ratRel_refl a))
+                (ratSubRep_self a))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 142.2 换掉极限值：等价的数可以互换
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 `u` 在 ε 内接近 L，而 L 与 M 相等，那么同一个见证 d 也把 `u - M`
+-- 压住：`u - L ~ u - M`，绝对值沿这条等价搬过去。
+
+theorem close_of_ratRel_right (u L M eps : ratRep)
+    (h : close u L eps) (hLM : ratRel L M) : close u M eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep u L) d ∧ ratLtRep d eps) =>
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left (ratSubRep u L) (ratSubRep u M) d
+            (ratSubRep_wd u u L M (ratRel_refl u) hLM)
+            (And.left hd))
+          (And.right hd)))
+
+theorem tendsToAt_congr_value (f : ratRep → ratRep) (a L M : ratRep)
+    (h : TendsToAt f a L) (hLM : ratRel L M) : TendsToAt f a M :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (d : ratRep)
+          (hd : ratLtRep ratZeroRep d ∧
+            ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+              close (f x) L eps) =>
+        Exists.intro d
+          (And.intro (And.left hd)
+            (fun (x : ratRep) (hx : close x a d)
+                (hne : ¬ ratRel x a) =>
+              close_of_ratRel_right (f x) L M eps
+                ((And.right hd) x hx hne) hLM)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 142.3 两份半径取小者
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条极限各给一个半径。把 `x ≠ a` 取在两份半径都管得到的地方：若 d ≤ d'，
+-- 就取 d；否则取 d'。差值的三角不等式是 `close_trans` 的现成形式：
+-- `close L (f x) ε/2` 与 `close (f x) M ε/2` 合起来是 `close L M ε`。
+
+theorem close_of_two_limits (f : ratRep → ratRep) (a L M eps dL dM : ratRep)
+    (hdL : ratLtRep ratZeroRep dL)
+    (hdM : ratLtRep ratZeroRep dM)
+    (heps : ratLtRep ratZeroRep eps)
+    (hL : ∀ (x : ratRep), close x a dL → ¬ ratRel x a →
+      close (f x) L (ratHalf eps))
+    (hM : ∀ (x : ratRep), close x a dM → ¬ ratRel x a →
+      close (f x) M (ratHalf eps)) :
+    close L M eps :=
+  @Or.elim (ratLeRep dL dM) (ratLeRep dM dL) (close L M eps)
+    (fun (hle : ratLeRep dL dM) =>
+      @Exists.elim ratRep (fun (x : ratRep) => close x a dL ∧ ¬ ratRel x a)
+        (close L M eps)
+        (exists_close_ne a dL hdL)
+        (fun (x : ratRep) (hx : close x a dL ∧ ¬ ratRel x a) =>
+          close_trans L (f x) M eps heps
+            (close_symm (f x) L (ratHalf eps)
+              (hL x (And.left hx) (And.right hx)))
+            (hM x (close_mono_eps x a dL dM (And.left hx) hle)
+              (And.right hx))))
+    (fun (hle : ratLeRep dM dL) =>
+      @Exists.elim ratRep (fun (x : ratRep) => close x a dM ∧ ¬ ratRel x a)
+        (close L M eps)
+        (exists_close_ne a dM hdM)
+        (fun (x : ratRep) (hx : close x a dM ∧ ¬ ratRel x a) =>
+          close_trans L (f x) M eps heps
+            (close_symm (f x) L (ratHalf eps)
+              (hL x (close_mono_eps x a dM dL (And.left hx) hle)
+                (And.right hx)))
+            (hM x (And.left hx) (And.right hx))))
+    (ratLeRep_total dL dM)
+
+-- ─────────────────────────────────────────────────────────────
+-- 142.4 极限唯一
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个 ε > 0，两条极限各把 ε 折半，取小半径，在 `a + δ/2` 上接起来，
+-- 得到 `close L M ε`。ε 任意，`ratRel_of_close_all` 把它收成 `L ~ M`。
+
+theorem tendsToAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : TendsToAt f a L) (hM : TendsToAt f a M) : ratRel L M :=
+  ratRel_of_close_all L M
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      @Exists.elim ratRep
+        (fun (dL : ratRep) => ratLtRep ratZeroRep dL ∧
+          ∀ (x : ratRep), close x a dL → ¬ ratRel x a →
+            close (f x) L (ratHalf eps))
+        (close L M eps)
+        (hL (ratHalf eps) (ratLtRep_half eps heps))
+        (fun (dL : ratRep)
+            (hdL : ratLtRep ratZeroRep dL ∧
+              ∀ (x : ratRep), close x a dL → ¬ ratRel x a →
+                close (f x) L (ratHalf eps)) =>
+          @Exists.elim ratRep
+            (fun (dM : ratRep) => ratLtRep ratZeroRep dM ∧
+              ∀ (x : ratRep), close x a dM → ¬ ratRel x a →
+                close (f x) M (ratHalf eps))
+            (close L M eps)
+            (hM (ratHalf eps) (ratLtRep_half eps heps))
+            (fun (dM : ratRep)
+                (hdM : ratLtRep ratZeroRep dM ∧
+                  ∀ (x : ratRep), close x a dM → ¬ ratRel x a →
+                    close (f x) M (ratHalf eps)) =>
+              close_of_two_limits f a L M eps dL dM
+                (And.left hdL) (And.left hdM) heps
+                (And.right hdL) (And.right hdM))))
+
+-- 常函数与恒等函数是两个可以逐字读出的样本：它们的极限只能是自己。
+
+theorem tendsToAt_unique_const (c a L : ratRep)
+    (h : TendsToAt (fun (_ : ratRep) => c) a L) : ratRel c L :=
+  tendsToAt_unique (fun (_ : ratRep) => c) a c L
+    (tendsToAt_const c a) h
+
+theorem tendsToAt_unique_id (a L : ratRep)
+    (h : TendsToAt (fun (x : ratRep) => x) a L) : ratRel a L :=
+  tendsToAt_unique (fun (x : ratRep) => x) a a L
+    (tendsToAt_id a) h
+
+-- 常函数零在零点不可能以 1 为极限：唯一性会给出 `0 ~ 1`，而 `0 < 1`
+-- 的严格性正是「不相等」。
+theorem demo_zero_not_one (a : ratRep) :
+    ¬ TendsToAt (fun (_ : ratRep) => ratZeroRep) a ratOneRep :=
+  fun (h : TendsToAt (fun (_ : ratRep) => ratZeroRep) a ratOneRep) =>
+    ratLtRep_right ratZeroRep ratOneRep ratLtRep_zero_one
+      (tendsToAt_unique_const ratZeroRep a ratOneRep h)

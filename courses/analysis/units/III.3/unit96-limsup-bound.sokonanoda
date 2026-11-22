@@ -1,0 +1,105 @@
+-- 单元96 上下极限与常数界
+--
+-- 93 与 94 把上下极限定义成极限点集合的上下确界，但极限点只说「反复靠近
+-- 哪里」，不说每一项落在哪里。要估一个上下极限，最直接的办法是给序列本身
+-- 找一个不随 n 变化的界：每一项都不超过 B 时，收敛到极限点的那些项也不超过
+-- B，于是 B 压住整个极限点集合，而上极限是这类界里最小的。
+--
+-- 96.0 立下上界与下界的说法。96.1 与 96.2 证两个单向的界。96.3 与 96.4 放宽
+-- 到终究：有限项可以越过常数，从某一项起满足就够。96.5 是常序列的实例，96.6
+-- 把两侧的界并起来。
+--
+-- 边界：常数界是充分条件。`limsup ≤ B` 不反推每一项都不超过 B：首项可以短暂
+-- 高于 B，只要后面不再靠近。不新增公理。
+
+import lib.Limsup
+import lib.Liminf
+import lib.LimitLe
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.0 序列的上界与下界
+-- ─────────────────────────────────────────────────────────────
+
+-- `BoundedAbove x B`：B 压住序列的每一项。
+def BoundedAbove (x : Seq) (B : ratRep) : Prop :=
+  ∀ (n : Nat), ratLeRep (x n) B
+
+-- `BoundedBelow x B`：B 托住序列的每一项。
+def BoundedBelow (x : Seq) (B : ratRep) : Prop :=
+  ∀ (n : Nat), ratLeRep B (x n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.1 上界压住上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- 对每个极限点 P，先取见证轨道 g。`x ∘ g` 的每一项都不超过 B，极限保持
+-- 非严格序给出 `P ≤ B`。于是 B 是极限点集合的一个上界，上确界的最小性
+-- （93.2）把 L 压在它下面。
+theorem limsup_le_of_boundedAbove (x : Seq) (B L : ratRep)
+    (hB : BoundedAbove x B) (hL : Limsup x L) : ratLeRep L B :=
+  limsup_least x L hL B
+    (fun (P : ratRep) (hP : LimitPoint x P) =>
+      Exists.elim hP
+        (fun (g : Nat → Nat)
+            (hg : Subseq g ∧ Converges (fun (n : Nat) => x (g n)) P) =>
+          converges_le_const (fun (n : Nat) => x (g n)) P B (And.right hg)
+            (Exists.intro Nat.zero
+              (fun (n : Nat) (_hn : LeNat Nat.zero n) => hB (g n)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.2 下界托住下极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 96.1 的序翻过来。对每个极限点 P 取见证轨道 g，`B ≤ x (g n)` 沿轨道传给 `converges_le_of_eventually`（与常序列 `constSeq B` 比较），得到 `B ≤ P`；94.2 的最大性再给出 `B ≤ L`。
+-- soko:hint 目标形态：`ratLeRep B L`。
+-- soko:hint 关键件：liminf_greatest · converges_le_of_eventually · converges_const。
+theorem le_liminf_of_boundedBelow (x : Seq) (B L : ratRep)
+    (hB : BoundedBelow x B) (hL : Liminf x L) : ratLeRep B L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.3 终究有上界就压住上极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：96.1 的证明只用到「从某个 N 起 x n ≤ B」。把阈值 N 交给轨道：n ≥ N 时 `g n ≥ n ≥ N`（91.3），于是 `x (g n) ≤ B` 从 n = N 起成立。
+-- soko:hint 目标形态：`ratLeRep L B`。
+-- soko:hint 关键件：Eventually 展开 · subseq_ge · leNat_trans · converges_le_const。
+theorem limsup_le_of_eventually_boundedAbove (x : Seq) (B L : ratRep)
+    (hB : Eventually (fun (n : Nat) => ratLeRep (x n) B)) (hL : Limsup x L) :
+    ratLeRep L B :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.4 终究有下界就托住下极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：与 96.3 同形。96.2 收敛到极限点的论证里，阈值沿轨道往前搬：n ≥ N 时 `g n ≥ N`，于是 `B ≤ x (g n)` 从 n = N 起成立。
+-- soko:hint 目标形态：`ratLeRep B L`。
+-- soko:hint 关键件：Eventually 展开 · subseq_ge · leNat_trans · converges_le_of_eventually。
+theorem le_liminf_of_eventually_boundedBelow (x : Seq) (B L : ratRep)
+    (hB : Eventually (fun (n : Nat) => ratLeRep B (x n))) (hL : Liminf x L) :
+    ratLeRep B L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.5 常序列的上极限就是它的值
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：93.7 给常序列的上极限 `q`，假设给的是 `L`；93.4 的唯一性把两者接起来。
+-- soko:hint 目标形态：`ratRel L q`。
+-- soko:hint 关键件：limsup_const · limsup_unique。
+theorem limsup_const_rel (q L : ratRep) (h : Limsup (constSeq q) L) : ratRel L q :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 96.6 两侧的界一起给出
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：左侧用 96.2，右侧用 96.1，两条并起来。
+-- soko:hint 目标形态：`ratLeRep B M ∧ ratLeRep L C`。
+-- soko:hint 关键件：And.intro · le_liminf_of_boundedBelow · limsup_le_of_boundedAbove。
+theorem demo_both_bounds (x : Seq) (B C L M : ratRep)
+    (hB : BoundedBelow x B) (hC : BoundedAbove x C)
+    (hM : Liminf x M) (hL : Limsup x L) :
+    ratLeRep B M ∧ ratLeRep L C :=
+  sorry

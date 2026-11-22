@@ -1,0 +1,115 @@
+-- 单元78 夹逼定理
+--
+-- 75 证明了极限保持 ≤：两条序列都收敛时，极限也按同样的顺序排列。但若只
+-- 知道 y 被 x 与 z 夹住，75 还用不上——它要求 y 的极限先存在。本单元补上
+-- 这条存在性：x 与 z 收敛到同一个 L 时，夹在中间的 y 也收敛到 L。
+--
+-- 证明只用一列 eps/2。两侧各给 eps/2 的接近性，再用夹住的序把 y 的两支
+-- 单边界分别压到 z 与 x 的单边界上。绝对值的见证由 ㊺ 的全性给出，两支
+-- 各被一条单边界压住，于是 d ≤ eps/2 < eps。
+--
+-- 边界（明说）：这里只处理「两侧极限相同」的情形。x 与 z 收敛到不同的数
+-- 时，要谈 y 的极限得先有 74 的唯一性做后盾，那条留给后续单元。不新增
+-- 公理。
+
+import lib.Limit
+import lib.LimitOrder
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.0 绝对值的两支（展开成可消去的形状）
+-- ─────────────────────────────────────────────────────────────
+
+-- `ratAbsRel` 是定义别名，`Or.elim` 的分支拿不到它的两个析取支。
+-- 这条引理只做一次定义展开，证明就是它自己。
+theorem abs_cases (a d : ratRep) (h : ratAbsRel a d) :
+    (ratLeRep ratZeroRep a ∧ ratRel d a) ∨
+      (ratLeRep a ratZeroRep ∧ ratRel d (ratNegRep a)) :=
+  h
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.1 绝对值落在两支界之间
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`abs_cases` 把 `ratAbsRel a d` 拆成 `d ~ a` 与 `d ~ -a` 两支；每支用 `ratLeRep_congr_gen` 把已知的 `a ≤ b` / `-a ≤ b` 搬到 `d` 上。
+-- soko:hint 目标形态：`ratLeRep d b`。
+-- soko:hint 关键件：abs_cases · Or.elim · ratLeRep_congr_gen · ratRel_symm · ratRel_refl。
+theorem ratAbsRel_le_of_bounds (a b d : ratRep) (h : ratAbsRel a d)
+    (h1 : ratLeRep a b) (h2 : ratLeRep (ratNegRep a) b) : ratLeRep d b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.2 负的差等于反过来的差
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：三段传递——`ratNegRep_add` 把负号推进括号，`ratNegRep_invol` 消掉 `-(-L)`，`ratAdd_comm` 把两项换位。
+-- soko:hint 目标形态：`ratRel (ratNegRep (ratSubRep x L)) (ratSubRep L x)`。
+-- soko:hint 关键件：ratNegRep_add · ratAddRep_wd_snd_gen · ratNegRep_invol · ratAdd_comm · ratRel_trans_gen。
+theorem ratNegRep_sub (x L : ratRep) :
+    ratRel (ratNegRep (ratSubRep x L)) (ratSubRep L x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.3 close 的负侧单边界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆 `close` 的见证 d；`ratAbsRel_neg_le` 给 `-(x - L) ≤ d`，`d < eps` 投成 `d ≤ eps`；再用 78.2 把 `-(x - L)` 换成 `L - x`。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep L x) eps`。
+-- soko:hint 关键件：ratAbsRel_neg_le · ratLtRep_le · ratNegRep_sub · ratLeRep_congr_gen · ratLeRep_trans。
+theorem close_neg_bound (x L eps : ratRep) (h : close x L eps) :
+    ratLeRep (ratSubRep L x) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.4 两侧 eps/2 的界合成 close
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratAbsRel_total` 给 `|x - L|` 的见证 d；78.1 用两条 eps/2 的界压出 `d ≤ eps/2`；`ratHalf_lt_self` 给 `eps/2 < eps`，`ratLtRep_of_le_lt` 合成 `d < eps`。
+-- soko:hint 目标形态：`close x L eps`。
+-- soko:hint 关键件：ratAbsRel_total · ratAbsRel_le_of_bounds · ratHalf_lt_self · ratLtRep_of_le_lt · Exists.intro。
+theorem close_of_two_bounds (x L eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (h1 : ratLeRep (ratSubRep x L) (ratHalf eps))
+    (h2 : ratLeRep (ratNegRep (ratSubRep x L)) (ratHalf eps)) :
+    close x L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.5 每一步：两条 eps/2 的界把 y 夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：上界 `y - L ≤ z - L ≤ eps/2` 用 `ratLeRep_add_right` 与 68.4 的 `close_sub_le`；下界 `L - y ≤ L - x ≤ eps/2` 先把 `x ≤ y` 取负，再用 `ratLeRep_add_left` 左加 `L`，右边交给 78.3。两条界交给 78.4。
+-- soko:hint 目标形态：`close (y n) L eps`。
+-- soko:hint 关键件：close_sub_le · ratLeRep_add_right · ratLeRep_neg_gen · ratLeRep_add_left · close_neg_bound · close_of_two_bounds · ratNegRep_sub。
+theorem squeeze_step (x y z : Seq) (L eps : ratRep) (n : Nat)
+    (h : close (x n) L (ratHalf eps) ∧
+         (close (z n) L (ratHalf eps) ∧
+          (ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))))
+    (heps : ratLtRep ratZeroRep eps) : close (y n) L eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.6 夹逼定理
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两条极限各在 eps/2 上取阈值，与「夹住」这个终究性用 73.2 的 `eventually_and` 并到同一个 N；之后每个 n ≥ N 交给 78.5。
+-- soko:hint 目标形态：`Converges y L`。
+-- soko:hint 关键件：eventually_and · eventually_mono · ratLtRep_half · squeeze_step。
+theorem converges_squeeze (x y z : Seq) (L : ratRep)
+    (hx : Converges x L) (hz : Converges z L)
+    (hm : Eventually (fun (n : Nat) =>
+      ratLeRep (x n) (y n) ∧ ratLeRep (y n) (z n))) :
+    Converges y L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 78.7 具体：被零序列夹住
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`zeroSeq` 收敛到零（73.6 的 `demo_converges_zero`），把它当作两侧的 x 与 z 直接喂给 78.6。
+-- soko:hint 目标形态：`Converges y ratZeroRep`。
+-- soko:hint 关键件：converges_squeeze · demo_converges_zero · zeroSeq。
+theorem demo_squeeze_zero (y : Seq)
+    (h : Eventually (fun (n : Nat) =>
+      ratLeRep ratZeroRep (y n) ∧ ratLeRep (y n) ratZeroRep)) :
+    Converges y ratZeroRep :=
+  sorry

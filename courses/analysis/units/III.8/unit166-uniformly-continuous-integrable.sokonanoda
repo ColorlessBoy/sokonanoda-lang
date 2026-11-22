@@ -1,0 +1,96 @@
+-- 单元166 一致连续函数可积：把误差分给段数
+--
+-- 一条曲线被两摞台阶夹住时，上下和之差只取决于每段的振幅与区间长度。
+-- 网格越细，振幅越小；网格细化已经能造出任意细的分割。把这两件事接起来，
+-- 一致连续的函数就落在可积的那一类里：给定 ε，先把 ε 分给段数得到每段
+-- 容许的振幅 η，一致连续性再把 η 换成网格 δ，等分分割保证每段短于 δ。
+--
+-- 这里真正起作用的是量词顺序。逐点连续对每个点给一个 δ，而分割的段数又
+-- 依赖 δ；调换这两个量词，每段上的振幅就无法用同一个 η 控制。一致连续把
+-- δ 提到点之前，于是有限个段可以共用同一个振幅界。
+--
+-- 闭区间上的连续函数确实一致连续，但这条桥（Heine–Cantor）要用到区间的
+-- 紧性或完备性。课程目前的完备性只到代表元层的 Cauchy 序列；有理代表元上
+-- 的闭区间不是紧的，逐点连续的函数可以在这类区间上无界。因此这里把一致
+-- 连续作为假设，得到的是它的积分形式，而不是用一条未经证明的定理把假设
+-- 藏起来。
+--
+-- 算术部分只有一步：选段数 N 使 2(b-a) < N，再把 ε 除以 N。每段的振幅
+-- 取 η = ε/N，整条曲线的上下和之差不超过 2η(b-a)，而 2(b-a) < N 保证
+-- 它小于 ε。段数由阿基米德性质给出，除以 N 由等分分割那边的除法给出。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.RatSub
+import lib.RatRing
+import lib.RatArch
+import lib.RatMulOrder
+import lib.Uniform
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+import lib.IntegralStrip
+import lib.IntegralMesh
+
+-- ─────────────────────────────────────────────────────────────
+-- 自然数在有理数里的顺序
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 `natToRat` 展开成 `qrep n 0 0`，交给 `ratLeRep_lit` 的交叉相乘形式；两边分子都化成 n 与 n+1，分母部分是 0。
+-- soko:hint 目标形态：`ratLeRep (qrep n 0 0) (qrep (n+1) 0 0)`。
+-- soko:hint 关键件：ratLeRep_lit · leNat_congr · add_zero · le_succ · le_refl。
+theorem natToRat_le_succ (n : Nat) :
+    ratLeRep (natToRat n) (natToRat (Nat.succ n)) :=
+  sorry
+
+-- soko:hint 思路：对正数 1 与待超过量 `d+d` 用 `arch_lt_of_nonneg`，得到 n 使 `d+d < n·1`；把 `n·1` 换成 n，再用 `le_succ` 把 n 抬到 n+1。
+-- soko:hint 目标形态：`∃ n, ratLtRep (d+d) (natToRat (n+1))`。
+-- soko:hint 关键件：arch_lt_of_nonneg · ratLtRep_zero_one · ratLeRep_zero_add_nonneg · ratMul_one_right · natToRat_le_succ · ratLtRep_of_lt_le。
+theorem exists_nat_gt_double (d : ratRep) (hd : ratLeRep ratZeroRep d) :
+    ∃ (n : Nat), ratLtRep (ratAddRep d d) (natToRat (Nat.succ n)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 把 2ηd 压到 ε 以下
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先把两块 `η·d` 合成 `η·(d+d)`（乘法对加法分配），再用 η 的正性把 `d+d < N` 乘成 `η·(d+d) < η·N`，最后用 `N·η ~ ε` 换到右边。
+-- soko:hint 目标形态：`ratLtRep (η·d + η·d) ε`。
+-- soko:hint 关键件：ratMul_add · ratMul_comm · ratLtRep_mul_pos_left · ratLtRep_congr_fst · ratLtRep_congr_snd · ratRel_trans_gen。
+theorem div_gap_lt (d eps eta : ratRep) (n : Nat)
+    (heta : ratLtRep ratZeroRep eta)
+    (hN : ratRel (ratMulRep (natToRat (Nat.succ n)) eta) eps)
+    (hd : ratLtRep (ratAddRep d d) (natToRat (Nat.succ n))) :
+    ratLtRep
+      (ratAddRep (ratMulRep eta d) (ratMulRep eta d)) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 一致连续推出可积
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：给定 ε，先用 `exists_nat_gt_double` 取 N 使 `2(b-a) < N`，令 η=ε/N；一致连续给网格 δ，等分分割给每段短于 δ 的分割 p；`strip_of_mesh` 给两条台阶与差 `η(b-a)+η(b-a)`；`div_gap_lt` 把这个差压到 ε 以下，最后交给 `integrable_of_gap`。
+-- soko:hint 目标形态：`Integrable a b f`。
+-- soko:hint 关键件：exists_nat_gt_double · ratDiv_pos · exists_mesh_partition · strip_of_mesh · div_gap_lt · integrable_of_gap · ratLtRep_sub_pos。
+theorem uniformlyContinuous_integrable (a b : ratRep)
+    (f : ratRep → ratRep) (hab : ratLtRep a b)
+    (hf : UniformlyContinuous f) : Integrable a b f :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 一个样本
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：恒等函数一致连续（`uniformlyContinuous_id`），区间两端由 `hab` 分开，把两条交给主定理。
+-- soko:hint 目标形态：`Integrable a b (fun x => x)`。
+-- soko:hint 关键件：uniformlyContinuous_integrable · uniformlyContinuous_id。
+theorem demo_integrable_id (a b : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (x : ratRep) => x) :=
+  sorry

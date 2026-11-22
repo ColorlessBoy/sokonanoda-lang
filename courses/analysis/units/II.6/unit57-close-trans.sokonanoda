@@ -1,0 +1,70 @@
+-- 单元57 `close` 的传递性：两个 ε/2 的界加起来
+--
+-- ㊱ 把实数的相等定义成「Cauchy 序列逐点 `close`」，而 `close` 是
+--
+--   close x y eps  :⟺  ∃ d, |x - y| ~ d ∧ d < eps
+--
+-- 要证明 `realRel` 是等价关系，还差**传递性**：
+--
+--   close x y ε/2  ⟹  close y z ε/2  ⟹  close x z ε
+--
+-- 直觉是「三角不等式 + ε 折半」，但代表元层要把三件事接起来：
+--
+--   ① `|x - z|` 与 `|(x - y) + (y - z)|` 是同一个数的两个见证（56 把
+--      `(x - y) + (y - z)` 认成 `x - z`，再用 ㊷ 的 `ratAbsRel_wd_left` 搬过去）；
+--   ② 三角不等式（㊽）给出 `d ≤ dx + dy`；
+--   ③ `dx < ε/2` 与 `dy < ε/2` 加起来是 `dx + dy < ε`（51 + 52）。
+--
+-- 57.1 是严格序在右端的搬运（③ 要用），57.2 是两个半数界相加，57.3 是主定理，
+-- 57.4 落在 `close 0 0 2` 上。
+--
+-- 本单元不引入新定义；前序事实证明已在 `lib/RatClose`。
+
+import lib.RatClose
+import lib.RatSub
+
+-- ─────────────────────────────────────────────────────────────
+-- 57.1 严格序在右端沿 `ratRel` 搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`ratLtRep a b` 是 `ratLeRep a b ∧ ¬ ratRel a b`。弱序沿 `b ~ c` 用 ㊴ 的 `ratLeRep_congr_gen` 搬过去（第一个因子取 `ratRel_refl a`）；不相等部分假设 `a ~ c`，与 `c ~ b` 串成 `a ~ b`，撞上第二分量。
+-- soko:hint 目标形态：`ratLtRep a b → ratRel b c → ratLtRep a c`。
+-- soko:hint 关键件：And.intro · ratLeRep_congr_gen · ratRel_trans_gen · ratRel_symm · And.right。
+theorem ratLtRep_congr_snd (a b c : ratRep)
+    (h : ratLtRep a b) (hbc : ratRel b c) : ratLtRep a c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 57.2 两个半数界相加：`dx < ε/2`、`dy < ε/2` ⇒ `dx + dy < ε`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：51 的 `ratLtRep_add` 给 `dx + dy < ε/2 + ε/2`（注意四个实参的顺序：`dx`、`ε/2`、`dy`、`ε/2`）；52 的 `ratHalf_add_self` 把右端认成 `ε`，再用 57.1 搬过去。
+-- soko:hint 目标形态：`ratLtRep dx (ratHalf eps) → ratLtRep dy (ratHalf eps) → ratLtRep (ratAddRep dx dy) eps`。
+-- soko:hint 关键件：ratLtRep_add · ratHalf_add_self · ratLtRep_congr_snd。
+theorem ratAdd_lt_half (dx dy eps : ratRep)
+    (hx : ratLtRep dx (ratHalf eps)) (hy : ratLtRep dy (ratHalf eps)) :
+    ratLtRep (ratAddRep dx dy) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 57.3 主定理：`close` 的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个 `Exists.elim` 取出见证 `dx`、`dy`；用 ㊺ 的 `ratAbsRel_total` 给 `(x - y) + (y - z)` 取见证 `d`；三角不等式（㊽ 的 `ratLeRep_abs_add`）给 `d ≤ dx + dy`；57.2 给 `dx + dy < ε`；`d < ε` 由 51 的 `ratLtRep_of_le_lt` 夹出来。绝对值的第一分量沿 56 的 `ratSubRep_add` 用 ㊷ 的 `ratAbsRel_wd_left` 搬到 `x - z`。
+-- soko:hint 目标形态：`close x y (ratHalf eps) → close y z (ratHalf eps) → close x z eps`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · ratAbsRel_total · ratSubRep_add · ratAbsRel_wd_left · ratLeRep_abs_add · ratLtRep_of_le_lt · ratAdd_lt_half。
+theorem close_trans (x y z eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (hxy : close x y (ratHalf eps)) (hyz : close y z (ratHalf eps)) :
+    close x z eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 57.4 具体：两次 `close 0 0 1` ⇒ `close 0 0 2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`0 < 2` 的弱序用 `leNat_zero_le`，不相等把 `0 ~ 2` 化成 `0 = 2` 后交给 `succ_ne_zero`；两个前提都是 `close_zero_zero (ratHalf 2)`，正性用 53 的 `ratLtRep_half`。
+-- soko:hint 目标形态：`close ratZeroRep ratZeroRep (qrep 2 0 0)`。
+-- soko:hint 关键件：close_trans · close_zero_zero · ratLtRep_half · leNat_zero_le · succ_ne_zero · Eq.symm。
+theorem demo_close_trans :
+    close ratZeroRep ratZeroRep (qrep 2 Nat.zero Nat.zero) :=
+  sorry

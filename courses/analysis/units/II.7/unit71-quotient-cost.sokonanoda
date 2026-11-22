@@ -1,0 +1,130 @@
+-- 单元71 数系综合：商的代价——一座桥与两座桥
+--
+-- 69 把 ℤ→ℚ 的函数 `intToRat : Int → Rat` **下降**了一次；61 与 66 把 ℝ 的
+-- 加法与序各**下降两次**。两次不是笔误，是 `Quot.lift` 的类型决定的：
+--
+--   Quot.lift : (f : α → β) → (∀ a b, r a b → f a = f b) → Quot r → β
+--
+--   · 当 `β = Rat`（一个 Type），lift 的返回值仍是元素，义务只有一条：
+--     换代表元后像相等（69.2 的 `intToRatRep_wd`）。
+--   · 当 `β = Real → Prop`（61 的加法关系、66 的序），外层 lift 的 `f`
+--     是 `Real → (Real → Prop)`，于是「换代表元后像相等」变成了**函数
+--     相等**：把函数相等化成逐点相等要 `funext`，每个点上的命题相等要
+--     `propext`。这正是 61/66 两个 `def` 里的两次 `Quot.lift` 与两条
+--     外延义务。
+--
+-- 两件代价都**不是新公理**：`funext` 在本课程 L2 是从 `Quot.sound` 证出的
+-- **定理**（`lib/Extensionality`），`propext` 是 L2 已声明的**既有 axiom**
+-- （只在 Prop 层用）。所以「ℝ 的加法是关系而不是函数」不是绕路：
+-- `addRel a b c` 正是两次 lift 之后能诚实拿到的全部。
+--
+-- 本单元把这笔账拆成可判卷的几件：
+--   · 71.0 `quot_lift_mk` —— ι 规则（下降后的计算规则）；
+--   · 71.1 `quot_lift_unique` —— 两个 lift 相等的充分条件（funext + Quot.ind）；
+--   · 71.2 `intToRat_sound` —— 一座桥的过桥费就是良定义性；
+--   · 71.3 `addRel_congr` —— 关系沿三个位置的相等搬运（函数的替换律）；
+--   · 71.4 `addRel_total_on_cauchy` —— 在 Cauchy 代表元上关系有输出；
+--   · 71.5 具体：常零序列上「存在且唯一」。
+
+import lib.Rat
+import lib.RealAddRel
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.0 ι 规则：lift 作用在 mk 上回到代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`Quot.lift` 作用在 `Quot.mk a` 上按 ι 归约成 `f a`，两边是**定义性相等**，直接 `Eq.refl`；不要用 `Quot.sound` 或 `congrArg`。
+-- soko:hint 目标形态：`lift f h (mk a) = f a`。
+-- soko:hint 关键件：Eq.refl（类型写成归约后的 `f a`）。
+theorem quot_lift_mk (α β : Type) (r : α → α → Prop)
+    (f : α → β) (h : ∀ (a b : α), r a b → f a = f b) (a : α) :
+    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.1 两个 lift 相等：逐点相等就够了（funext）
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层 lift 的返回值是函数；要证两个 lift 相等，先 `funext` 化成
+-- 「对每个商点相等」，再 `Quot.ind` 把商点烧成 `mk a`，两次 ι 归约后
+-- 目标就是 `f a = g a`，交给逐点假设。
+-- soko:hint 思路：`funext f g h` 三件都要显式给（两个被比的函数 + 逐点证明）；逐点证明里对商点做 `Quot.ind`，基例经两次 ι 归约就是 `h a`。
+-- soko:hint 目标形态：`lift f hf = lift g hg`。
+-- soko:hint 关键件：funext（显式两个函数）· Quot.ind · ι 归约。
+theorem quot_lift_unique (α β : Type) (r : α → α → Prop)
+    (f g : α → β)
+    (hf : ∀ (a b : α), r a b → f a = f b)
+    (hg : ∀ (a b : α), r a b → g a = g b)
+    (h : ∀ (a : α), f a = g a) :
+    @Quot.lift.{1, 1} α r β f hf = @Quot.lift.{1, 1} α r β g hg :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.2 一座桥：`Int → Rat` 的下降与它的过桥费
+-- ─────────────────────────────────────────────────────────────
+
+def intToRatRep (p : Prod Nat Nat) : ratRep :=
+  @prod_mk (Prod Nat Nat) Nat p Nat.zero
+
+-- 过桥费：换代表元，像在 `ratRel` 下相等。与 69.2 同一条 `mulRep_wd`。
+theorem intToRatRep_wd (p q : Prod Nat Nat) (h : intRel p q) :
+    ratRel (intToRatRep p) (intToRatRep q) :=
+  mulRep_wd (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+    (Prod.fst Nat Nat q) (Prod.snd Nat Nat q) 1 0 h
+
+def intToRat : Int → Rat :=
+  @Quot.lift.{1, 1} (Prod Nat Nat) intRel Rat
+    (fun (p : Prod Nat Nat) => ratOf p Nat.zero)
+    (fun (p q : Prod Nat Nat) (h : intRel p q) =>
+      @Quot.sound.{1} ratRep ratRel (intToRatRep p) (intToRatRep q)
+        (intToRatRep_wd p q h))
+
+-- soko:hint 思路：`intToRat` 作用在 `mk p` 上按 ι 归约成 `Quot.mk ratRel (intToRatRep p)`；于是 `Quot.sound` 把 71.2 的 `intToRatRep_wd` 直接升级成商里的相等。
+-- soko:hint 目标形态：`intToRat (mk p) = intToRat (mk q)`。
+-- soko:hint 关键件：Quot.sound · ι 归约（两处 intToRat 都要烧掉）。
+theorem intToRat_sound (p q : Prod Nat Nat) (h : intRel p q) :
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel p) =
+    intToRat (@Quot.mk.{1} (Prod Nat Nat) intRel q) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.3 两座桥的代价：关系可以沿三个位置搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `addRel` 不是函数，不能 `congrArg`；但它的三个参数都是相等可替换的。
+-- 依次沿 `c`、`b`、`a` 做三次 `Eq.subst`，就把关系搬到新的三元组上。
+-- soko:hint 思路：`h : addRel a b c`。先沿 `hc : c = c'` 搬第三个位置（motive `fun x => addRel a b x`），再沿 `hb` 搬第二个，最后沿 `ha` 搬第一个；`Eq.subst` 的参数是 motive、等式、旧证明。
+-- soko:hint 目标形态：`addRel a b c → a = a' → b = b' → c = c' → addRel a' b' c'`。
+-- soko:hint 关键件：Eq.subst（三次，位置从右到左）· 每次的 motive 只挖一个洞。
+theorem addRel_congr (a a' b b' c c' : Real)
+    (h : addRel a b c) (ha : a = a') (hb : b = b') (hc : c = c') :
+    addRel a' b' c' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.4 关系在 Cauchy 代表元上有输出
+-- ─────────────────────────────────────────────────────────────
+
+-- 取输出 `c := Real.mk (addSeq x y)`；`addRel_intro` 正好是这个三元组，
+-- 两个 `Cauchy` 守卫由假设付清。
+-- soko:hint 思路：`Exists.intro` 的输出取 `Real.mk (addSeq x y)`，证明交给 61.2 的 `addRel_intro x y hx hy`。
+-- soko:hint 目标形态：`∃ (c : Real), addRel (mk x) (mk y) c`。
+-- soko:hint 关键件：Exists.intro · addRel_intro。
+theorem addRel_total_on_cauchy (x y : Seq) (hx : Cauchy x) (hy : Cauchy y) :
+    ∃ (c : Real), addRel (Real.mk x) (Real.mk y) c :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 71.5 具体：常零序列上「存在且唯一」
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把 61.5 的 `addRel_exists_unique` 用在 `zeroSeq`、`zeroSeq` 上；两个 Cauchy 守卫是 `cauchy_zero`。输出的唯一性方向是 `c' = c`（与 61.4 的 `c = c'` 相反），照抄库里的形状。
+-- soko:hint 目标形态：`∃ c, addRel (mk zeroSeq) (mk zeroSeq) c ∧ ∀ c', addRel ... c' → c' = c`。
+-- soko:hint 关键件：addRel_exists_unique · cauchy_zero。
+theorem demo_addRel_exists_unique :
+    ∃ (c : Real),
+      addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c ∧
+        ∀ (c' : Real),
+          addRel (Real.mk zeroSeq) (Real.mk zeroSeq) c' → c' = c :=
+  sorry

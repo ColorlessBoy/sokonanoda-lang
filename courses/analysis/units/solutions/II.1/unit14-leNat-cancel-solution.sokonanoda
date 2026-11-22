@@ -1,0 +1,156 @@
+-- 单元⑭ ℕ 序的加法消去律
+--
+-- 单元⑬ 证了「同加一个数保持序」（leNat_add_right）。要把序良定义地搬到 ℤ 上，
+-- 还需要**反方向**的消去律：
+--   m + k ≤ n + k  ⇒  m ≤ n
+-- 直接对 k 归纳走不通：归纳到后继会卡在「succ m ≤ succ n ⇒ m ≤ n」——
+-- LeNat 的证明没法直接拆掉一层。所以改走两步：
+--   ① 把序**刻画**成「存在一个加数」：LeNat m n ⇔ ∃ k, n = m + k；
+--   ② 消去律落到等式层：a + k = b + k ⇒ a = b（对 k 归纳，用 Nat.succ.inj）。
+-- 下一单元用这条消去律证整数序的良定义性（leRep_wd）。
+import lib.Logic
+import lib.Exists
+import lib.Prod
+
+inductive LeNat : Nat → Nat → Prop
+ctor le_refl (n : Nat) : LeNat n n
+ctor le_succ (m : Nat) (n : Nat) : LeNat m n → LeNat m (Nat.succ n)
+end
+
+def intRel (a b : Prod Nat Nat) : Prop :=
+  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =
+  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)
+
+def Int : Type := @Quot.{1} (Prod Nat Nat) intRel
+
+def leRep (p q : Prod Nat Nat) : Prop :=
+  LeNat (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+        (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+
+-- 以下四条是单元③的 ℕ 加法律，本单元自用（L3：律必须留在单元里）。
+theorem zero_add (b : Nat) :
+    Nat.add Nat.zero b = b :=
+  Nat.rec (fun (n : Nat) => Nat.add Nat.zero n = n)
+    (@Eq.refl.{1} Nat Nat.zero)
+    (fun (n : Nat) (ih : Nat.add Nat.zero n = n) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add Nat.zero n) = Nat.succ m)
+        (Nat.add Nat.zero n) n ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add Nat.zero n))))
+    b
+
+theorem succ_add (a b : Nat) :
+    Nat.add (Nat.succ a) b = Nat.succ (Nat.add a b) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n))
+    (@Eq.refl.{1} Nat (Nat.succ a))
+    (fun (n : Nat) (ih : Nat.add (Nat.succ a) n = Nat.succ (Nat.add a n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.succ a) n) = Nat.succ m)
+        (Nat.add (Nat.succ a) n) (Nat.succ (Nat.add a n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.succ a) n))))
+    b
+
+theorem add_assoc (a b c : Nat) :
+    Nat.add (Nat.add a b) c = Nat.add a (Nat.add b c) :=
+  Nat.rec (fun (n : Nat) => Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n))
+    (@Eq.refl.{1} Nat (Nat.add a b))
+    (fun (n : Nat) (ih : Nat.add (Nat.add a b) n = Nat.add a (Nat.add b n)) =>
+      @Eq.subst.{1} Nat
+        (fun (m : Nat) => Nat.succ (Nat.add (Nat.add a b) n) = Nat.succ m)
+        (Nat.add (Nat.add a b) n) (Nat.add a (Nat.add b n)) ih
+        (@Eq.refl.{1} Nat (Nat.succ (Nat.add (Nat.add a b) n))))
+    c
+
+theorem add_comm (a b : Nat) :
+    Nat.add a b = Nat.add b a :=
+  Nat.rec (fun (n : Nat) => Nat.add a n = Nat.add n a)
+    (@Eq.symm.{1} Nat (Nat.add Nat.zero a) a (zero_add a))
+    (fun (n : Nat) (ih : Nat.add a n = Nat.add n a) =>
+      @Eq.trans.{1} Nat (Nat.succ (Nat.add a n)) (Nat.succ (Nat.add n a)) (Nat.add (Nat.succ n) a)
+        (@Eq.subst.{1} Nat
+          (fun (m : Nat) => Nat.succ (Nat.add a n) = Nat.succ m)
+          (Nat.add a n) (Nat.add n a) ih
+          (@Eq.refl.{1} Nat (Nat.succ (Nat.add a n))))
+        (@Eq.symm.{1} Nat (Nat.add (Nat.succ n) a) (Nat.succ (Nat.add n a)) (succ_add n a)))
+    b
+
+-- 前驱：`pred (succ n) = n` 是定义性相等；用于从前驱等式换回原等式。
+def Nat.pred (n : Nat) : Nat := match n with
+| zero => Nat.zero
+| succ m => m
+
+-- 本语言没有内建的 `Nat.succ.inj`：对等式两边取前驱即得（定义性相等）。
+theorem Nat.succ.inj (a b : Nat) (h : Nat.succ a = Nat.succ b) :
+    a = b :=
+  congrArg.{1} Nat.pred h
+
+-- 转动加数：把 (a+k)+j 换成 (a+j)+k（消去律最后一步要用）。
+theorem add_rotate (a k j : Nat) :
+    Nat.add (Nat.add a k) j = Nat.add (Nat.add a j) k :=
+  @Eq.trans.{1} Nat (Nat.add (Nat.add a k) j) (Nat.add a (Nat.add k j)) (Nat.add (Nat.add a j) k)
+    (add_assoc a k j)
+    (@Eq.trans.{1} Nat (Nat.add a (Nat.add k j)) (Nat.add a (Nat.add j k)) (Nat.add (Nat.add a j) k)
+      (congrArg.{1} (fun (x : Nat) => Nat.add a x) (add_comm k j))
+      (@Eq.symm.{1} Nat (Nat.add (Nat.add a j) k) (Nat.add a (Nat.add j k)) (add_assoc a j k)))
+
+-- 演示：前驱把 succ 的等式还原。
+theorem demo_succ_inj : 1 = 1 :=
+  Nat.succ.inj 1 1 (@Eq.refl.{1} Nat 2)
+
+-- 演示：2 - 0 ≤ 4 - 2 就是 2 + 2 ≤ 4 + 0，两边都是 4。
+theorem demo_leRep_two_four :
+    leRep (@prod_mk Nat Nat 2 Nat.zero) (@prod_mk Nat Nat 4 2) :=
+  le_refl 4
+
+theorem nat_add_cancel_right (a b k : Nat) :
+    Nat.add a k = Nat.add b k → a = b :=
+  Nat.rec
+    (fun (n : Nat) => Nat.add a n = Nat.add b n → a = b)
+    (fun (h : a = b) => h)
+    (fun (n : Nat)
+         (ih : Nat.add a n = Nat.add b n → a = b) =>
+      fun (h : Nat.succ (Nat.add a n) = Nat.succ (Nat.add b n)) =>
+        ih (Nat.succ.inj (Nat.add a n) (Nat.add b n) h))
+    k
+
+theorem leNat_exists_add (m n : Nat) (h : LeNat m n) :
+    ∃ (k : Nat), n = Nat.add m k :=
+  @LeNat.rec
+    (fun (m n : Nat) (_ : LeNat m n) =>
+      ∃ (k : Nat), n = Nat.add m k)
+    (fun (n : Nat) =>
+      Exists.intro Nat.zero (@Eq.refl.{1} Nat n))
+    (fun (m n : Nat) (h : LeNat m n)
+         (ih : ∃ (k : Nat), n = Nat.add m k) =>
+      Exists.elim ih (fun (k : Nat) (hk : n = Nat.add m k) =>
+          Exists.intro (Nat.succ k) (congrArg.{1} Nat.succ hk)))
+    m n h
+
+theorem leNat_self_add (m k : Nat) : LeNat m (Nat.add m k) :=
+  Nat.rec (fun (n : Nat) => LeNat m (Nat.add m n))
+    (le_refl m)
+    (fun (n : Nat) (ih : LeNat m (Nat.add m n)) => le_succ m (Nat.add m n) ih)
+    k
+
+theorem leNat_of_exists_add (m n : Nat)
+    (h : ∃ (k : Nat), n = Nat.add m k) :
+    LeNat m n :=
+  Exists.elim h (fun (k : Nat) (hk : n = Nat.add m k) =>
+      @Eq.subst.{1} Nat (fun (x : Nat) => LeNat m x) (Nat.add m k) n
+        (@Eq.symm.{1} Nat n (Nat.add m k) hk)
+        (leNat_self_add m k))
+
+theorem leNat_add_cancel_right (a b k : Nat)
+    (h : LeNat (Nat.add a k) (Nat.add b k)) : LeNat a b :=
+  leNat_of_exists_add a b
+    (Exists.elim (leNat_exists_add (Nat.add a k) (Nat.add b k) h) (fun (j : Nat)
+           (hj : Nat.add b k = Nat.add (Nat.add a k) j) =>
+        Exists.intro j (nat_add_cancel_right b (Nat.add a j) k
+            (@Eq.trans.{1} Nat (Nat.add b k) (Nat.add (Nat.add a k) j)
+              (Nat.add (Nat.add a j) k)
+              hj
+              (add_rotate a k j)))))
+
+-- 演示：2 + 3 ≤ 2 + 3 消去 3 得 2 ≤ 2。
+theorem demo_leNat_cancel : LeNat 2 2 :=
+  leNat_add_cancel_right 2 2 3 (le_refl 5)

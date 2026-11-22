@@ -1,0 +1,153 @@
+-- 单元104 极限类的唯一性
+--
+-- 一个 Cauchy 序列在 ℝ 里有极限，这是 68 已经证明的代表元层结论。
+-- 到了商上还要回答一个更基本的问题：极限是一个实数，而实数有多个代表元；
+-- 换一个收敛到同一序列的代表元，极限类会不会变？如果不证明它不变，
+-- 「这条序列的极限」就还不是一个可以反复引用的对象。
+--
+-- 104.0–104.2 先把减法估计整理成可复用的形状：把加在减数上的常数并进
+-- 误差，把两段半边估计相加。104.3 固定一个下标，把两条尾部估计合成
+-- 类序的一个方向。104.4 用序的反对称性得到两个极限类相等。104.5–104.6
+-- 把「极限类」写成谓词并证明它唯一。104.7 是常序列的实例。
+--
+-- 边界：只讨论同一个序列的两个极限类，不声称每个实数都有代表元，
+-- 也不在类层构造减法。不新增公理。
+
+import lib.Rat
+import lib.RatAbs
+import lib.RatHalf
+import lib.RatSub
+import lib.RatClose
+import lib.RatAbsOrder
+import lib.LimitOrder
+import lib.RealOrderTrans
+import lib.RealOrderLaws
+import lib.RealComplete
+
+-- 四分之一个误差：两次取半。
+def eps4 (eps : ratRep) : ratRep := ratHalf (ratHalf eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.0 `(b + e) - b ~ e`
+-- ─────────────────────────────────────────────────────────────
+
+-- 减法加回被减数给 `((b + e) - b) + b ~ b + e`，交换律给 `e + b ~ b + e`。
+-- 两边都加同一个 `b`，就能把 `b` 消掉。
+--
+-- soko:hint 思路：先用 `ratSubRep_add_self (ratAddRep b e) b` 得 `((b+e)-b)+b ~ b+e`，再用 `ratAdd_comm b e` 把 `b+e` 换成 `e+b`；两条接起来后交给 `ratRel_add_cancel_gen`，它消去末尾的 `b`。
+-- soko:hint 目标形态：`ratRel (ratSubRep (ratAddRep b e) b) e`。
+-- soko:hint 关键件：ratSubRep_add_self · ratAdd_comm · ratRel_trans_gen · ratRel_add_cancel_gen。
+theorem ratSubRep_add_self_sub (b e : ratRep) :
+    ratRel (ratSubRep (ratAddRep b e) b) e :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.1 把常数并进误差
+-- ─────────────────────────────────────────────────────────────
+
+-- 若 `a - (b + e) ≤ e`，把 `a - b` 看成 `(a - (b + e)) + ((b + e) - b)`。
+-- 第一块不超过 `e`，第二块由 104.0 也压成 `e`。
+--
+-- soko:hint 思路：把 104.0 的等式经 `ratLeRep_of_ratRel` 投成 `(b+e)-b ≤ e`，再与假设 h 一起交给 `ratLeRep_sub_add a (b+e) b e`；它把两段 `≤ e` 相加成 `≤ e + e`。
+-- soko:hint 目标形态：`ratLeRep (ratSubRep a b) (ratAddRep e e)`。
+-- soko:hint 关键件：ratLeRep_sub_add · ratLeRep_of_ratRel · ratSubRep_add_self_sub。
+theorem ratSubRep_add_le_two (a b e : ratRep)
+    (h : ratLeRep (ratSubRep a (ratAddRep b e)) e) :
+    ratLeRep (ratSubRep a b) (ratAddRep e e) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.2 四个四分之一是一个整体
+-- ─────────────────────────────────────────────────────────────
+
+-- 把 `(e+e)+(e+e)` 里的两个 `e+e` 分别换成 `eps/2`，最后再把
+-- `eps/2 + eps/2` 收成 `eps`。
+--
+-- soko:hint 思路：两次 `ratHalf_add_self (ratHalf eps)` 把两个 `e+e` 都换成 `eps/2`：第一次用 `ratAddRep_wd_gen`（换左边），第二次用 `ratAddRep_wd_snd_gen`（换右边）；最后接上 `ratHalf_add_self eps`。
+-- soko:hint 目标形态：`ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) eps`。
+-- soko:hint 关键件：ratHalf_add_self · ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratRel_trans_gen。
+theorem ratHalf_four (eps : ratRep) :
+    ratRel (ratAddRep (ratAddRep (eps4 eps) (eps4 eps))
+                     (ratAddRep (eps4 eps) (eps4 eps)))
+           eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.3 固定一个下标后的尾部估计
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条 `realLeRep` 给两条尾部估计：`L(n) - (x(n₀) + e) ≤ e` 与
+-- `x(n₀) - (L'(n) + e) ≤ e`。各自用 104.1 把常数并进误差，得到两条
+-- `a - b ≤ e + e`，再用 `ratLeRep_sub_add` 相加。
+--
+-- soko:hint 思路：先 `realLeRep_close` 两条假设拿到阈值 M1、M2，用 `leNat_max` 合并成 N；对 n ≥ N，`ratSubRep_add_le_two` 各给一条 `≤ e+e`，`ratLeRep_sub_add` 把它俩加成 `≤ (e+e)+(e+e)`，最后用 `ratLeRep_congr_gen` 沿 104.2 换成 `eps`。
+-- soko:hint 目标形态：`∃ N, ∀ n ≥ N, ratLeRep (ratSubRep (L n) (L' n)) eps`。
+-- soko:hint 关键件：realLeRep_close · leNat_max · ratSubRep_add_le_two · ratLeRep_sub_add · ratHalf_four。
+theorem tendsTo_tail_le (x L L' : Seq) (n0 : Nat) (e eps : ratRep)
+    (hLrep : realLeRep L (addConst (constSeq (x n0)) e))
+    (hL'rep : realLeRep (constSeq (x n0)) (addConst L' e))
+    (he : ratLtRep ratZeroRep e)
+    (hfour : ratRel (ratAddRep (ratAddRep e e) (ratAddRep e e)) eps) :
+    ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+      ratLeRep (ratSubRep (L n) (L' n)) eps :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.4 一个方向的类序
+-- ─────────────────────────────────────────────────────────────
+
+-- 两条 `TendsTo` 各给一个阈值 `N₁`、`N₂`，合并到 `n₀`。固定 `n₀` 后，
+-- `L ≤ x(n₀) + e` 与 `x(n₀) ≤ L' + e` 就是 104.3 需要的两条代表元估计。
+--
+-- soko:hint 思路：取 `e = eps4 eps`。两条 `TendsTo` 在 `e` 上各给 N1、N2，`leNat_max` 合成 n0；把 `realLe` 经 `realLe_mk` 拆成 `realLeRep`，正好是 104.3 的两条前提，末了把 `e+e+e+e` 用 104.2 收成 `eps`。
+-- soko:hint 目标形态：`realLe (Real.mk L) (Real.mk L')`。
+-- soko:hint 关键件：realLe_mk · TendsTo · leNat_max · tendsTo_tail_le · ratHalf_four。
+theorem tendsTo_le_class (x L L' : Seq) (hLc : Cauchy L) (hL'c : Cauchy L')
+    (hL : TendsTo x L) (hL' : TendsTo x L') :
+    realLe (Real.mk L) (Real.mk L') :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.5 极限类相等
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向各用 104.4 一次，再交给 `realLe_antisymm`。
+--
+-- soko:hint 思路：`tendsTo_le_class x L L'` 给 `[L] ≤ [L']`，把 L 与 L' 对调再给 `[L'] ≤ [L]`，两条一起交给 `realLe_antisymm`。
+-- soko:hint 目标形态：`Real.mk L = Real.mk L'`。
+-- soko:hint 关键件：tendsTo_le_class · realLe_antisymm。
+theorem tendsTo_unique_class (x L L' : Seq) (hLc : Cauchy L) (hL'c : Cauchy L')
+    (hL : TendsTo x L) (hL' : TendsTo x L') :
+    Real.mk L = Real.mk L' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.6 极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 「`a` 是 `x` 的极限类」：存在一个 Cauchy 代表元 `L`，它收敛到 `x`，
+-- 而 `a` 正是 `L` 的类。
+def LimitClass (x : Seq) (a : Real) : Prop :=
+  ∃ (L : Seq), Cauchy L ∧ TendsTo x L ∧ a = Real.mk L
+
+-- 两个极限类由 104.5 相等；把 `a = [L]`、`b = [L']` 接上即可。
+--
+-- soko:hint 思路：拆开两条 `LimitClass` 得代表元 L、L'；104.5 给 `[L] = [L']`。目标是 `a = b`，用 `Eq.trans` 串 `a = [L]`、`[L] = [L']`、`[L'] = b`，最后一步取 `Eq.symm`。
+-- soko:hint 目标形态：`a = b`。
+-- soko:hint 关键件：Exists.elim · tendsTo_unique_class · Eq.trans · Eq.symm。
+theorem limitClass_unique (x : Seq) (a b : Real)
+    (ha : LimitClass x a) (hb : LimitClass x b) : a = b :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 104.7 常序列的极限类
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列收敛到自己的类（68 的 `cauchy_tends_to_class`），于是它就是极限类。
+--
+-- soko:hint 思路：`Exists.intro` 取代表元 `constSeq q`；三件分别是 `cauchy_const q`、`cauchy_tends_to_class (constSeq q) (cauchy_const q)`，以及 `Eq.refl`。
+-- soko:hint 目标形态：`LimitClass (constSeq q) (Real.mk (constSeq q))`。
+-- soko:hint 关键件：cauchy_const · cauchy_tends_to_class · Eq.refl · Exists.intro。
+theorem demo_limit_class_const (q : ratRep) :
+    LimitClass (constSeq q) (Real.mk (constSeq q)) :=
+  sorry

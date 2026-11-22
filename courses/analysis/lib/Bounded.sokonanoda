@@ -1,0 +1,295 @@
+-- 课程库：收敛序列与 Cauchy 序列的有界性
+--
+-- 极限只约束尾部，有界性却要管整条序列。单元77 把「尾部给界、有限前缀另给界、
+-- 两个界再用全性合成」这条路线走通，证明收敛序列有界；单元101 用同一个
+-- 引擎证明 Cauchy 序列有界。这里把两处共用的机器收进 L2，后续的代数与
+-- 乘积估计直接引用。
+--
+--   · `ratOneRep` / `ratLtRep_zero_one` —— 估计里常用的数 1 与 `0 < 1`；
+--   · `Bounded` —— 同一个界同时压住 `x n` 与 `-x n`；
+--   · `exists_two_sided_bound` / `exists_upper_of_two` —— 单个数的双侧界，
+--     两个上界合成一个；
+--   · `leNat_pred` / `leNat_zero` —— 前缀归纳的两条 ℕ 引理；
+--   · `exists_prefix_bound` —— 前 0..N 项的统一下界；
+--   · `le_of_neg_add_le` —— 把减法界搬成加法界（`le_of_sub_le` 在 `lib/SubLe`）；
+--   · `close_two_bounds` —— `close` 同时给出两侧的单边界；
+--   · `exists_tail_bound` —— 尾部 `n ≥ N` 的统一下界；
+--   · `converges_bounded` —— 收敛 ⇒ 有界（单元77）；
+--   · `demo_bounded_const` —— 常序列有界。
+--
+-- 边界：只有「有界」这一条，不反推收敛；乘积的上界还要乘法与序相容，
+-- 那条不在本模块。不新增公理，也不碰 kernel/front。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.SubLe
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.0 词表
+-- ─────────────────────────────────────────────────────────────
+
+def ratOneRep : ratRep := qrep 1 Nat.zero Nat.zero
+
+-- `0 < 1`：序的部分是 `0 ≤ 1`，不等的部分把 `ratRel 0 1` 化成 `0 = 1`
+-- 后交给 `succ_ne_zero`。
+theorem ratLtRep_zero_one : ratLtRep ratZeroRep ratOneRep :=
+  And.intro
+    (le_succ Nat.zero Nat.zero (le_refl Nat.zero))
+    (fun (h : ratRel ratZeroRep ratOneRep) =>
+      succ_ne_zero Nat.zero (Eq.symm h))
+
+-- 「有界」写成两侧的单边界：同一个 B 既压住 x n，也压住 -x n。
+def Bounded (x : Seq) : Prop :=
+  ∃ (B : ratRep), ∀ (n : Nat),
+    ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B
+
+-- 以下是两条 ℕ 上的技术引理，证明直接给出，不作练习。
+
+-- n < N+1 ⇒ n ≤ N：把 `succ n ≤ succ N` 化成 `succ N = succ n + k`，
+-- 再用 `succ_add` 把右边提成 `succ (n + k)`，剥掉一层 `succ` 即得。
+theorem leNat_pred (n N : Nat) (h : LeNat (Nat.succ n) (Nat.succ N)) :
+    LeNat n N :=
+  Exists.elim (leNat_exists_add (Nat.succ n) (Nat.succ N) h)
+    (fun (k : Nat) (hk : Nat.succ N = Nat.add (Nat.succ n) k) =>
+      leNat_of_exists_add n N
+        (Exists.intro k
+          (Nat.succ.inj N (Nat.add n k)
+            (Eq.trans hk (succ_add n k)))))
+
+-- n ≤ 0 ⇒ n = 0：`leNat_eq_or_succ` 给出 `n = 0` 或 `succ n ≤ 0`，
+-- 后者由 `leNat_succ_zero_absurd` 否定。
+theorem leNat_zero (n : Nat) (h : LeNat n Nat.zero) : n = Nat.zero :=
+  Or.elim
+    (fun (heq : n = Nat.zero) => heq)
+    (fun (hlt : LeNat (Nat.succ n) Nat.zero) =>
+      False.elim (leNat_succ_zero_absurd n hlt))
+    (leNat_eq_or_succ n Nat.zero h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.1 单个数的双侧界
+-- ─────────────────────────────────────────────────────────────
+
+-- 全性只给出 `a ≤ -a` 或 `-a ≤ a`；两支各取较大者作 B。
+-- 这是一个存在命题，两支都返回同一个 `∃ B`，所以可以直接消去析取。
+theorem exists_two_sided_bound (a : ratRep) :
+    ∃ (B : ratRep), ratLeRep a B ∧ ratLeRep (ratNegRep a) B :=
+  Or.elim
+    (fun (h : ratLeRep a (ratNegRep a)) =>
+      Exists.intro (ratNegRep a) (And.intro h (ratLeRep_refl (ratNegRep a))))
+    (fun (h : ratLeRep (ratNegRep a) a) =>
+      Exists.intro a (And.intro (ratLeRep_refl a) h))
+    (ratLeRep_total a (ratNegRep a))
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.2 两个上界合成一个
+-- ─────────────────────────────────────────────────────────────
+
+-- 与 77.1 同一个手法：全性给出 `B1 ≤ B2` 或 `B2 ≤ B1`，两支都取较大者。
+theorem exists_upper_of_two (B1 B2 : ratRep) :
+    ∃ (B : ratRep), ratLeRep B1 B ∧ ratLeRep B2 B :=
+  Or.elim
+    (fun (h : ratLeRep B1 B2) =>
+      Exists.intro B2 (And.intro h (ratLeRep_refl B2)))
+    (fun (h : ratLeRep B2 B1) =>
+      Exists.intro B1 (And.intro (ratLeRep_refl B1) h))
+    (ratLeRep_total B1 B2)
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.3 有限前缀的统一下界
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 N 归纳。N = 0 时用 77.1 处理 x 0；归纳步把旧界与 x (N+1) 的界用
+-- 77.2 合并，再对 `n ≤ N+1` 分「n = N+1」与「n ≤ N」两支。
+theorem exists_prefix_bound (x : Seq) (N : Nat) :
+    ∃ (B : ratRep), ∀ (n : Nat), LeNat n N →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  Nat.rec
+    (fun (N : Nat) => ∃ (B : ratRep), ∀ (n : Nat), LeNat n N →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B)
+    (Exists.elim (exists_two_sided_bound (x Nat.zero))
+      (fun (B : ratRep)
+          (hB : ratLeRep (x Nat.zero) B ∧
+                ratLeRep (ratNegRep (x Nat.zero)) B) =>
+        Exists.intro B
+          (fun (n : Nat) (hn : LeNat n Nat.zero) =>
+            @Eq.subst.{1} Nat
+              (fun (z : Nat) => ratLeRep (x z) B ∧
+                                ratLeRep (ratNegRep (x z)) B)
+              Nat.zero n
+              (Eq.symm (leNat_zero n hn))
+              hB)))
+    (fun (N : Nat)
+        (ih : ∃ (B : ratRep), ∀ (n : Nat), LeNat n N →
+          ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B) =>
+      Exists.elim ih
+        (fun (B1 : ratRep)
+            (hB1 : ∀ (n : Nat), LeNat n N →
+              ratLeRep (x n) B1 ∧ ratLeRep (ratNegRep (x n)) B1) =>
+          Exists.elim (exists_two_sided_bound (x (Nat.succ N)))
+            (fun (B2 : ratRep)
+                (hB2 : ratLeRep (x (Nat.succ N)) B2 ∧
+                       ratLeRep (ratNegRep (x (Nat.succ N))) B2) =>
+              Or.elim
+                (fun (h12 : ratLeRep B1 B2) =>
+                  Exists.intro B2
+                    (fun (n : Nat) (hn : LeNat n (Nat.succ N)) =>
+                      Or.elim
+                        (fun (heq : n = Nat.succ N) =>
+                          @Eq.subst.{1} Nat
+                            (fun (z : Nat) => ratLeRep (x z) B2 ∧
+                                              ratLeRep (ratNegRep (x z)) B2)
+                            (Nat.succ N) n
+                            (Eq.symm heq)
+                            hB2)
+                        (fun (hlt : LeNat (Nat.succ n) (Nat.succ N)) =>
+                          And.intro
+                            (ratLeRep_trans (x n) B1 B2
+                              (And.left (hB1 n (leNat_pred n N hlt))) h12)
+                            (ratLeRep_trans (ratNegRep (x n)) B1 B2
+                              (And.right (hB1 n (leNat_pred n N hlt))) h12))
+                        (leNat_eq_or_succ n (Nat.succ N) hn)))
+                (fun (h21 : ratLeRep B2 B1) =>
+                  Exists.intro B1
+                    (fun (n : Nat) (hn : LeNat n (Nat.succ N)) =>
+                      Or.elim
+                        (fun (heq : n = Nat.succ N) =>
+                          @Eq.subst.{1} Nat
+                            (fun (z : Nat) => ratLeRep (x z) B1 ∧
+                                              ratLeRep (ratNegRep (x z)) B1)
+                            (Nat.succ N) n
+                            (Eq.symm heq)
+                            (And.intro
+                              (ratLeRep_trans (x (Nat.succ N)) B2 B1
+                                (And.left hB2) h21)
+                              (ratLeRep_trans (ratNegRep (x (Nat.succ N))) B2 B1
+                                (And.right hB2) h21)))
+                        (fun (hlt : LeNat (Nat.succ n) (Nat.succ N)) =>
+                          hB1 n (leNat_pred n N hlt))
+                        (leNat_eq_or_succ n (Nat.succ N) hn)))
+                (ratLeRep_total B1 B2))))
+    N
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.5 负项上的同一条搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- `(-a) + b ≤ eps` 读成 `(-a) - (-b) ≤ eps`，再用 77.4；
+-- 差的第二项要经 `ratNegRep_invol` 换回 `b`。
+theorem le_of_neg_add_le (a b eps : ratRep)
+    (h : ratLeRep (ratAddRep (ratNegRep a) b) eps) :
+    ratLeRep (ratNegRep a) (ratAddRep eps (ratNegRep b)) :=
+  le_of_sub_le (ratNegRep a) (ratNegRep b) eps
+    (ratLeRep_congr_gen
+      (ratAddRep (ratNegRep a) b)
+      (ratAddRep (ratNegRep a) (ratNegRep (ratNegRep b)))
+      eps eps
+      (ratAddRep_wd_snd_gen (ratNegRep a) b (ratNegRep (ratNegRep b))
+        (ratRel_symm (ratNegRep (ratNegRep b)) b (ratNegRep_invol b)))
+      (ratRel_refl eps)
+      h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.6 close 同时给两侧的单边界
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一支是 68.4 的 `close_sub_le`；第二支从绝对值的见证 d 出发，
+-- `ratAbsRel_neg_le` 把 `|x - L|` 的下界搬到 `-(x - L)`，再沿
+-- `ratNegRep_add` 把它认成 `-x + L`。
+theorem close_two_bounds (x L eps : ratRep) (h : close x L eps) :
+    ratLeRep (ratSubRep x L) eps ∧
+    ratLeRep (ratAddRep (ratNegRep x) L) eps :=
+  And.intro
+    (close_sub_le x L eps h)
+    (Exists.elim h
+      (fun (d : ratRep)
+          (hd : ratAbsRel (ratSubRep x L) d ∧ ratLtRep d eps) =>
+        ratLeRep_congr_gen
+          (ratNegRep (ratSubRep x L)) (ratAddRep (ratNegRep x) L)
+          eps eps
+          (ratRel_trans_gen
+            (ratNegRep (ratSubRep x L))
+            (ratAddRep (ratNegRep x) (ratNegRep (ratNegRep L)))
+            (ratAddRep (ratNegRep x) L)
+            (ratNegRep_add x (ratNegRep L))
+            (ratAddRep_wd_snd_gen (ratNegRep x)
+              (ratNegRep (ratNegRep L)) L
+              (ratNegRep_invol L)))
+          (ratRel_refl eps)
+          (ratLeRep_trans (ratNegRep (ratSubRep x L)) d eps
+            (ratAbsRel_neg_le (ratSubRep x L) d (And.left hd))
+            (ratLtRep_le d eps (And.right hd)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.7 尾部的统一下界
+-- ─────────────────────────────────────────────────────────────
+
+-- 同一个 eps 的两条界 `eps + L` 与 `eps + (-L)` 先用 77.2 合成 B，
+-- 再对每个 n ≥ N 用 77.4 / 77.5 与 77.6 接上。
+theorem exists_tail_bound (x : Seq) (L eps : ratRep) (N : Nat)
+    (hN : ∀ (n : Nat), LeNat N n → close (x n) L eps) :
+    ∃ (B : ratRep), ∀ (n : Nat), LeNat N n →
+      ratLeRep (x n) B ∧ ratLeRep (ratNegRep (x n)) B :=
+  Exists.elim (exists_upper_of_two (ratAddRep eps L) (ratAddRep eps (ratNegRep L)))
+    (fun (B : ratRep)
+        (hB : ratLeRep (ratAddRep eps L) B ∧
+              ratLeRep (ratAddRep eps (ratNegRep L)) B) =>
+      Exists.intro B
+        (fun (n : Nat) (hn : LeNat N n) =>
+          And.intro
+            (ratLeRep_trans (x n) (ratAddRep eps L) B
+              (le_of_sub_le (x n) L eps
+                (And.left (close_two_bounds (x n) L eps (hN n hn))))
+              (And.left hB))
+            (ratLeRep_trans (ratNegRep (x n)) (ratAddRep eps (ratNegRep L)) B
+              (le_of_neg_add_le (x n) L eps
+                (And.right (close_two_bounds (x n) L eps (hN n hn))))
+              (And.right hB))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.8 收敛 ⇒ 有界
+-- ─────────────────────────────────────────────────────────────
+
+-- ε 取 1：尾部由 77.7 给界，前缀 0..N 由 77.3 给界，两个界再用 77.2
+-- 合成 B。对每个 n，全性分「n ≤ N」与「N ≤ n」，各自落到对应的界上。
+theorem converges_bounded (x : Seq) (L : ratRep) (h : Converges x L) :
+    Bounded x :=
+  Exists.elim (h ratOneRep ratLtRep_zero_one)
+    (fun (N : Nat)
+        (hN : ∀ (n : Nat), LeNat N n → close (x n) L ratOneRep) =>
+      Exists.elim (exists_prefix_bound x N)
+        (fun (Bpre : ratRep)
+            (hBpre : ∀ (n : Nat), LeNat n N →
+              ratLeRep (x n) Bpre ∧ ratLeRep (ratNegRep (x n)) Bpre) =>
+          Exists.elim (exists_tail_bound x L ratOneRep N hN)
+            (fun (Btail : ratRep)
+                (hBtail : ∀ (n : Nat), LeNat N n →
+                  ratLeRep (x n) Btail ∧ ratLeRep (ratNegRep (x n)) Btail) =>
+              Exists.elim (exists_upper_of_two Bpre Btail)
+                (fun (B : ratRep) (hB : ratLeRep Bpre B ∧ ratLeRep Btail B) =>
+                  Exists.intro B
+                    (fun (n : Nat) =>
+                      Or.elim
+                        (fun (hn : LeNat N n) =>
+                          And.intro
+                            (ratLeRep_trans (x n) Btail B
+                              (And.left (hBtail n hn)) (And.right hB))
+                            (ratLeRep_trans (ratNegRep (x n)) Btail B
+                              (And.right (hBtail n hn)) (And.right hB)))
+                        (fun (hn : LeNat n N) =>
+                          And.intro
+                            (ratLeRep_trans (x n) Bpre B
+                              (And.left (hBpre n hn)) (And.left hB))
+                            (ratLeRep_trans (ratNegRep (x n)) Bpre B
+                              (And.right (hBpre n hn)) (And.left hB)))
+                        (leNat_total N n))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 77.9 具体：常序列有界
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列的每一项都是 q，直接取 q 的双侧界；阈值 N 在这里不起作用。
+theorem demo_bounded_const (q : ratRep) : Bounded (constSeq q) :=
+  Exists.elim (exists_two_sided_bound q)
+    (fun (B : ratRep)
+        (hB : ratLeRep q B ∧ ratLeRep (ratNegRep q) B) =>
+      Exists.intro B (fun (n : Nat) => hB))

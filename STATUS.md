@@ -1,19 +1,2 @@
-## 修复 `apply` 目标不对齐（2026-11-05 · issue #10 · `Set.ext` 之后 `apply h1`）
-- **根因**：`apply` 只做「把被应用项的 Π 层**全部**剥成子目标、拿结论对**整条**目标」这一档；目标本身是 `→`/`∀` 时对不上（Lean 4 的 `MVarId.apply` 从 `i = n - m` 起逐档试，`h1 x` 一个函数就关掉目标）。新增 `apply_partial.rs`（失败边），`apply h1` 在 `x ∈ A → x ∈ B` 上直接关掉；方向错仍报原诊断.
-- **显示根因**：`Set.ext` 的陈述原来写 `A x ↔ B x`（没用 `Set.mem`）⇒ `apply Set.ext` 之后目标面板是 `A x ↔ B x`（`A`/`x` 无着色）。改成 `Set.mem x A ↔ Set.mem x B` ⇒ 面板 `x ∈ A ↔ x ∈ B`.
-- 判据：front ×2（正向 + 方向错仍红）· CLI `tests/apply_pi_goal.rs` ×5（真课程库骨架 · 记法面板 · 不许吞错 · 无约束层仍是子目标 · 逃生门回退）· 课程门禁 258 目标 / 2191 checked / 0 判负 · front `--lib` 1198 passed.
-## 扩展升级后建议 rebuild（2026-11-05 · issue #9）
-- 升级后第一次在 sokonanoda **项目**里打开 `.sokonanoda` ⇒ 通知建议 rebuild，按钮 **确认 / 取消**；确认走 `rebuild --json <模块根>`（与 `alt+shift+b` 同一目标，来自 `soko/project`）；取消不重建、本会话也不再静默预热（否则 2026-10-11 的自动预热会让「取消」变谎话）。一次升级只问一次（`globalState` 基线）；首跑兜底看项目产物写者版本（上线那一版不会错过）。
-- 判据：stub **82/82**（取消 ⇒ 零 spawn 且不补跑 · 确认 ⇒ 恰好一次 `rebuild --json <模块根>` · 单文件不问 · 降级不问 · 首跑兜底）· `cargo test -p sokonanoda-cli --test extension` 43/43 · `npm run test:unit` 全绿.
-- 边界：只问**第一次**遇到的模块根；升级后没打开项目文件就不问（基线已记下）.
-## 修复 issue #7（2026-11-04 · goal 里的 `{a}` · `apply Eq.subst hx` · 请求期探针 panic）
-- 显示：显式脊 `@Set.singleton α a` 折回 `{a}`（部分应用仍不折）；elaboration：`apply Eq.subst hx` 判绿（错 motive 仍红）；健壮性：请求期探针 panic 降级成「算不出」.
-- ⚠ 用户报的「写错 `p` 后 lsp 死掉」在 0.98.2 与 HEAD 都复现不出来 ⇒ 修的是同族可证的机制（请求期 panic → 永不回答），不是已确认现场.
-- 判据：display ×3 + front ×2 + LSP 集成 ×1；截图见 PR.
-## 更早轮次（`·` 块内 goal state 2026-11-04 · 课程目录迁移 2026-11-04 · metavar 2026-10-26 · LKA 2026-10-24）
-- 原文已删（只留最近 3 轮）⇒ `git log --all -- STATUS.md`。metavar 只认 `docs/design/metavar-pattern.md` §9；课程目录迁移 = issue #3（`course/` → `courses/quick-start/`）.
-
-## 更早轮次（原文已删 ⇒ `git log --all -- STATUS.md`）：v0.97.4–v0.97.8 已发版（资产核对 = `gh release list`）· v0.97.6 前 `apply Eq.subst h hx` 判绿 ✓
-## 未决项：**权威 = `docs/ONBOARDING.md` §0.2**（本节不自报条数；2026-10-13 订正过"6 条"与实测不符 ✗）
-## 已发布线：`v0.79.0`…`v0.83.0` ⇒ `docs/archive/status-removed-rounds-2026-10-13.md.gz`；**"最新是哪版/多少没发"不许写这里**（死格，2026-10-16 实测落后 15 个 release ✗）⇒ 活读数 `python3 scripts/release-metric.py` ✓
-## 硬事实（接手先读）⇒ 原文已删（`docs-lint` ⑦ 顶格，按本文件规矩腾空间）· `git log --all -- STATUS.md` ✓
+## M6：QA / 文档 / 站点 / 发布（2026-11-21 · issue #22）
+M1–M5 已全部完成，M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元（卷 II 72、卷 III 99），M6 只做 QA、文档、站点与发布，不新增单元。全量课程门禁 `python3 courses/analysis/tools/check.py --json` rc=0：457 个目标、4512 checked、0 rejected、0 solutions_open、0 lib_open；`python3 scripts/notation-lint.py --root courses/analysis` rc=0，扫 470 个文件、15 处显式豁免。文档与站点入口已对齐 171/171，站点 `check-site.py` 10/10、加 `--browser` 12/12；零 cargo 学习者路径实测通过（`setup` → `doctor` → `grade` → `query hints` → 解答），分析课整门进度 `course --json` 报 171 单元、0 failed；`docs-lint`、`status-lint`、`docs-expiry-check --check` 均 rc=0。发版节点仍被 Lean Kernel Arena 门禁挡住：`python3 scripts/arena-gate.py` 在构建 `b60796a9` 上报两条递归规则伪造被接受（`bugs/rec-rule-proof-irrel`、`bugs/rec-rule-proof-irrel-nested`）与一条性能用例超时（`perf/ite-taken-branch`），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。

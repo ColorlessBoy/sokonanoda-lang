@@ -1,0 +1,573 @@
+-- lib 自检入口：把当前库模块一次 import 完。
+import lib.Logic
+import lib.Exists
+import lib.Set
+import lib.Prod
+import lib.Rel
+import lib.Fun
+import lib.Image
+import lib.Equiv
+import lib.Order
+import lib.RatOrder
+import lib.Cauchy
+import lib.RealOrderLaws
+import lib.Sup
+import lib.ExtReal
+import lib.ExtRealOrder
+import lib.Subseq
+import lib.LimitPoint
+import lib.Limsup
+import lib.Liminf
+import lib.SubseqLimit
+import lib.LimsupBound
+import lib.Tail
+import lib.CauchyTail
+import lib.CauchyShapes
+import lib.RealDiff
+import lib.Bounded
+import lib.LimitClass
+import lib.CauchyAddBounds
+import lib.LimitClassAdd
+import lib.LimitClassNeg
+import lib.LimitClassSub
+import lib.LimitClassComplete
+import lib.Sum
+import lib.SumSplit
+import lib.Series
+import lib.SeriesTerm
+import lib.SeriesTail
+import lib.SeriesLinear
+import lib.SumNonneg
+import lib.SumAbs
+import lib.SeriesCompare
+import lib.SeriesAbs
+import lib.SeriesTelescope
+import lib.SeriesTailSum
+import lib.SeriesTailReverse
+import lib.SeriesSwap
+import lib.LimAt
+import lib.Cont
+import lib.ContAlgebra
+import lib.LocalBounded
+import lib.MaxOn
+import lib.LocalSign
+import lib.LastNegative
+import lib.Uniform
+import lib.UniformSeq
+import lib.LimInfinity
+import lib.LimInfinityAlgebra
+import lib.Monotone
+import lib.RatRing
+import lib.Deriv
+import lib.DerivShift
+import lib.LimUnique
+import lib.LimLocal
+import lib.RatZero
+import lib.IntCancel
+import lib.RatCancel
+import lib.DerivUnique
+import lib.DerivAlgebra
+import lib.RatMulOrder
+import lib.RatMulSign
+import lib.DerivSign
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralGap
+import lib.IntegralNeg
+import lib.IntegralAdd
+import lib.IntegralShift
+import lib.IntegralValue
+import lib.IntegralValueNeg
+import lib.RatArch
+import lib.IntegralStrip
+import lib.IntegralMesh
+import lib.IntegralSign
+import lib.IntegralMono
+
+theorem demo_lib_closure : True := True.intro
+
+theorem demo_ext_real_top : ele negInf posInf := True.intro
+
+theorem demo_ext_real_chain : ele negInf (fin (Real.mk zeroSeq)) :=
+  negInf_le (fin (Real.mk zeroSeq))
+
+theorem demo_subseq_id : Subseq (fun (n : Nat) => n) := subseq_id
+
+theorem demo_limitPoint_zero : LimitPoint (constSeq ratZeroRep) ratZeroRep :=
+  limitPoint_const ratZeroRep
+
+theorem demo_limsup_const_zero : Limsup (constSeq ratZeroRep) ratZeroRep :=
+  limsup_const ratZeroRep
+
+theorem demo_liminf_const_zero : Liminf (constSeq ratZeroRep) ratZeroRep :=
+  liminf_const ratZeroRep
+
+theorem demo_limsup_subseq_const_zero :
+    Limsup (subseqSeq (fun (n : Nat) => n) (constSeq ratZeroRep)) ratZeroRep :=
+  limsup_subseq_of_converges (constSeq ratZeroRep) (fun (n : Nat) => n) subseq_id
+    ratZeroRep (converges_const ratZeroRep)
+
+theorem demo_zero_bounded_above : BoundedAbove (constSeq ratZeroRep) ratZeroRep :=
+  fun (n : Nat) => ratLeRep_refl ratZeroRep
+
+theorem demo_limsup_le_of_boundedAbove_zero :
+    ratLeRep ratZeroRep ratZeroRep :=
+  limsup_le_of_boundedAbove (constSeq ratZeroRep) ratZeroRep ratZeroRep
+    demo_zero_bounded_above (limsup_const ratZeroRep)
+
+theorem demo_tail_refl_zero : TailEq (constSeq ratZeroRep) (constSeq ratZeroRep) :=
+  tailEq_refl (constSeq ratZeroRep)
+
+theorem demo_converges_congr_tail_zero :
+    Converges (constSeq ratZeroRep) ratZeroRep :=
+  converges_congr_tail (constSeq ratZeroRep) (constSeq ratZeroRep) ratZeroRep
+    (converges_const ratZeroRep) (tailEq_refl (constSeq ratZeroRep))
+
+theorem demo_cauchy_tail_zero : Cauchy (constSeq ratZeroRep) :=
+  demo_cauchy_tail_const ratZeroRep
+
+theorem demo_bounded_const_zero : Bounded (constSeq ratZeroRep) :=
+  demo_bounded_const ratZeroRep
+
+theorem demo_cauchy_jump_zero :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n →
+        ∀ (k : Nat), close ((constSeq ratZeroRep) n)
+          ((constSeq ratZeroRep) (Nat.add n k)) eps :=
+  demo_cauchy_jump_const ratZeroRep
+
+theorem demo_diff_self_zero :
+    Converges (diffSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) ratZeroRep :=
+  demo_diff_self_tends_zero (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_limit_class_zero :
+    LimitClass (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep)) :=
+  demo_limit_class_const ratZeroRep
+
+theorem demo_limit_class_add_zero :
+    ∃ (c : Real),
+      addRel (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep)) c ∧
+        LimitClass (addSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_add (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_neg_zero :
+    ∃ (b : Real),
+      LimitClass (negSeq (constSeq ratZeroRep)) b :=
+  limitClass_neg (constSeq ratZeroRep) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_sub_zero :
+    ∃ (c : Real),
+      LimitClass (subSeq (constSeq ratZeroRep) (constSeq ratZeroRep)) c :=
+  limitClass_sub (constSeq ratZeroRep) (constSeq ratZeroRep)
+    (Real.mk (constSeq ratZeroRep)) (Real.mk (constSeq ratZeroRep))
+    (cauchy_const ratZeroRep) (cauchy_const ratZeroRep)
+    (demo_limit_class_const ratZeroRep) (demo_limit_class_const ratZeroRep)
+
+theorem demo_limit_class_complete_zero :
+    ∃ (a : Real),
+      LimitClass (constSeq ratZeroRep) a ∧
+        ∀ (b : Real), LimitClass (constSeq ratZeroRep) b → b = a :=
+  limitClass_exists_unique (constSeq ratZeroRep) (cauchy_const ratZeroRep)
+
+theorem demo_sumTo_zero_fun_three :
+    ratRel (sumTo (fun (_ : Nat) => ratZeroRep) 3) ratZeroRep :=
+  sumTo_zero_fun 3
+
+theorem demo_sumTo_shift_zero :
+    ratRel (sumTo (constSeq ratZeroRep) (Nat.add 2 3))
+      (ratAddRep (sumTo (constSeq ratZeroRep) 2)
+        (sumTo (fun (k : Nat) => (constSeq ratZeroRep) (Nat.add 2 k)) 3)) :=
+  sumTo_shift (constSeq ratZeroRep) 2 3
+
+theorem demo_lib_series_zero :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_zero
+
+theorem demo_lib_term_test :
+    ¬ Summable (fun (_ : Nat) => ratOneRep) :=
+  demo_const_one_not_summable
+
+theorem demo_lib_series_tail :
+    ratRel (Series (constSeq ratZeroRep) 3)
+      (ratAddRep (Series (constSeq ratZeroRep) 1)
+        (TailSum (constSeq ratZeroRep) 1 2)) :=
+  demo_split_three (constSeq ratZeroRep)
+
+theorem demo_lib_summable_add :
+    Summable (fun (k : Nat) => ratAddRep ratZeroRep ratZeroRep) :=
+  demo_sum_zero
+
+theorem demo_lib_sum_monotone_one :
+    ratLeRep (sumTo (fun (_ : Nat) => ratOneRep) Nat.zero)
+      (sumTo (fun (_ : Nat) => ratOneRep) 3) :=
+  demo_sum_monotone_one
+
+theorem demo_lib_abs_sum_one :
+    ratAbsRel (sumTo (fun (_ : Nat) => ratOneRep) 2)
+      (sumTo (fun (_ : Nat) => ratOneRep) 2) :=
+  demo_abs_sum_one
+
+theorem demo_lib_comparison_zero :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  demo_comparison_zero
+
+theorem demo_lib_abs_zero :
+    AbsSummable (fun (_ : Nat) => ratZeroRep) :=
+  demo_abs_zero
+
+theorem demo_lib_series_telescope :
+    ratRel
+      (Series (fun (k : Nat) => ratSubRep (qrep (Nat.succ k) 0 0) (qrep k 0 0)) 3)
+      (qrep 3 0 0) :=
+  demo_series_telescope_three
+
+theorem demo_lib_summable_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  summable_tail (fun (_ : Nat) => ratZeroRep) m summable_zero
+
+theorem demo_lib_summable_of_tail_zero (m : Nat) :
+    Summable (fun (_ : Nat) => ratZeroRep) :=
+  demo_summable_of_tail_zero m
+
+theorem demo_lib_swapFirst_zero :
+    Summable (swapFirst (fun (_ : Nat) => ratZeroRep)) :=
+  demo_swapFirst_zero
+
+theorem demo_lib_tendsToAt_unfold (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          close (f x) L eps :=
+  h
+
+theorem demo_lib_continuous_unfold (f : ratRep → ratRep) (h : Continuous f) :
+    ∀ (a : ratRep), ContinuousAt f a :=
+  h
+
+theorem demo_lib_uniform_id :
+    UniformlyContinuous (fun (x : ratRep) => x) :=
+  uniformlyContinuous_id
+
+theorem demo_lib_uniform_cauchy (x : Seq) (hx : Cauchy x) :
+    Cauchy (fun (n : Nat) => x n) :=
+  uniformlyContinuous_cauchy (fun (x : ratRep) => x)
+    uniformlyContinuous_id x hx
+
+theorem demo_lib_uniform_converges (x : Seq) (L : ratRep)
+    (hx : Converges x L) :
+    Converges (fun (n : Nat) => x n) L :=
+  uniformlyContinuous_converges (fun (x : ratRep) => x)
+    uniformlyContinuous_id x L hx
+
+theorem demo_lib_localBounded_const (c a : ratRep) :
+    LocallyBoundedAt (fun (_ : ratRep) => c) a :=
+  demo_locallyBoundedAt_const c a
+
+theorem demo_lib_localBounded_id (a : ratRep) :
+    LocallyBoundedPunct (fun (x : ratRep) => x) a :=
+  demo_locallyBoundedPunct_id a
+
+theorem demo_lib_continuousAt_add_const (c a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => ratAddRep x c) a :=
+  continuousAt_add (fun (x : ratRep) => x) (fun (_ : ratRep) => c) a
+    (continuousAt_id a) (continuousAt_const c a)
+
+theorem demo_lib_continuousAt_sub_self (a : ratRep) :
+    ContinuousAt (fun (x : ratRep) => ratSubRep x x) a :=
+  continuousAt_sub (fun (x : ratRep) => x) (fun (x : ratRep) => x) a
+    (continuousAt_id a) (continuousAt_id a)
+
+theorem demo_lib_attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) => x) (InClosed ratZeroRep ratOneRep) :=
+  attMax_id_closed
+
+theorem demo_lib_not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) => x)
+      (fun (x : ratRep) => ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  not_attMax_id_open
+
+theorem demo_lib_positiveNear_one (a : ratRep) :
+    PositiveNear (fun (_ : ratRep) => ratOneRep) a :=
+  positiveNear_of_continuousAt (fun (_ : ratRep) => ratOneRep) a
+    (continuousAt_const ratOneRep a) ratLtRep_zero_one
+
+theorem demo_lib_no_last_negative (a b : ratRep) :
+    ¬ (∃ (m : ratRep),
+      HasGreatest (NegativePoints (fun (_ : ratRep) => ratNegRep ratOneRep) a b) m ∧
+      ratLtRep m b) :=
+  no_last_negative (fun (_ : ratRep) => ratNegRep ratOneRep) a b
+    (fun (x : ratRep) (_hx : InClosed a b x) =>
+      continuousAt_const (ratNegRep ratOneRep) x)
+
+theorem demo_lib_tendsToAtInfinity_const (c : ratRep) :
+    TendsToAtInfinity (fun (_ : ratRep) => c) c :=
+  tendsToAtInfinity_const c
+
+theorem demo_lib_not_tendsToAtInfinity_id (L : ratRep) :
+    ¬ TendsToAtInfinity (fun (x : ratRep) => x) L :=
+  not_tendsToAtInfinity_id L
+
+theorem demo_lib_tendsToAtInfinity_add_zero (f : ratRep → ratRep) (L : ratRep)
+    (hf : TendsToAtInfinity f L) :
+    TendsToAtInfinity (fun (x : ratRep) => ratAddRep (f x) ratZeroRep)
+      (ratAddRep L ratZeroRep) :=
+  tendsToAtInfinity_add_const f ratZeroRep L hf
+
+theorem demo_lib_monotone_ivp_id (a b c : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    ContinuousAt (fun (x : ratRep) => x) c :=
+  demo_continuousAt_id_ivp a b c hac hcb
+
+theorem demo_lib_strict_injective (x y : ratRep)
+    (h : ratRel (ratAddRep x ratOneRep) (ratAddRep y ratOneRep)) :
+    ratRel x y :=
+  strictlyIncreasing_injective (fun (t : ratRep) => ratAddRep t ratOneRep)
+    (fun (u v : ratRep) (huv : ratLtRep u v) =>
+      ratLtRep_add_right u v ratOneRep huv)
+    x y h
+
+theorem demo_lib_deriv_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) => x) a ratOneRep :=
+  hasDerivAt_id a
+
+theorem demo_lib_deriv_const (c a : ratRep) :
+    HasDerivAt (fun (_ : ratRep) => c) a ratZeroRep :=
+  hasDerivAt_const c a
+
+theorem demo_lib_mul_zero (x : ratRep) :
+    ratRel (ratMulRep x ratZeroRep) ratZeroRep :=
+  ratMul_zero_right x
+
+theorem demo_lib_deriv_add_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) c) a L :=
+  hasDerivAt_add_const f a L c h
+
+theorem demo_lib_deriv_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratNegRep (f x)) a (ratNegRep L) :=
+  hasDerivAt_neg f a L h
+
+theorem demo_lib_deriv_sub_const (f : ratRep → ratRep) (a L c : ratRep)
+    (h : HasDerivAt f a L) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) c) a L :=
+  hasDerivAt_sub_const f a L c h
+
+theorem demo_lib_tendsToAt_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : TendsToAt f a L) (hM : TendsToAt f a M) : ratRel L M :=
+  tendsToAt_unique f a L M hL hM
+
+theorem demo_lib_tendsToAt_congr_value (f : ratRep → ratRep) (a L M : ratRep)
+    (h : TendsToAt f a L) (hLM : ratRel L M) : TendsToAt f a M :=
+  tendsToAt_congr_value f a L M h hLM
+
+theorem demo_lib_agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  agreeNear_refl f a
+
+theorem demo_lib_tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  tendsToAt_congr f g a L h hfg
+
+theorem demo_lib_ratRel_zero_iff_num_zero (p q m : Nat) :
+    ratRel (qrep p q m) ratZeroRep ↔
+      intRel (@prod_mk Nat Nat p q) (@prod_mk Nat Nat Nat.zero Nat.zero) :=
+  ratRel_zero_iff_num_zero p q m
+
+theorem demo_lib_ratMul_cancel (u v w : Prod (Prod Nat Nat) Nat)
+    (hu : ¬ ratRel u ratZeroRep)
+    (h : ratRel (ratMulRep u v) (ratMulRep u w)) : ratRel v w :=
+  ratMul_cancel u v w hu h
+
+theorem demo_lib_slope_agree_near (f : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope f a r) :
+    AgreeNear q r a :=
+  slope_agree_near f a q r hq hr
+
+theorem demo_lib_deriv_unique (f : ratRep → ratRep) (a L M : ratRep)
+    (hL : HasDerivAt f a L) (hM : HasDerivAt f a M) : ratRel L M :=
+  hasDerivAt_unique f a L M hL hM
+
+theorem demo_lib_ratMul_add (x y z : ratRep) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_add x y z
+
+theorem demo_lib_ratMul_sub (x y z : ratRep) :
+    ratRel (ratMulRep x (ratSubRep y z))
+      (ratSubRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_sub x y z
+
+theorem demo_lib_hasDerivAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) => ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  hasDerivAt_add f g a L M hf hg
+
+theorem demo_lib_hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) => ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  hasDerivAt_sub f g a L M hf hg
+
+theorem demo_lib_ratMul_pos (x y : ratRep)
+    (hx : ratLtRep ratZeroRep x) (hy : ratLtRep ratZeroRep y) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  ratMul_pos x y hx hy
+
+theorem demo_lib_ratLtRep_mul_pos_right (x y z : ratRep)
+    (hxy : ratLtRep x y) (hz : ratLtRep ratZeroRep z) :
+    ratLtRep (ratMulRep x z) (ratMulRep y z) :=
+  ratLtRep_mul_pos_right x y z hxy hz
+
+theorem demo_lib_ratMul_neg_neg (x y : ratRep)
+    (hx : ratLtRep x ratZeroRep) (hy : ratLtRep y ratZeroRep) :
+    ratLtRep ratZeroRep (ratMulRep x y) :=
+  ratMul_neg_neg x y hx hy
+
+theorem demo_lib_risesRight_id :
+    RisesRight (fun (x : ratRep) => x) ratZeroRep :=
+  risesRight_of_deriv_pos (fun (x : ratRep) => x) ratZeroRep ratOneRep
+    (hasDerivAt_id ratZeroRep) ratLtRep_zero_one
+
+theorem demo_lib_twoPoint_isPartition (a b : ratRep) (h : ratLtRep a b) :
+    IsPartition a b (twoPoint a b) :=
+  twoPoint_isPartition a b h
+
+theorem demo_lib_point_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i j : Nat) (hij : LeNat i j) (hj : LeNat j (partCount p)) :
+    ratLeRep (partPoint p i) (partPoint p j) :=
+  point_mono a b p hp i j hij hj
+
+theorem demo_lib_stepSum_mono (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (c d : Nat → ratRep)
+    (hcd : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (c i) (d i)) :
+    ratLeRep (stepSum p c) (stepSum p d) :=
+  stepSum_mono a b p hp c d hcd
+
+theorem demo_lib_upperStep_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    UpperStep a b p (fun (_ : ratRep) => k) (fun (_ : Nat) => k) :=
+  upperStep_const a b p k
+
+theorem demo_lib_upperStep_value (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (h : UpperStep a b p f u)
+    (hp : IsPartition a b p) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (f (partPoint p i)) (u i) :=
+  upperStep_value a b p f u h hp i hi
+
+theorem demo_lib_integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => k) :=
+  integrable_const a b k hab
+
+theorem demo_lib_integrable_neg (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
+  integrable_neg a b (fun (_ : ratRep) => k)
+    (integrable_const a b k hab)
+
+theorem demo_lib_stepSum_add (p : Partition) (u v : Nat → ratRep) :
+    ratRel (stepSum p (fun (i : Nat) => ratAddRep (u i) (v i)))
+      (ratAddRep (stepSum p u) (stepSum p v)) :=
+  stepSum_add p u v
+
+theorem demo_lib_stepGap_add (p : Partition) (l u m v : Nat → ratRep) :
+    ratRel
+      (ratSubRep (ratAddRep (stepSum p u) (stepSum p v))
+        (ratAddRep (stepSum p l) (stepSum p m)))
+      (ratAddRep (ratSubRep (stepSum p u) (stepSum p l))
+        (ratSubRep (stepSum p v) (stepSum p m))) :=
+  stepGap_add p l u m v
+
+theorem demo_lib_stepGap_add_const (p : Partition) (L U k : ratRep) :
+    ratRel (ratSubRep (ratAddRep U k) (ratAddRep L k))
+      (ratSubRep U L) :=
+  stepGap_add_const p L U k
+
+theorem demo_lib_integrable_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (k : ratRep) (h : Integrable a b f) :
+    Integrable a b (fun (x : ratRep) => ratAddRep (f x) k) :=
+  integrable_add_const a b f k h
+
+theorem demo_lib_arch_le (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  arch_le x c hx hc
+
+theorem demo_lib_arch_lt (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  arch_lt_of_nonneg x c hx hc
+
+theorem demo_lib_strip_gap (a b k eta : ratRep) (p : Partition)
+    (hp : IsPartition a b p) :
+    ratRel
+      (ratSubRep
+        (stepSum p (leftUpper (fun (_ : ratRep) => k) p eta))
+        (stepSum p (leftLower (fun (_ : ratRep) => k) p eta)))
+      (ratAddRep (ratMulRep eta (ratSubRep b a))
+        (ratMulRep eta (ratSubRep b a))) :=
+  stepSum_left_gap a b p (fun (_ : ratRep) => k) hp eta
+
+theorem demo_lib_strip_mesh (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (eta delta : ratRep) (hp : IsPartition a b p)
+    (hm : MeshBelow p delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    ∃ (l : Nat → ratRep), ∃ (u : Nat → ratRep),
+      LowerStep a b p f l ∧ UpperStep a b p f u :=
+  Exists.elim (strip_of_mesh a b p f hp eta delta hm hu)
+    (fun (l : Nat → ratRep) (hl : ∃ (u : Nat → ratRep),
+        LowerStep a b p f l ∧ UpperStep a b p f u ∧
+          ratRel (ratSubRep (stepSum p u) (stepSum p l))
+            (ratAddRep (ratMulRep eta (ratSubRep b a))
+              (ratMulRep eta (ratSubRep b a)))) =>
+      Exists.elim hl
+        (fun (u : Nat → ratRep) (hu2 : LowerStep a b p f l ∧ UpperStep a b p f u ∧
+            ratRel (ratSubRep (stepSum p u) (stepSum p l))
+              (ratAddRep (ratMulRep eta (ratSubRep b a))
+                (ratMulRep eta (ratSubRep b a)))) =>
+          Exists.intro l (Exists.intro u (And.intro (And.left hu2) (And.left (And.right hu2))))))
+
+theorem demo_lib_exists_mesh (a b delta : ratRep)
+    (hab : ratLtRep a b) (hdelta : ratLtRep ratZeroRep delta) :
+    ∃ (p : Partition), IsPartition a b p ∧ MeshBelow p delta :=
+  exists_mesh_partition a b delta hab hdelta
+
+theorem demo_lib_uniform_mesh (a b : ratRep) (k : Nat) (delta : ratRep)
+    (h : ratLtRep (meshStep a b k) delta) :
+    MeshBelow (uniformPartition a b k) delta :=
+  uniformPartition_mesh a b k delta h
+
+theorem demo_lib_hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => k) (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_const a b k hab
+
+theorem demo_lib_hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_neg_const a b k hab
+
+theorem demo_lib_hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratZeroRep) ratZeroRep :=
+  hasIntegral_zero a b hab
+
+theorem demo_lib_hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  hasIntegral_mono a b f g I J hI hJ hfg
+
+theorem demo_lib_hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  hasIntegral_bounds a b f I lo hi hab h hlo hhi

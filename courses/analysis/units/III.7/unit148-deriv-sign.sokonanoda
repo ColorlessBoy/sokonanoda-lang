@@ -1,0 +1,116 @@
+-- 单元148 导数的符号：曲线从切点往哪一边抬高
+--
+-- 导数是一个数，它的符号应当说明曲线在切点附近往哪边抬升。若导数 L 为正，
+-- 自变量从 a 往右挪一小段时，函数值的改变应当为正——曲线在 a 的右侧高于
+-- 切点；若 L 为负，同样的推理在左侧给出抬高。这条单向信息正是极值判别
+-- 需要的那一半：极大值点两侧都不能抬高。
+--
+-- 证明分两层。第一层把「斜率函数的极限是 L」换成「斜率函数在去心邻域里
+-- 与 L 同号」：`close (q x) L L` 的负侧给出 `L - q x < L`，两边加 q x 与
+-- -L，就得到 `0 < q x`。第二层把符号传给函数值之差：`x - a` 的符号由
+-- x 在 a 的哪一侧决定，两个同号的数相乘为正，再沿斜率等式
+-- `(x - a)·q x ~ f x - f a` 搬到 `f x - f a` 上。符号表本身在单元147
+-- 已经立好，这里直接引用。
+--
+-- 边界：只证单侧抬高，不声称整段区间上的单调；两侧的完整单调要中值定理，
+-- ℚ 上还缺上确界。函数取 `ratRep → ratRep`，不构造倒数，不新增公理，
+-- 也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatRing
+import lib.RatGroup
+import lib.RatAssoc
+import lib.RatSub
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.LimitAbs
+import lib.LimitOrder
+import lib.LocalSign
+import lib.RatMulOrder
+import lib.RatMulSign
+import lib.RatAbs
+import lib.LimAt
+import lib.LimAtAlgebra
+import lib.Deriv
+import lib.DerivShift
+
+-- ─────────────────────────────────────────────────────────────
+-- 去心邻域里的正号
+-- ─────────────────────────────────────────────────────────────
+
+-- 「q 在 a 的去心邻域里为正」：有一个正半径，邻域内不等于 a 的点都取正值。
+-- 与单元133 的 `PositiveNear` 相比，这里多带了「不等于 a」的前提，因为函数
+-- 极限本来就不管 a 点。
+def PositiveNearPunct (q : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+      ratLtRep ratZeroRep (q x)
+
+-- soko:hint 思路：定义就是右边那串量词，两个方向都直接返回假设。
+-- soko:hint 目标形态：`PositiveNearPunct q a ↔ ∃ delta, 0 < delta ∧ ∀ x, close x a delta → x ≠ a → 0 < q x`。
+-- soko:hint 关键件：Iff.intro · 定义性展开。
+theorem positiveNearPunct_iff (q : ratRep → ratRep) (a : ratRep) :
+    PositiveNearPunct q a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          ratLtRep ratZeroRep (q x) :=
+  sorry
+
+-- soko:hint 思路：ε 取 L；`close_neg_lt` 给出 `L - q x < L`；右加 q x 把左边收回 L，得到 `L < L + q x`；再右加 -L，左边回到零，右边收回 q x。
+-- soko:hint 目标形态：`0 < L → TendsToAt q a L → PositiveNearPunct q a`。
+-- soko:hint 关键件：close_neg_lt · ratLtRep_add_right · ratSubRep_add_self · ratAdd_neg_gen · ratAdd_assoc · ratAdd_zero。
+theorem positiveNearPunct_of_tendsToAt (q : ratRep → ratRep) (a L : ratRep)
+    (hL : ratLtRep ratZeroRep L) (h : TendsToAt q a L) :
+    PositiveNearPunct q a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 曲线在 a 的单侧抬高
+-- ─────────────────────────────────────────────────────────────
+
+-- 「曲线在 a 的右侧抬高」：有一个正半径，右侧邻域里的函数值都大于 f a。
+def RisesRight (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), ratLtRep a x → close x a delta →
+      ratLtRep (f a) (f x)
+
+-- 「曲线在 a 的左侧抬高」：左侧邻域里的函数值都大于 f a。
+def RisesLeft (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), ratLtRep x a → close x a delta →
+      ratLtRep (f a) (f x)
+
+-- soko:hint 思路：取斜率函数 q；符号引理给出 `q x > 0`，`x - a > 0` 由 x 在 a 右侧给出，两者相乘为正，再沿斜率等式搬到 `f x - f a`。
+-- soko:hint 目标形态：`HasDerivAt f a L → 0 < L → RisesRight f a`。
+-- soko:hint 关键件：positiveNearPunct_of_tendsToAt · ratMul_pos · ratLtRep_sub_pos · ratLtRep_of_sub_pos · ratMul_comm · isSlope_apply。
+theorem risesRight_of_deriv_pos (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hL : ratLtRep ratZeroRep L) :
+    RisesRight f a :=
+  sorry
+
+-- soko:hint 思路：把 `-q` 看成斜率函数的极限 `-L`：它是正的，符号引理给出 `-(q x) > 0`，也就是 `q x < 0`。x 在 a 左侧时 `x - a < 0`，两个负数相乘为正，再沿斜率等式搬到 `f x - f a`。
+-- soko:hint 目标形态：`HasDerivAt f a L → L < 0 → RisesLeft f a`。
+-- soko:hint 关键件：tendsToAt_neg · positiveNearPunct_of_tendsToAt · ratLtRep_of_neg_pos · ratMul_neg_neg · ratNeg_sub_swap · ratLtRep_of_sub_pos。
+theorem risesLeft_of_deriv_neg (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hL : ratLtRep L ratZeroRep) :
+    RisesLeft f a :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：恒等函数在零点的导数为 1（`hasDerivAt_id`），把 `0 < 1` 交给右侧抬高的定理。
+-- soko:hint 目标形态：`RisesRight (fun x => x) 0`。
+-- soko:hint 关键件：hasDerivAt_id · ratLtRep_zero_one · risesRight_of_deriv_pos。
+theorem demo_id_rises_right :
+    RisesRight (fun (x : ratRep) => x) ratZeroRep :=
+  sorry
+
+-- soko:hint 思路：取负的恒等函数在零点的导数为 -1（`hasDerivAt_neg` 作用在恒等函数上），把 `-1 < 0` 交给左侧抬高的定理。
+-- soko:hint 目标形态：`RisesLeft (fun x => -x) 0`。
+-- soko:hint 关键件：hasDerivAt_neg · ratLtRep_neg_of_pos · ratLtRep_zero_one · risesLeft_of_deriv_neg。
+theorem demo_neg_id_rises_left :
+    RisesLeft (fun (x : ratRep) => ratNegRep x) ratZeroRep :=
+  sorry

@@ -1,0 +1,101 @@
+-- 单元168 面积值的取负：把曲线翻到轴下方
+--
+-- 已经知道曲线 f 在 [a,b] 上的面积值是 I。把曲线翻到轴下方，得到 -f：
+-- 它的面积值是多少？图上看是同一块面积换了方向，答案该是 -I。可是
+-- HasIntegral 不是一句「面积等于多少」，它是两组量词——每个分割的下和都
+-- 不超过 I，每个分割的上和都不小于 I。取负把这两组量词互换：原来的下和
+-- 变成 -f 的上和，原来的上和变成 -f 的下和。所以 -I 要重新走过这两组
+-- 量词，不能只靠图上的一句话。
+--
+-- 证明分三层。第一层在一段上：-f 的下界取负就是 f 的上界，-f 的上界取负
+-- 就是 f 的下界；序在取负下反转，这一层只用到这条。第二层把台阶乘宽求和：
+-- stepSum_neg 把和的负号搬到外面，于是 -f 的下和取负恰好是 f 的上和。
+-- 第三层把两层接起来：-f 的一个下和 L 先改写成 f 的上和 -L，由 I 的上界
+-- 性质得 I ≤ -L，两边取负就是 L ≤ -I；另一半是它的镜像。
+--
+-- 取负的证明到此为止。加法与数乘要用到「乘积对同余因子不变」，课程库还
+-- 没有这条引理，留到后面的单元。函数仍取 ratRep → ratRep，停在有理代表
+-- 元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatSub
+import lib.RatRing
+import lib.RatMulSign
+import lib.Cauchy
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 一段上的台阶取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：要证 `f x ≤ -l i`。已知 `l i ≤ -f x`，两边取负得 `-(-f x) ≤ -l i`；把左边的双重负号改回 `f x`。
+-- soko:hint 目标形态：`UpperStep a b p f (fun i => ratNegRep (l i))`。
+-- soko:hint 关键件：ratLeRep_neg_gen · ratNegRep_invol · ratLeRep_congr_gen。
+theorem upperStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) => ratNegRep (f x)) l) :
+    UpperStep a b p f (fun (i : Nat) => ratNegRep (l i)) :=
+  sorry
+
+-- soko:hint 思路：要证 `-u i ≤ f x`。已知 `-f x ≤ u i`，两边取负得 `-u i ≤ -(-f x)`；再把右边的双重负号改回 `f x`。
+-- soko:hint 目标形态：`LowerStep a b p f (fun i => ratNegRep (u i))`。
+-- soko:hint 关键件：ratLeRep_neg_gen · ratNegRep_invol · ratLeRep_congr_gen。
+theorem lowerStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) => ratNegRep (f x)) u) :
+    LowerStep a b p f (fun (i : Nat) => ratNegRep (u i)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：拆开下和，得到台阶 `l` 与 `L ~ stepSum l`。台阶取负用上一条翻成 `f` 的上界；矩形和用 `stepSum_neg` 得 `stepSum (-l) ~ -stepSum l`，再用 `ratNegRep_wd` 把 `L ~ stepSum l` 送进去。
+-- soko:hint 目标形态：`UpperSum a b p f (ratNegRep L)`。
+-- soko:hint 关键件：upperStep_neg_rev · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen。
+theorem lowerSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p (fun (x : ratRep) => ratNegRep (f x)) L) :
+    UpperSum a b p f (ratNegRep L) :=
+  sorry
+
+-- soko:hint 思路：与上一条逐字同形，只是台阶方向反过来：上和拆出台阶 `u`，`u` 取负翻成 `f` 的下界，矩形和照旧由 `stepSum_neg` 与 `ratNegRep_wd` 搬运。
+-- soko:hint 目标形态：`LowerSum a b p f (ratNegRep U)`。
+-- soko:hint 关键件：lowerStep_neg_rev · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen。
+theorem upperSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p (fun (x : ratRep) => ratNegRep (f x)) U) :
+    LowerSum a b p f (ratNegRep U) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积值取负
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：下界那半，先用 `lowerSum_neg_rev` 把 `-f` 的下和 `L` 变成 `f` 的上和 `-L`，由 `hasIntegral_upper` 得 `I ≤ -L`，两边取负并用 `ratNegRep_invol` 收到 `L ≤ -I`。上界那半镜像：用 `upperSum_neg_rev` 与 `hasIntegral_lower` 得 `-U ≤ I`，取负收到 `-I ≤ U`。可积性由 `integrable_neg` 搬。
+-- soko:hint 目标形态：`HasIntegral a b (fun x => ratNegRep (f x)) (ratNegRep I)`。
+-- soko:hint 关键件：lowerSum_neg_rev · upperSum_neg_rev · hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_neg_gen · ratNegRep_invol · integrable_neg。
+theorem hasIntegral_neg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) => ratNegRep (f x))
+      (ratNegRep I) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值曲线的负数读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值曲线 `k` 已有面积值 `k·(b-a)`（单元167 的读数），把它交给上一条取负定理。
+-- soko:hint 目标形态：`HasIntegral a b (fun _ => ratNegRep k) (ratNegRep (ratMulRep k (ratSubRep b a)))`。
+-- soko:hint 关键件：hasIntegral_neg · hasIntegral_const。
+theorem hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) => ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  sorry

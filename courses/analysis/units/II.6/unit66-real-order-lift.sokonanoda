@@ -1,0 +1,109 @@
+-- 单元66 实数的序：沿 `realRel` 下降成 `Real` 上的关系
+--
+-- 64–65 在代表元层把序立起来并证了自反与传递：
+--
+--   realLeRep x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                        ∀ eps > 0, ∃ N, ∀ n ≥ N, (x n - y n) ≤ eps
+--
+-- 但 `def realLeRep : Seq → Seq → Prop` 还不是 `Real` 上的序：同一个实数
+-- 可以换代表元，序必须与代表元的选取无关。本单元补上这条**良定义性**，
+-- 再经两次 `Quot.lift` 把序下降到
+--
+--   realLe : Real → Real → Prop
+--
+-- 两次 lift 与 61 的 `addRel` 同一构造：内层把第二个因子送到 `Prop`
+-- （良定义性是 `realLeRep_wd_snd`），外层再把第一个因子送到
+-- `Real → Prop`（良定义性是 `realLeRep_wd`，对每个 `b` 用 `Quot.ind`
+-- 烧成代表元形状）。代价仍是 L2 既有的 `funext`（定理）与 `propext`
+-- （既有 axiom），**不新增信任**。
+--
+-- 良定义性的证明本身很短：`realLeRep_of_realRel`（64.2）把
+-- `realRel` 的两个方向投成序，`realLeRep_trans`（65.2）把三段接起来。
+--
+--   · 66.0 `realLeRep_wd` —— 换左因子，序不变；
+--   · 66.1 `realLeRep_wd_snd` —— 换右因子，序不变；
+--   · 66.2 `realLeY` —— 固定左因子，对第二个因子做 `Quot.lift`；
+--   · 66.3 `realLe` —— 对第一个因子再做一次 `Quot.lift`；
+--   · 66.4 `realLe_mk` —— 两次 lift 的 ι 规则；
+--   · 66.5 常零序列上的具体例。
+
+import lib.RealOrder
+import lib.RealOrderTrans
+import lib.Extensionality
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.0 换左因子：`realRel x x' → (x ≤ y ↔ x' ≤ y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个方向都是「相等 ⇒ 序」加传递。正向：`x' ≤ x`（`realRel_symm` 把 `hx` 反过来，交给 64.2）再与 `x ≤ y` 传递；反向：`x ≤ x'`（`hx` 直接交给 64.2）再与 `x' ≤ y` 传递。
+-- soko:hint 目标形态：`realLeRep x y ↔ realLeRep x' y`。
+-- soko:hint 关键件：realRel_symm · realLeRep_of_realRel · realLeRep_trans · Iff.intro。
+theorem realLeRep_wd (x x' y : Seq) (hx : realRel x x') :
+    realLeRep x y ↔ realLeRep x' y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.1 换右因子：`realRel y y' → (x ≤ y ↔ x ≤ y')`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：与 66.0 同形，只是传递的中间项换成右因子。正向：`x ≤ y` 与 `y ≤ y'`（`hy` 交给 64.2）传递；反向：`x ≤ y'` 与 `y' ≤ y`（`realRel_symm` 后交给 64.2）传递。
+-- soko:hint 目标形态：`realLeRep x y ↔ realLeRep x y'`。
+-- soko:hint 关键件：realLeRep_of_realRel · realRel_symm · realLeRep_trans · Iff.intro。
+theorem realLeRep_wd_snd (x y y' : Seq) (hy : realRel y y') :
+    realLeRep x y ↔ realLeRep x y' :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.2 内层下降：固定 `x`，对 `y` 做 `Quot.lift`
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层类型是 `Prop`，良定义性要 `propext` 把 66.1 的 `↔` 变成命题相等。
+def realLeY (x : Seq) : Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel Prop
+    (fun (y : Seq) => realLeRep x y)
+    (fun (y y' : Seq) (hy : realRel y y') =>
+      propext (realLeRep x y) (realLeRep x y')
+        (realLeRep_wd_snd x y y' hy))
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.3 外层下降：对 `x` 再做一次 `Quot.lift`
+-- ─────────────────────────────────────────────────────────────
+
+-- 外层要证 `realLeY x = realLeY x'`：先用 `funext` 逐点化，进入 `b` 后
+-- 用 `Quot.ind` 把 `b` 烧成 `mk y`，两次 ι 归约把目标变成
+-- `realLeRep x y = realLeRep x' y`，交给 66.0 与 `propext`。
+def realLe (a : Real) : Real → Prop :=
+  @Quot.lift.{1, 1} Seq realRel (Real → Prop)
+    (fun (x : Seq) => realLeY x)
+    (fun (x x' : Seq) (hx : realRel x x') =>
+      funext (fun (b : Real) => realLeY x b)
+             (fun (b : Real) => realLeY x' b)
+             (fun (b : Real) =>
+               @Quot.ind.{1} Seq realRel
+                 (fun (b : Real) => realLeY x b = realLeY x' b)
+                 (fun (y : Seq) =>
+                   propext (realLeRep x y) (realLeRep x' y)
+                     (realLeRep_wd x x' y hx))
+                 b))
+    a
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.4 ι 规则：作用在 `mk` 上回到代表元形状
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`realLe` 与 `realLeY` 都是 `Quot.lift`；作用到 `Real.mk x` / `Real.mk y` 上按 ι 归约成 `realLeRep x y`。两边是**定义性相等**的命题，两个方向都取恒等函数。
+-- soko:hint 目标形态：`realLe (Real.mk x) (Real.mk y) ↔ realLeRep x y`。
+-- soko:hint 关键件：Iff.intro · ι 归约（两处 Quot.lift 都要真的烧掉）。
+theorem realLe_mk (x y : Seq) :
+    realLe (Real.mk x) (Real.mk y) ↔ realLeRep x y :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 66.5 具体：常零序列 ≤ 常零序列
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先 `realLe_mk` 把目标搬回代表元层，再用 64 的 `realLeRep_of_realRel`（配 `realRel_zero`）。
+-- soko:hint 目标形态：`realLe (Real.mk zeroSeq) (Real.mk zeroSeq)`。
+-- soko:hint 关键件：realLe_mk · Iff.mpr · realLeRep_of_realRel · realRel_zero。
+theorem demo_realLe_lift : realLe (Real.mk zeroSeq) (Real.mk zeroSeq) :=
+  sorry

@@ -1,0 +1,112 @@
+-- 单元97 上下极限只看尾部
+--
+-- 上极限与下极限都是极限点集合的上下确界，而极限点由子序列见证：轨道的
+-- 下标可以任意大。因此「改动前几项」不会改变极限点集合，也不会改变上下
+-- 极限。单元95 比较的是一条序列与它的子序列，这里比较两条不同的序列：
+-- 只要它们从某一项起逐项代表同一个有理数，上下极限就相同。
+--
+-- 97.0 把尾部等价沿一条子序列复合：轨道上的项仍然尾部落在一起。97.1 把
+-- 极限点沿尾部等价搬过去。97.2 与 97.3 把这次搬运写成上极限与下极限的
+-- 同一个界。97.4 合成两条序列的上下极限彼此等价。97.5 是常序列改动有限项
+-- 的例子。
+--
+-- 边界：结论只说「上下极限相同」。两条序列的极限是否更接近、是否收敛，
+-- 不在这一单元里。不新增公理。
+
+import lib.Tail
+import lib.Limsup
+import lib.Liminf
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.0 尾部等价沿子序列复合
+-- ─────────────────────────────────────────────────────────────
+
+-- 设两条序列从第 N 项起逐项等价。轨道 `g` 不回头，`n ≤ g n`，所以从第 N 项
+-- 起 `g n` 也落在阈值之后；同一个阈值 N 就能见证复合后的尾部等价。
+theorem tailEq_comp_subseq (x y : Seq) (h : TailEq x y) (g : Nat → Nat)
+    (hg : Subseq g) :
+    TailEq (fun (n : Nat) => x (g n)) (fun (n : Nat) => y (g n)) :=
+  Exists.elim h
+    (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → ratRel (x n) (y n)) =>
+      Exists.intro N
+        (fun (n : Nat) (hn : LeNat N n) =>
+          hN (g n) (leNat_trans N n (g n) hn (subseq_ge g hg n))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.1 极限点沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 极限点 `P` 由轨道 `g` 见证：`x ∘ g` 收敛到 `P`。97.0 说明 `y ∘ g` 与它尾部
+-- 等价，而尾部等价保持极限，于是同一条轨道也见证 `y` 以 `P` 为极限点。
+--
+-- soko:hint 思路：拆开 `hp` 得到轨道 `g` 与两条性质。用同一条 `g` 作新见证：子序列性质原样保留，收敛性交给 `converges_congr_tail`，它的第二项正是 97.0 在 `g` 上的实例。
+-- soko:hint 目标形态：`LimitPoint y P`。
+-- soko:hint 关键件：Exists.elim · Exists.intro · And.intro · converges_congr_tail · tailEq_comp_subseq。
+theorem limitPoint_congr_tail (x y : Seq) (h : TailEq x y) (P : ratRep)
+    (hp : LimitPoint x P) : LimitPoint y P :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.2 上极限沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 上极限是极限点集合的最小上界。97.1 给出两个方向的包含：`x` 的极限点都是
+-- `y` 的，反之亦然。于是同一个数 `L` 对两个集合都满足「上界 + 最小」。
+--
+-- soko:hint 思路：`Limsup` 展开成「上界 ∧ 最小」。上界：`y` 的极限点用 97.1 的反方向（先 `tailEq_symm`）搬回 `x`，再用 `x` 的上界。最小性：任给压住 `y` 的候选界 B，它压住 `x` 的极限点（97.1 正向），再用 `x` 的最小性。
+-- soko:hint 目标形态：`Limsup y L`。
+-- soko:hint 关键件：And.intro · limsup_upper · limsup_least · limitPoint_congr_tail · tailEq_symm。
+theorem limsup_congr_tail (x y : Seq) (h : TailEq x y) (L : ratRep)
+    (hL : Limsup x L) : Limsup y L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.3 下极限沿尾部等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 对偶陈述：`Liminf` 是极限点集合的最大下界，搬运方式与 97.2 逐条对应，
+-- 只需把「上界」换成「下界」、「最小」换成「最大」。
+--
+-- soko:hint 思路：与 97.2 同形。下界：`y` 的极限点搬回 `x` 后用 `liminf_lower`。最大性：候选下界 B 压住 `x` 的极限点后交给 `liminf_greatest`。
+-- soko:hint 目标形态：`Liminf y L`。
+-- soko:hint 关键件：And.intro · liminf_lower · liminf_greatest · limitPoint_congr_tail · tailEq_symm。
+theorem liminf_congr_tail (x y : Seq) (h : TailEq x y) (L : ratRep)
+    (hL : Liminf x L) : Liminf y L :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.4 两条序列的上下极限彼此等价
+-- ─────────────────────────────────────────────────────────────
+
+-- `x` 的上极限 `L` 搬成 `y` 的上极限之后，同一个 `y` 的上极限至多一个
+-- （93.4），所以 `L` 与 `M` 代表同一个有理数。
+--
+-- soko:hint 思路：先用 97.2 把 `Limsup x L` 变成 `Limsup y L`，再把它与 `Limsup y M` 一起交给 `limsup_unique`。
+-- soko:hint 目标形态：`ratRel L M`。
+-- soko:hint 关键件：limsup_congr_tail · limsup_unique。
+theorem limsup_tail_rel (x y : Seq) (h : TailEq x y) (L M : ratRep)
+    (hL : Limsup x L) (hM : Limsup y M) : ratRel L M :=
+  sorry
+
+-- 下极限的同一句话，用 97.3 与 94.4。
+--
+-- soko:hint 思路：先用 97.3 把 `Liminf x L` 搬到 `y`，再与 `Liminf y M` 一起交给 `liminf_unique`。
+-- soko:hint 目标形态：`ratRel L M`。
+-- soko:hint 关键件：liminf_congr_tail · liminf_unique。
+theorem liminf_tail_rel (x y : Seq) (h : TailEq x y) (L M : ratRep)
+    (hL : Liminf x L) (hM : Liminf y M) : ratRel L M :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 97.5 常序列改动有限项
+-- ─────────────────────────────────────────────────────────────
+
+-- 一条序列若从某项起等于常序列 `constSeq q`，它的上极限就是 `q`：常序列的
+-- 上极限是 `q`（93.6），尾部等价把它搬到这条序列上。
+--
+-- soko:hint 思路：先把 `h` 反向（`tailEq_symm`），让常序列在左、目标序列在右，正好是 97.2 需要的方向；常序列一侧用 `limsup_const`。
+-- soko:hint 目标形态：`Limsup x q`。
+-- soko:hint 关键件：tailEq_symm · limsup_const · limsup_congr_tail。
+theorem demo_tail_const (x : Seq) (q : ratRep) (h : TailEq x (constSeq q)) :
+    Limsup x q :=
+  sorry

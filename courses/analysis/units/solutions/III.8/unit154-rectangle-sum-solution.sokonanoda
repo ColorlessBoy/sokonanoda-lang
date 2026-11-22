@@ -1,0 +1,197 @@
+-- 单元154 矩形和：把每一段的面积加起来
+--
+-- 阶梯函数把曲线换成了一级一级的台阶，剩下的事是算出台阶下面的面积。每
+-- 一段上高度是常数，宽是这一段两个切点之差，于是每一段贡献一个矩形；有限
+-- 多个矩形排在一起，面积就是它们的和。这个和只用到两样东西：每一段的高
+-- 度，以及每一段的宽。高度由阶梯函数给出；宽要说明是正的，否则「矩形」
+-- 会退化成一条线段，面积的比较也就失去方向。
+--
+-- 求和落在前 n 项上，n 是段数，所以两条关于「只看前 n 项」的引理要先备好：
+-- 非负的项加起来非负，逐项变大则和变大。把这两条接到矩形上，就得到面积的
+-- 两条基本性质——高度非负则面积非负，高度逐段变大则面积变大。后面比较上
+-- 下和时，用的正是这两条。
+--
+-- 边界：只算阶梯函数的矩形和，不讨论一般函数的上下和，也不谈加细。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatSub
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.Sum
+import lib.SumSplit
+import lib.RatMulOrder
+import lib.RatRing
+import lib.RatClose
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形的宽与面积
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 i 段的宽：右切点减左切点。段数记作 n 时，第 i 段只在 i < n 时存在。
+def segLen (p : Partition) (i : Nat) : ratRep :=
+  ratSubRep (partPoint p (Nat.succ i)) (partPoint p i)
+
+-- 阶梯函数的矩形和：每段的高度乘上那一段的宽，再把段数那么多项加起来。
+def stepSum (p : Partition) (c : Nat → ratRep) : ratRep :=
+  sumTo (fun (i : Nat) => ratMulRep (c i) (segLen p i)) (partCount p)
+
+-- 严格上升说的是「左切点小于右切点」，而线段的正性说的是「右减左为正」；
+-- 两条之间只差一次改写，把右切点认成第 i 段的右端。
+theorem segLen_pos (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLtRep ratZeroRep (segLen p i) :=
+  ratLtRep_sub_pos (partPoint p (Nat.succ i)) (partPoint p i)
+    (isPartition_step a b p hp i hi)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个具体读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 两切点的分割只有一段，求和在一项之后就停住；这一项的前面还挂着零项和
+-- 的 `0`，由左零元收掉。端点 a、b 与切点的对应是定义性展开，不用另证。
+theorem stepSum_twoPoint (a b : ratRep) (c : Nat → ratRep) :
+    ratRel (stepSum (twoPoint a b) c)
+      (ratMulRep (c Nat.zero) (ratSubRep b a)) :=
+  ratAdd_zero_left (ratMulRep (c Nat.zero) (ratSubRep b a))
+
+-- 三个切点 a、m、b 把区间切成两段。切点函数按两层拆开写，因为 `def` 里
+-- 不能嵌套 `match`。
+def threePointTail (m b : ratRep) (j : Nat) : ratRep :=
+  match j with
+  | Nat.zero => m
+  | Nat.succ _ => b
+
+def threePointAt (a m b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ j => threePointTail m b j
+
+def threePoint (a m b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ (Nat.succ Nat.zero)) (threePointAt a m b)
+
+-- 两段的和展开成 `(0 + c 0 · (m - a)) + c 1 · (b - m)`。首项的零由左零元
+-- 收掉，其余是定义性展开：第 0 段从 a 到 m，第 1 段从 m 到 b。
+theorem stepSum_threePoint (a m b : ratRep) (c : Nat → ratRep) :
+    ratRel (stepSum (threePoint a m b) c)
+      (ratAddRep (ratMulRep (c Nat.zero) (ratSubRep m a))
+        (ratMulRep (c (Nat.succ Nat.zero)) (ratSubRep b m))) :=
+  ratAddRep_wd_gen
+    (ratAddRep ratZeroRep
+      (ratMulRep (c Nat.zero) (ratSubRep m a)))
+    (ratMulRep (c Nat.zero) (ratSubRep m a))
+    (ratMulRep (c (Nat.succ Nat.zero)) (ratSubRep b m))
+    (ratAdd_zero_left (ratMulRep (c Nat.zero) (ratSubRep m a)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 只看前 n 项
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 n 归纳。零项和是零。后继时和是「前 n 项」加第 n 项：归纳假设要的
+-- 前提是 `k+1 ≤ n`，由 `k+1 ≤ n+1` 与 `n ≤ n+1` 传递得到；第 n 项自己由
+-- 假设在 `n+1 ≤ n+1` 上给出。两条非负性用加法保序加起来，左端的 `0 + 0`
+-- 再换回 0。
+theorem sumTo_nonneg_upto (f : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep ratZeroRep (f k)) :
+    ratLeRep ratZeroRep (sumTo f n) :=
+  Nat.rec
+    (fun (n : Nat) =>
+      (∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep ratZeroRep (f k)) →
+        ratLeRep ratZeroRep (sumTo f n))
+    (fun (_h : ∀ (k : Nat), LeNat (Nat.succ k) Nat.zero →
+        ratLeRep ratZeroRep (f k)) =>
+      ratLeRep_refl ratZeroRep)
+    (fun (n : Nat)
+        (ih : (∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep ratZeroRep (f k)) →
+          ratLeRep ratZeroRep (sumTo f n))
+        (h : ∀ (k : Nat), LeNat (Nat.succ k) (Nat.succ n) →
+          ratLeRep ratZeroRep (f k)) =>
+      ratLeRep_congr_gen
+        (ratAddRep ratZeroRep ratZeroRep) ratZeroRep
+        (ratAddRep (sumTo f n) (f n)) (ratAddRep (sumTo f n) (f n))
+        (ratAdd_zero_left ratZeroRep)
+        (ratRel_refl (ratAddRep (sumTo f n) (f n)))
+        (ratLeRep_add ratZeroRep (sumTo f n) ratZeroRep (f n)
+          (ih (fun (k : Nat) (hk : LeNat (Nat.succ k) n) =>
+            h k (leNat_trans (Nat.succ k) n (Nat.succ n) hk
+              (le_succ n n (le_refl n)))))
+          (h n (le_refl (Nat.succ n)))))
+    n h
+
+-- 同一条归纳换成逐项比较：后继时前 n 项用归纳假设，第 n 项用假设，两条
+-- 不等式由加法保序合成。
+theorem sumTo_le_upto (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep (f k) (g k)) :
+    ratLeRep (sumTo f n) (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) =>
+      (∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep (f k) (g k)) →
+        ratLeRep (sumTo f n) (sumTo g n))
+    (fun (_h : ∀ (k : Nat), LeNat (Nat.succ k) Nat.zero →
+        ratLeRep (f k) (g k)) =>
+      ratLeRep_refl ratZeroRep)
+    (fun (n : Nat)
+        (ih : (∀ (k : Nat), LeNat (Nat.succ k) n → ratLeRep (f k) (g k)) →
+          ratLeRep (sumTo f n) (sumTo g n))
+        (h : ∀ (k : Nat), LeNat (Nat.succ k) (Nat.succ n) →
+          ratLeRep (f k) (g k)) =>
+      ratLeRep_add (sumTo f n) (sumTo g n) (f n) (g n)
+        (ih (fun (k : Nat) (hk : LeNat (Nat.succ k) n) =>
+          h k (leNat_trans (Nat.succ k) n (Nat.succ n) hk
+            (le_succ n n (le_refl n)))))
+        (h n (le_refl (Nat.succ n))))
+    n h
+
+-- ─────────────────────────────────────────────────────────────
+-- 面积保号与保序
+-- ─────────────────────────────────────────────────────────────
+
+-- 每一项是「高度乘宽」：高度非负、宽为正，乘积非负。这条乘积的界从
+-- `0 · 宽 ≤ c i · 宽` 来，左端再沿 `0 · 宽 ~ 0` 换掉；逐项的结论交给
+-- 「前 n 项和非负」。
+theorem stepSum_nonneg (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (c : Nat → ratRep)
+    (hc : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep ratZeroRep (c i)) :
+    ratLeRep ratZeroRep (stepSum p c) :=
+  sumTo_nonneg_upto (fun (i : Nat) => ratMulRep (c i) (segLen p i))
+    (partCount p)
+    (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+      ratLeRep_congr_gen
+        (ratMulRep ratZeroRep (segLen p i)) ratZeroRep
+        (ratMulRep (c i) (segLen p i)) (ratMulRep (c i) (segLen p i))
+        (ratMul_zero_left (segLen p i))
+        (ratRel_refl (ratMulRep (c i) (segLen p i)))
+        (ratLeRep_mul_pos_right ratZeroRep (c i) (segLen p i)
+          (hc i hi) (segLen_pos a b p hp i hi)))
+
+-- 用正因子乘同一个宽不改变不等号；每一段都这样放大之后，「前 n 项和逐项
+-- 比较」把段数那么多条不等式收成整条和的一条。
+theorem stepSum_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (c d : Nat → ratRep)
+    (hcd : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+      ratLeRep (c i) (d i)) :
+    ratLeRep (stepSum p c) (stepSum p d) :=
+  sumTo_le_upto
+    (fun (i : Nat) => ratMulRep (c i) (segLen p i))
+    (fun (i : Nat) => ratMulRep (d i) (segLen p i))
+    (partCount p)
+    (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =>
+      ratLeRep_mul_pos_right (c i) (d i) (segLen p i)
+        (hcd i hi) (segLen_pos a b p hp i hi))
+
+-- 常函数 1 的矩形和是 `1 · (b - a)`；1 乘任何数还是它自己，于是面积就是
+-- 区间的长度。这是「矩形和」与长度最直接的一次接头。
+theorem demo_const_one_area (a b : ratRep) :
+    ratRel (stepSum (twoPoint a b) (fun (_ : Nat) => ratOneRep))
+      (ratSubRep b a) :=
+  ratRel_trans_gen
+    (stepSum (twoPoint a b) (fun (_ : Nat) => ratOneRep))
+    (ratMulRep ratOneRep (ratSubRep b a))
+    (ratSubRep b a)
+    (stepSum_twoPoint a b (fun (_ : Nat) => ratOneRep))
+    (ratMul_one_left (ratSubRep b a))

@@ -1,0 +1,267 @@
+-- 单元160 取负与逐点等价：可积性只看函数值
+--
+-- 上和与下和由每一段上的函数值定出，所以两个逐点相等的函数应当有同一套台
+-- 阶、同一个可积性。把这条搬运写成等价关系，取负就能直接作用在可积性上：
+-- 曲线在上界下面，取负之后它就在下界的上面，上和与下和互换，差却仍是原来
+-- 那个数。
+--
+-- 搬运从上下界开始。上界压住 `f`，而 `f x` 与 `g x` 只差一次等价，于是同一个上界
+-- 也压住 `g`；下界的方向相反，函数值换到不等式的右边。上和与下和各自沿着
+-- 这一步换过去，可积性的见证于是整条搬完：分割不动，两个和换成新函数的和，
+-- 严格界仍是原来那条。
+--
+-- 取负时两摞台阶互换：上界 `u` 变成下界 `-u`，下界 `l` 变成上界 `-l`。矩形
+-- 和也跟着取负，两个差 `(-l) - (-u)` 与 `u - l` 只差一个负号，所以「差小于
+-- ε」原样成立。反方向把取负用两次，`-(-f)` 与 `f` 逐点相等，先沿点式等价
+-- 换回 `f`，再用一次取负。
+--
+-- 边界：只做逐点等价与取负，不做加法、乘法或常数倍。函数取
+-- `ratRep → ratRep`，停在有理代表元层。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RealNeg
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+
+-- ─────────────────────────────────────────────────────────────
+-- 上下界沿点式等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 上界压住 `f`；`f x ~ g x` 把不等式左端换成 `g x`，右端 `u i` 不动。反
+-- 方向把等价关系翻过来。
+theorem upperStep_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (u : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    UpperStep a b p f u ↔ UpperStep a b p g u :=
+  Iff.intro
+    (fun (h : UpperStep a b p f u) =>
+      fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+          (x : ratRep)
+          (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+        ratLeRep_congr_gen (f x) (g x) (u i) (u i)
+          (hfg x) (ratRel_refl (u i)) (h i hi x hx))
+    (fun (h : UpperStep a b p g u) =>
+      fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+          (x : ratRep)
+          (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+        ratLeRep_congr_gen (g x) (f x) (u i) (u i)
+          (ratRel_symm (f x) (g x) (hfg x)) (ratRel_refl (u i))
+          (h i hi x hx))
+
+-- 下界的方向相反：`l i` 不动，函数值沿 `f x ~ g x` 换到右边；反方向同样
+-- 把等价关系翻过来。
+theorem lowerStep_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (l : Nat → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    LowerStep a b p f l ↔ LowerStep a b p g l :=
+  Iff.intro
+    (fun (h : LowerStep a b p f l) =>
+      fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+          (x : ratRep)
+          (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+        ratLeRep_congr_gen (l i) (l i) (f x) (g x)
+          (ratRel_refl (l i)) (hfg x) (h i hi x hx))
+    (fun (h : LowerStep a b p g l) =>
+      fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+          (x : ratRep)
+          (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =>
+        ratLeRep_congr_gen (l i) (l i) (g x) (f x)
+          (ratRel_refl (l i)) (ratRel_symm (f x) (g x) (hfg x))
+          (h i hi x hx))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个和沿点式等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 上和展开成一摞上界；上界本身沿上一条换到 `g`，矩形和与 `U` 的关系原样
+-- 保留。反方向用同一个见证、同一条等价关系的反向。
+theorem upperSum_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    UpperSum a b p f U ↔ UpperSum a b p g U :=
+  Iff.intro
+    (fun (h : UpperSum a b p f U) =>
+      Exists.elim (upperSum_witness a b p f U h)
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =>
+          Exists.intro u
+            (And.intro
+              (Iff.mp (upperStep_congr_fun a b p f g u hfg) (And.left hu))
+              (And.right hu))))
+    (fun (h : UpperSum a b p g U) =>
+      Exists.elim (upperSum_witness a b p g U h)
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p g u ∧ ratRel U (stepSum p u)) =>
+          Exists.intro u
+            (And.intro
+              (Iff.mpr (upperStep_congr_fun a b p f g u hfg) (And.left hu))
+              (And.right hu))))
+
+-- 下和同理：下界沿点式等价换到 `g`，矩形和与 `L` 的关系不动。
+theorem lowerSum_congr_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    LowerSum a b p f L ↔ LowerSum a b p g L :=
+  Iff.intro
+    (fun (h : LowerSum a b p f L) =>
+      Exists.elim (lowerSum_witness a b p f L h)
+        (fun (l : Nat → ratRep)
+            (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =>
+          Exists.intro l
+            (And.intro
+              (Iff.mp (lowerStep_congr_fun a b p f g l hfg) (And.left hl))
+              (And.right hl))))
+    (fun (h : LowerSum a b p g L) =>
+      Exists.elim (lowerSum_witness a b p g L h)
+        (fun (l : Nat → ratRep)
+            (hl : LowerStep a b p g l ∧ ratRel L (stepSum p l)) =>
+          Exists.intro l
+            (And.intro
+              (Iff.mpr (lowerStep_congr_fun a b p f g l hfg) (And.left hl))
+              (And.right hl))))
+
+-- 可积性的见证是分割、两个和与严格界。两个和各自沿上面的等价换到 `g`，
+-- 分割与差不动；反方向把两条等价反过来用。
+theorem integrable_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    Integrable a b f ↔ Integrable a b g :=
+  Iff.intro
+    (fun (h : Integrable a b f) =>
+      fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (h eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hLex : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =>
+                Exists.elim hLex
+                  (fun (U : ratRep)
+                      (hTriple : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =>
+                    Exists.intro p
+                      (And.intro (And.left hp)
+                        (Exists.intro L
+                          (Exists.intro U
+                            (And.intro
+                              (Iff.mp (lowerSum_congr_fun a b p f g L hfg)
+                                (And.left hTriple))
+                              (And.intro
+                                (Iff.mp (upperSum_congr_fun a b p f g U hfg)
+                                  (And.left (And.right hTriple)))
+                                (And.right (And.right hTriple)))))))))))
+    (fun (h : Integrable a b g) =>
+      fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+        Exists.elim (h eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hLex : ∃ (U : ratRep),
+                    LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                      ratLtRep (ratSubRep U L) eps) =>
+                Exists.elim hLex
+                  (fun (U : ratRep)
+                      (hTriple : LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                        ratLtRep (ratSubRep U L) eps) =>
+                    Exists.intro p
+                      (And.intro (And.left hp)
+                        (Exists.intro L
+                          (Exists.intro U
+                            (And.intro
+                              (Iff.mpr (lowerSum_congr_fun a b p f g L hfg)
+                                (And.left hTriple))
+                              (And.intro
+                                (Iff.mpr (upperSum_congr_fun a b p f g U hfg)
+                                  (And.left (And.right hTriple)))
+                                (And.right (And.right hTriple)))))))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 上和取负变成新下和，下和取负变成新上和。两摞台阶的矩形和之差也跟着取
+-- 负：`(-L) - (-U) ~ -(L - U)`，而 `U - L ~ -(L - U)`，两条合成同一个差。
+-- 原来的严格界沿这条等价搬到新差上。
+theorem integrable_neg (a b : ratRep) (f : ratRep → ratRep)
+    (h : Integrable a b f) :
+    Integrable a b (fun (x : ratRep) => ratNegRep (f x)) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (p : Partition)
+          (hp : IsPartition a b p ∧
+            ∃ (L : ratRep), ∃ (U : ratRep),
+              LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                ratLtRep (ratSubRep U L) eps) =>
+        Exists.elim (And.right hp)
+          (fun (L : ratRep)
+              (hLex : ∃ (U : ratRep),
+                LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                  ratLtRep (ratSubRep U L) eps) =>
+            Exists.elim hLex
+              (fun (U : ratRep)
+                  (hTriple : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =>
+                Exists.intro p
+                  (And.intro (And.left hp)
+                    (Exists.intro (ratNegRep U)
+                      (Exists.intro (ratNegRep L)
+                        (And.intro
+                          (upperSum_neg a b p f U
+                            (And.left (And.right hTriple)))
+                          (And.intro
+                            (lowerSum_neg a b p f L (And.left hTriple))
+                            (ratLtRep_congr_fst
+                              (ratSubRep (ratNegRep L) (ratNegRep U))
+                              (ratSubRep U L) eps
+                              (And.right (And.right hTriple))
+                              (ratRel_trans_gen
+                                (ratSubRep (ratNegRep L) (ratNegRep U))
+                                (ratNegRep (ratSubRep L U))
+                                (ratSubRep U L)
+                                (ratSubRep_neg_neg L U)
+                                (ratRel_symm (ratSubRep U L)
+                                  (ratNegRep (ratSubRep L U))
+                                  (ratSubRep_neg L U))))))))))))
+
+-- 反方向把取负用两次。`-(-f)` 与 `f` 逐点相等，先沿 `integrable_congr_fun`
+-- 把 `-(-f)` 的可积性换回 `f`，再用一次 `integrable_neg`。
+theorem integrable_neg_iff (a b : ratRep) (f : ratRep → ratRep) :
+    Integrable a b (fun (x : ratRep) => ratNegRep (f x)) ↔
+      Integrable a b f :=
+  Iff.intro
+    (fun (h : Integrable a b (fun (x : ratRep) => ratNegRep (f x))) =>
+      Iff.mp
+        (integrable_congr_fun a b
+          (fun (x : ratRep) => ratNegRep (ratNegRep (f x))) f
+          (fun (x : ratRep) => ratNegRep_invol (f x)))
+        (integrable_neg a b (fun (x : ratRep) => ratNegRep (f x)) h))
+    (fun (h : Integrable a b f) =>
+      integrable_neg a b f h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 常值函数取负
+-- ─────────────────────────────────────────────────────────────
+
+-- 常值函数可积，取负保持可积，两条接起来。
+theorem demo_integrable_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) => ratNegRep k) :=
+  integrable_neg a b (fun (_ : ratRep) => k)
+    (integrable_const a b k hab)

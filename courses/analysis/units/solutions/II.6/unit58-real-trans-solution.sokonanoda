@@ -1,0 +1,94 @@
+-- 单元58 `realRel` 的传递性：逐点 `close` 与 Cauchy 的三段常数（解答）
+--
+-- ㊱ 把实数的相等定义成 Cauchy 序列的逐点接近：
+--
+--   realRel x y  :⟺  Cauchy x ∧ Cauchy y ∧
+--                    ∀ eps > 0, ∃ N, ∀ n ≥ N, close (x n) (y n) eps
+--
+-- 要证 `realRel x z` 需要三件：
+--   · `Cauchy x` —— 直接是 `hxy` 的第一分量；
+--   · `Cauchy z` —— 直接是 `hyz` 的第二分量；
+--   · 逐点 `close` —— 本单元的内容。
+--
+-- 逐点部分不能直接把 `hxy` 与 `hyz` 用在同一个 `ε` 上：两个前提各给一个
+-- `N`，而且分别只保证 `ε`（而不是 `ε/2`）的界。所以：
+--
+--   ① 对 `ε/2` 取两个阈值 `N1`、`N2`（`0 < ε ⇒ 0 < ε/2` 是 53）；
+--   ② 取一个同时大于等于两者的 `N`（ℕ 的 `≤` 全性 + 传递）；
+--   ③ 在 `n ≥ N` 上把两个 `ε/2` 的界交给 57 的 `close_trans`。
+--
+-- 58.1 是阈值的合并，58.2 是逐点部分，58.3 是主定理，58.4 落在常零序列上。
+--
+-- 本单元不引入新定义；用到的 `close_trans` 与 `ratLtRep_half` 已在
+-- `lib/RatCloseTrans` / `lib/RatClose` 里判过卷。
+
+import lib.RatCloseTrans
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.1 两个 ℕ 阈值的合并
+-- ─────────────────────────────────────────────────────────────
+
+-- `leNat_total` 给出 `m ≤ n` 或 `n ≤ m`：前者取 `N = n`（`n ≤ n` 是构造子
+-- `LeNat.le_refl`），后者取 `N = m`，再用 `leNat_trans` 把 `n ≤ m` 搬到 `m ≤ m`。
+
+theorem leNat_max (m n : Nat) : ∃ (N : Nat), LeNat m N ∧ LeNat n N :=
+  Or.elim
+    (fun (h : LeNat m n) =>
+      Exists.intro n (And.intro h (LeNat.le_refl n)))
+    (fun (h : LeNat n m) =>
+      Exists.intro m (And.intro (LeNat.le_refl m) h))
+    (leNat_total m n)
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.2 逐点 `close` 的传递
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 `ε/2` 取两个阈值，用 58.1 合并成 `N`；在 `n ≥ N` 上，两个前提各自
+-- 通过 `leNat_trans` 落到 `n`，再交给 `close_trans`。
+
+theorem realRel_close_trans (x y z : Seq)
+    (hxy : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (y n) eps)
+    (hyz : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (y n) (z n) eps) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (z n) eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (hxy (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N1 : Nat)
+          (h1 : ∀ (n : Nat), LeNat N1 n → close (x n) (y n) (ratHalf eps)) =>
+        Exists.elim (hyz (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (N2 : Nat)
+              (h2 : ∀ (n : Nat), LeNat N2 n → close (y n) (z n) (ratHalf eps)) =>
+            Exists.elim (leNat_max N1 N2)
+              (fun (N : Nat) (hN : LeNat N1 N ∧ LeNat N2 N) =>
+                Exists.intro N
+                  (fun (n : Nat) (hn : LeNat N n) =>
+                    close_trans (x n) (y n) (z n) eps heps
+                      (h1 n (leNat_trans N1 N n (And.left hN) hn))
+                      (h2 n (leNat_trans N2 N n (And.right hN) hn))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.3 主定理：`realRel` 的传递性
+-- ─────────────────────────────────────────────────────────────
+
+-- 三元组逐分量拼装：两个 `Cauchy` 分量来自 `hxy` / `hyz`，第三分量是 58.2。
+
+theorem realRel_trans (x y z : Seq) (hxy : realRel x y) (hyz : realRel y z) :
+    realRel x z :=
+  And.intro
+    (And.left hxy)
+    (And.intro
+      (And.left (And.right hyz))
+      (realRel_close_trans x y z
+        (And.right (And.right hxy))
+        (And.right (And.right hyz))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 58.4 具体：常零序列经由自身传递
+-- ─────────────────────────────────────────────────────────────
+
+-- 两次 `realRel_zero`（㊱ 已判卷）就是传递性的两个前提。
+
+theorem demo_realRel_trans : realRel zeroSeq zeroSeq :=
+  realRel_trans zeroSeq zeroSeq zeroSeq realRel_zero realRel_zero

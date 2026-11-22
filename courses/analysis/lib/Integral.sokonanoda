@@ -1,0 +1,180 @@
+-- 课程库：分割与切点序（单元151 与 152）
+--
+-- 谈曲线下的面积，先把区间切成有限段：段数、切点函数、左端与右端、相邻切点
+-- 严格上升，这四件事合起来就是 `IsPartition`。切点取有理代表元，分割本身
+-- 是一个序对，段数不放进类型参数，因为后面要在段数不同的分割之间比较。
+--
+-- 切点序是面积估计的第一件工具：相邻两个切点严格上升，隔了几段的两个切点
+-- 谁高谁低要先证出来。`point_le_add` 对「往前走 k 段」归纳，`point_mono` 把
+-- 「i ≤ j」换算成这段距离，`point_in_closed` 再说明每个切点都落在闭区间里。
+--
+-- 边界：只谈切点之间的弱序与位置，不谈段长为正，也不谈上下和；后者要用
+-- 严格版本。不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.Cauchy
+import lib.Bounded
+import lib.MaxOn
+
+-- ─────────────────────────────────────────────────────────────
+-- 分割的部件
+-- ─────────────────────────────────────────────────────────────
+
+-- 分割由段数与切点函数组成。函数只在 0 到 n 这些下标上有义务；合格与否由
+-- `IsPartition` 另外规定。
+def Partition : Type := Prod Nat (Nat → ratRep)
+
+def partCount (p : Partition) : Nat := Prod.fst Nat (Nat → ratRep) p
+
+def partPoint (p : Partition) (i : Nat) : ratRep :=
+  Prod.snd Nat (Nat → ratRep) p i
+
+-- 第一个切点是 a，最后一个切点是 b，相邻切点严格上升。上升只查到下标 n-1
+-- 为止，因为第 n 个切点就是右端点。
+def IsPartition (a b : ratRep) (p : Partition) : Prop :=
+  partPoint p Nat.zero = a ∧
+  partPoint p (partCount p) = b ∧
+  (∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ratLtRep (partPoint p i) (partPoint p (Nat.succ i)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 定义的三条投影
+-- ─────────────────────────────────────────────────────────────
+
+theorem isPartition_left (a b : ratRep) (p : Partition)
+    (h : IsPartition a b p) : partPoint p Nat.zero = a :=
+  And.left h
+
+theorem isPartition_right (a b : ratRep) (p : Partition)
+    (h : IsPartition a b p) : partPoint p (partCount p) = b :=
+  And.left (And.right h)
+
+theorem isPartition_step (a b : ratRep) (p : Partition)
+    (h : IsPartition a b p) (i : Nat)
+    (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLtRep (partPoint p i) (partPoint p (Nat.succ i)) :=
+  (And.right (And.right h)) i hi
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个切点的分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 下标 0 放 a，其余下标放 b。段数是 1，所以只有第 0 段。
+def twoPointAt (a b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero => a
+  | Nat.succ _ => b
+
+def twoPoint (a b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ Nat.zero) (twoPointAt a b)
+
+theorem twoPoint_zero (a b : ratRep) :
+    partPoint (twoPoint a b) Nat.zero = a :=
+  @Eq.refl.{1} ratRep a
+
+theorem twoPoint_one (a b : ratRep) :
+    partPoint (twoPoint a b) (Nat.succ Nat.zero) = b :=
+  @Eq.refl.{1} ratRep b
+
+-- 上升条件只查下标 0：其余下标已经越过了段数，前提本身不成立。
+theorem twoPoint_step (a b : ratRep) (h : ratLtRep a b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (twoPoint a b)) →
+      ratLtRep (partPoint (twoPoint a b) i)
+        (partPoint (twoPoint a b) (Nat.succ i)) :=
+  fun (i : Nat) =>
+    Nat.rec
+      (fun (i : Nat) =>
+        LeNat (Nat.succ i) (partCount (twoPoint a b)) →
+          ratLtRep (partPoint (twoPoint a b) i)
+            (partPoint (twoPoint a b) (Nat.succ i)))
+      (fun (_hi : LeNat (Nat.succ Nat.zero) (partCount (twoPoint a b))) => h)
+      (fun (j : Nat)
+          (_ih : LeNat (Nat.succ j) (partCount (twoPoint a b)) →
+            ratLtRep (partPoint (twoPoint a b) j)
+              (partPoint (twoPoint a b) (Nat.succ j)))
+          (hbad : LeNat (Nat.succ (Nat.succ j))
+            (partCount (twoPoint a b))) =>
+        False.elim
+          (leNat_succ_zero_absurd j
+            (leNat_pred (Nat.succ j) Nat.zero hbad)))
+      i
+
+theorem twoPoint_isPartition (a b : ratRep) (h : ratLtRep a b) :
+    IsPartition a b (twoPoint a b) :=
+  And.intro
+    (@Eq.refl.{1} ratRep a)
+    (And.intro
+      (@Eq.refl.{1} ratRep b)
+      (twoPoint_step a b h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 往前走 k 段不会下降
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 k 归纳：零时下标不动，用自反性；后继时把前 k 段的弱序与第 k 段到第
+-- k+1 段的严格上升用传递性串起来，严格上升先投成弱序。
+theorem point_le_add (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i k : Nat) (h : LeNat (Nat.add i k) (partCount p)) :
+    ratLeRep (partPoint p i) (partPoint p (Nat.add i k)) :=
+  Nat.rec
+    (fun (k : Nat) =>
+      LeNat (Nat.add i k) (partCount p) →
+        ratLeRep (partPoint p i) (partPoint p (Nat.add i k)))
+    (fun (_h : LeNat (Nat.add i Nat.zero) (partCount p)) =>
+      ratLeRep_refl (partPoint p i))
+    (fun (k : Nat)
+        (ih : LeNat (Nat.add i k) (partCount p) →
+          ratLeRep (partPoint p i) (partPoint p (Nat.add i k)))
+        (hsk : LeNat (Nat.add i (Nat.succ k)) (partCount p)) =>
+      ratLeRep_trans
+        (partPoint p i)
+        (partPoint p (Nat.add i k))
+        (partPoint p (Nat.succ (Nat.add i k)))
+        (ih (leNat_trans (Nat.add i k) (Nat.succ (Nat.add i k))
+          (partCount p)
+          (le_succ (Nat.add i k) (Nat.add i k) (le_refl (Nat.add i k))) hsk))
+        (ratLtRep_le (partPoint p (Nat.add i k))
+          (partPoint p (Nat.succ (Nat.add i k)))
+          (isPartition_step a b p hp (Nat.add i k) hsk)))
+    k h
+
+-- ─────────────────────────────────────────────────────────────
+-- 任意两个有先后次序的切点
+-- ─────────────────────────────────────────────────────────────
+
+-- `i ≤ j` 时把 j 写成 i + k，再把上一条沿这个等式搬到 j 上；两个 `Eq.subst`
+-- 分别处理结论里的下标与前提里的下标。
+theorem point_mono (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i j : Nat) (hij : LeNat i j) (hj : LeNat j (partCount p)) :
+    ratLeRep (partPoint p i) (partPoint p j) :=
+  Exists.elim (leNat_exists_add i j hij)
+    (fun (k : Nat) (hk : j = Nat.add i k) =>
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) => ratLeRep (partPoint p i) (partPoint p z))
+        (Nat.add i k) j (Eq.symm hk)
+        (point_le_add a b p hp i k
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) => LeNat z (partCount p))
+            j (Nat.add i k) hk hj)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 每个切点都落在闭区间里
+-- ─────────────────────────────────────────────────────────────
+
+-- 左边把 `point 0 ≤ point i` 沿 `point 0 = a` 换掉，右边把
+-- `point i ≤ point n` 沿 `point n = b` 换掉。
+theorem point_in_closed (a b : ratRep) (p : Partition) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat i (partCount p)) :
+    InClosed a b (partPoint p i) :=
+  And.intro
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratLeRep z (partPoint p i))
+      (partPoint p Nat.zero) a
+      (isPartition_left a b p hp)
+      (point_mono a b p hp Nat.zero i (leNat_zero_le i) hi))
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratLeRep (partPoint p i) z)
+      (partPoint p (partCount p)) b
+      (isPartition_right a b p hp)
+      (point_mono a b p hp i (partCount p) hi (le_refl (partCount p))))

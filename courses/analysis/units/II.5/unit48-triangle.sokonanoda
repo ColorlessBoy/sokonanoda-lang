@@ -1,0 +1,101 @@
+-- 单元㊽ 三角不等式：|u + v| ≤ |u| + |v|
+--
+-- ㊼ 给了绝对值的唯一性，现在可以把「同一个数的两个见证」当成一个来用。
+-- 本单元证明 **ℚ 的三角不等式**——它是 `close` 传递性（`ε` 折半）唯一的
+-- 数学内容：
+--
+--   ratAbsRel x dx  ∧  ratAbsRel y dy  ∧  ratAbsRel (x + y) d
+--     ⟹  d ≤ dx + dy
+--
+-- 为什么不能直接「把两个见证相加」：`ratAbsRel` 是关系而不是函数，
+-- `dx + dy` 一般**不是** `|x + y|` 的见证（1 + (-1/2) 的见证是 1/2，
+-- 而 1 + 1/2 = 3/2）。三角不等式说的是**不等号**，不是等号。
+--
+-- 证明路线（把两边都化成「对 `x`、`y` 的四个界」）：
+--
+--   · ㊽.1 `ratLeRep_add`：序对两个因子都单调（右加用 ㊹ 的
+--     `ratLeRep_add_right`，左加靠交换律转成右加）；
+--   · ㊽.2 `ratAbsRel_le`：`x ≤ d`（第一支 `x ≤ x ~ d`，第二支
+--     `x ≤ 0 ≤ -x ~ d`）；
+--   · ㊽.3 `ratAbsRel_neg_le`：`-x ≤ d`（第一支 `-x ≤ 0 ≤ x ~ d`，
+--     第二支 `-x ~ d`）；
+--   · ㊽.4 `ratNegRep_add`：`-(x + y) ~ (-x) + (-y)`（两边在代表元上
+--     **定义性相等**：交换两个分子后 `addRep` 的两个坐标恰好对调）；
+--   · ㊽.5 `ratLeRep_abs_add`：主定理。对 `d` 落在哪一支分两种情形：
+--     非负支 `d ~ x+y ≤ dx+dy`；非正支 `d ~ -(x+y) ~ (-x)+(-y) ≤ dx+dy`；
+--   · ㊽.6 具体：`|1/2 + 1/2| = 1 ≤ 1/2 + 1/2`。
+--
+-- `ratLeRep` 只做头部展开；本单元不引入新定义，序与加法的引擎来自
+-- `lib/RatAbs`。
+
+import lib.RatAbs
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.1 序对两个因子都单调
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先对 `h1` 用右加（`ratLeRep_add_right a b c`）得 `a+c ≤ b+c`；再把 `c+b ≤ d+b`（对 `h2` 用右加、以 `b` 为加数）经两次交换律搬成 `b+c ≤ b+d`；最后 `ratLeRep_trans` 串起来。交换律给的是 `ratRel`，用 `ratLeRep_of_ratRel` 读成序。
+-- soko:hint 目标形态：`ratLeRep a b → ratLeRep c d → ratLeRep (ratAddRep a c) (ratAddRep b d)`。
+-- soko:hint 关键件：ratLeRep_add_right · ratAdd_comm · ratLeRep_of_ratRel · ratLeRep_trans。
+theorem ratLeRep_add (a b c d : ratRep)
+    (h1 : ratLeRep a b) (h2 : ratLeRep c d) :
+    ratLeRep (ratAddRep a c) (ratAddRep b d) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.2 `x` 被自己的绝对值见证压住：`x ≤ d`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：第一支（`0 ≤ x`、`d ~ x`）中 `x ≤ x` 是自反，再用 `d ~ x` 的对称把右边换成 `d`；第二支（`x ≤ 0`、`d ~ -x`）先由 `x ≤ 0` 得 `x ≤ 0 ≤ -x`：`0 ≤ -x` 用 `ratLeRep_neg_gen x 0`（它把 `x ≤ 0` 反转成 `-0 ≤ -x`，而 `-0` 定义性归约成 `0`），再把 `-x` 换成 `d`。
+-- soko:hint 目标形态：`ratAbsRel x d → ratLeRep x d`。
+-- soko:hint 关键件：ratLeRep_refl · ratRel_symm · ratLeRep_of_ratRel · ratLeRep_neg_gen · ratLeRep_trans。
+theorem ratAbsRel_le (x d : ratRep) (h : ratAbsRel x d) : ratLeRep x d :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.3 `-x` 被同一个见证压住：`-x ≤ d`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：第一支（`0 ≤ x`、`d ~ x`）用 `ratLeRep_neg_gen 0 x` 得 `-x ≤ 0`，再串上 `0 ≤ x` 与 `x ~ d`；第二支（`x ≤ 0`、`d ~ -x`）直接由 `d ~ -x` 的对称得到 `-x ≤ d`。
+-- soko:hint 目标形态：`ratAbsRel x d → ratLeRep (ratNegRep x) d`。
+-- soko:hint 关键件：ratLeRep_neg_gen · ratLeRep_trans · ratLeRep_of_ratRel · ratRel_symm。
+theorem ratAbsRel_neg_le (x d : ratRep) (h : ratAbsRel x d) :
+    ratLeRep (ratNegRep x) d :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.4 取负穿进加法：`-(x + y) ~ (-x) + (-y)`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：在字面坐标上展开。`x + y` 的分子是 `(a(n+1) + c(m+1), b(n+1) + d(m+1))`；取负把它对调。而 `-x + -y` 的分子是 `(b(n+1) + d(m+1), a(n+1) + c(m+1))`——**逐字相同**，分母也都是 `ratDenRep m n`。所以两边定义性相等，`ratRel_refl` 即可。
+-- soko:hint 目标形态：`ratRel (ratNegRep (ratAddRep x y)) (ratAddRep (ratNegRep x) (ratNegRep y))`。
+-- soko:hint 关键件：ratRel_refl（先在展开类型上 match 到字面坐标，两边定义性相等，不需要额外引理）。
+theorem ratNegRep_add (x y : ratRep) :
+    ratRel (ratNegRep (ratAddRep x y))
+           (ratAddRep (ratNegRep x) (ratNegRep y)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.5 主定理：三角不等式
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：先备好四个界：`x ≤ dx`、`-x ≤ dx`（㊽.2/㊽.3 对 `hx`），`y ≤ dy`、`-y ≤ dy`（对 `hy`）。对 `h` 分两支：非负支里 `d ~ x+y`，而 `x+y ≤ dx+dy` 由 ㊽.1 给出；非正支里 `d ~ -(x+y)`，用 ㊽.4 把 `-(x+y)` 换成 `(-x)+(-y)`，再由 ㊽.1 得 `(-x)+(-y) ≤ dx+dy`。
+-- soko:hint 目标形态：`ratAbsRel x dx → ratAbsRel y dy → ratAbsRel (ratAddRep x y) d → ratLeRep d (ratAddRep dx dy)`。
+-- soko:hint 关键件：ratAbsRel_le · ratAbsRel_neg_le · ratLeRep_add · ratNegRep_add · ratLeRep_of_ratRel · ratLeRep_trans · Or.elim。
+theorem ratLeRep_abs_add (x y dx dy d : ratRep)
+    (hx : ratAbsRel x dx) (hy : ratAbsRel y dy)
+    (h : ratAbsRel (ratAddRep x y) d) :
+    ratLeRep d (ratAddRep dx dy) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- ㊽.6 具体：`|1/2 + 1/2| = 1 ≤ 1/2 + 1/2`
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：取 `x = y = dx = dy = 1/2`，`d = 1`。`hx` 是 `Or.inl`：`0 ≤ 1/2`（交叉相乘是 `LeNat 0 1`）与 `1/2 ~ 1/2`；`h` 同形：`1/2 + 1/2` 定义性归约成 `4/4`，`0 ≤ 4/4` 用 `leNat_zero_le`，`1 ~ 4/4` 两边交叉相乘都是 `(4,0)`。结论 `1 ≤ 1/2+1/2` 两边交叉相乘都是 `(4,0)`，是自反的 `LeNat`。
+-- soko:hint 目标形态：`ratLeRep (qrep 1 Nat.zero Nat.zero) (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1))`。
+-- soko:hint 关键件：ratLeRep_abs_add · Or.inl · And.intro · le_succ · le_refl · leNat_zero_le · ratRel_refl · intRel_of_eq · Eq.refl。
+theorem demo_triangle :
+    ratLeRep (qrep 1 Nat.zero Nat.zero)
+             (ratAddRep (qrep 1 Nat.zero 1) (qrep 1 Nat.zero 1)) :=
+  sorry

@@ -1,0 +1,111 @@
+-- 课程库：Cauchy 序列的尾部刻画
+--
+-- Cauchy 的定义对尾巴上的每一对下标提要求。证明时通常只需要一个参照点：
+-- 尾巴的第一项。单元100 证明「两项比较」与「每项与 `x N` 比较」等价，
+-- 并把结论搬到平移与「终究为常数」两种情形。这里把它们收进 L2，单元101
+-- 与后面的级数估计直接引用。
+--
+--   · `cauchy_tail` —— Cauchy ⇒ 尾巴上的项都靠近 `x N`；
+--   · `cauchy_of_tail` —— 反过来，ε 折半后由三角不等式合成；
+--   · `cauchy_tail_iff` —— 两种写法等价；
+--   · `cauchy_shift` —— 平移保持 Cauchy；
+--   · `cauchy_of_eventually_const` —— 终究为常数 ⇒ Cauchy；
+--   · `demo_cauchy_tail_const` —— 常序列是 Cauchy 序列。
+--
+-- 边界：只改写 Cauchy 的定义，不证明 Cauchy 序列收敛；有理数上的 Cauchy
+-- 序列未必有有理极限。不新增公理，也不碰 kernel/front。
+
+import lib.Limit
+import lib.LimitOrder
+import lib.Tail
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.0 与尾巴的第一项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 原定义对 n、m 同时要求；把 m 固定成 N，右边的 `N ≤ N` 由自反性付清。
+theorem cauchy_tail (x : Seq) (h : Cauchy x) :
+    ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n : Nat) (hn : LeNat N n) =>
+            hN n N hn (LeNat.le_refl N)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.1 从参照点回到两项比较
+-- ─────────────────────────────────────────────────────────────
+
+-- 对 ε/2 取 N。两条接近性都指向 x N；第二条翻向，再由 `close_trans`
+-- 把 ε/2 的两段拼成 ε。
+theorem cauchy_of_tail (x : Seq)
+    (h : ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+      ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps) :
+    Cauchy x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n : Nat), LeNat N n → close (x n) (x N) (ratHalf eps)) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_trans (x n) (x N) (x m) eps heps
+              (hN n hn)
+              (close_symm (x m) (x N) (ratHalf eps) (hN m hm))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.2 两种写法等价
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个方向分别由 100.0 与 100.1 给出。
+theorem cauchy_tail_iff (x : Seq) :
+    Cauchy x ↔
+      ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+        ∃ (N : Nat), ∀ (n : Nat), LeNat N n → close (x n) (x N) eps :=
+  Iff.intro (cauchy_tail x) (cauchy_of_tail x)
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.3 平移保持 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 原阈值 N 仍然够用：n ≤ n + k，所以 n + k 也在 N 之后。
+theorem cauchy_shift (x : Seq) (k : Nat) (h : Cauchy x) :
+    Cauchy (fun (n : Nat) => x (Nat.add n k)) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h eps heps)
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m → close (x n) (x m) eps) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            hN (Nat.add n k) (Nat.add m k)
+              (leNat_trans N n (Nat.add n k) hn (leNat_self_add n k))
+              (leNat_trans N m (Nat.add m k) hm (leNat_self_add m k))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.4 终究为常数推出 Cauchy
+-- ─────────────────────────────────────────────────────────────
+
+-- 尾巴上的每一项都等于 q，两条 `close_of_ratRel` 各给 ε/2，再合成 ε。
+theorem cauchy_of_eventually_const (x : Seq) (q : ratRep)
+    (h : Eventually (fun (n : Nat) => ratRel (x n) q)) : Cauchy x :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim h
+      (fun (N : Nat) (hN : ∀ (n : Nat), LeNat N n → ratRel (x n) q) =>
+        Exists.intro N
+          (fun (n m : Nat) (hn : LeNat N n) (hm : LeNat N m) =>
+            close_trans (x n) q (x m) eps heps
+              (close_of_ratRel (x n) q (hN n hn) (ratHalf eps)
+                (ratLtRep_half eps heps))
+              (close_symm (x m) q (ratHalf eps)
+                (close_of_ratRel (x m) q (hN m hm) (ratHalf eps)
+                  (ratLtRep_half eps heps)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 100.5 常序列
+-- ─────────────────────────────────────────────────────────────
+
+-- 常序列逐点等于 q，尾部相等的自反性直接给出 100.4 的前提。
+theorem demo_cauchy_tail_const (q : ratRep) : Cauchy (constSeq q) :=
+  cauchy_of_eventually_const (constSeq q) q (tailEq_refl (constSeq q))
