@@ -499,3 +499,13 @@ html{scroll-behavior:smooth}
 :root{--font-body:var(--font-ui)}
 body,h1,h2,h3,h4,.page,.unit-page,.unit-intro-body,.prose,.decl-body,.exercise-body,.hint-body,.solution-body,.appendix,.cover{font-family:var(--font-ui)}
 .decl-name,.unit-title-en,.cover-en,.unit-en,.cover-lede,.lede{font-style:normal!important}
+
+/* desktop: use more of the viewport, tighter gutters */
+@media (min-width: 960px){
+  :root{--maxw:88rem;--prose:86ch}
+  .site-head-inner{padding:.4rem .6rem}
+  .page{padding:1rem .6rem 3rem}
+  .breadcrumb{padding:.6rem .6rem 0}
+  .chapter-layout{gap:1.2rem;grid-template-columns:minmax(0,1fr) 15rem}
+  .unit-layout{gap:1rem}
+}
