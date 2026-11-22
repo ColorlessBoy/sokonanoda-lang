@@ -434,3 +434,43 @@ html{scroll-behavior:smooth}
 
 /* right rail on unit pages: chapter unit list, not page-section TOC */
 .unit-layout>.page-outline ol a[aria-current="page"]{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+
+/* mobile: tighter gutters, compact rhythm, smaller math */
+@media (max-width: 640px){
+  body{font-size:15px;line-height:1.6}
+  :root{--prose:100%}
+  .site-head-inner{padding:.3rem .6rem;gap:.45rem}
+  .page{padding:.7rem .6rem 2rem}
+  .breadcrumb{padding:.45rem .6rem 0;font-size:.78rem}
+  .breadcrumb li+li::before{margin:0 .35rem}
+  .page-head{margin:.35rem 0 .8rem}
+  .page-head h1{font-size:1.45rem;line-height:1.2}
+  .page-head .lede,.page-head .meta{font-size:.9rem;margin:.3rem 0}
+  .chapter-unit + .chapter-unit{margin-top:1.15rem}
+  .chapter-unit{padding-top:.15rem;scroll-margin-top:calc(var(--head-h) + .35rem)}
+  .unit-page .unit-head h2{font-size:1.15rem;line-height:1.25}
+  .unit-page .unit-meta{font-size:.8rem}
+  .unit-jump-list{grid-template-columns:1fr;gap:.05rem}
+  .unit-jump{min-height:36px;padding:.15rem .2rem}
+  .decl{margin:1.05rem 0!important;padding:.3rem 0 .45rem!important}
+  .decl-head{margin-bottom:.15rem!important}
+  .decl-statement{font-size:.74rem!important;line-height:1.45!important;padding:.4rem .5rem!important;margin-top:.35rem!important}
+  .decl-remark{font-size:.86em!important}
+  .proof-panel{margin:.45rem 0 .75rem!important}
+  .proof-panel summary{font-size:.86rem}
+  .proof-steps{padding-left:1rem;margin:.25rem 0}
+  .proof-steps pre,.proof-steps code{font-size:.74rem;line-height:1.45}
+  .exercise{margin:.7rem 0 .7rem .45rem!important}
+  .exercise-prompt,.block.prose,.prose{font-size:.92rem;line-height:1.58}
+  .block.prose p,.prose p{margin:.38em 0}
+  .math{font-size:.9em!important}
+  .math-display{font-size:.86rem!important;margin:.45rem 0!important}
+  .math-display math{font-size:1.02em!important}
+  .exercise-body p,.hint-body p{margin:.35em 0}
+  pre{font-size:.74rem;line-height:1.45}
+  .pager a{font-size:.85rem;padding:.35rem .55rem}
+  .unit-actions{gap:.35rem;margin:.4rem 0}
+  .unit-actions button,.unit-actions a{font-size:.8rem;min-height:36px}
+  .site-head{--head-h:50px}
+  .site-nav{padding:.4rem .6rem}
+}
