@@ -1,2 +1,5 @@
 ## M6：QA / 文档 / 站点 / 发布（2026-11-21 · issue #22）
 M1–M5 已全部完成，M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元（卷 II 72、卷 III 99），M6 只做 QA、文档、站点与发布，不新增单元。全量课程门禁 `python3 courses/analysis/tools/check.py --json` rc=0：457 个目标、4512 checked、0 rejected、0 solutions_open、0 lib_open；`python3 scripts/notation-lint.py --root courses/analysis` rc=0，扫 470 个文件、15 处显式豁免。文档与站点入口已对齐 171/171，站点 `check-site.py` 10/10、加 `--browser` 12/12；零 cargo 学习者路径实测通过（`setup` → `doctor` → `grade` → `query hints` → 解答），分析课整门进度 `course --json` 报 171 单元、0 failed；`docs-lint`、`status-lint`、`docs-expiry-check --check` 均 rc=0。发版节点仍被 Lean Kernel Arena 门禁挡住：`python3 scripts/arena-gate.py` 在构建 `b60796a9` 上报两条递归规则伪造被接受（`bugs/rec-rule-proof-irrel`、`bugs/rec-rule-proof-irrel-nested`）与一条性能用例超时（`perf/ite-taken-branch`），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。
+
+## 接手表预算对齐（2026-11-22 · issue #22）
+`docs/ONBOARDING.md` 的必读表把 `REQUIREMENTS.md` 的行数上限从 267 改成 283，合计示例同步；预算自 2026-11-01（§9.40）起就是 283，旧数字会让新接手的人误判为超预算。`docs-lint`、`status-lint`、`docs-expiry-check --check`、`check-site.py` 均 rc=0。
