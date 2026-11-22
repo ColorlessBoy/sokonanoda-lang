@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 143 极限只看邻域：换掉远处的函数值</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit143.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 143 极限只看邻域：换掉远处的函数值</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit143.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.7 微分 · 单元 143</p><h1>极限只看邻域：换掉远处的函数值</h1><p class="note">Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away</p></header><section class="unit" id="unit-143">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-7.html">III.7</a> · 本章第 4 / 11 单元 · 全书第 143 / 171 单元</p>
+<h2><span class="unit-number">143</span><span>极限只看邻域：换掉远处的函数值</span></h2>
+<p class="unit-title-en">Unit 143 — Limits Only See a Neighborhood: Changing Values Far Away</p>
+<p class="unit-meta">1 个定义 · 11 个定理 · 11 道练习 · 33 条提示 · <a href="#appendix-unit-143">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>求 f 在 a 处的极限时，只让 x 落在 a 附近。f 在很远的地方取什么值，与这个极限无关。这句话听起来理所当然，可定义里的全称量词是「对所有满足 0 &lt; |x - a| <span class="math">&lt; δ</span> 的 x」，并没有禁止远处的 x。要把「远处的值可以随便换」变成可用的定理，得把「在 a 附近相等」写成一个明确的假设：存在一个正半径，邻域里（除 a 本身外）两个函数逐点相等。</p></div></div></section>
+<div class="block prose intuition-only"><p>有了这个假设，证明只是把两个半径取小：原来的极限给一个 <span class="math">δ</span>，相等性给一个 <span class="math">δ</span>₀，落在较小半径里的 x 同时满足两边。接近性从 f x 搬到 g x，靠的是「减去同一个数保持等价」：f x - L 与 g x - L 等价，绝对值见证原样保留。</p></div><div class="block prose intuition-only"><p>这条局部性在微分里马上要用。导数是斜率函数的极限，而极限只看 a 附近那一小片；讨论斜率函数时，真正要紧的是它在 a 附近的值。反过来，两个在 a 附近重合的函数若都有极限，它们的极限也重合：局部性给出一边，唯一性收口。</p></div><div class="block prose intuition-only"><p>边界：函数取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；邻域用 <code>close</code> 的 <span class="math">ε</span> 半径表述，不引入拓扑。不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>定义：在 a 附近相等</p></div><div class="block prose intuition-only"><p>「f 与 g 在 a 附近相等」：有一个正半径 <span class="math">δ</span>，邻域里凡是不等于 a 的点，两个函数值都相等。a 本身不要求：极限本来就不看 a 处的取值。</p></div><article class="decl decl-def" id="decl-143-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">AgreeNear</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def AgreeNear (f g : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)</code></pre></div></article>
+<article class="exercise" id="ex-143-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">agreeNear_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>定义与三条最基本的封闭性</p></div><div class="block prose intuition-only"><p>把定义展开成合取，后面的证明好投影。</p></div></div><pre class="exercise-statement"><code>theorem agreeNear_iff (f g : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f g a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向都是同一个命题，直接交出假设或展开后的合取。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AgreeNear f g a ↔ ∃ δ, 0 &lt; δ ∧ ∀ x, close x a δ → x ≠ a → f x ~ g x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Iff.intro。</p></div></details></div><details open class="solution-panel" id="sol-143-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem agreeNear_iff (f g : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f g a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x) :=
+  Iff.intro
+    (fun (h : AgreeNear f g a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">agreeNear_refl</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>每个函数都与自己相等；半径取 1 就够。</p></div></div><pre class="exercise-statement"><code>theorem agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <span class="math">δ = 1</span>，逐点用 <code>ratRel_refl</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AgreeNear f f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratOneRep · ratLtRep_zero_one · ratRel_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-2"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) =&gt; ratRel_refl (f x)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">agreeNear_symm</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>相等性可以交换，半径不用变。</p></div></div><pre class="exercise-statement"><code>theorem agreeNear_symm (f g : ratRep → ratRep) (a : ratRep)
+    (h : AgreeNear f g a) : AgreeNear g f a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>沿用同一个 <span class="math">δ</span>，逐点把 <code>ratRel</code> 反过来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AgreeNear f g a → AgreeNear g f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-3"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><pre><code>theorem agreeNear_symm (f g : ratRep → ratRep) (a : ratRep)
+    (h : AgreeNear f g a) : AgreeNear g f a :=
+  Exists.elim h
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            ratRel (f x) (g x)) =&gt;
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta)
+              (hne : ¬ ratRel x a) =&gt;
+            ratRel_symm (f x) (g x) ((And.right hd) x hx hne))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">agreeNear_of_pointwise</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>若两个函数逐点相等，那么在任意一点附近都相等；半径仍取 1。</p></div></div><pre class="exercise-statement"><code>theorem agreeNear_of_pointwise (f g : ratRep → ratRep) (a : ratRep)
+    (h : ∀ (x : ratRep), ratRel (f x) (g x)) : AgreeNear f g a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <span class="math">δ = 1</span>，逐点用假设里的相等。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∀ x, f x ~ g x) → AgreeNear f g a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratOneRep · ratLtRep_zero_one</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem agreeNear_of_pointwise (f g : ratRep → ratRep) (a : ratRep)
+    (h : ∀ (x : ratRep), ratRel (f x) (g x)) : AgreeNear f g a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) =&gt; h x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">close_transport</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>接近性的搬运</p></div><div class="block prose intuition-only"><p>若 u 在 <span class="math">ε</span> 内接近 L，而 u 与 v 相等，那么 v 也在 <span class="math">ε</span> 内接近 L。见证 d 不变：u - L 与 v - L 只差一个等价，绝对值沿这条等价搬过去。</p></div></div><pre class="exercise-statement"><code>theorem close_transport (u v L eps : ratRep)
+    (h : close u L eps) (huv : ratRel u v) : close v L eps :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取出 <code>close u L ε</code> 的见证 d；用 <code>ratSubRep_wd</code> 把 <code>u - L</code> 换成 <code>v - L</code>，再用 <code>ratAbsRel_wd_left</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close u L ε → u ~ v → close v L ε</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratSubRep_wd · ratRel_refl · ratAbsRel_wd_left</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-5"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><pre><code>theorem close_transport (u v L eps : ratRep)
+    (h : close u L eps) (huv : ratRel u v) : close v L eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep u L) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left (ratSubRep u L) (ratSubRep v L) d
+            (ratSubRep_wd u v L L huv (ratRel_refl L))
+            (And.left hd))
+          (And.right hd)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">tendsToAt_same_radius</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个半径取小者</p></div><div class="block prose intuition-only"><p>极限给一个半径 d，局部相等给一个半径 d₀。把 x 取在较小的那个半径里，两边的条件就同时成立：接近性用 <code>close_mono_eps</code> 放大到较小半径，函数值的相等把 <code>f x - L</code> 换成 <code>g x - L</code>。</p></div></div><pre class="exercise-statement"><code>theorem tendsToAt_same_radius (f g : ratRep → ratRep) (a L eps d d0 : ratRep)
+    (hd : ratLtRep ratZeroRep d)
+    (hd0 : ratLtRep ratZeroRep d0)
+    (hclose : ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+      close (f x) L eps)
+    (hagree : ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+      ratRel (f x) (g x)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>d ≤ d₀</code> 与 <code>d₀ ≤ d</code> 两支分别取较小的半径；较大半径那一侧的接近性用 <code>close_mono_eps</code> 放大，最后用 <code>close_transport</code> 把函数值换掉。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ δ, 0 &lt; δ ∧ ∀ x, close x a δ → x ≠ a → close (g x) L ε</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · Or.elim · close_mono_eps · close_transport</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-6"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem tendsToAt_same_radius (f g : ratRep → ratRep) (a L eps d d0 : ratRep)
+    (hd : ratLtRep ratZeroRep d)
+    (hd0 : ratLtRep ratZeroRep d0)
+    (hclose : ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+      close (f x) L eps)
+    (hagree : ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+      ratRel (f x) (g x)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps :=
+  @Or.elim (ratLeRep d d0) (ratLeRep d0 d)
+    (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps)
+    (fun (hle : ratLeRep d d0) =&gt;
+      Exists.intro d
+        (And.intro hd
+          (fun (x : ratRep) (hx : close x a d)
+              (hne : ¬ ratRel x a) =&gt;
+            close_transport (f x) (g x) L eps
+              (hclose x hx hne)
+              (hagree x (close_mono_eps x a d d0 hx hle) hne))))
+    (fun (hle : ratLeRep d0 d) =&gt;
+      Exists.intro d0
+        (And.intro hd0
+          (fun (x : ratRep) (hx : close x a d0)
+              (hne : ¬ ratRel x a) =&gt;
+            close_transport (f x) (g x) L eps
+              (hclose x (close_mono_eps x a d0 d hx hle) hne)
+              (hagree x hx hne))))
+    (ratLeRep_total d d0)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">tendsToAt_congr</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>极限的局部性</p></div><div class="block prose intuition-only"><p>对每个 <span class="math">ε</span>，从 f 的极限取出 <span class="math">δ</span>，从局部相等取出 <span class="math">δ</span>₀，把两者交给上一条。得到的半径就是 g 的极限所需的半径。</p></div></div><pre class="exercise-statement"><code>theorem tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐 <span class="math">ε</span> 取出极限的 <span class="math">δ</span> 与局部相等的 <span class="math">δ</span>₀，直接调用 <code>tendsToAt_same_radius</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsToAt f a L → AgreeNear f g a → TendsToAt g a L</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · tendsToAt_same_radius</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-7"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    @Exists.elim ratRep
+      (fun (d : ratRep) =&gt; ratLtRep ratZeroRep d ∧
+        ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+          close (f x) L eps)
+      (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          close (g x) L eps)
+      (h eps heps)
+      (fun (d : ratRep)
+          (hd : ratLtRep ratZeroRep d ∧
+            ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+              close (f x) L eps) =&gt;
+        @Exists.elim ratRep
+          (fun (d0 : ratRep) =&gt; ratLtRep ratZeroRep d0 ∧
+            ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+              ratRel (f x) (g x))
+          (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (g x) L eps)
+          hfg
+          (fun (d0 : ratRep)
+              (hd0 : ratLtRep ratZeroRep d0 ∧
+                ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+                  ratRel (f x) (g x)) =&gt;
+            tendsToAt_same_radius f g a L eps d d0
+              (And.left hd) (And.left hd0)
+              (And.right hd) (And.right hd0)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">tendsToAt_congr_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个方向各用一次：局部相等是对称的。</p></div></div><pre class="exercise-statement"><code>theorem tendsToAt_congr_iff (f g : ratRep → ratRep) (a L : ratRep)
+    (hfg : AgreeNear f g a) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>正向用上一条；反向先用 <code>agreeNear_symm</code> 把假设翻过来，再用上一条。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AgreeNear f g a → (TendsToAt f a L ↔ TendsToAt g a L)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.intro · tendsToAt_congr · agreeNear_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-8"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem tendsToAt_congr_iff (f g : ratRep → ratRep) (a L : ratRep)
+    (hfg : AgreeNear f g a) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  Iff.intro
+    (fun (h : TendsToAt f a L) =&gt; tendsToAt_congr f g a L h hfg)
+    (fun (h : TendsToAt g a L) =&gt;
+      tendsToAt_congr g f a L h (agreeNear_symm f g a hfg))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">tendsToAt_congr_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>若 f 在 a 附近等于常数 c，那么 f 的极限只能是 c：先把极限搬到常函数上，再用常函数极限的唯一性。</p></div></div><pre class="exercise-statement"><code>theorem tendsToAt_congr_const (f : ratRep → ratRep) (c a L : ratRep)
+    (h : TendsToAt f a L) (hfc : AgreeNear f (fun (_ : ratRep) =&gt; c) a) :
+    ratRel L c :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>tendsToAt_congr</code> 把 f 的极限搬到常函数上，得到常函数以 L 为极限；再与常函数以 c 为极限一起交给唯一性。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsToAt f a L → AgreeNear f (fun _ =&gt; c) a → L ~ c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">tendsToAt_congr · tendsToAt_const · tendsToAt_unique</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem tendsToAt_congr_const (f : ratRep → ratRep) (c a L : ratRep)
+    (h : TendsToAt f a L) (hfc : AgreeNear f (fun (_ : ratRep) =&gt; c) a) :
+    ratRel L c :=
+  tendsToAt_unique (fun (_ : ratRep) =&gt; c) a L c
+    (tendsToAt_congr f (fun (_ : ratRep) =&gt; c) a L h hfc)
+    (tendsToAt_const c a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">demo_congr_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个读数</p></div><div class="block prose intuition-only"><p>若 f 在 a 附近等于恒等函数，而 f 以 L 为极限，那么 L 与 a 相等。这是局部性把问题搬到恒等函数上，再用恒等函数的唯一性收口。</p></div></div><pre class="exercise-statement"><code>theorem demo_congr_id (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (hid : AgreeNear f (fun (x : ratRep) =&gt; x) a) :
+    ratRel L a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>用 <code>tendsToAt_congr</code> 把 f 的极限搬到恒等函数上，得到恒等函数以 L 为极限；再用 <code>tendsToAt_unique_id</code> 得到 <code>a ~ L</code>，最后交换。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsToAt f a L → AgreeNear f (fun x =&gt; x) a → L ~ a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">tendsToAt_congr · tendsToAt_unique_id · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-10"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem demo_congr_id (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (hid : AgreeNear f (fun (x : ratRep) =&gt; x) a) :
+    ratRel L a :=
+  ratRel_symm a L
+    (tendsToAt_unique_id a L
+      (tendsToAt_congr f (fun (x : ratRep) =&gt; x) a L h hid))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-143-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">demo_congr_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-143-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>与常函数零局部相等的函数，极限只能是零。</p></div></div><pre class="exercise-statement"><code>theorem demo_congr_zero (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (h0 : AgreeNear f (fun (_ : ratRep) =&gt; ratZeroRep) a) :
+    ratRel L ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>直接调用 <code>tendsToAt_congr_const</code>，常数取零。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>TendsToAt f a L → AgreeNear f (fun _ =&gt; 0) a → L ~ 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">tendsToAt_congr_const · ratZeroRep</span>。</p></div></details></div><details open class="solution-panel" id="sol-143-11"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_congr_zero (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (h0 : AgreeNear f (fun (_ : ratRep) =&gt; ratZeroRep) a) :
+    ratRel L ratZeroRep :=
+  tendsToAt_congr_const f ratZeroRep a L h h0</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit142.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">极限唯一：一条曲线不能同时逼近两个值</span></a><a class="unit-nav-home" href="../chapters/iii-7.html#units">目录</a><a class="unit-nav-link" href="../units/unit144.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">非零因子消去：导数为什么只有一个值</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-143"><h3><a href="#top">极限只看邻域：换掉远处的函数值</a></h3><p class="appendix-meta">11 道练习 · 11 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-143-1"><summary>练习 1 · agreeNear_iff <span class="sol-meta">定理</span></summary><pre><code>theorem agreeNear_iff (f g : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f g a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x) :=
+  Iff.intro
+    (fun (h : AgreeNear f g a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a → ratRel (f x) (g x)) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-143-2"><summary>练习 2 · agreeNear_refl <span class="sol-meta">定理</span></summary><pre><code>theorem agreeNear_refl (f : ratRep → ratRep) (a : ratRep) :
+    AgreeNear f f a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) =&gt; ratRel_refl (f x)))</code></pre></details><details open class="appendix-solution" id="app-sol-143-3"><summary>练习 3 · agreeNear_symm <span class="sol-meta">定理</span></summary><pre><code>theorem agreeNear_symm (f g : ratRep → ratRep) (a : ratRep)
+    (h : AgreeNear f g a) : AgreeNear g f a :=
+  Exists.elim h
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+            ratRel (f x) (g x)) =&gt;
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta)
+              (hne : ¬ ratRel x a) =&gt;
+            ratRel_symm (f x) (g x) ((And.right hd) x hx hne))))</code></pre></details><details open class="appendix-solution" id="app-sol-143-4"><summary>练习 4 · agreeNear_of_pointwise <span class="sol-meta">定理</span></summary><pre><code>theorem agreeNear_of_pointwise (f g : ratRep → ratRep) (a : ratRep)
+    (h : ∀ (x : ratRep), ratRel (f x) (g x)) : AgreeNear f g a :=
+  Exists.intro ratOneRep
+    (And.intro ratLtRep_zero_one
+      (fun (x : ratRep) (_hx : close x a ratOneRep)
+          (_hne : ¬ ratRel x a) =&gt; h x))</code></pre></details><details open class="appendix-solution" id="app-sol-143-5"><summary>练习 5 · close_transport <span class="sol-meta">定理</span></summary><pre><code>theorem close_transport (u v L eps : ratRep)
+    (h : close u L eps) (huv : ratRel u v) : close v L eps :=
+  Exists.elim h
+    (fun (d : ratRep)
+        (hd : ratAbsRel (ratSubRep u L) d ∧ ratLtRep d eps) =&gt;
+      Exists.intro d
+        (And.intro
+          (ratAbsRel_wd_left (ratSubRep u L) (ratSubRep v L) d
+            (ratSubRep_wd u v L L huv (ratRel_refl L))
+            (And.left hd))
+          (And.right hd)))</code></pre></details><details open class="appendix-solution" id="app-sol-143-6"><summary>练习 6 · tendsToAt_same_radius <span class="sol-meta">定理</span></summary><pre><code>theorem tendsToAt_same_radius (f g : ratRep → ratRep) (a L eps d d0 : ratRep)
+    (hd : ratLtRep ratZeroRep d)
+    (hd0 : ratLtRep ratZeroRep d0)
+    (hclose : ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+      close (f x) L eps)
+    (hagree : ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+      ratRel (f x) (g x)) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps :=
+  @Or.elim (ratLeRep d d0) (ratLeRep d0 d)
+    (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+        close (g x) L eps)
+    (fun (hle : ratLeRep d d0) =&gt;
+      Exists.intro d
+        (And.intro hd
+          (fun (x : ratRep) (hx : close x a d)
+              (hne : ¬ ratRel x a) =&gt;
+            close_transport (f x) (g x) L eps
+              (hclose x hx hne)
+              (hagree x (close_mono_eps x a d d0 hx hle) hne))))
+    (fun (hle : ratLeRep d0 d) =&gt;
+      Exists.intro d0
+        (And.intro hd0
+          (fun (x : ratRep) (hx : close x a d0)
+              (hne : ¬ ratRel x a) =&gt;
+            close_transport (f x) (g x) L eps
+              (hclose x (close_mono_eps x a d0 d hx hle) hne)
+              (hagree x hx hne))))
+    (ratLeRep_total d d0)</code></pre></details><details open class="appendix-solution" id="app-sol-143-7"><summary>练习 7 · tendsToAt_congr <span class="sol-meta">定理</span></summary><pre><code>theorem tendsToAt_congr (f g : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L) (hfg : AgreeNear f g a) :
+    TendsToAt g a L :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    @Exists.elim ratRep
+      (fun (d : ratRep) =&gt; ratLtRep ratZeroRep d ∧
+        ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+          close (f x) L eps)
+      (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+          close (g x) L eps)
+      (h eps heps)
+      (fun (d : ratRep)
+          (hd : ratLtRep ratZeroRep d ∧
+            ∀ (x : ratRep), close x a d → ¬ ratRel x a →
+              close (f x) L eps) =&gt;
+        @Exists.elim ratRep
+          (fun (d0 : ratRep) =&gt; ratLtRep ratZeroRep d0 ∧
+            ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+              ratRel (f x) (g x))
+          (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x a delta → ¬ ratRel x a →
+              close (g x) L eps)
+          hfg
+          (fun (d0 : ratRep)
+              (hd0 : ratLtRep ratZeroRep d0 ∧
+                ∀ (x : ratRep), close x a d0 → ¬ ratRel x a →
+                  ratRel (f x) (g x)) =&gt;
+            tendsToAt_same_radius f g a L eps d d0
+              (And.left hd) (And.left hd0)
+              (And.right hd) (And.right hd0)))</code></pre></details><details open class="appendix-solution" id="app-sol-143-8"><summary>练习 8 · tendsToAt_congr_iff <span class="sol-meta">定理</span></summary><pre><code>theorem tendsToAt_congr_iff (f g : ratRep → ratRep) (a L : ratRep)
+    (hfg : AgreeNear f g a) :
+    TendsToAt f a L ↔ TendsToAt g a L :=
+  Iff.intro
+    (fun (h : TendsToAt f a L) =&gt; tendsToAt_congr f g a L h hfg)
+    (fun (h : TendsToAt g a L) =&gt;
+      tendsToAt_congr g f a L h (agreeNear_symm f g a hfg))</code></pre></details><details open class="appendix-solution" id="app-sol-143-9"><summary>练习 9 · tendsToAt_congr_const <span class="sol-meta">定理</span></summary><pre><code>theorem tendsToAt_congr_const (f : ratRep → ratRep) (c a L : ratRep)
+    (h : TendsToAt f a L) (hfc : AgreeNear f (fun (_ : ratRep) =&gt; c) a) :
+    ratRel L c :=
+  tendsToAt_unique (fun (_ : ratRep) =&gt; c) a L c
+    (tendsToAt_congr f (fun (_ : ratRep) =&gt; c) a L h hfc)
+    (tendsToAt_const c a)</code></pre></details><details open class="appendix-solution" id="app-sol-143-10"><summary>练习 10 · demo_congr_id <span class="sol-meta">定理</span></summary><pre><code>theorem demo_congr_id (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (hid : AgreeNear f (fun (x : ratRep) =&gt; x) a) :
+    ratRel L a :=
+  ratRel_symm a L
+    (tendsToAt_unique_id a L
+      (tendsToAt_congr f (fun (x : ratRep) =&gt; x) a L h hid))</code></pre></details><details open class="appendix-solution" id="app-sol-143-11"><summary>练习 11 · demo_congr_zero <span class="sol-meta">定理</span></summary><pre><code>theorem demo_congr_zero (f : ratRep → ratRep) (a L : ratRep)
+    (h : TendsToAt f a L)
+    (h0 : AgreeNear f (fun (_ : ratRep) =&gt; ratZeroRep) a) :
+    ratRel L ratZeroRep :=
+  tendsToAt_congr_const f ratZeroRep a L h h0</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

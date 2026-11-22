@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>99 Cauchy 序列与极限点 · 从集合论到实分析</title>
+<meta name="description" content="单元99 Cauchy 序列与极限点：导语、定义与定理、练习与解答。Unit 99 — Cauchy Sequences and Limit Points">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit99.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../../volume-i/index.html">卷 I</a><a href="../index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter" open><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li class="is-current"><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></li><li aria-current="page">单元 99 Cauchy 序列与极限点</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <article class="unit-page">
+<section class="unit" id="unit-99">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-3.html">III.3</a> · 本章第 9 / 9 单元 · 全书第 99 / 171 单元</p>
+<h1><span class="unit-number">99</span> <span>Cauchy 序列与极限点</span></h1>
+<p class="unit-title-en">Unit 99 — Cauchy Sequences and Limit Points</p>
+<p class="unit-meta">5 个定理 · 5 道练习 · 15 条提示 · <a href="#appendix-unit-99">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="99" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-99" aria-label="复制单元 99 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit99.html">打印 / PDF 本单元</a></p>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>极限点说明存在一条子序列落向 P，Cauchy 性说明尾巴上的任意两项彼此靠近。两条合起来，整条序列都落向 P：尾巴上的项先靠近子序列的某一项，再靠近 P。这补上本章一直缺的反方向——极限点本身不保证整条序列收敛，Cauchy 性补上尾巴内部的控制。</p></div></div></section>
+<h3 class="unit-subhead">99.0 是主定理：Cauchy 序列只要有一个极限点，就收敛到它。99.1 说明这样的</h3><h3 class="unit-subhead">99.4 是常序列的实例。</h3><h3 class="unit-subhead">99.0 Cauchy 序列有一个极限点就收敛到它</h3><article class="exercise" id="ex-99-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">cauchy_limitPoint_converges</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-99-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>极限点至多一个等价类。99.2 把上下极限接到同一个点上。99.3 与任意极限比较。</p></div><div class="block prose intuition-only"><p>边界：只处理已经存在的极限点。Cauchy 序列在有理数上未必有极限点（截断的 √2 近似是一例），所以主定理不能去掉极限点前提；一般 Cauchy 序列的收敛性要在实数层谈。不新增公理。</p></div><div class="block prose intuition-only"><p>给定 <span class="math">ε &gt; 0</span>，Cauchy 性在 <span class="math">ε/2</span> 上给出阈值 N；极限点在任意阈值之后仍反复靠近，于是能挑到 <span class="math">k ≥ N</span> 使 x k 离 P 不到 <span class="math">ε/2</span>。对 <span class="math">n ≥ N</span>，x n 与 x k 也不到 <span class="math">ε/2</span>，三角不等式合成 x n 与 P 的距离。</p></div></div><pre class="exercise-statement"><code>theorem cauchy_limitPoint_converges (x : Seq) (P : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) : Converges x P :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><span class="math">ε</span> 折半并付清正性。Cauchy 给阈值 N 与 <code>close (x n) (x k) (ε/2)</code>；<code>limitPoint_frequently</code> 在同一个 N 之后给出 k 与 <code>close (x k) P (ε/2)</code>；两者交给 <code>close_trans</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Converges x P</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_half · limitPoint_frequently · close_trans · Exists.elim · Exists.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-99-1"><summary>查看解答 <span class="sol-meta">定理 · 17 行</span></summary><div class="solution-body"><p class="solution-note">Cauchy 性控制尾巴内部的距离，极限点给出一条子序列的落点。两者合起来，
+整条序列收敛到那个极限点，这也是后面讨论 Cauchy 完备性的入口。
+
+边界：Cauchy 序列未必有有理极限点；主定理保留极限点前提。不新增公理。
+
+对任意 eps &gt; 0，取 <span class="math">ε/2</span>（正性由 <code>ratLtRep_half</code> 付清）。Cauchy 性给阈值 N，
+极限点在 N 之后给出 <span class="math">k ≥ N</span> 与 <code>close (x k) P (ε/2)</code>。对 <span class="math">n ≥ N</span>，
+<code>close (x n) (x k) (ε/2)</code> 与后者经 <code>close_trans</code> 合成 <code>close (x n) P eps</code>。</p><pre><code>theorem cauchy_limitPoint_converges (x : Seq) (P : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) : Converges x P :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hC (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) (ratHalf eps)) =&gt;
+        Exists.elim
+          (limitPoint_frequently x P hP (ratHalf eps)
+            (ratLtRep_half eps heps) N)
+          (fun (k : Nat)
+              (hk : LeNat N k ∧ close (x k) P (ratHalf eps)) =&gt;
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =&gt;
+                close_trans (x n) (x k) P eps heps
+                  (hN n k hn (And.left hk))
+                  (And.right hk))))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">99.1 Cauchy 序列的极限点至多一个等价类</h3><h3 class="unit-subhead">99.0 把 P 变成整条序列的极限，另一个极限点 Q 由 92.3 与它比较。</h3><article class="exercise" id="ex-99-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">cauchy_limitPoint_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-99-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem cauchy_limitPoint_unique (x : Seq) (P Q : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先用 99.0 得 <code>Converges x P</code>，再把它与 <code>LimitPoint x Q</code> 交给 <code>limitPoint_unique_of_converges</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel P Q</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_limitPoint_converges · limitPoint_unique_of_converges</span>。</p></div></details></div><details class="solution-panel" id="sol-99-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem cauchy_limitPoint_unique (x : Seq) (P Q : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  limitPoint_unique_of_converges x P Q
+    (cauchy_limitPoint_converges x P hC hP) hQ</code></pre></div></details></div></article>
+<h3 class="unit-subhead">99.2 上下极限也落在这个点上</h3><article class="exercise" id="ex-99-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">cauchy_limsup_liminf_rel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-99-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>收敛到 P 之后，上极限与 P 相等、下极限也与 P 相等，两条接起来。</p></div></div><pre class="exercise-statement"><code>theorem cauchy_limsup_liminf_rel (x : Seq) (P L M : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P)
+    (hL : Limsup x L) (hM : Liminf x M) : ratRel L M :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先用 99.0 得 <code>Converges x P</code>，分别用 <code>limsup_unique_of_converges</code> 与 <code>liminf_unique_of_converges</code> 把 L、M 认成 P，再传递。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel L M</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_limitPoint_converges · limsup_unique_of_converges · liminf_unique_of_converges · ratRel_trans_gen · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-99-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">收敛到 P 之后，L 与 P 相等、M 与 P 相等，两条接起来。</p><pre><code>theorem cauchy_limsup_liminf_rel (x : Seq) (P L M : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P)
+    (hL : Limsup x L) (hM : Liminf x M) : ratRel L M :=
+  ratRel_trans_gen L P M
+    (limsup_unique_of_converges x P L
+      (cauchy_limitPoint_converges x P hC hP) hL)
+    (ratRel_symm M P
+      (liminf_unique_of_converges x P M
+        (cauchy_limitPoint_converges x P hC hP) hM))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">99.3 与任意极限比较</h3><article class="exercise" id="ex-99-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">cauchy_converges_rel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-99-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>整条序列若另有极限 L，99.0 给出的 P 与 L 是同一个数。</p></div></div><pre class="exercise-statement"><code>theorem cauchy_converges_rel (x : Seq) (P L : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hL : Converges x L) : ratRel P L :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>99.0 给 <code>Converges x P</code>，与 <code>hL : Converges x L</code> 一起交给 <code>converges_unique</code>，得到 <code>ratRel L P</code>；翻向即目标。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel P L</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_limitPoint_converges · converges_unique · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-99-4"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem cauchy_converges_rel (x : Seq) (P L : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hL : Converges x L) : ratRel P L :=
+  ratRel_symm L P
+    (converges_unique x L P hL (cauchy_limitPoint_converges x P hC hP))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">99.4 常序列的实例</h3><article class="exercise" id="ex-99-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">demo_cauchy_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-99-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常序列是 Cauchy 的，也以它的值为极限点；99.0 因此给出收敛。</p></div></div><pre class="exercise-statement"><code>theorem demo_cauchy_const (q : ratRep) : Converges (constSeq q) q :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>cauchy_const</code> 给 Cauchy 性，<code>limitPoint_const</code> 给极限点，交给 99.0。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Converges (constSeq q) q</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">cauchy_const · limitPoint_const · cauchy_limitPoint_converges</span>。</p></div></details></div><details class="solution-panel" id="sol-99-5"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">常序列是 Cauchy 的，也以它的值为极限点。</p><pre><code>theorem demo_cauchy_const (q : ratRep) : Converges (constSeq q) q :=
+  cauchy_limitPoint_converges (constSeq q) q
+    (cauchy_const q) (limitPoint_const q)</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit98.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">上下极限与收敛</span></a><a class="unit-nav-home" href="../chapters/iii-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit100.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">Cauchy 序列的尾部刻画</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-99"><h3><a href="#top">Cauchy 序列与极限点</a></h3><p class="appendix-meta">5 道练习 · 5 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-99-1"><summary>练习 1 · cauchy_limitPoint_converges <span class="sol-meta">定理</span></summary><p class="solution-note">Cauchy 性控制尾巴内部的距离，极限点给出一条子序列的落点。两者合起来，
+整条序列收敛到那个极限点，这也是后面讨论 Cauchy 完备性的入口。
+
+边界：Cauchy 序列未必有有理极限点；主定理保留极限点前提。不新增公理。
+
+对任意 eps &gt; 0，取 <span class="math">ε/2</span>（正性由 <code>ratLtRep_half</code> 付清）。Cauchy 性给阈值 N，
+极限点在 N 之后给出 <span class="math">k ≥ N</span> 与 <code>close (x k) P (ε/2)</code>。对 <span class="math">n ≥ N</span>，
+<code>close (x n) (x k) (ε/2)</code> 与后者经 <code>close_trans</code> 合成 <code>close (x n) P eps</code>。</p><pre><code>theorem cauchy_limitPoint_converges (x : Seq) (P : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) : Converges x P :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.elim (hC (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (N : Nat)
+          (hN : ∀ (n m : Nat), LeNat N n → LeNat N m →
+            close (x n) (x m) (ratHalf eps)) =&gt;
+        Exists.elim
+          (limitPoint_frequently x P hP (ratHalf eps)
+            (ratLtRep_half eps heps) N)
+          (fun (k : Nat)
+              (hk : LeNat N k ∧ close (x k) P (ratHalf eps)) =&gt;
+            Exists.intro N
+              (fun (n : Nat) (hn : LeNat N n) =&gt;
+                close_trans (x n) (x k) P eps heps
+                  (hN n k hn (And.left hk))
+                  (And.right hk))))</code></pre></details><details class="appendix-solution" id="app-sol-99-2"><summary>练习 2 · cauchy_limitPoint_unique <span class="sol-meta">定理</span></summary><pre><code>theorem cauchy_limitPoint_unique (x : Seq) (P Q : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  limitPoint_unique_of_converges x P Q
+    (cauchy_limitPoint_converges x P hC hP) hQ</code></pre></details><details class="appendix-solution" id="app-sol-99-3"><summary>练习 3 · cauchy_limsup_liminf_rel <span class="sol-meta">定理</span></summary><p class="solution-note">收敛到 P 之后，L 与 P 相等、M 与 P 相等，两条接起来。</p><pre><code>theorem cauchy_limsup_liminf_rel (x : Seq) (P L M : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P)
+    (hL : Limsup x L) (hM : Liminf x M) : ratRel L M :=
+  ratRel_trans_gen L P M
+    (limsup_unique_of_converges x P L
+      (cauchy_limitPoint_converges x P hC hP) hL)
+    (ratRel_symm M P
+      (liminf_unique_of_converges x P M
+        (cauchy_limitPoint_converges x P hC hP) hM))</code></pre></details><details class="appendix-solution" id="app-sol-99-4"><summary>练习 4 · cauchy_converges_rel <span class="sol-meta">定理</span></summary><pre><code>theorem cauchy_converges_rel (x : Seq) (P L : ratRep)
+    (hC : Cauchy x) (hP : LimitPoint x P) (hL : Converges x L) : ratRel P L :=
+  ratRel_symm L P
+    (converges_unique x L P hL (cauchy_limitPoint_converges x P hC hP))</code></pre></details><details class="appendix-solution" id="app-sol-99-5"><summary>练习 5 · demo_cauchy_const <span class="sol-meta">定理</span></summary><p class="solution-note">常序列是 Cauchy 的，也以它的值为极限点。</p><pre><code>theorem demo_cauchy_const (q : ratRep) : Converges (constSeq q) q :=
+  cauchy_limitPoint_converges (constSeq q) q
+    (cauchy_const q) (limitPoint_const q)</code></pre></details></section></section>
+  </article>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit91.html" aria-current="false"><span>91</span> 子序列</a></li>
+<li><a href="../units/unit92.html" aria-current="false"><span>92</span> 极限点</a></li>
+<li><a href="../units/unit93.html" aria-current="false"><span>93</span> 上极限</a></li>
+<li><a href="../units/unit94.html" aria-current="false"><span>94</span> 下极限</a></li>
+<li><a href="../units/unit95.html" aria-current="false"><span>95</span> 子序列与上下极限</a></li>
+<li><a href="../units/unit96.html" aria-current="false"><span>96</span> 上下极限与常数界</a></li>
+<li><a href="../units/unit97.html" aria-current="false"><span>97</span> 上下极限只看尾部</a></li>
+<li><a href="../units/unit98.html" aria-current="false"><span>98</span> 上下极限与收敛</a></li>
+<li class="is-current"><a href="../units/unit99.html" aria-current="page"><span>99</span> Cauchy 序列与极限点</a></li></ol>
+  </aside>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit98.html">← 98 上下极限与收敛</a><a class="next" href="../units/unit100.html">100 Cauchy 序列的尾部刻画 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

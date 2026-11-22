@@ -1,0 +1,1352 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>III.9 综合、读证明、小项目 · 从集合论到实分析</title>
+<meta name="description" content="综合、读证明、小项目：5 单元。">
+<link rel="canonical" href="https://example.invalid/book-v3/chapters/iii-9.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="chapter">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../../volume-i/index.html">卷 I</a><a href="../index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter" open><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li aria-current="page">III.9 综合、读证明、小项目</li></ol></nav>
+<main id="main" class="page ">
+<header class="page-head">
+  <p class="kicker">卷 III 序列与级数 · 第 9 章</p>
+  <h1><span class="chapter-id">III.9</span> 综合、读证明、小项目</h1>
+  <p class="meta">5 单元 · 35 道练习 · 36 个声明 · 105 条提示</p>
+  <p class="lede">本章共 5 单元，从「面积值：把上下和钉在同一个数上」到「面积值的平移：整条曲线抬高一块矩形」。本章所有单元在同一页，按顺序向下读；点上方单元可以直接滑到对应位置。</p>
+</header>
+<div class="chapter-layout">
+<div class="chapter-main">
+<section class="chapter-progress" aria-label="本章进度">
+  <div class="progress-row">
+    <span class="progress-label">本章进度</span>
+    <strong data-progress-count data-progress-total="5">已读 0 / 5</strong>
+  </div>
+  <span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" data-progressbar><span class="progress-fill" data-progress-fill></span></span>
+</section>
+<nav id="units" class="chapter-units" aria-label="本章单元">
+  <h2>本章单元（5）</h2>
+  <ol class="unit-jump-list">
+<li><a class="unit-jump" href="#unit-167"><span class="num">167</span><span>面积值：把上下和钉在同一个数上</span></a></li>
+<li><a class="unit-jump" href="#unit-168"><span class="num">168</span><span>面积值的取负：把曲线翻到轴下方</span></a></li>
+<li><a class="unit-jump" href="#unit-169"><span class="num">169</span><span>面积值的符号：非负曲线不会算出负面积</span></a></li>
+<li><a class="unit-jump" href="#unit-170"><span class="num">170</span><span>面积值的比较：曲线更高，面积不会更小</span></a></li>
+<li><a class="unit-jump" href="#unit-171"><span class="num">171</span><span>面积值的平移：整条曲线抬高一块矩形</span></a></li>
+  </ol>
+</nav>
+<div class="chapter-body">
+<div class="chapter-unit" data-unit="167"><section class="unit first-of-chapter" id="unit-167">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-9.html">III.9</a> · 本章第 1 / 5 单元 · 全书第 167 / 171 单元</p>
+<h2><span class="unit-number">167</span><span>面积值：把上下和钉在同一个数上</span></h2>
+<p class="unit-title-en">Unit 167 — The Integral Value: Pinning Upper and Lower Sums</p>
+<p class="unit-meta">1 个定义 · 6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-167">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="167" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-167" aria-label="复制单元 167 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/iii-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>可积性说上和与下和能靠得任意近，可是「这块面积是多少」还没有答案。一列越来越窄的区间围住的是一个数，还是一族数？如果围住的是一个数，它该满足什么条件？</p></div></div></section>
+<div class="block prose intuition-only"><p>一个候选值 I 要同时满足三件事：它不低于任何分割的下和，不高于任何分割的上和，并且曲线可积。前两条把它钉在所有分割之间，第三条保证这些分割之间的缝能任意窄。这样的 I 至多有一个：可积性给一个缝比 <span class="math">ε</span> 窄的分割，两个候选同时被这个分割夹住，它们的差就不超过 <span class="math">ε</span>。</p></div><div class="block prose intuition-only"><p>常值曲线给出第一个可算的读数。k 的任何下界不超过 k，任何上界不小于 k，所以 <span class="math">k·(b-a)</span> 符合规格。</p></div><div class="block prose intuition-only"><p>这里没有断言这样的 I 一定存在。有理数里，一列越来越窄的区间可以围住一个无理数；上下和共同靠近的数未必落在有理数里。存在性要等实数完备性，而唯一性已经让「面积值」成为一个确定的对象：若它存在，它是谁已经定死。</p></div><div class="block prose intuition-only"><p>函数取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>面积值</p></div><div class="block prose intuition-only"><p>一个数 I 是曲线在 [a,b] 上的面积值，当它夹在所有分割的上下和之间，并且曲线确实可积。两条「所有分割」把数钉住，可积性保证这些区间能任意窄；缺了后者，任何小于所有下和的数都能混进来。</p></div><article class="decl decl-def" id="decl-167-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">HasIntegral</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def HasIntegral (a b : ratRep) (f : ratRep → ratRep) (I : ratRep) : Prop :=
+  (∀ (p : Partition) (L : ratRep),
+    IsPartition a b p → LowerSum a b p f L → ratLeRep L I) ∧
+  (∀ (p : Partition) (U : ratRep),
+    IsPartition a b p → UpperSum a b p f U → ratLeRep I U) ∧
+  Integrable a b f</code></pre></div></article>
+<article class="exercise" id="ex-167-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">hasIntegral_integrable</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>三条投影</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) : Integrable a b f :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>面积值是三件事的合取，可积性排在最后一块；两块 <code>And.right</code> 把它取出来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Integrable a b f</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.right。</p></div></details></div><details class="solution-panel" id="sol-167-1"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">投影：面积值给出可积性。</p><pre><code>theorem hasIntegral_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) : Integrable a b f :=
+  And.right (And.right h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-167-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">hasIntegral_lower</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_lower (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (L : ratRep)
+    (hp : IsPartition a b p) (hL : LowerSum a b p f L) :
+    ratLeRep L I :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下界那条是第一块，直接交给 <code>And.left</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep L I</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>And.left。</p></div></details></div><details class="solution-panel" id="sol-167-2"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">投影：面积值不低于任何下和。</p><pre><code>theorem hasIntegral_lower (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (L : ratRep)
+    (hp : IsPartition a b p) (hL : LowerSum a b p f L) :
+    ratLeRep L I :=
+  (And.left h) p L hp hL</code></pre></div></details></div></article>
+<article class="exercise" id="ex-167-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">hasIntegral_upper</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_upper (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (U : ratRep)
+    (hp : IsPartition a b p) (hU : UpperSum a b p f U) :
+    ratLeRep I U :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先取第二块（上界那条），再从中取出它的第一块。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep I U</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.right · And.left</span>。</p></div></details></div><details class="solution-panel" id="sol-167-3"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">投影：面积值不高于任何上和。</p><pre><code>theorem hasIntegral_upper (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (U : ratRep)
+    (hp : IsPartition a b p) (hU : UpperSum a b p f U) :
+    ratLeRep I U :=
+  (And.left (And.right h)) p U hp hU</code></pre></div></details></div></article>
+<article class="exercise" id="ex-167-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">sub_le_of_pin</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个候选被同一个分割夹住</p></div></div><pre class="exercise-statement"><code>theorem sub_le_of_pin (I J L U eps : ratRep)
+    (hLI : ratLeRep L I) (hIU : ratLeRep I U) (hLJ : ratLeRep L J)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ratLeRep (ratSubRep I J) eps :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先对 <code>I ≤ U</code> 两边减去 J；再从 <code>L ≤ J</code> 取负得 <code>-J ≤ -L</code>，在左边加 U 得 <code>U-J ≤ U-L</code>；两段传递一下就得到 <code>I-J ≤ U-L</code>，最后用 <code>U-L &lt; ε</code> 收到 <span class="math">ε</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratSubRep I J) eps</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratLeRep_neg_gen · ratLeRep_add_left · ratLeRep_trans · ratLtRep_le</span>。</p></div></details></div><details class="solution-panel" id="sol-167-4"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note"><code>I</code> 与 <code>J</code> 都落在同一个分割的和 <code>L</code>、<code>U</code> 之间。先对 <code>I ≤ U</code> 两边减去
+<code>J</code>，再从 <code>L ≤ J</code> 得到 <code>U - J ≤ U - L</code>；两段接起来，<code>I - J ≤ U - L</code>，
+而后者小于 <span class="math">ε</span>。</p><pre><code>theorem sub_le_of_pin (I J L U eps : ratRep)
+    (hLI : ratLeRep L I) (hIU : ratLeRep I U) (hLJ : ratLeRep L J)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ratLeRep (ratSubRep I J) eps :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) eps
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_trans (ratSubRep U J) (ratSubRep U L) eps
+      (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+        (ratLeRep_neg_gen L J hLJ))
+      (ratLtRep_le (ratSubRep U L) eps hgap))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-167-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">hasIntegral_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>唯一性</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_unique (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b f J) :
+    ratRel I J :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对每个正 <span class="math">ε</span>，用 I 的可积性取一个缝小于 <span class="math">ε</span> 的分割，它把 I 与 J 同时夹住（四个界分别来自两个候选），于是 <code>I-J ≤ ε</code>；<span class="math">ε</span> 任意给出 <code>I ≤ J</code>。把 I 与 J 对调再走一遍得 <code>J ≤ I</code>，最后用反对称性收成 <code>ratRel</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel I J</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_sub_le_all · sub_le_of_pin · hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-167-5"><summary>查看解答 <span class="sol-meta">定理 · 54 行</span></summary><div class="solution-body"><p class="solution-note">两个候选 <code>I</code>、<code>J</code> 都夹在每一个分割的上下和之间。可积性给一个上下和
+相差小于 <span class="math">ε</span> 的分割，这个分割把两个候选同时夹住，于是 <code>I - J ≤ ε</code>。
+<span class="math">ε</span> 任意，故 <code>I ≤ J</code>；把两个候选对调再走一遍，得 <code>J ≤ I</code>。</p><pre><code>theorem hasIntegral_unique (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b f J) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (ratLeRep_of_sub_le_all I J
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =&gt;
+                    sub_le_of_pin I J L U eps
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f I hI p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))
+    (ratLeRep_of_sub_le_all J I
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =&gt;
+                    sub_le_of_pin J I L U eps
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f J hJ p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-167-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">hasIntegral_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-167-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常值曲线</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把下和拆成一摞下界 l 与它的矩形和；逐段 <span class="math">l i ≤ k</span>，所以 <code>stepSum l ≤ stepSum (常值 k)</code>，而后者等价于 <code>k·(b-a)</code>，沿等价关系搬过去。上界那条对称：逐段 <span class="math">k ≤ u</span>，<code>stepSum (常值 k) ≤ stepSum u</code>，再把 <code>k·(b-a)</code> 与 U 接上。可积性交给 <code>integrable_const</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun _ =&gt; k) (ratMulRep k (ratSubRep b a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerSum_witness · upperSum_witness · stepSum_mono · stepSum_const · lowerStep_value · upperStep_value · ratLeRep_congr_gen · integrable_const</span>。</p></div></details></div><details class="solution-panel" id="sol-167-6"><summary>查看解答 <span class="sol-meta">定理 · 34 行</span></summary><div class="solution-body"><p class="solution-note">常值 <code>k</code> 的任何下界都不超过 <code>k</code>，所以任何下和都不超过 <code>k·(b-a)</code>；任何
+上界都不小于 <code>k</code>，所以任何上和都不小于同一个数。可积性来自常值曲线的
+那条判据。</p><pre><code>theorem hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (_ : ratRep) =&gt; k) L) =&gt;
+      Exists.elim (lowerSum_witness a b p (fun (_ : ratRep) =&gt; k) L hL)
+        (fun (l : Nat → ratRep)
+            (hl : LowerStep a b p (fun (_ : ratRep) =&gt; k) l ∧
+              ratRel L (stepSum p l)) =&gt;
+          ratLeRep_congr_gen (stepSum p l) L
+            (stepSum p (fun (_ : Nat) =&gt; k)) (ratMulRep k (ratSubRep b a))
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (stepSum_const a b p hp k)
+            (stepSum_mono a b p hp l (fun (_ : Nat) =&gt; k)
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                lowerStep_value a b p (fun (_ : ratRep) =&gt; k) l
+                  (And.left hl) hp i hi))))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (_ : ratRep) =&gt; k) U) =&gt;
+        Exists.elim (upperSum_witness a b p (fun (_ : ratRep) =&gt; k) U hU)
+          (fun (u : Nat → ratRep)
+              (hu : UpperStep a b p (fun (_ : ratRep) =&gt; k) u ∧
+                ratRel U (stepSum p u)) =&gt;
+            ratLeRep_congr_gen (stepSum p (fun (_ : Nat) =&gt; k))
+              (ratMulRep k (ratSubRep b a)) (stepSum p u) U
+              (stepSum_const a b p hp k)
+              (ratRel_symm U (stepSum p u) (And.right hu))
+              (stepSum_mono a b p hp (fun (_ : Nat) =&gt; k) u
+                (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                  upperStep_value a b p (fun (_ : ratRep) =&gt; k) u
+                    (And.left hu) hp i hi))))
+      (integrable_const a b k hab))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-167"><h3><a href="#top">面积值：把上下和钉在同一个数上</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-167-1"><summary>练习 1 · hasIntegral_integrable <span class="sol-meta">定理</span></summary><p class="solution-note">投影：面积值给出可积性。</p><pre><code>theorem hasIntegral_integrable (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) : Integrable a b f :=
+  And.right (And.right h)</code></pre></details><details class="appendix-solution" id="app-sol-167-2"><summary>练习 2 · hasIntegral_lower <span class="sol-meta">定理</span></summary><p class="solution-note">投影：面积值不低于任何下和。</p><pre><code>theorem hasIntegral_lower (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (L : ratRep)
+    (hp : IsPartition a b p) (hL : LowerSum a b p f L) :
+    ratLeRep L I :=
+  (And.left h) p L hp hL</code></pre></details><details class="appendix-solution" id="app-sol-167-3"><summary>练习 3 · hasIntegral_upper <span class="sol-meta">定理</span></summary><p class="solution-note">投影：面积值不高于任何上和。</p><pre><code>theorem hasIntegral_upper (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) (p : Partition) (U : ratRep)
+    (hp : IsPartition a b p) (hU : UpperSum a b p f U) :
+    ratLeRep I U :=
+  (And.left (And.right h)) p U hp hU</code></pre></details><details class="appendix-solution" id="app-sol-167-4"><summary>练习 4 · sub_le_of_pin <span class="sol-meta">定理</span></summary><p class="solution-note"><code>I</code> 与 <code>J</code> 都落在同一个分割的和 <code>L</code>、<code>U</code> 之间。先对 <code>I ≤ U</code> 两边减去
+<code>J</code>，再从 <code>L ≤ J</code> 得到 <code>U - J ≤ U - L</code>；两段接起来，<code>I - J ≤ U - L</code>，
+而后者小于 <span class="math">ε</span>。</p><pre><code>theorem sub_le_of_pin (I J L U eps : ratRep)
+    (hLI : ratLeRep L I) (hIU : ratLeRep I U) (hLJ : ratLeRep L J)
+    (hgap : ratLtRep (ratSubRep U L) eps) :
+    ratLeRep (ratSubRep I J) eps :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) eps
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_trans (ratSubRep U J) (ratSubRep U L) eps
+      (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+        (ratLeRep_neg_gen L J hLJ))
+      (ratLtRep_le (ratSubRep U L) eps hgap))</code></pre></details><details class="appendix-solution" id="app-sol-167-5"><summary>练习 5 · hasIntegral_unique <span class="sol-meta">定理</span></summary><p class="solution-note">两个候选 <code>I</code>、<code>J</code> 都夹在每一个分割的上下和之间。可积性给一个上下和
+相差小于 <span class="math">ε</span> 的分割，这个分割把两个候选同时夹住，于是 <code>I - J ≤ ε</code>。
+<span class="math">ε</span> 任意，故 <code>I ≤ J</code>；把两个候选对调再走一遍，得 <code>J ≤ I</code>。</p><pre><code>theorem hasIntegral_unique (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b f J) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (ratLeRep_of_sub_le_all I J
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =&gt;
+                    sub_le_of_pin I J L U eps
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f I hI p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))
+    (ratLeRep_of_sub_le_all J I
+      (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+        Exists.elim (hasIntegral_integrable a b f I hI eps heps)
+          (fun (p : Partition)
+              (hp : IsPartition a b p ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+            Exists.elim (And.right hp)
+              (fun (L : ratRep)
+                  (hL : ∃ (U : ratRep),
+                    LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                Exists.elim hL
+                  (fun (U : ratRep)
+                      (hU : LowerSum a b p f L ∧ UpperSum a b p f U ∧
+                        ratLtRep (ratSubRep U L) eps) =&gt;
+                    sub_le_of_pin J I L U eps
+                      (hasIntegral_lower a b f J hJ p L
+                        (And.left hp) (And.left hU))
+                      (hasIntegral_upper a b f J hJ p U
+                        (And.left hp) (And.left (And.right hU)))
+                      (hasIntegral_lower a b f I hI p L
+                        (And.left hp) (And.left hU))
+                      (And.right (And.right hU)))))))</code></pre></details><details class="appendix-solution" id="app-sol-167-6"><summary>练习 6 · hasIntegral_const <span class="sol-meta">定理</span></summary><p class="solution-note">常值 <code>k</code> 的任何下界都不超过 <code>k</code>，所以任何下和都不超过 <code>k·(b-a)</code>；任何
+上界都不小于 <code>k</code>，所以任何上和都不小于同一个数。可积性来自常值曲线的
+那条判据。</p><pre><code>theorem hasIntegral_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (_ : ratRep) =&gt; k) L) =&gt;
+      Exists.elim (lowerSum_witness a b p (fun (_ : ratRep) =&gt; k) L hL)
+        (fun (l : Nat → ratRep)
+            (hl : LowerStep a b p (fun (_ : ratRep) =&gt; k) l ∧
+              ratRel L (stepSum p l)) =&gt;
+          ratLeRep_congr_gen (stepSum p l) L
+            (stepSum p (fun (_ : Nat) =&gt; k)) (ratMulRep k (ratSubRep b a))
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (stepSum_const a b p hp k)
+            (stepSum_mono a b p hp l (fun (_ : Nat) =&gt; k)
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                lowerStep_value a b p (fun (_ : ratRep) =&gt; k) l
+                  (And.left hl) hp i hi))))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (_ : ratRep) =&gt; k) U) =&gt;
+        Exists.elim (upperSum_witness a b p (fun (_ : ratRep) =&gt; k) U hU)
+          (fun (u : Nat → ratRep)
+              (hu : UpperStep a b p (fun (_ : ratRep) =&gt; k) u ∧
+                ratRel U (stepSum p u)) =&gt;
+            ratLeRep_congr_gen (stepSum p (fun (_ : Nat) =&gt; k))
+              (ratMulRep k (ratSubRep b a)) (stepSum p u) U
+              (stepSum_const a b p hp k)
+              (ratRel_symm U (stepSum p u) (And.right hu))
+              (stepSum_mono a b p hp (fun (_ : Nat) =&gt; k) u
+                (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                  upperStep_value a b p (fun (_ : ratRep) =&gt; k) u
+                    (And.left hu) hp i hi))))
+      (integrable_const a b k hab))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="168"><section class="unit" id="unit-168">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-9.html">III.9</a> · 本章第 2 / 5 单元 · 全书第 168 / 171 单元</p>
+<h2><span class="unit-number">168</span><span>面积值的取负：把曲线翻到轴下方</span></h2>
+<p class="unit-title-en">Unit 168 — Negating the Integral Value: Flipping the Curve Below the Axis</p>
+<p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-168">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="168" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-168" aria-label="复制单元 168 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/iii-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>已经知道曲线 f 在 [a,b] 上的面积值是 I。把曲线翻到轴下方，得到 -f：它的面积值是多少？图上看是同一块面积换了方向，答案该是 -I。可是 HasIntegral 不是一句「面积等于多少」，它是两组量词——每个分割的下和都不超过 I，每个分割的上和都不小于 I。取负把这两组量词互换：原来的下和变成 -f 的上和，原来的上和变成 -f 的下和。所以 -I 要重新走过这两组量词，不能只靠图上的一句话。</p></div></div></section>
+<article class="exercise" id="ex-168-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">upperStep_neg_rev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>证明分三层。第一层在一段上：-f 的下界取负就是 f 的上界，-f 的上界取负就是 f 的下界；序在取负下反转，这一层只用到这条。第二层把台阶乘宽求和：stepSum_neg 把和的负号搬到外面，于是 -f 的下和取负恰好是 f 的上和。第三层把两层接起来：-f 的一个下和 L 先改写成 f 的上和 -L，由 I 的上界性质得 <span class="math">I ≤ -L</span>，两边取负就是 <span class="math">L ≤ -I</span>；另一半是它的镜像。</p></div><div class="block prose intuition-only"><p>取负的证明到此为止。加法与数乘要用到「乘积对同余因子不变」，课程库还没有这条引理，留到后面的单元。函数仍取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>一段上的台阶取负</p></div></div><pre class="exercise-statement"><code>theorem upperStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) l) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratNegRep (l i)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>f x ≤ -l i</code>。已知 <code>l i ≤ -f x</code>，两边取负得 <code>-(-f x) ≤ -l i</code>；把左边的双重负号改回 <code>f x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperStep a b p f (fun i =&gt; ratNegRep (l i))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_neg_gen · ratNegRep_invol · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-168-1"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem upperStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) l) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratNegRep (l i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratNegRep (ratNegRep (f x)))
+      (f x)
+      (ratNegRep (l i))
+      (ratNegRep (l i))
+      (ratNegRep_invol (f x))
+      (ratRel_refl (ratNegRep (l i)))
+      (ratLeRep_neg_gen (l i) (ratNegRep (f x)) (h i hi x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-168-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">lowerStep_neg_rev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) u) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratNegRep (u i)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>要证 <code>-u i ≤ f x</code>。已知 <code>-f x ≤ u i</code>，两边取负得 <code>-u i ≤ -(-f x)</code>；再把右边的双重负号改回 <code>f x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerStep a b p f (fun i =&gt; ratNegRep (u i))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_neg_gen · ratNegRep_invol · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-168-2"><summary>查看解答 <span class="sol-meta">定理 · 15 行</span></summary><div class="solution-body"><pre><code>theorem lowerStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) u) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratNegRep (u i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratNegRep (u i))
+      (ratNegRep (u i))
+      (ratNegRep (ratNegRep (f x)))
+      (f x)
+      (ratRel_refl (ratNegRep (u i)))
+      (ratNegRep_invol (f x))
+      (ratLeRep_neg_gen (ratNegRep (f x)) (u i) (h i hi x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-168-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">lowerSum_neg_rev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>矩形和取负</p></div></div><pre class="exercise-statement"><code>theorem lowerSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) L) :
+    UpperSum a b p f (ratNegRep L) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开下和，得到台阶 <code>l</code> 与 <code>L ~ stepSum l</code>。台阶取负用上一条翻成 <code>f</code> 的上界；矩形和用 <code>stepSum_neg</code> 得 <code>stepSum (-l) ~ -stepSum l</code>，再用 <code>ratNegRep_wd</code> 把 <code>L ~ stepSum l</code> 送进去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperSum a b p f (ratNegRep L)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_neg_rev · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-168-3"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><pre><code>theorem lowerSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) L) :
+    UpperSum a b p f (ratNegRep L) :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) l ∧
+          ratRel L (stepSum p l)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (l i))
+        (And.intro
+          (upperStep_neg_rev a b p f l (And.left hl))
+          (ratRel_trans_gen
+            (ratNegRep L)
+            (ratNegRep (stepSum p l))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+            (ratNegRep_wd L (stepSum p l) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+              (ratNegRep (stepSum p l))
+              (stepSum_neg p l)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-168-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">upperSum_neg_rev</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) U) :
+    LowerSum a b p f (ratNegRep U) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与上一条逐字同形，只是台阶方向反过来：上和拆出台阶 <code>u</code>，<code>u</code> 取负翻成 <code>f</code> 的下界，矩形和照旧由 <code>stepSum_neg</code> 与 <code>ratNegRep_wd</code> 搬运。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerSum a b p f (ratNegRep U)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_neg_rev · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-168-4"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><pre><code>theorem upperSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) U) :
+    LowerSum a b p f (ratNegRep U) :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) u ∧
+          ratRel U (stepSum p u)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (u i))
+        (And.intro
+          (lowerStep_neg_rev a b p f u (And.left hu))
+          (ratRel_trans_gen
+            (ratNegRep U)
+            (ratNegRep (stepSum p u))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+            (ratNegRep_wd U (stepSum p u) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+              (ratNegRep (stepSum p u))
+              (stepSum_neg p u)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-168-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">hasIntegral_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>面积值取负</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_neg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep I) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下界那半，先用 <code>lowerSum_neg_rev</code> 把 <code>-f</code> 的下和 <code>L</code> 变成 <code>f</code> 的上和 <code>-L</code>，由 <code>hasIntegral_upper</code> 得 <code>I ≤ -L</code>，两边取负并用 <code>ratNegRep_invol</code> 收到 <code>L ≤ -I</code>。上界那半镜像：用 <code>upperSum_neg_rev</code> 与 <code>hasIntegral_lower</code> 得 <code>-U ≤ I</code>，取负收到 <code>-I ≤ U</code>。可积性由 <code>integrable_neg</code> 搬。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun x =&gt; ratNegRep (f x)) (ratNegRep I)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerSum_neg_rev · upperSum_neg_rev · hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_neg_gen · ratNegRep_invol · integrable_neg</span>。</p></div></details></div><details class="solution-panel" id="sol-168-5"><summary>查看解答 <span class="sol-meta">定理 · 31 行</span></summary><div class="solution-body"><pre><code>theorem hasIntegral_neg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep I) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) L) =&gt;
+      ratLeRep_congr_gen
+        (ratNegRep (ratNegRep L))
+        L
+        (ratNegRep I)
+        (ratNegRep I)
+        (ratNegRep_invol L)
+        (ratRel_refl (ratNegRep I))
+        (ratLeRep_neg_gen I (ratNegRep L)
+          (hasIntegral_upper a b f I h p (ratNegRep L) hp
+            (lowerSum_neg_rev a b p f L hL))))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) U) =&gt;
+        ratLeRep_congr_gen
+          (ratNegRep I)
+          (ratNegRep I)
+          (ratNegRep (ratNegRep U))
+          U
+          (ratRel_refl (ratNegRep I))
+          (ratNegRep_invol U)
+          (ratLeRep_neg_gen (ratNegRep U) I
+            (hasIntegral_lower a b f I h p (ratNegRep U) hp
+              (upperSum_neg_rev a b p f U hU))))
+      (integrable_neg a b f (hasIntegral_integrable a b f I h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-168-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">hasIntegral_neg_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-168-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常值曲线的负数读数</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常值曲线 <code>k</code> 已有面积值 <code>k·(b-a)</code>（单元167 的读数），把它交给上一条取负定理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun _ =&gt; ratNegRep k) (ratNegRep (ratMulRep k (ratSubRep b a)))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_neg · hasIntegral_const</span>。</p></div></details></div><details class="solution-panel" id="sol-168-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_neg a b (fun (_ : ratRep) =&gt; k)
+    (ratMulRep k (ratSubRep b a)) (hasIntegral_const a b k hab)</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-168"><h3><a href="#top">面积值的取负：把曲线翻到轴下方</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-168-1"><summary>练习 1 · upperStep_neg_rev <span class="sol-meta">定理</span></summary><pre><code>theorem upperStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l : Nat → ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) l) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratNegRep (l i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratNegRep (ratNegRep (f x)))
+      (f x)
+      (ratNegRep (l i))
+      (ratNegRep (l i))
+      (ratNegRep_invol (f x))
+      (ratRel_refl (ratNegRep (l i)))
+      (ratLeRep_neg_gen (l i) (ratNegRep (f x)) (h i hi x hx))</code></pre></details><details class="appendix-solution" id="app-sol-168-2"><summary>练习 2 · lowerStep_neg_rev <span class="sol-meta">定理</span></summary><pre><code>theorem lowerStep_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (u : Nat → ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) u) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratNegRep (u i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratNegRep (u i))
+      (ratNegRep (u i))
+      (ratNegRep (ratNegRep (f x)))
+      (f x)
+      (ratRel_refl (ratNegRep (u i)))
+      (ratNegRep_invol (f x))
+      (ratLeRep_neg_gen (ratNegRep (f x)) (u i) (h i hi x hx))</code></pre></details><details class="appendix-solution" id="app-sol-168-3"><summary>练习 3 · lowerSum_neg_rev <span class="sol-meta">定理</span></summary><pre><code>theorem lowerSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) L) :
+    UpperSum a b p f (ratNegRep L) :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) l ∧
+          ratRel L (stepSum p l)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (l i))
+        (And.intro
+          (upperStep_neg_rev a b p f l (And.left hl))
+          (ratRel_trans_gen
+            (ratNegRep L)
+            (ratNegRep (stepSum p l))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+            (ratNegRep_wd L (stepSum p l) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+              (ratNegRep (stepSum p l))
+              (stepSum_neg p l)))))</code></pre></details><details class="appendix-solution" id="app-sol-168-4"><summary>练习 4 · upperSum_neg_rev <span class="sol-meta">定理</span></summary><pre><code>theorem upperSum_neg_rev (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) U) :
+    LowerSum a b p f (ratNegRep U) :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) u ∧
+          ratRel U (stepSum p u)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (u i))
+        (And.intro
+          (lowerStep_neg_rev a b p f u (And.left hu))
+          (ratRel_trans_gen
+            (ratNegRep U)
+            (ratNegRep (stepSum p u))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+            (ratNegRep_wd U (stepSum p u) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+              (ratNegRep (stepSum p u))
+              (stepSum_neg p u)))))</code></pre></details><details class="appendix-solution" id="app-sol-168-5"><summary>练习 5 · hasIntegral_neg <span class="sol-meta">定理</span></summary><pre><code>theorem hasIntegral_neg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep I) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) L) =&gt;
+      ratLeRep_congr_gen
+        (ratNegRep (ratNegRep L))
+        L
+        (ratNegRep I)
+        (ratNegRep I)
+        (ratNegRep_invol L)
+        (ratRel_refl (ratNegRep I))
+        (ratLeRep_neg_gen I (ratNegRep L)
+          (hasIntegral_upper a b f I h p (ratNegRep L) hp
+            (lowerSum_neg_rev a b p f L hL))))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x)) U) =&gt;
+        ratLeRep_congr_gen
+          (ratNegRep I)
+          (ratNegRep I)
+          (ratNegRep (ratNegRep U))
+          U
+          (ratRel_refl (ratNegRep I))
+          (ratNegRep_invol U)
+          (ratLeRep_neg_gen (ratNegRep U) I
+            (hasIntegral_lower a b f I h p (ratNegRep U) hp
+              (upperSum_neg_rev a b p f U hU))))
+      (integrable_neg a b f (hasIntegral_integrable a b f I h)))</code></pre></details><details class="appendix-solution" id="app-sol-168-6"><summary>练习 6 · hasIntegral_neg_const <span class="sol-meta">定理</span></summary><pre><code>theorem hasIntegral_neg_const (a b k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratNegRep k)
+      (ratNegRep (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_neg a b (fun (_ : ratRep) =&gt; k)
+    (ratMulRep k (ratSubRep b a)) (hasIntegral_const a b k hab)</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="169"><section class="unit" id="unit-169">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-9.html">III.9</a> · 本章第 3 / 5 单元 · 全书第 169 / 171 单元</p>
+<h2><span class="unit-number">169</span><span>面积值的符号：非负曲线不会算出负面积</span></h2>
+<p class="unit-title-en">Unit 169 — The Sign of the Integral Value: Nonnegative Curves Give Nonnegative Area</p>
+<p class="unit-meta">9 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-169">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="169" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-169" aria-label="复制单元 169 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/iii-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>一条曲线如果整条都在轴上方，它的面积值会不会算出负数？直觉说不会，但 HasIntegral 并没有把面积当成一块可以量的图形：它说的是候选值 I 夹在所有分割的上下和之间。要确认符号，只能从这些和里取一个来比。</p></div></div></section>
+<article class="exercise" id="ex-169-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">stepSum_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>取常值零台阶。曲线非负时，零逐段垫在函数值下面，所以零是一个下界；零乘宽逐项为零，矩形和就是零，于是零是一个下和。下和不大于 I，符号就到手了。曲线非正时把同一句话翻过来：零是上界，零是上和，I 不超过零。</p></div><div class="block prose intuition-only"><p>两条论证都只用两切点分割：区间非空时，切点 a、b 构成一个合法分割。最后把候选值换成与它相等的代表元，零曲线的读数就从 <span class="math">0·(b-a)</span> 落到 0。</p></div><div class="block prose intuition-only"><p>零台阶的矩形和</p></div></div><pre class="exercise-statement"><code>theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把矩形和展开成有限和，每一项是 0 乘段宽；逐项用 <code>ratMul_zero_left</code> 换成 0，全零项的和由 <code>sumTo_zero_fun</code> 收口。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (stepSum p (fun _ =&gt; ratZeroRep)) ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">sumTo_congr · ratMul_zero_left · sumTo_zero_fun</span>。</p></div></details></div><details class="solution-panel" id="sol-169-1"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">矩形和是有限和，每一项是零乘一段宽。逐项把零因子收到零，全零项的有限和
+再由零项和的引理收到零。</p><pre><code>theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep :=
+  ratRel_trans_gen
+    (stepSum p (fun (_ : Nat) =&gt; ratZeroRep))
+    (sumTo (fun (_ : Nat) =&gt; ratZeroRep) (partCount p))
+    ratZeroRep
+    (sumTo_congr
+      (fun (i : Nat) =&gt; ratMulRep ratZeroRep (segLen p i))
+      (fun (_ : Nat) =&gt; ratZeroRep)
+      (partCount p)
+      (fun (i : Nat) =&gt; ratMul_zero_left (segLen p i)))
+    (sumTo_zero_fun (partCount p))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">lowerStep_nonneg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>零是下界，也是上和</p></div></div><pre class="exercise-statement"><code>theorem lowerStep_nonneg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下界要在每一段、每一点不超过函数值；常值零台阶正好由非负假设逐点给出，段与点的前提用不上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerStep a b p f (fun _ =&gt; ratZeroRep)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>非负假设 <code>hf</code>。</p></div></details></div><details class="solution-panel" id="sol-169-2"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">下界的义务是逐点比较。非负假设把每一点的函数值垫在零上面，段与点的前提
+在这条比较里用不上。</p><pre><code>theorem lowerStep_nonneg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    hf x</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">lowerSum_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerSum a b p f ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下和是「一摞下界 <span class="math">+</span> 这摞下界的矩形和」。零台阶已经是下界，<code>stepSum_zero</code> 把它的矩形和认成零，方向用 <code>ratRel_symm</code> 翻过来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerSum a b p f ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_nonneg · stepSum_zero · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-169-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">下和由一摞下界和它的矩形和组成。零台阶已经是下界，矩形和是零；下和的
+候选值要等于这个矩形和，方向翻一次就够。</p><pre><code>theorem lowerSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) =&gt; ratZeroRep)
+    (And.intro
+      (lowerStep_nonneg a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">upperStep_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperStep_nonpos (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>上界要在每一点压住函数值；曲线非正时零正是这样一个上界。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperStep a b p f (fun _ =&gt; ratZeroRep)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>非正假设 <code>hf</code>。</p></div></details></div><details class="solution-panel" id="sol-169-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">上界与非正假设逐点比较，零压在函数值上面。</p><pre><code>theorem upperStep_nonpos (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    hf x</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">upperSum_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperSum a b p f ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>零台阶作上界，矩形和由 <code>stepSum_zero</code> 收回零。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperSum a b p f ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_nonpos · stepSum_zero · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-169-5"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">上和的构造与下和同形，只是台阶方向反过来。</p><pre><code>theorem upperSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) =&gt; ratZeroRep)
+    (And.intro
+      (upperStep_nonpos a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">hasIntegral_nonneg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>面积值的符号</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_nonneg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep ratZeroRep I :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasIntegral</code> 的第一条量词说每个下和都不超过 I；两切点分割是合法分割，零是这条分割上的下和，于是 <span class="math">0 ≤ I</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep ratZeroRep I</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_lower · twoPoint_isPartition · lowerSum_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-169-6"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">面积值不低于每一个下和。两切点分割是合法分割，零是它的一个下和，于是零
+不超过面积值。</p><pre><code>theorem hasIntegral_nonneg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep ratZeroRep I :=
+  hasIntegral_lower a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (lowerSum_zero a b (twoPoint a b) f hf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">hasIntegral_nonpos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-7">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_nonpos (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    ratLeRep I ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>第二条量词说 I 不超过每个上和；同一条两切点分割上零是上和，于是 <span class="math">I ≤ 0</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep I ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_upper · twoPoint_isPartition · upperSum_zero</span>。</p></div></details></div><details class="solution-panel" id="sol-169-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">面积值不超过每一个上和。同一条分割上零是上和，于是面积值不超过零。</p><pre><code>theorem hasIntegral_nonpos (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    ratLeRep I ratZeroRep :=
+  hasIntegral_upper a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (upperSum_zero a b (twoPoint a b) f hf)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">hasIntegral_congr_value</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>换一个相等的候选值</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_congr_value (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (h : HasIntegral a b f I) (hIJ : ratRel I J) :
+    HasIntegral a b f J :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>三条分量分别搬运。下界那半只换右边的候选值，上界那半只换左边的候选值；可积性不依赖候选值，原样保留。两边都用 <code>ratLeRep_congr_gen</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b f J</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_lower · hasIntegral_upper · hasIntegral_integrable · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-169-8"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">下界那半只换右边的候选值，上界那半只换左边的候选值，可积性原样保留。
+两条比较都沿候选值的相等搬运，不需要重做分割上的估计。</p><pre><code>theorem hasIntegral_congr_value (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (h : HasIntegral a b f I) (hIJ : ratRel I J) :
+    HasIntegral a b f J :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p f L) =&gt;
+      ratLeRep_congr_gen L L I J (ratRel_refl L) hIJ
+        (hasIntegral_lower a b f I h p L hp hL))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p f U) =&gt;
+        ratLeRep_congr_gen I J U U hIJ (ratRel_refl U)
+          (hasIntegral_upper a b f I h p U hp hU))
+      (hasIntegral_integrable a b f I h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-169-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">hasIntegral_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-169-9">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratZeroRep) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常值曲线的读数给候选值 <span class="math">0·(b-a)</span>，把它用 <code>ratMul_zero_left</code> 换成 0，再交给候选值替换。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun _ =&gt; ratZeroRep) ratZeroRep</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_const · ratMul_zero_left · hasIntegral_congr_value</span>。</p></div></details></div><details class="solution-panel" id="sol-169-9"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">零曲线的读数
+
+常值曲线的候选值是 <span class="math">k·(b-a)</span>。取 k 为零，乘积收到零，再把候选值换成这个
+相等的代表元。</p><pre><code>theorem hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratZeroRep) ratZeroRep :=
+  hasIntegral_congr_value a b (fun (_ : ratRep) =&gt; ratZeroRep)
+    (ratMulRep ratZeroRep (ratSubRep b a)) ratZeroRep
+    (hasIntegral_const a b ratZeroRep hab)
+    (ratMul_zero_left (ratSubRep b a))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-169"><h3><a href="#top">面积值的符号：非负曲线不会算出负面积</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-169-1"><summary>练习 1 · stepSum_zero <span class="sol-meta">定理</span></summary><p class="solution-note">矩形和是有限和，每一项是零乘一段宽。逐项把零因子收到零，全零项的有限和
+再由零项和的引理收到零。</p><pre><code>theorem stepSum_zero (p : Partition) :
+    ratRel (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep :=
+  ratRel_trans_gen
+    (stepSum p (fun (_ : Nat) =&gt; ratZeroRep))
+    (sumTo (fun (_ : Nat) =&gt; ratZeroRep) (partCount p))
+    ratZeroRep
+    (sumTo_congr
+      (fun (i : Nat) =&gt; ratMulRep ratZeroRep (segLen p i))
+      (fun (_ : Nat) =&gt; ratZeroRep)
+      (partCount p)
+      (fun (i : Nat) =&gt; ratMul_zero_left (segLen p i)))
+    (sumTo_zero_fun (partCount p))</code></pre></details><details class="appendix-solution" id="app-sol-169-2"><summary>练习 2 · lowerStep_nonneg <span class="sol-meta">定理</span></summary><p class="solution-note">下界的义务是逐点比较。非负假设把每一点的函数值垫在零上面，段与点的前提
+在这条比较里用不上。</p><pre><code>theorem lowerStep_nonneg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    hf x</code></pre></details><details class="appendix-solution" id="app-sol-169-3"><summary>练习 3 · lowerSum_zero <span class="sol-meta">定理</span></summary><p class="solution-note">下和由一摞下界和它的矩形和组成。零台阶已经是下界，矩形和是零；下和的
+候选值要等于这个矩形和，方向翻一次就够。</p><pre><code>theorem lowerSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    LowerSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) =&gt; ratZeroRep)
+    (And.intro
+      (lowerStep_nonneg a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))</code></pre></details><details class="appendix-solution" id="app-sol-169-4"><summary>练习 4 · upperStep_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">上界与非正假设逐点比较，零压在函数值上面。</p><pre><code>theorem upperStep_nonpos (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperStep a b p f (fun (_ : Nat) =&gt; ratZeroRep) :=
+  fun (i : Nat) (_hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep)
+      (_hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    hf x</code></pre></details><details class="appendix-solution" id="app-sol-169-5"><summary>练习 5 · upperSum_zero <span class="sol-meta">定理</span></summary><p class="solution-note">上和的构造与下和同形，只是台阶方向反过来。</p><pre><code>theorem upperSum_zero (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    UpperSum a b p f ratZeroRep :=
+  Exists.intro (fun (_ : Nat) =&gt; ratZeroRep)
+    (And.intro
+      (upperStep_nonpos a b p f hf)
+      (ratRel_symm (stepSum p (fun (_ : Nat) =&gt; ratZeroRep)) ratZeroRep
+        (stepSum_zero p)))</code></pre></details><details class="appendix-solution" id="app-sol-169-6"><summary>练习 6 · hasIntegral_nonneg <span class="sol-meta">定理</span></summary><p class="solution-note">面积值不低于每一个下和。两切点分割是合法分割，零是它的一个下和，于是零
+不超过面积值。</p><pre><code>theorem hasIntegral_nonneg (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep ratZeroRep I :=
+  hasIntegral_lower a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (lowerSum_zero a b (twoPoint a b) f hf)</code></pre></details><details class="appendix-solution" id="app-sol-169-7"><summary>练习 7 · hasIntegral_nonpos <span class="sol-meta">定理</span></summary><p class="solution-note">面积值不超过每一个上和。同一条分割上零是上和，于是面积值不超过零。</p><pre><code>theorem hasIntegral_nonpos (a b : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep (f x) ratZeroRep) :
+    ratLeRep I ratZeroRep :=
+  hasIntegral_upper a b f I h (twoPoint a b) ratZeroRep
+    (twoPoint_isPartition a b hab) (upperSum_zero a b (twoPoint a b) f hf)</code></pre></details><details class="appendix-solution" id="app-sol-169-8"><summary>练习 8 · hasIntegral_congr_value <span class="sol-meta">定理</span></summary><p class="solution-note">下界那半只换右边的候选值，上界那半只换左边的候选值，可积性原样保留。
+两条比较都沿候选值的相等搬运，不需要重做分割上的估计。</p><pre><code>theorem hasIntegral_congr_value (a b : ratRep) (f : ratRep → ratRep)
+    (I J : ratRep) (h : HasIntegral a b f I) (hIJ : ratRel I J) :
+    HasIntegral a b f J :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p f L) =&gt;
+      ratLeRep_congr_gen L L I J (ratRel_refl L) hIJ
+        (hasIntegral_lower a b f I h p L hp hL))
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p f U) =&gt;
+        ratLeRep_congr_gen I J U U hIJ (ratRel_refl U)
+          (hasIntegral_upper a b f I h p U hp hU))
+      (hasIntegral_integrable a b f I h))</code></pre></details><details class="appendix-solution" id="app-sol-169-9"><summary>练习 9 · hasIntegral_zero <span class="sol-meta">定理</span></summary><p class="solution-note">零曲线的读数
+
+常值曲线的候选值是 <span class="math">k·(b-a)</span>。取 k 为零，乘积收到零，再把候选值换成这个
+相等的代表元。</p><pre><code>theorem hasIntegral_zero (a b : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratZeroRep) ratZeroRep :=
+  hasIntegral_congr_value a b (fun (_ : ratRep) =&gt; ratZeroRep)
+    (ratMulRep ratZeroRep (ratSubRep b a)) ratZeroRep
+    (hasIntegral_const a b ratZeroRep hab)
+    (ratMul_zero_left (ratSubRep b a))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="170"><section class="unit" id="unit-170">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-9.html">III.9</a> · 本章第 4 / 5 单元 · 全书第 170 / 171 单元</p>
+<h2><span class="unit-number">170</span><span>面积值的比较：曲线更高，面积不会更小</span></h2>
+<p class="unit-title-en">Unit 170 — Comparing Integral Values: A Higher Curve Has No Smaller Area</p>
+<p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-170">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="170" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-170" aria-label="复制单元 170 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/iii-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>两条曲线放在同一条区间上，一条处处不低于另一条。它们的面积值谁大？直觉说高的那条。可是面积值不是一块可以直接叠放的图形：它只是夹在所有上下和之间的一个数。两个这样的数要比较，只能回到那些和。</p></div></div></section>
+<article class="exercise" id="ex-170-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">sub_le_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>设 f 处处不超过 g，f 的面积值是 I，g 的面积值是 J。可积性给 g 一条很窄的分割，上和 U 与下和 L 相差不到 <span class="math">ε</span>。g 的上界压得住 g，也就压得住更低的 f，于是 <span class="math">I ≤ U</span>；f 的下界垫得住 f，也就垫得住更高的 g，于是 <span class="math">L ≤ J</span>。两条不等式相减，I - J 不超过 U - L，而后者小于 <span class="math">ε</span>。<span class="math">ε</span> 任意，所以 <span class="math">I ≤ J</span>。</p></div><div class="block prose intuition-only"><p>比较成立之后，常数界是直接的推论：曲线不超过 k，面积值不超过 k(b-a)；曲线不低于 k，面积值不低于 k(b-a)。两条合起来，一条曲线被两条水平线夹住，它的面积值也被两个矩形面积夹住。最后，逐点相等的两条曲线有同一个面积值：两个方向各比一次，反对称性把两个候选收成一个。</p></div><div class="block prose intuition-only"><p>函数取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>两条不等式相减</p></div></div><pre class="exercise-statement"><code>theorem sub_le_sub (I U L J : ratRep) (hIU : ratLeRep I U)
+    (hLJ : ratLeRep L J) :
+    ratLeRep (ratSubRep I J) (ratSubRep U L) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把 <code>I ≤ U</code> 两边同加 <code>-J</code>；再把 <code>L ≤ J</code> 取负翻成 <code>-J ≤ -L</code>，两边同加 <code>U</code>；传递性接起来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratSubRep I J) (ratSubRep U L)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratLeRep_neg_gen · ratLeRep_add_left · ratLeRep_trans</span>。</p></div></details></div><details class="solution-panel" id="sol-170-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">第一段：<code>I ≤ U</code> 两边同加 <code>-J</code>。第二段：<code>L ≤ J</code> 先取负翻成 <code>-J ≤ -L</code>，
+两边同加 <code>U</code>。中间项 <code>U - J</code> 相同，传递性把它们接起来。</p><pre><code>theorem sub_le_sub (I U L J : ratRep) (hIU : ratLeRep I U)
+    (hLJ : ratLeRep L J) :
+    ratLeRep (ratSubRep I J) (ratSubRep U L) :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) (ratSubRep U L)
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+      (ratLeRep_neg_gen L J hLJ))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-170-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">hasIntegral_mono</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>面积值的比较</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对任意正 <span class="math">ε</span>，用 <code>hasIntegral_integrable</code> 取出 g 的窄分割；g 的上界也是 f 的上界，所以 <span class="math">I ≤ U</span>，而 <span class="math">L ≤ J</span>；两条界交给 <code>sub_le_sub</code>，再由 <code>ratLtRep_le</code> 收尾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep I J</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_of_sub_le_all · hasIntegral_integrable · upperSum_mono_fun · ratLtRep_le</span>。</p></div></details></div><details class="solution-panel" id="sol-170-2"><summary>查看解答 <span class="sol-meta">定理 · 30 行</span></summary><div class="solution-body"><p class="solution-note">目标是一条非严格序，先把它化成「任意正 <span class="math">ε</span> 下，<code>I - J ≤ ε</code>」。可积性给出
+分割 p，它的下和 L 与上和 U 相差小于 <span class="math">ε</span>。<code>U</code> 是 g 的上界摞，也压得住更低
+的 f，所以 f 的面积值不超过 U；<code>L</code> 是 g 的下和，g 的面积值不低于 L。
+两条界相减，差的差不超过 U - L，后者小于 <span class="math">ε</span>。</p><pre><code>theorem hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  ratLeRep_of_sub_le_all I J
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+      Exists.elim (hasIntegral_integrable a b g J hJ eps heps)
+        (fun (p : Partition)
+            (hp : IsPartition a b p ∧
+              ∃ (L : ratRep), ∃ (U : ratRep),
+                LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                  ratLtRep (ratSubRep U L) eps) =&gt;
+          Exists.elim (And.right hp)
+            (fun (L : ratRep)
+                (hL : ∃ (U : ratRep),
+                  LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+              Exists.elim hL
+                (fun (U : ratRep)
+                    (hU : LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                  ratLeRep_trans (ratSubRep I J) (ratSubRep U L) eps
+                    (sub_le_sub I U L J
+                      (hasIntegral_upper a b f I hI p U (And.left hp)
+                        (upperSum_mono_fun a b p f g U hfg
+                          (And.left (And.right hU))))
+                      (hasIntegral_lower a b g J hJ p L (And.left hp)
+                        (And.left hU)))
+                    (ratLtRep_le (ratSubRep U L) eps
+                      (And.right (And.right hU)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-170-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">hasIntegral_le_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常数界</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_le_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hfk : ∀ (x : ratRep), ratLeRep (f x) k) :
+    ratLeRep I (ratMulRep k (ratSubRep b a)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把常数 k 看成常值曲线，<code>hasIntegral_const</code> 给出它的面积值 <code>k·(b-a)</code>；曲线不超过 k，就是它不高于这条常值曲线，交给 <code>hasIntegral_mono</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep I (ratMulRep k (ratSubRep b a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_const · hasIntegral_mono</span>。</p></div></details></div><details class="solution-panel" id="sol-170-3"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">常值曲线 <code>k</code> 的面积值由 <code>hasIntegral_const</code> 给出，是 <code>k·(b-a)</code>。f 不超过
+它，比较一次就得到上界。</p><pre><code>theorem hasIntegral_le_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hfk : ∀ (x : ratRep), ratLeRep (f x) k) :
+    ratLeRep I (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_mono a b f (fun (_ : ratRep) =&gt; k) I
+    (ratMulRep k (ratSubRep b a)) h (hasIntegral_const a b k hab) hfk</code></pre></div></details></div></article>
+<article class="exercise" id="ex-170-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">hasIntegral_const_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hkf : ∀ (x : ratRep), ratLeRep k (f x)) :
+    ratLeRep (ratMulRep k (ratSubRep b a)) I :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>换一个方向：常值曲线 k 处处不超过 f，<code>hasIntegral_const</code> 的读数于是不超过 I。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratMulRep k (ratSubRep b a)) I</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_const · hasIntegral_mono</span>。</p></div></details></div><details class="solution-panel" id="sol-170-4"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">同一个比较反过来用：常值曲线在下、f 在上。</p><pre><code>theorem hasIntegral_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hkf : ∀ (x : ratRep), ratLeRep k (f x)) :
+    ratLeRep (ratMulRep k (ratSubRep b a)) I :=
+  hasIntegral_mono a b (fun (_ : ratRep) =&gt; k) f
+    (ratMulRep k (ratSubRep b a)) I (hasIntegral_const a b k hab) h hkf</code></pre></div></details></div></article>
+<article class="exercise" id="ex-170-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">hasIntegral_bounds</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两条界分别由下界与上界那两条引理给出，再用 <code>And.intro</code> 配成一对。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧ ratLeRep I (ratMulRep hi (ratSubRep b a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_const_le · hasIntegral_le_const · And.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-170-5"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">两条界各自成立，合取起来就是一对夹板。</p><pre><code>theorem hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  And.intro
+    (hasIntegral_const_le a b f I lo hab h hlo)
+    (hasIntegral_le_const a b f I hi hab h hhi)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-170-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">hasIntegral_congr_fun</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-170-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>逐点相等</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    ratRel I J :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐点相等先换成两个方向的非严格序，各用一次 <code>hasIntegral_mono</code>，得到 <code>I ≤ J</code> 与 <code>J ≤ I</code>；<code>ratLeRep_antisymm</code> 把两边收成 <code>ratRel I J</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel I J</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_mono · ratLeRep_of_ratRel · ratRel_symm · ratLeRep_antisymm</span>。</p></div></details></div><details class="solution-panel" id="sol-170-6"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">逐点相等先沿两个方向换成非严格序：两个方向各比一次面积值，得到
+<code>I ≤ J</code> 与 <code>J ≤ I</code>，反对称性把它们收成等价。</p><pre><code>theorem hasIntegral_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (hasIntegral_mono a b f g I J hI hJ
+      (fun (x : ratRep) =&gt; ratLeRep_of_ratRel (f x) (g x) (hfg x)))
+    (hasIntegral_mono a b g f J I hJ hI
+      (fun (x : ratRep) =&gt;
+        ratLeRep_of_ratRel (g x) (f x)
+          (ratRel_symm (f x) (g x) (hfg x))))</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-170"><h3><a href="#top">面积值的比较：曲线更高，面积不会更小</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-170-1"><summary>练习 1 · sub_le_sub <span class="sol-meta">定理</span></summary><p class="solution-note">第一段：<code>I ≤ U</code> 两边同加 <code>-J</code>。第二段：<code>L ≤ J</code> 先取负翻成 <code>-J ≤ -L</code>，
+两边同加 <code>U</code>。中间项 <code>U - J</code> 相同，传递性把它们接起来。</p><pre><code>theorem sub_le_sub (I U L J : ratRep) (hIU : ratLeRep I U)
+    (hLJ : ratLeRep L J) :
+    ratLeRep (ratSubRep I J) (ratSubRep U L) :=
+  ratLeRep_trans (ratSubRep I J) (ratSubRep U J) (ratSubRep U L)
+    (ratLeRep_add_right I U (ratNegRep J) hIU)
+    (ratLeRep_add_left (ratNegRep J) (ratNegRep L) U
+      (ratLeRep_neg_gen L J hLJ))</code></pre></details><details class="appendix-solution" id="app-sol-170-2"><summary>练习 2 · hasIntegral_mono <span class="sol-meta">定理</span></summary><p class="solution-note">目标是一条非严格序，先把它化成「任意正 <span class="math">ε</span> 下，<code>I - J ≤ ε</code>」。可积性给出
+分割 p，它的下和 L 与上和 U 相差小于 <span class="math">ε</span>。<code>U</code> 是 g 的上界摞，也压得住更低
+的 f，所以 f 的面积值不超过 U；<code>L</code> 是 g 的下和，g 的面积值不低于 L。
+两条界相减，差的差不超过 U - L，后者小于 <span class="math">ε</span>。</p><pre><code>theorem hasIntegral_mono (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x)) :
+    ratLeRep I J :=
+  ratLeRep_of_sub_le_all I J
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+      Exists.elim (hasIntegral_integrable a b g J hJ eps heps)
+        (fun (p : Partition)
+            (hp : IsPartition a b p ∧
+              ∃ (L : ratRep), ∃ (U : ratRep),
+                LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                  ratLtRep (ratSubRep U L) eps) =&gt;
+          Exists.elim (And.right hp)
+            (fun (L : ratRep)
+                (hL : ∃ (U : ratRep),
+                  LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                    ratLtRep (ratSubRep U L) eps) =&gt;
+              Exists.elim hL
+                (fun (U : ratRep)
+                    (hU : LowerSum a b p g L ∧ UpperSum a b p g U ∧
+                      ratLtRep (ratSubRep U L) eps) =&gt;
+                  ratLeRep_trans (ratSubRep I J) (ratSubRep U L) eps
+                    (sub_le_sub I U L J
+                      (hasIntegral_upper a b f I hI p U (And.left hp)
+                        (upperSum_mono_fun a b p f g U hfg
+                          (And.left (And.right hU))))
+                      (hasIntegral_lower a b g J hJ p L (And.left hp)
+                        (And.left hU)))
+                    (ratLtRep_le (ratSubRep U L) eps
+                      (And.right (And.right hU)))))))</code></pre></details><details class="appendix-solution" id="app-sol-170-3"><summary>练习 3 · hasIntegral_le_const <span class="sol-meta">定理</span></summary><p class="solution-note">常值曲线 <code>k</code> 的面积值由 <code>hasIntegral_const</code> 给出，是 <code>k·(b-a)</code>。f 不超过
+它，比较一次就得到上界。</p><pre><code>theorem hasIntegral_le_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hfk : ∀ (x : ratRep), ratLeRep (f x) k) :
+    ratLeRep I (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_mono a b f (fun (_ : ratRep) =&gt; k) I
+    (ratMulRep k (ratSubRep b a)) h (hasIntegral_const a b k hab) hfk</code></pre></details><details class="appendix-solution" id="app-sol-170-4"><summary>练习 4 · hasIntegral_const_le <span class="sol-meta">定理</span></summary><p class="solution-note">同一个比较反过来用：常值曲线在下、f 在上。</p><pre><code>theorem hasIntegral_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hkf : ∀ (x : ratRep), ratLeRep k (f x)) :
+    ratLeRep (ratMulRep k (ratSubRep b a)) I :=
+  hasIntegral_mono a b (fun (_ : ratRep) =&gt; k) f
+    (ratMulRep k (ratSubRep b a)) I (hasIntegral_const a b k hab) h hkf</code></pre></details><details class="appendix-solution" id="app-sol-170-5"><summary>练习 5 · hasIntegral_bounds <span class="sol-meta">定理</span></summary><p class="solution-note">两条界各自成立，合取起来就是一对夹板。</p><pre><code>theorem hasIntegral_bounds (a b : ratRep) (f : ratRep → ratRep)
+    (I lo hi : ratRep) (hab : ratLtRep a b) (h : HasIntegral a b f I)
+    (hlo : ∀ (x : ratRep), ratLeRep lo (f x))
+    (hhi : ∀ (x : ratRep), ratLeRep (f x) hi) :
+    ratLeRep (ratMulRep lo (ratSubRep b a)) I ∧
+      ratLeRep I (ratMulRep hi (ratSubRep b a)) :=
+  And.intro
+    (hasIntegral_const_le a b f I lo hab h hlo)
+    (hasIntegral_le_const a b f I hi hab h hhi)</code></pre></details><details class="appendix-solution" id="app-sol-170-6"><summary>练习 6 · hasIntegral_congr_fun <span class="sol-meta">定理</span></summary><p class="solution-note">逐点相等先沿两个方向换成非严格序：两个方向各比一次面积值，得到
+<code>I ≤ J</code> 与 <code>J ≤ I</code>，反对称性把它们收成等价。</p><pre><code>theorem hasIntegral_congr_fun (a b : ratRep) (f g : ratRep → ratRep)
+    (I J : ratRep) (hI : HasIntegral a b f I) (hJ : HasIntegral a b g J)
+    (hfg : ∀ (x : ratRep), ratRel (f x) (g x)) :
+    ratRel I J :=
+  ratLeRep_antisymm I J
+    (hasIntegral_mono a b f g I J hI hJ
+      (fun (x : ratRep) =&gt; ratLeRep_of_ratRel (f x) (g x) (hfg x)))
+    (hasIntegral_mono a b g f J I hJ hI
+      (fun (x : ratRep) =&gt;
+        ratLeRep_of_ratRel (g x) (f x)
+          (ratRel_symm (f x) (g x) (hfg x))))</code></pre></details></section></section></div>
+<div class="chapter-unit" data-unit="171"><section class="unit" id="unit-171">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-9.html">III.9</a> · 本章第 5 / 5 单元 · 全书第 171 / 171 单元</p>
+<h2><span class="unit-number">171</span><span>面积值的平移：整条曲线抬高一块矩形</span></h2>
+<p class="unit-title-en">Unit 171 — Shifting the Integral Value: Lifting the Whole Curve by a Rectangle</p>
+<p class="unit-meta">8 个定理 · 8 道练习 · 24 条提示 · <a href="#appendix-unit-171">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="171" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-171" aria-label="复制单元 171 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<a class="back-to-toc" href="../chapters/iii-9.html#units">↑ 目录</a>
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>面积值已经会随曲线取负，也会按逐点序比较。还有一个变形值得问：把整条曲线抬高同一个常数 k，每一段的高度都多了 k，宽没变，面积值会怎样？</p></div></div></section>
+<article class="exercise" id="ex-171-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">sub_add_cancel</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>答案是多出一块 k(b-a)。理由不在图形上，而在两摞台阶上：抬高后的曲线有一摞下界，把这摞下界整体减去 k，它又垫回原曲线下面；反过来，原曲线的每一摞下界整体加上 k，也仍然垫在抬高后的曲线下面。两个方向都成立，所以抬高前后的下和只差 k(b-a)。上界同理。</p></div><div class="block prose intuition-only"><p>矩形和这一块由分配律给出：一段上「高度加 k」乘宽，等于原来的矩形加上 k 乘这段宽；整条和加起来，多出的正是 k 乘区间总长。</p></div><div class="block prose intuition-only"><p>最后拿常值曲线试一次：常值 c 抬高 k 变成 <span class="math">c+k</span>，面积值从 c(b-a) 变成 <span class="math">(c+k)(b-a)</span>，正好多出 k(b-a)。</p></div><div class="block prose intuition-only"><p>函数取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>先理清代数：加一个数再减掉它</p></div></div><pre class="exercise-statement"><code>theorem sub_add_cancel (x k : ratRep) :
+    ratRel (ratSubRep (ratAddRep x k) k) x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先把 <code>x + k</code> 交换成 <code>k + x</code>，再用库里「先加再减同一个数」的引理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratSubRep (ratAddRep x k) k) x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAdd_comm · ratSubRep_add_self_sub</span>。</p></div></details></div><details class="solution-panel" id="sol-171-1"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note"><code>x + k</code> 先交换成 <code>k + x</code>；「先加再减同一个数」的引理把它收回 <code>x</code>。</p><pre><code>theorem sub_add_cancel (x k : ratRep) :
+    ratRel (ratSubRep (ratAddRep x k) k) x :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x k) k)
+    (ratSubRep (ratAddRep k x) k)
+    x
+    (ratAddRep_wd_gen (ratAddRep x k) (ratAddRep k x) (ratNegRep k)
+      (ratAdd_comm x k))
+    (ratSubRep_add_self_sub k x)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">upperStep_sub_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>台阶整体减去同一个常数</p></div></div><pre class="exercise-statement"><code>theorem upperStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (k : ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) u) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratSubRep (u i) k) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>段里的点满足 <code>f x + k ≤ u i</code>；两边同时减去 k，左边用 <code>sub_add_cancel</code> 收回 <code>f x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperStep a b p f (fun i =&gt; ratSubRep (u i) k)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">sub_add_cancel · ratLeRep_add_right · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-171-2"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">段里的点满足 <code>f x + k ≤ u i</code>。两边同时减去 k，左边用 <code>sub_add_cancel</code>
+收回 <code>f x</code>，右边就是 <code>u i - k</code>。</p><pre><code>theorem upperStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (k : ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) u) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratSubRep (u i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratSubRep (u i) k) (ratSubRep (u i) k)
+      (sub_add_cancel (f x) k)
+      (ratRel_refl (ratSubRep (u i) k))
+      (ratLeRep_add_right (ratAddRep (f x) k) (u i) (ratNegRep k)
+        (h i hi x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">lowerStep_sub_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (k : ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) l) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratSubRep (l i) k) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>方向相反，<code>l i ≤ f x + k</code>；两边减去 k，右边收回 <code>f x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerStep a b p f (fun i =&gt; ratSubRep (l i) k)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">sub_add_cancel · ratLeRep_add_right · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-171-3"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">方向相反：<code>l i ≤ f x + k</code>，两边减去 k，右边收回 <code>f x</code>。</p><pre><code>theorem lowerStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (k : ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) l) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratSubRep (l i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratSubRep (l i) k) (ratSubRep (l i) k)
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratRel_refl (ratSubRep (l i) k))
+      (sub_add_cancel (f x) k)
+      (ratLeRep_add_right (l i) (ratAddRep (f x) k) (ratNegRep k)
+        (h i hi x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">stepSum_sub_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>矩形和抬高一块</p></div></div><pre class="exercise-statement"><code>theorem stepSum_sub_const (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (l : Nat → ratRep) (k : ratRep) :
+    ratRel (stepSum p l)
+      (ratAddRep
+        (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+        (ratMulRep k (ratSubRep b a))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>(l i - k) + k ~ l i</code> 逐项改写高度，再用「矩形和抬高常数乘区间长度」的引理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (stepSum p l) (ratAddRep (stepSum p (fun i =&gt; ratSubRep (l i) k)) (ratMulRep k (ratSubRep b a)))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">stepSum_add_const · sumTo_congr · ratSubRep_add_self</span>。</p></div></details></div><details class="solution-panel" id="sol-171-4"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><p class="solution-note">每一段的高度 <code>l i</code> 都等于 <code>(l i - k) + k</code>。逐项改写之后，整条和正是
+「减去 k 那摞的矩形和」再加 <code>k(b-a)</code>。</p><pre><code>theorem stepSum_sub_const (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (l : Nat → ratRep) (k : ratRep) :
+    ratRel (stepSum p l)
+      (ratAddRep
+        (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+        (ratMulRep k (ratSubRep b a))) :=
+  ratRel_trans_gen
+    (stepSum p l)
+    (stepSum p (fun (i : Nat) =&gt; ratAddRep (ratSubRep (l i) k) k))
+    (ratAddRep
+      (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+      (ratMulRep k (ratSubRep b a)))
+    (stepSum_congr_point a b p hp l
+      (fun (i : Nat) =&gt; ratAddRep (ratSubRep (l i) k) k)
+      (fun (i : Nat) (_ : LeNat (Nat.succ i) (partCount p)) =&gt;
+        ratRel_symm (ratAddRep (ratSubRep (l i) k) k) (l i)
+          (ratSubRep_add_self (l i) k)))
+    (stepSum_add_const a b p hp
+      (fun (i : Nat) =&gt; ratSubRep (l i) k) k)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">lowerSum_add_const_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>下和与上和各抬一块</p></div></div><pre class="exercise-statement"><code>theorem lowerSum_add_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k L : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L) :
+    ratLeRep L (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取出下界的见证 <code>l</code>；<code>l - k</code> 是原曲线的下界，所以它的矩形和不超过 I；再加上 k(b-a)，用 <code>stepSum_sub_const</code> 把 L 接过来。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep L (ratAddRep I (ratMulRep k (ratSubRep b a)))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_sub_const · stepSum_sub_const · hasIntegral_lower · ratLeRep_add</span>。</p></div></details></div><details class="solution-panel" id="sol-171-5"><summary>查看解答 <span class="sol-meta">定理 · 38 行</span></summary><div class="solution-body"><p class="solution-note">取出下界的见证 <code>l</code>。<code>l - k</code> 垫在原曲线下面，所以它的矩形和不超过 I；
+两边加 <code>k(b-a)</code>，再用 <code>stepSum_sub_const</code> 把 L 接到同一个数上。</p><pre><code>theorem lowerSum_add_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k L : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L) :
+    ratLeRep L (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  Exists.elim
+    (lowerSum_witness a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L hL)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) l ∧
+          ratRel L (stepSum p l)) =&gt;
+      ratLeRep_congr_gen (stepSum p l) L
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratRel_symm L (stepSum p l) (And.right hl))
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratLeRep_trans (stepSum p l)
+          (ratAddRep
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (ratAddRep I (ratMulRep k (ratSubRep b a)))
+          (ratLeRep_of_ratRel
+            (stepSum p l)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp l k))
+          (ratLeRep_add
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k)) I
+            (ratMulRep k (ratSubRep b a))
+            (ratMulRep k (ratSubRep b a))
+            (hasIntegral_lower a b f I h p
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k)) hp
+              (Exists.intro (fun (i : Nat) =&gt; ratSubRep (l i) k)
+                (And.intro
+                  (lowerStep_sub_const a b p f l k (And.left hl))
+                  (ratRel_refl
+                    (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))))))
+            (ratLeRep_refl (ratMulRep k (ratSubRep b a))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">upperSum_add_const_ge</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperSum_add_const_ge (a b : ratRep) (f : ratRep → ratRep)
+    (I k U : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U) :
+    ratLeRep (ratAddRep I (ratMulRep k (ratSubRep b a))) U :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取出上界的见证 <code>u</code>；<code>u - k</code> 压住原曲线，所以 I 不超过它的矩形和；两边加 k(b-a)，再把 U 接到同一个数上。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep (ratAddRep I (ratMulRep k (ratSubRep b a))) U</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_sub_const · stepSum_sub_const · hasIntegral_upper · ratLeRep_add</span>。</p></div></details></div><details class="solution-panel" id="sol-171-6"><summary>查看解答 <span class="sol-meta">定理 · 42 行</span></summary><div class="solution-body"><p class="solution-note">取出上界的见证 <code>u</code>。<code>u - k</code> 压住原曲线，所以 I 不超过它的矩形和；
+两边加 <code>k(b-a)</code>，再把 U 接到同一个数上。</p><pre><code>theorem upperSum_add_const_ge (a b : ratRep) (f : ratRep → ratRep)
+    (I k U : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U) :
+    ratLeRep (ratAddRep I (ratMulRep k (ratSubRep b a))) U :=
+  Exists.elim
+    (upperSum_witness a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U hU)
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) u ∧
+          ratRel U (stepSum p u)) =&gt;
+      ratLeRep_congr_gen
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep
+          (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a)))
+        U
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratRel_trans_gen
+          (ratAddRep
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (stepSum p u) U
+          (ratRel_symm
+            (stepSum p u)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp u k))
+          (ratRel_symm U (stepSum p u) (And.right hu)))
+        (ratLeRep_add I
+          (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a))
+          (ratMulRep k (ratSubRep b a))
+          (hasIntegral_upper a b f I h p
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k)) hp
+            (Exists.intro (fun (i : Nat) =&gt; ratSubRep (u i) k)
+              (And.intro
+                (upperStep_sub_const a b p f u k (And.left hu))
+                (ratRel_refl
+                  (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))))))
+          (ratLeRep_refl (ratMulRep k (ratSubRep b a)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">hasIntegral_add_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>面积值随整条曲线平移</p></div></div><pre class="exercise-statement"><code>theorem hasIntegral_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratAddRep (f x) k)
+      (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>HasIntegral</code> 拆成三条：下界用 <code>lowerSum_add_const_le</code>，上界用 <code>upperSum_add_const_ge</code>，可积性用 <code>integrable_add_const</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun x =&gt; f x + k) (I + k·(b-a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerSum_add_const_le · upperSum_add_const_ge · integrable_add_const · And.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-171-7"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">三条并起来：下界的界由 <code>lowerSum_add_const_le</code> 给，上界的界由
+<code>upperSum_add_const_ge</code> 给，可积性由 <code>integrable_add_const</code> 给。</p><pre><code>theorem hasIntegral_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratAddRep (f x) k)
+      (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L) =&gt;
+      lowerSum_add_const_le a b f I k L h p hp hL)
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U) =&gt;
+        upperSum_add_const_ge a b f I k U h p hp hU)
+      (integrable_add_const a b f k (hasIntegral_integrable a b f I h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-171-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">demo_hasIntegral_shift_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-171-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常值曲线上的读数</p></div></div><pre class="exercise-statement"><code>theorem demo_hasIntegral_shift_const (a b c k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratAddRep c k)
+      (ratAddRep (ratMulRep c (ratSubRep b a))
+        (ratMulRep k (ratSubRep b a))) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常值 c 的面积值是 c(b-a)；把它代进平移定理，得到 <span class="math">(c+k)(b-a)</span> 的读数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntegral a b (fun _ =&gt; ratAddRep c k) (ratAddRep (ratMulRep c (ratSubRep b a)) (ratMulRep k (ratSubRep b a)))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasIntegral_const · hasIntegral_add_const</span>。</p></div></details></div><details class="solution-panel" id="sol-171-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">常值 c 的面积值是 <code>c(b-a)</code>；平移定理把它换成 <code>c(b-a) + k(b-a)</code>。</p><pre><code>theorem demo_hasIntegral_shift_const (a b c k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratAddRep c k)
+      (ratAddRep (ratMulRep c (ratSubRep b a))
+        (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_add_const a b (fun (_ : ratRep) =&gt; c)
+    (ratMulRep c (ratSubRep b a)) k (hasIntegral_const a b c hab)</code></pre></div></details></div></article>
+
+</section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-171"><h3><a href="#top">面积值的平移：整条曲线抬高一块矩形</a></h3><p class="appendix-meta">8 道练习 · 8 份按名匹配的解答 · 1 个解答独有声明</p><details class="appendix-solution" id="app-sol-171-1"><summary>练习 1 · sub_add_cancel <span class="sol-meta">定理</span></summary><p class="solution-note"><code>x + k</code> 先交换成 <code>k + x</code>；「先加再减同一个数」的引理把它收回 <code>x</code>。</p><pre><code>theorem sub_add_cancel (x k : ratRep) :
+    ratRel (ratSubRep (ratAddRep x k) k) x :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x k) k)
+    (ratSubRep (ratAddRep k x) k)
+    x
+    (ratAddRep_wd_gen (ratAddRep x k) (ratAddRep k x) (ratNegRep k)
+      (ratAdd_comm x k))
+    (ratSubRep_add_self_sub k x)</code></pre></details><details class="appendix-solution" id="app-sol-171-2"><summary>练习 2 · upperStep_sub_const <span class="sol-meta">定理</span></summary><p class="solution-note">段里的点满足 <code>f x + k ≤ u i</code>。两边同时减去 k，左边用 <code>sub_add_cancel</code>
+收回 <code>f x</code>，右边就是 <code>u i - k</code>。</p><pre><code>theorem upperStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (u : Nat → ratRep) (k : ratRep)
+    (h : UpperStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) u) :
+    UpperStep a b p f (fun (i : Nat) =&gt; ratSubRep (u i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratSubRep (u i) k) (ratSubRep (u i) k)
+      (sub_add_cancel (f x) k)
+      (ratRel_refl (ratSubRep (u i) k))
+      (ratLeRep_add_right (ratAddRep (f x) k) (u i) (ratNegRep k)
+        (h i hi x hx))</code></pre></details><details class="appendix-solution" id="app-sol-171-3"><summary>练习 3 · lowerStep_sub_const <span class="sol-meta">定理</span></summary><p class="solution-note">方向相反：<code>l i ≤ f x + k</code>，两边减去 k，右边收回 <code>f x</code>。</p><pre><code>theorem lowerStep_sub_const (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (l : Nat → ratRep) (k : ratRep)
+    (h : LowerStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) l) :
+    LowerStep a b p f (fun (i : Nat) =&gt; ratSubRep (l i) k) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) (x : ratRep)
+      (hx : InClosed (partPoint p i) (partPoint p (Nat.succ i)) x) =&gt;
+    ratLeRep_congr_gen
+      (ratSubRep (l i) k) (ratSubRep (l i) k)
+      (ratSubRep (ratAddRep (f x) k) k) (f x)
+      (ratRel_refl (ratSubRep (l i) k))
+      (sub_add_cancel (f x) k)
+      (ratLeRep_add_right (l i) (ratAddRep (f x) k) (ratNegRep k)
+        (h i hi x hx))</code></pre></details><details class="appendix-solution" id="app-sol-171-4"><summary>练习 4 · stepSum_sub_const <span class="sol-meta">定理</span></summary><p class="solution-note">每一段的高度 <code>l i</code> 都等于 <code>(l i - k) + k</code>。逐项改写之后，整条和正是
+「减去 k 那摞的矩形和」再加 <code>k(b-a)</code>。</p><pre><code>theorem stepSum_sub_const (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (l : Nat → ratRep) (k : ratRep) :
+    ratRel (stepSum p l)
+      (ratAddRep
+        (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+        (ratMulRep k (ratSubRep b a))) :=
+  ratRel_trans_gen
+    (stepSum p l)
+    (stepSum p (fun (i : Nat) =&gt; ratAddRep (ratSubRep (l i) k) k))
+    (ratAddRep
+      (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+      (ratMulRep k (ratSubRep b a)))
+    (stepSum_congr_point a b p hp l
+      (fun (i : Nat) =&gt; ratAddRep (ratSubRep (l i) k) k)
+      (fun (i : Nat) (_ : LeNat (Nat.succ i) (partCount p)) =&gt;
+        ratRel_symm (ratAddRep (ratSubRep (l i) k) k) (l i)
+          (ratSubRep_add_self (l i) k)))
+    (stepSum_add_const a b p hp
+      (fun (i : Nat) =&gt; ratSubRep (l i) k) k)</code></pre></details><details class="appendix-solution" id="app-sol-171-5"><summary>练习 5 · lowerSum_add_const_le <span class="sol-meta">定理</span></summary><p class="solution-note">取出下界的见证 <code>l</code>。<code>l - k</code> 垫在原曲线下面，所以它的矩形和不超过 I；
+两边加 <code>k(b-a)</code>，再用 <code>stepSum_sub_const</code> 把 L 接到同一个数上。</p><pre><code>theorem lowerSum_add_const_le (a b : ratRep) (f : ratRep → ratRep)
+    (I k L : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L) :
+    ratLeRep L (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  Exists.elim
+    (lowerSum_witness a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L hL)
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) l ∧
+          ratRel L (stepSum p l)) =&gt;
+      ratLeRep_congr_gen (stepSum p l) L
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratRel_symm L (stepSum p l) (And.right hl))
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratLeRep_trans (stepSum p l)
+          (ratAddRep
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (ratAddRep I (ratMulRep k (ratSubRep b a)))
+          (ratLeRep_of_ratRel
+            (stepSum p l)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp l k))
+          (ratLeRep_add
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k)) I
+            (ratMulRep k (ratSubRep b a))
+            (ratMulRep k (ratSubRep b a))
+            (hasIntegral_lower a b f I h p
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k)) hp
+              (Exists.intro (fun (i : Nat) =&gt; ratSubRep (l i) k)
+                (And.intro
+                  (lowerStep_sub_const a b p f l k (And.left hl))
+                  (ratRel_refl
+                    (stepSum p (fun (i : Nat) =&gt; ratSubRep (l i) k))))))
+            (ratLeRep_refl (ratMulRep k (ratSubRep b a))))))</code></pre></details><details class="appendix-solution" id="app-sol-171-6"><summary>练习 6 · upperSum_add_const_ge <span class="sol-meta">定理</span></summary><p class="solution-note">取出上界的见证 <code>u</code>。<code>u - k</code> 压住原曲线，所以 I 不超过它的矩形和；
+两边加 <code>k(b-a)</code>，再把 U 接到同一个数上。</p><pre><code>theorem upperSum_add_const_ge (a b : ratRep) (f : ratRep → ratRep)
+    (I k U : ratRep) (h : HasIntegral a b f I) (p : Partition)
+    (hp : IsPartition a b p)
+    (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U) :
+    ratLeRep (ratAddRep I (ratMulRep k (ratSubRep b a))) U :=
+  Exists.elim
+    (upperSum_witness a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U hU)
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) u ∧
+          ratRel U (stepSum p u)) =&gt;
+      ratLeRep_congr_gen
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep I (ratMulRep k (ratSubRep b a)))
+        (ratAddRep
+          (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a)))
+        U
+        (ratRel_refl (ratAddRep I (ratMulRep k (ratSubRep b a))))
+        (ratRel_trans_gen
+          (ratAddRep
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+            (ratMulRep k (ratSubRep b a)))
+          (stepSum p u) U
+          (ratRel_symm
+            (stepSum p u)
+            (ratAddRep
+              (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+              (ratMulRep k (ratSubRep b a)))
+            (stepSum_sub_const a b p hp u k))
+          (ratRel_symm U (stepSum p u) (And.right hu)))
+        (ratLeRep_add I
+          (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))
+          (ratMulRep k (ratSubRep b a))
+          (ratMulRep k (ratSubRep b a))
+          (hasIntegral_upper a b f I h p
+            (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k)) hp
+            (Exists.intro (fun (i : Nat) =&gt; ratSubRep (u i) k)
+              (And.intro
+                (upperStep_sub_const a b p f u k (And.left hu))
+                (ratRel_refl
+                  (stepSum p (fun (i : Nat) =&gt; ratSubRep (u i) k))))))
+          (ratLeRep_refl (ratMulRep k (ratSubRep b a)))))</code></pre></details><details class="appendix-solution" id="app-sol-171-7"><summary>练习 7 · hasIntegral_add_const <span class="sol-meta">定理</span></summary><p class="solution-note">三条并起来：下界的界由 <code>lowerSum_add_const_le</code> 给，上界的界由
+<code>upperSum_add_const_ge</code> 给，可积性由 <code>integrable_add_const</code> 给。</p><pre><code>theorem hasIntegral_add_const (a b : ratRep) (f : ratRep → ratRep)
+    (I k : ratRep) (h : HasIntegral a b f I) :
+    HasIntegral a b (fun (x : ratRep) =&gt; ratAddRep (f x) k)
+      (ratAddRep I (ratMulRep k (ratSubRep b a))) :=
+  And.intro
+    (fun (p : Partition) (L : ratRep) (hp : IsPartition a b p)
+        (hL : LowerSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) L) =&gt;
+      lowerSum_add_const_le a b f I k L h p hp hL)
+    (And.intro
+      (fun (p : Partition) (U : ratRep) (hp : IsPartition a b p)
+          (hU : UpperSum a b p (fun (x : ratRep) =&gt; ratAddRep (f x) k) U) =&gt;
+        upperSum_add_const_ge a b f I k U h p hp hU)
+      (integrable_add_const a b f k (hasIntegral_integrable a b f I h)))</code></pre></details><details class="appendix-solution" id="app-sol-171-8"><summary>练习 8 · demo_hasIntegral_shift_const <span class="sol-meta">定理</span></summary><p class="solution-note">常值 c 的面积值是 <code>c(b-a)</code>；平移定理把它换成 <code>c(b-a) + k(b-a)</code>。</p><pre><code>theorem demo_hasIntegral_shift_const (a b c k : ratRep) (hab : ratLtRep a b) :
+    HasIntegral a b (fun (_ : ratRep) =&gt; ratAddRep c k)
+      (ratAddRep (ratMulRep c (ratSubRep b a))
+        (ratMulRep k (ratSubRep b a))) :=
+  hasIntegral_add_const a b (fun (_ : ratRep) =&gt; c)
+    (ratMulRep c (ratSubRep b a)) k (hasIntegral_const a b c hab)</code></pre></details><details class="appendix-solution" id="app-extra-171-1"><summary>补充 · stepSum_congr_point <span class="sol-meta">定理</span></summary><pre><code>theorem stepSum_congr_point (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (c d : Nat → ratRep)
+    (h : ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) → ratRel (c i) (d i)) :
+    ratRel (stepSum p c) (stepSum p d) :=
+  ratLeRep_antisymm (stepSum p c) (stepSum p d)
+    (stepSum_mono a b p hp c d
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+        ratLeRep_of_ratRel (c i) (d i) (h i hi)))
+    (stepSum_mono a b p hp d c
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+        ratLeRep_of_ratRel (d i) (c i) (ratRel_symm (c i) (d i) (h i hi))))</code></pre></details></section></section></div>
+</div>
+<nav class="pager" aria-label="章间导航">
+  <a href="../chapters/iii-8.html">← III.8 Riemann 积分</a><span class="empty">没有下一页</span>
+</nav>
+</div>
+<aside class="page-outline no-print" aria-label="本章单元目录">
+  <h2>本章目录</h2>
+  <ol>
+<li><a href="#unit-167" data-outline-unit="167"><span>167</span> 面积值：把上下和钉在同一个数上</a></li>
+<li><a href="#unit-168" data-outline-unit="168"><span>168</span> 面积值的取负：把曲线翻到轴下方</a></li>
+<li><a href="#unit-169" data-outline-unit="169"><span>169</span> 面积值的符号：非负曲线不会算出负面积</a></li>
+<li><a href="#unit-170" data-outline-unit="170"><span>170</span> 面积值的比较：曲线更高，面积不会更小</a></li>
+<li><a href="#unit-171" data-outline-unit="171"><span>171</span> 面积值的平移：整条曲线抬高一块矩形</a></li>
+  </ol>
+</aside>
+</div>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>136 介值定理：最后一个非正点 · 从集合论到实分析</title>
+<meta name="description" content="单元136 介值定理：最后一个非正点：导语、定义与定理、练习与解答。Unit 136 — The Intermediate Value Theorem: The Last Nonpositive Point">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit136.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../../volume-i/index.html">卷 I</a><a href="../index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter" open><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li class="is-current"><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/iii-6.html">III.6 连续函数</a></li><li aria-current="page">单元 136 介值定理：最后一个非正点</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <article class="unit-page">
+<section class="unit" id="unit-136">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-6.html">III.6</a> · 本章第 13 / 16 单元 · 全书第 136 / 171 单元</p>
+<h1><span class="unit-number">136</span> <span>介值定理：最后一个非正点</span></h1>
+<p class="unit-title-en">Unit 136 — The Intermediate Value Theorem: The Last Nonpositive Point</p>
+<p class="unit-meta">2 个定义 · 11 个定理 · 11 道练习 · 33 条提示 · <a href="#appendix-unit-136">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="136" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-136" aria-label="复制单元 136 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit136.html">打印 / PDF 本单元</a></p>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>连续函数从一个负值走到一个正值，中间必有一点取零。在 <span class="math">ℚ</span> 上这句话不能无条件成立：<code>x ↦ x² - 2</code> 在 [1,2] 上连续，两端异号，却没有任何有理点使它取零。二分法把区间越切越短，切到的是一个实数，而 <span class="math">ℚ</span> 里没有那个点。所以缺的不是连续性，而是「切点存在」。</p></div></div></section>
+<div class="block prose intuition-only"><p>把缺的那一块写成假设，剩下的全是连续性的工作。设 m 是区间里所有非正点的最大元，且 m 严格在右端点左边。上一单元证明了严格负点集没有最大元，所以 f m 不能小于零；而 m 属于非正点集，f m 又不能大于零。两头一夹，f m 只能等于零。</p></div><div class="block prose intuition-only"><p>最后把结论换成介值的语言：f a &lt; 0 &lt; f b，非正点集有最大元 m，那么 m 落在区间内部，且 f m ~ 0。为了让「m 在内部」这句话有内容，函数还得尊重代表元的等价：等价的两个点给出等价的函数值。没有这一条，同一个实数的两个代表元可以取到不同的值，端点附近的论证就断了。</p></div><div class="block prose intuition-only"><p>边界：函数取 <code>ratRep → ratRep</code>，停在有理代表元层；「非正点集有最大元」是完整介值定理在 <span class="math">ℚ</span> 上真正缺的那一步，这里把它作为显式假设，不写成公理。不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>定义：非正点集与「尊重等价」</p></div><div class="block prose intuition-only"><p>区间里函数值不为正的点。介值定理的切点从这个集合的最大元里来。</p></div><article class="decl decl-def" id="decl-136-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">NonpositivePoints</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def NonpositivePoints (f : ratRep → ratRep) (a b : ratRep) : ratRep → Prop :=
+  fun (x : ratRep) =&gt; InClosed a b x ∧ ratLeRep (f x) ratZeroRep</code></pre></div></article>
+<div class="block prose intuition-only"><p>函数尊重代表元的等价：等价的两个输入给出等价的输出。这是「函数定义在实数上」而不是「定义在代表元上」的形式说法。</p></div><article class="decl decl-def" id="decl-136-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">RespectsRel</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def RespectsRel (f : ratRep → ratRep) : Prop :=
+  ∀ (x y : ratRep), ratRel x y → ratRel (f x) (f y)</code></pre></div></article>
+<article class="exercise" id="ex-136-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">nonpositivePoints_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>定义的展开形式与投影</p></div></div><pre class="exercise-statement"><code>theorem nonpositivePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NonpositivePoints f a b x ↔ InClosed a b x ∧ ratLeRep (f x) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>定义展开后就是同一个合取，两个方向都直接返回假设。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NonpositivePoints f a b x ↔ InClosed a b x ∧ f x ≤ 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Iff.intro。</p></div></details></div><details class="solution-panel" id="sol-136-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">区间里函数值严格为负的点。</p><pre><code>theorem nonpositivePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NonpositivePoints f a b x ↔ InClosed a b x ∧ ratLeRep (f x) ratZeroRep :=
+  Iff.intro
+    (fun (h : NonpositivePoints f a b x) =&gt; h)
+    (fun (h : InClosed a b x ∧ ratLeRep (f x) ratZeroRep) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">nonpositive_of_negative</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem nonpositive_of_negative (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : NonpositivePoints f a b x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>区间成员原样搬；严格负用 <code>ratLtRep_le</code> 弱化成非正。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NegativePoints f a b x → NonpositivePoints f a b x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · ratLtRep_le</span>。</p></div></details></div><details class="solution-panel" id="sol-136-2"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">严格负的数一定非正：介值定理的两个点集之间就差这一条投影。
+
+严格负的数一定非正：两个点集之间就差这一条投影。</p><pre><code>theorem nonpositive_of_negative (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : NonpositivePoints f a b x :=
+  And.intro (And.left h)
+    (ratLtRep_le (f x) ratZeroRep (And.right h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">nonpositivePoints_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem nonpositivePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : InClosed a b x :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先沿 <code>nonpositivePoints_iff</code> 展开成合取，再取第一分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NonpositivePoints f a b x → InClosed a b x</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.mp · And.left</span>。</p></div></details></div><details class="solution-panel" id="sol-136-3"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><p class="solution-note">两个点集的投影单独取名：<code>HasGreatest</code> 的见证是定义别名，直接在它上面
+用 <code>And.left</code> / <code>And.right</code> 时，隐式参数补不出来；先展开成合取再投影。
+
+在 <code>HasGreatest</code> 的见证上直接取 <code>And.left</code> / <code>And.right</code> 补不出隐式参数，
+所以先展开成合取，再投影。</p><pre><code>theorem nonpositivePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : InClosed a b x :=
+  And.left (Iff.mp (nonpositivePoints_iff f a b x) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">nonpositivePoints_value</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem nonpositivePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : ratLeRep (f x) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同样展开成合取，再取第二分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NonpositivePoints f a b x → f x ≤ 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.mp · And.right</span>。</p></div></details></div><details class="solution-panel" id="sol-136-4"><summary>查看解答 <span class="sol-meta">定理 · 3 行</span></summary><div class="solution-body"><pre><code>theorem nonpositivePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : ratLeRep (f x) ratZeroRep :=
+  And.right (Iff.mp (nonpositivePoints_iff f a b x) h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">hasGreatest_nonpositive_mem</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasGreatest_nonpositive_mem (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) : InClosed a b m :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>HasGreatest</code> 的见证先经 <code>hasGreatest_mem</code> 取出集合成员，再投影成区间成员。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasGreatest (NonpositivePoints f a b) m → InClosed a b m</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasGreatest_mem · nonpositivePoints_mem</span>。</p></div></details></div><details class="solution-panel" id="sol-136-5"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem hasGreatest_nonpositive_mem (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) : InClosed a b m :=
+  nonpositivePoints_mem f a b m
+    (hasGreatest_mem (NonpositivePoints f a b) m h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">hasGreatest_nonpositive_value</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem hasGreatest_nonpositive_value (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) :
+    ratLeRep (f m) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同上，投影换成函数值的非正界。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasGreatest (NonpositivePoints f a b) m → f m ≤ 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasGreatest_mem · nonpositivePoints_value</span>。</p></div></details></div><details class="solution-panel" id="sol-136-6"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem hasGreatest_nonpositive_value (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) :
+    ratLeRep (f m) ratZeroRep :=
+  nonpositivePoints_value f a b m
+    (hasGreatest_mem (NonpositivePoints f a b) m h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">not_rel_left_of_negative</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>端点不在切点上</p></div></div><pre class="exercise-statement"><code>theorem not_rel_left_of_negative (f : ratRep → ratRep) (a m : ratRep)
+    (hwf : RespectsRel f) (hfa : ratLtRep (f a) ratZeroRep)
+    (hzero : ratRel (f m) ratZeroRep) : ¬ ratRel a m :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>若 a ~ m，则 f a ~ f m ~ 0；用传递性把 f a ~ 0 交给 <code>f a &lt; 0</code> 的第二分量。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>f a &lt; 0 → f m ~ 0 → ¬ a ~ m</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hwf · ratRel_trans_gen · ratLtRep_right</span>。</p></div></details></div><details class="solution-panel" id="sol-136-7"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">f a &lt; 0 而 f m 是零点：a 与 m 不可能等价，否则 f a 也会等价于零。
+这条不等式要等「m 是零点」证完才用得上。</p><pre><code>theorem not_rel_left_of_negative (f : ratRep → ratRep) (a m : ratRep)
+    (hwf : RespectsRel f) (hfa : ratLtRep (f a) ratZeroRep)
+    (hzero : ratRel (f m) ratZeroRep) : ¬ ratRel a m :=
+  fun (h : ratRel a m) =&gt;
+    ratLtRep_right (f a) ratZeroRep hfa
+      (ratRel_trans_gen (f a) (f m) ratZeroRep
+        (hwf a m h) hzero)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">not_rel_right_of_positive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-8">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem not_rel_right_of_positive (f : ratRep → ratRep) (b m : ratRep)
+    (hwf : RespectsRel f) (hfb : ratLtRep ratZeroRep (f b))
+    (hle : ratLeRep (f m) ratZeroRep) : ¬ ratRel m b :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>若 m ~ b，则 f m ~ f b；由 0 &lt; f b 得 0 &lt; f m，再与 <span class="math">f m ≤ 0</span> 夹出 0 &lt; 0。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>0 &lt; f b → f m ≤ 0 → ¬ m ~ b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hwf · ratLtRep_congr_snd · ratLtRep_of_lt_le · ratLtRep_right · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-136-8"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">f b &gt; 0 而 <span class="math">f m ≤ 0</span>：m 与 b 不可能等价。否则 f m ~ f b &gt; 0，撞上
+<span class="math">f m ≤ 0</span>。这一条只用到非正，不依赖零点，所以能先用来断言 m 不是右端点。</p><pre><code>theorem not_rel_right_of_positive (f : ratRep → ratRep) (b m : ratRep)
+    (hwf : RespectsRel f) (hfb : ratLtRep ratZeroRep (f b))
+    (hle : ratLeRep (f m) ratZeroRep) : ¬ ratRel m b :=
+  fun (h : ratRel m b) =&gt;
+    ratLtRep_right ratZeroRep ratZeroRep
+      (ratLtRep_of_lt_le ratZeroRep (f m) ratZeroRep
+        (ratLtRep_congr_snd ratZeroRep (f b) (f m) hfb
+          (ratRel_symm (f m) (f b) (hwf m b h)))
+        hle)
+      (ratRel_refl ratZeroRep)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">zero_of_greatest_nonpositive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>非正点集的最大元是零点</p></div></div><pre class="exercise-statement"><code>theorem zero_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) :
+    ratRel (f m) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>f m ≤ 0</code> 分「等于零」与「严格小于零」两支。后一支把 m 看成严格负点集的最大元（严格负都非正），交给库里的 <code>no_greatest_negative_at</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasGreatest 非正点集 m → m &lt; b → ContinuousAt f m → f m ~ 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_eq_or_lt · no_greatest_negative_at · nonpositive_of_negative · hasGreatest_upper</span>。</p></div></details></div><details class="solution-panel" id="sol-136-9"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><pre><code>theorem zero_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) :
+    ratRel (f m) ratZeroRep :=
+  Or.elim
+    (fun (heq : ratRel (f m) ratZeroRep) =&gt; heq)
+    (fun (hlt : ratLtRep (f m) ratZeroRep) =&gt;
+      False.elim
+        (no_greatest_negative_at f a b m
+          (And.intro
+            (And.intro
+              (hasGreatest_nonpositive_mem f a b m hgreat)
+              hlt)
+            (fun (x : ratRep) (hx : NegativePoints f a b x) =&gt;
+              hasGreatest_upper (NonpositivePoints f a b) m hgreat x
+                (nonpositive_of_negative f a b x hx)))
+          hmb hf))
+    (ratLeRep_eq_or_lt (f m) ratZeroRep
+      (hasGreatest_nonpositive_value f a b m hgreat))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">interior_of_zero</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>介值定理：零点落在区间内部</p></div></div><pre class="exercise-statement"><code>theorem interior_of_zero (f : ratRep → ratRep) (a b m : ratRep)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hzero : ratRel (f m) ratZeroRep)
+    (hmb : ratLtRep m b) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 m；区间成员来自最大元，a &lt; m 由 <code>not_rel_left_of_negative</code> 排除左端点，m &lt; b 直接是前提。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ c, c ∈ [a,b] ∧ a &lt; c ∧ c &lt; b ∧ f c ~ 0</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · hasGreatest_upper · not_rel_left_of_negative · nonpositive_of_negative</span>。</p></div></details></div><details class="solution-panel" id="sol-136-10"><summary>查看解答 <span class="sol-meta">定理 · 25 行</span></summary><div class="solution-body"><pre><code>theorem interior_of_zero (f : ratRep → ratRep) (a b m : ratRep)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hzero : ratRel (f m) ratZeroRep)
+    (hmb : ratLtRep m b) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  Exists.intro m
+    (And.intro
+      (hasGreatest_nonpositive_mem f a b m hgreat)
+      (And.intro
+        (And.intro
+          (hasGreatest_upper (NonpositivePoints f a b) m hgreat a
+            (And.intro
+              (And.intro
+                (ratLeRep_refl a)
+                (ratLeRep_trans a m b
+                  (inClosed_left a b m
+                    (hasGreatest_nonpositive_mem f a b m hgreat))
+                  (inClosed_right a b m
+                    (hasGreatest_nonpositive_mem f a b m hgreat))))
+              (ratLtRep_le (f a) ratZeroRep hfa)))
+          (not_rel_left_of_negative f a m hwf hfa hzero))
+        (And.intro hmb hzero)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-136-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">ivt_of_greatest_nonpositive</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-136-11">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ivt_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hfb : ratLtRep ratZeroRep (f b))
+    (hgreat : HasGreatest (NonpositivePoints f a b) m) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先由 <code>not_rel_right_of_positive</code> 排除 m ~ b，得到 m &lt; b；再用 <code>zero_of_greatest_nonpositive</code> 得零点；最后交给 <code>interior_of_zero</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>连续 + f a &lt; 0 &lt; f b + 最大元 → ∃ 内部零点</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">not_rel_right_of_positive · zero_of_greatest_nonpositive · interior_of_zero · hasGreatest_nonpositive_mem/value</span>。</p></div></details></div><details class="solution-panel" id="sol-136-11"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">介值定理的条件版：f 在 [a,b] 上连续、f a &lt; 0 &lt; f b、非正点集有最大元
+m，并且函数尊重代表元的等价。结论是区间内部有一个零点。</p><pre><code>theorem ivt_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hfb : ratLtRep ratZeroRep (f b))
+    (hgreat : HasGreatest (NonpositivePoints f a b) m) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  interior_of_zero f a b m hwf hfa hgreat
+    (zero_of_greatest_nonpositive f a b m hgreat
+      (And.intro
+        (inClosed_right a b m
+          (hasGreatest_nonpositive_mem f a b m hgreat))
+        (not_rel_right_of_positive f b m hwf hfb
+          (hasGreatest_nonpositive_value f a b m hgreat)))
+      (hcont m (hasGreatest_nonpositive_mem f a b m hgreat)))
+    (And.intro
+      (inClosed_right a b m
+        (hasGreatest_nonpositive_mem f a b m hgreat))
+      (not_rel_right_of_positive f b m hwf hfb
+        (hasGreatest_nonpositive_value f a b m hgreat)))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit135.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">最后一个负点：保号性把负点往右推一步</span></a><a class="unit-nav-home" href="../chapters/iii-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit137.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">无穷远处的极限：越过分界线之后靠近 L</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-136"><h3><a href="#top">介值定理：最后一个非正点</a></h3><p class="appendix-meta">11 道练习 · 11 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-136-1"><summary>练习 1 · nonpositivePoints_iff <span class="sol-meta">定理</span></summary><p class="solution-note">区间里函数值严格为负的点。</p><pre><code>theorem nonpositivePoints_iff (f : ratRep → ratRep) (a b x : ratRep) :
+    NonpositivePoints f a b x ↔ InClosed a b x ∧ ratLeRep (f x) ratZeroRep :=
+  Iff.intro
+    (fun (h : NonpositivePoints f a b x) =&gt; h)
+    (fun (h : InClosed a b x ∧ ratLeRep (f x) ratZeroRep) =&gt; h)</code></pre></details><details class="appendix-solution" id="app-sol-136-2"><summary>练习 2 · nonpositive_of_negative <span class="sol-meta">定理</span></summary><p class="solution-note">严格负的数一定非正：介值定理的两个点集之间就差这一条投影。
+
+严格负的数一定非正：两个点集之间就差这一条投影。</p><pre><code>theorem nonpositive_of_negative (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NegativePoints f a b x) : NonpositivePoints f a b x :=
+  And.intro (And.left h)
+    (ratLtRep_le (f x) ratZeroRep (And.right h))</code></pre></details><details class="appendix-solution" id="app-sol-136-3"><summary>练习 3 · nonpositivePoints_mem <span class="sol-meta">定理</span></summary><p class="solution-note">两个点集的投影单独取名：<code>HasGreatest</code> 的见证是定义别名，直接在它上面
+用 <code>And.left</code> / <code>And.right</code> 时，隐式参数补不出来；先展开成合取再投影。
+
+在 <code>HasGreatest</code> 的见证上直接取 <code>And.left</code> / <code>And.right</code> 补不出隐式参数，
+所以先展开成合取，再投影。</p><pre><code>theorem nonpositivePoints_mem (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : InClosed a b x :=
+  And.left (Iff.mp (nonpositivePoints_iff f a b x) h)</code></pre></details><details class="appendix-solution" id="app-sol-136-4"><summary>练习 4 · nonpositivePoints_value <span class="sol-meta">定理</span></summary><pre><code>theorem nonpositivePoints_value (f : ratRep → ratRep) (a b x : ratRep)
+    (h : NonpositivePoints f a b x) : ratLeRep (f x) ratZeroRep :=
+  And.right (Iff.mp (nonpositivePoints_iff f a b x) h)</code></pre></details><details class="appendix-solution" id="app-sol-136-5"><summary>练习 5 · hasGreatest_nonpositive_mem <span class="sol-meta">定理</span></summary><pre><code>theorem hasGreatest_nonpositive_mem (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) : InClosed a b m :=
+  nonpositivePoints_mem f a b m
+    (hasGreatest_mem (NonpositivePoints f a b) m h)</code></pre></details><details class="appendix-solution" id="app-sol-136-6"><summary>练习 6 · hasGreatest_nonpositive_value <span class="sol-meta">定理</span></summary><pre><code>theorem hasGreatest_nonpositive_value (f : ratRep → ratRep) (a b m : ratRep)
+    (h : HasGreatest (NonpositivePoints f a b) m) :
+    ratLeRep (f m) ratZeroRep :=
+  nonpositivePoints_value f a b m
+    (hasGreatest_mem (NonpositivePoints f a b) m h)</code></pre></details><details class="appendix-solution" id="app-sol-136-7"><summary>练习 7 · not_rel_left_of_negative <span class="sol-meta">定理</span></summary><p class="solution-note">f a &lt; 0 而 f m 是零点：a 与 m 不可能等价，否则 f a 也会等价于零。
+这条不等式要等「m 是零点」证完才用得上。</p><pre><code>theorem not_rel_left_of_negative (f : ratRep → ratRep) (a m : ratRep)
+    (hwf : RespectsRel f) (hfa : ratLtRep (f a) ratZeroRep)
+    (hzero : ratRel (f m) ratZeroRep) : ¬ ratRel a m :=
+  fun (h : ratRel a m) =&gt;
+    ratLtRep_right (f a) ratZeroRep hfa
+      (ratRel_trans_gen (f a) (f m) ratZeroRep
+        (hwf a m h) hzero)</code></pre></details><details class="appendix-solution" id="app-sol-136-8"><summary>练习 8 · not_rel_right_of_positive <span class="sol-meta">定理</span></summary><p class="solution-note">f b &gt; 0 而 <span class="math">f m ≤ 0</span>：m 与 b 不可能等价。否则 f m ~ f b &gt; 0，撞上
+<span class="math">f m ≤ 0</span>。这一条只用到非正，不依赖零点，所以能先用来断言 m 不是右端点。</p><pre><code>theorem not_rel_right_of_positive (f : ratRep → ratRep) (b m : ratRep)
+    (hwf : RespectsRel f) (hfb : ratLtRep ratZeroRep (f b))
+    (hle : ratLeRep (f m) ratZeroRep) : ¬ ratRel m b :=
+  fun (h : ratRel m b) =&gt;
+    ratLtRep_right ratZeroRep ratZeroRep
+      (ratLtRep_of_lt_le ratZeroRep (f m) ratZeroRep
+        (ratLtRep_congr_snd ratZeroRep (f b) (f m) hfb
+          (ratRel_symm (f m) (f b) (hwf m b h)))
+        hle)
+      (ratRel_refl ratZeroRep)</code></pre></details><details class="appendix-solution" id="app-sol-136-9"><summary>练习 9 · zero_of_greatest_nonpositive <span class="sol-meta">定理</span></summary><pre><code>theorem zero_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hmb : ratLtRep m b) (hf : ContinuousAt f m) :
+    ratRel (f m) ratZeroRep :=
+  Or.elim
+    (fun (heq : ratRel (f m) ratZeroRep) =&gt; heq)
+    (fun (hlt : ratLtRep (f m) ratZeroRep) =&gt;
+      False.elim
+        (no_greatest_negative_at f a b m
+          (And.intro
+            (And.intro
+              (hasGreatest_nonpositive_mem f a b m hgreat)
+              hlt)
+            (fun (x : ratRep) (hx : NegativePoints f a b x) =&gt;
+              hasGreatest_upper (NonpositivePoints f a b) m hgreat x
+                (nonpositive_of_negative f a b x hx)))
+          hmb hf))
+    (ratLeRep_eq_or_lt (f m) ratZeroRep
+      (hasGreatest_nonpositive_value f a b m hgreat))</code></pre></details><details class="appendix-solution" id="app-sol-136-10"><summary>练习 10 · interior_of_zero <span class="sol-meta">定理</span></summary><pre><code>theorem interior_of_zero (f : ratRep → ratRep) (a b m : ratRep)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hgreat : HasGreatest (NonpositivePoints f a b) m)
+    (hzero : ratRel (f m) ratZeroRep)
+    (hmb : ratLtRep m b) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  Exists.intro m
+    (And.intro
+      (hasGreatest_nonpositive_mem f a b m hgreat)
+      (And.intro
+        (And.intro
+          (hasGreatest_upper (NonpositivePoints f a b) m hgreat a
+            (And.intro
+              (And.intro
+                (ratLeRep_refl a)
+                (ratLeRep_trans a m b
+                  (inClosed_left a b m
+                    (hasGreatest_nonpositive_mem f a b m hgreat))
+                  (inClosed_right a b m
+                    (hasGreatest_nonpositive_mem f a b m hgreat))))
+              (ratLtRep_le (f a) ratZeroRep hfa)))
+          (not_rel_left_of_negative f a m hwf hfa hzero))
+        (And.intro hmb hzero)))</code></pre></details><details class="appendix-solution" id="app-sol-136-11"><summary>练习 11 · ivt_of_greatest_nonpositive <span class="sol-meta">定理</span></summary><p class="solution-note">介值定理的条件版：f 在 [a,b] 上连续、f a &lt; 0 &lt; f b、非正点集有最大元
+m，并且函数尊重代表元的等价。结论是区间内部有一个零点。</p><pre><code>theorem ivt_of_greatest_nonpositive (f : ratRep → ratRep) (a b m : ratRep)
+    (hcont : ∀ (x : ratRep), InClosed a b x → ContinuousAt f x)
+    (hwf : RespectsRel f)
+    (hfa : ratLtRep (f a) ratZeroRep)
+    (hfb : ratLtRep ratZeroRep (f b))
+    (hgreat : HasGreatest (NonpositivePoints f a b) m) :
+    ∃ (c : ratRep), InClosed a b c ∧ ratLtRep a c ∧ ratLtRep c b ∧
+      ratRel (f c) ratZeroRep :=
+  interior_of_zero f a b m hwf hfa hgreat
+    (zero_of_greatest_nonpositive f a b m hgreat
+      (And.intro
+        (inClosed_right a b m
+          (hasGreatest_nonpositive_mem f a b m hgreat))
+        (not_rel_right_of_positive f b m hwf hfb
+          (hasGreatest_nonpositive_value f a b m hgreat)))
+      (hcont m (hasGreatest_nonpositive_mem f a b m hgreat)))
+    (And.intro
+      (inClosed_right a b m
+        (hasGreatest_nonpositive_mem f a b m hgreat))
+      (not_rel_right_of_positive f b m hwf hfb
+        (hasGreatest_nonpositive_value f a b m hgreat)))</code></pre></details></section></section>
+  </article>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit124.html" aria-current="false"><span>124</span> 函数极限：ε-δ 定义</a></li>
+<li><a href="../units/unit125.html" aria-current="false"><span>125</span> 连续：极限值就是函数值</a></li>
+<li><a href="../units/unit126.html" aria-current="false"><span>126</span> 函数极限与序列：顺序判据</a></li>
+<li><a href="../units/unit127.html" aria-current="false"><span>127</span> 函数极限的代数：和、差与取负</a></li>
+<li><a href="../units/unit128.html" aria-current="false"><span>128</span> 连续函数的代数：和、差与取负</a></li>
+<li><a href="../units/unit129.html" aria-current="false"><span>129</span> 单侧极限：只看一边</a></li>
+<li><a href="../units/unit130.html" aria-current="false"><span>130</span> 一致连续：一个 δ 管住整片定义域</a></li>
+<li><a href="../units/unit131.html" aria-current="false"><span>131</span> 一致连续与序列：Cauchy 序列的像</a></li>
+<li><a href="../units/unit132.html" aria-current="false"><span>132</span> 局部有界：极限给出的第一个盒子</a></li>
+<li><a href="../units/unit133.html" aria-current="false"><span>133</span> 局部保号：连续函数在一点附近不变号</a></li>
+<li><a href="../units/unit134.html" aria-current="false"><span>134</span> 闭区间上的最值：上确界与达到</a></li>
+<li><a href="../units/unit135.html" aria-current="false"><span>135</span> 最后一个负点：保号性把负点往右推一步</a></li>
+<li class="is-current"><a href="../units/unit136.html" aria-current="page"><span>136</span> 介值定理：最后一个非正点</a></li>
+<li><a href="../units/unit137.html" aria-current="false"><span>137</span> 无穷远处的极限：越过分界线之后靠近 L</a></li>
+<li><a href="../units/unit138.html" aria-current="false"><span>138</span> 无穷远处极限的代数与序列判据</a></li>
+<li><a href="../units/unit139.html" aria-current="false"><span>139</span> 单调函数：介值性反过来给出连续</a></li></ol>
+  </aside>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit135.html">← 135 最后一个负点：保号性把负点往右推一步</a><a class="next" href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

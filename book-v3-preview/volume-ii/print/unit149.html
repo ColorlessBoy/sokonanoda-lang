@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 149 极值点的导数为零：曲线在最高处没有斜率</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit149.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 149 极值点的导数为零：曲线在最高处没有斜率</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit149.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.7 微分 · 单元 149</p><h1>极值点的导数为零：曲线在最高处没有斜率</h1><p class="note">Unit 149 — The Derivative Vanishes at Interior Extrema</p></header><section class="unit" id="unit-149">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-7.html">III.7</a> · 本章第 10 / 11 单元 · 全书第 149 / 171 单元</p>
+<h2><span class="unit-number">149</span><span>极值点的导数为零：曲线在最高处没有斜率</span></h2>
+<p class="unit-title-en">Unit 149 — The Derivative Vanishes at Interior Extrema</p>
+<p class="unit-meta">2 个定义 · 9 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-149">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>山坡的最高点处，切线若还是斜的，曲线就会有一侧继续往上走，那里也就不再是最高点。换成函数的语言：在局部极大值点附近，函数值不能随 x 往右增大，也不能随 x 往左增大；单元148 已经把导数的正负翻译成曲线往哪一侧抬高，于是一个局部极大值点把导数的两个符号都排除，只剩零。</p></div></div></section>
+<div class="block prose intuition-only"><p>定义先把「局部」写成半径为 delta 的邻域：邻域内每一点的函数值都不超过 f a，就是局部极大；反过来每一点都不低于 f a，就是局部极小。邻域同时管两侧，所以 a 必须是定义域的内点；端点上的极值不在讨论范围内。</p></div><div class="block prose intuition-only"><p>证明只做极大。若 L &gt; 0，<code>risesRight_of_deriv_pos</code> 在 a 的右侧给出一点 x，使 f a &lt; f x，与局部极大的 <span class="math">f x ≤ f a</span> 冲突；若 L &lt; 0，<code>risesLeft_of_deriv_neg</code> 在左侧给出同样的冲突。两个严格不等式都被排除，再用 <span class="math">ℚ</span> 的序全性把 <span class="math">0 ≤ L</span> 与 <span class="math">L ≤ 0</span> 两支各收到 0 ~ L 或 L ~ 0 上。极小值不重做一遍：把曲线关于 x 轴翻过来，极小变极大，导数变成 -L，而 -L 为零与 L 为零是同一件事。</p></div><div class="block prose intuition-only"><p>边界：只讨论内点上的双侧极值，单侧极值与整段区间上的最值需要别的工具。恒等函数在零点可导，却既不是局部极大也不是局部极小，这条反例说明可导本身不保证任何极值。</p></div><div class="block prose intuition-only"><p>局部极大与局部极小</p></div><div class="block prose intuition-only"><p>「局部极大」：有一个正半径，邻域内每一点的函数值都不超过 f a。邻域不排除 a 本身，这与单元133 的保号邻域不同；把 a 算进来不影响结论。</p></div><article class="decl decl-def" id="decl-149-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">LocalMaxAt</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def LocalMaxAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a)</code></pre></div></article>
+<div class="block prose intuition-only"><p>「局部极小」：邻域内每一点的函数值都不低于 f a。</p></div><article class="decl decl-def" id="decl-149-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">LocalMinAt</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def LocalMinAt (f : ratRep → ratRep) (a : ratRep) : Prop :=
+  ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+    ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)</code></pre></div></article>
+<article class="exercise" id="ex-149-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">localMaxAt_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem localMaxAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMaxAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>定义就是右边那串量词，两个方向都直接返回假设。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LocalMaxAt f a ↔ ∃ delta, 0 &lt; delta ∧ ∀ x, close x a delta → f x ≤ f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.intro ·</span> 定义性展开。</p></div></details></div><details open class="solution-panel" id="sol-149-1"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem localMaxAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMaxAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a) :=
+  Iff.intro
+    (fun (h : LocalMaxAt f a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a)) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">localMinAt_iff</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem localMinAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMinAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同上，把不等式两端对调即可。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LocalMinAt f a ↔ ∃ delta, 0 &lt; delta ∧ ∀ x, close x a delta → f a ≤ f x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.intro ·</span> 定义性展开。</p></div></details></div><details open class="solution-panel" id="sol-149-2"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem localMinAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMinAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x) :=
+  Iff.intro
+    (fun (h : LocalMinAt f a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)) =&gt; h)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">not_risesRight_of_localMax</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>极大值把两个方向都挡住</p></div></div><pre class="exercise-statement"><code>theorem not_risesRight_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesRight f a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>反证。取极大邻域与抬高邻域的较小半径 d，在 a 右侧取 <span class="math">x = a + d/2</span>。它同时落在两个邻域里：抬高给出 <code>f a &lt; f x</code>，极大给出 <code>f x ≤ f a</code>；反对称性把这两个不等式合成 <code>f a ~ f x</code>，与严格小的第二分量冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LocalMaxAt f a → ¬ RisesRight f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">exists_min_pos · close_add_right · close_mono_eps · ratLtRep_self_add_pos · ratLeRep_antisymm · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-3"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">把局部极大的存在性与 <code>RisesRight</code> 的存在性各拆开，半径和全称命题交给
+上面的冲突引理。</p><pre><code>theorem not_risesRight_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesRight f a :=
+  fun (hr : RisesRight f a) =&gt;
+    Exists.elim hmax
+      (fun (dmax : ratRep)
+          (hdmax : ratLtRep ratZeroRep dmax ∧
+            ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a)) =&gt;
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep a x → close x a dr →
+                  ratLtRep (f a) (f x)) =&gt;
+            risesRight_conflict f a dmax dr (And.left hdmax)
+              (And.right hdmax) (And.left hdr) (And.right hdr)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">not_risesLeft_of_localMax</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem not_risesLeft_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesLeft f a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与右侧同构。这次在 a 左侧取 <span class="math">x = a - d/2</span>，<code>close_sub_half</code> 把它送进邻域，<code>ratLtRep_self_sub_pos</code> 给出 x &lt; a；剩下的一步不变。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LocalMaxAt f a → ¬ RisesLeft f a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">exists_min_pos · close_sub_half · close_mono_eps · ratLtRep_self_sub_pos · ratLeRep_antisymm · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-4"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem not_risesLeft_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesLeft f a :=
+  fun (hr : RisesLeft f a) =&gt;
+    Exists.elim hmax
+      (fun (dmax : ratRep)
+          (hdmax : ratLtRep ratZeroRep dmax ∧
+            ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a)) =&gt;
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep x a → close x a dr →
+                  ratLtRep (f a) (f x)) =&gt;
+            risesLeft_conflict f a dmax dr (And.left hdmax)
+              (And.right hdmax) (And.left hdr) (And.right hdr)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">deriv_zero_of_localMax</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>导数只能是零</p></div></div><pre class="exercise-statement"><code>theorem deriv_zero_of_localMax (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmax : LocalMaxAt f a) :
+    ratRel L ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>若 0 &lt; L，右侧抬高与上一条的「不抬高」冲突；若 L &lt; 0，左侧抬高同样冲突。于是 <span class="math">¬ 0 &lt; L</span> 与 <span class="math">¬ L &lt; 0</span>。序全性给 <span class="math">0 ≤ L</span> 或 <span class="math">L ≤ 0</span>，每支再用 <code>ratLeRep_eq_or_lt</code> 拆成相等或严格小，严格小那一支撞上刚得到的否定，相等那一支就是目标（必要时把等式两端对调）。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt f a L → LocalMaxAt f a → L ~ 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">risesRight_of_deriv_pos · risesLeft_of_deriv_neg · ratLeRep_total · ratLeRep_eq_or_lt · ratRel_symm · False.elim</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-5"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><p class="solution-note">两个严格不等式先立起来。收口时用序全性把 <code>0 ≤ L</code> 与 <code>L ≤ 0</code> 分成两支：
+每一支里 <code>ratLeRep_eq_or_lt</code> 再分成「相等」与「严格小」，严格小那一支
+正好撞上刚得到的否定。四个分支合并起来，剩下的只有 <code>L ~ 0</code>。</p><pre><code>theorem deriv_zero_of_localMax (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmax : LocalMaxAt f a) :
+    ratRel L ratZeroRep :=
+  @Or.elim (ratLeRep ratZeroRep L) (ratLeRep L ratZeroRep) (ratRel L ratZeroRep)
+    (fun (hge : ratLeRep ratZeroRep L) =&gt;
+      @Or.elim (ratRel ratZeroRep L) (ratLtRep ratZeroRep L) (ratRel L ratZeroRep)
+        (fun (heq : ratRel ratZeroRep L) =&gt; ratRel_symm ratZeroRep L heq)
+        (fun (hlt : ratLtRep ratZeroRep L) =&gt;
+          False.elim (not_risesRight_of_localMax f a hmax
+            (risesRight_of_deriv_pos f a L h hlt)))
+        (ratLeRep_eq_or_lt ratZeroRep L hge))
+    (fun (hle : ratLeRep L ratZeroRep) =&gt;
+      @Or.elim (ratRel L ratZeroRep) (ratLtRep L ratZeroRep) (ratRel L ratZeroRep)
+        (fun (heq : ratRel L ratZeroRep) =&gt; heq)
+        (fun (hlt : ratLtRep L ratZeroRep) =&gt;
+          False.elim (not_risesLeft_of_localMax f a hmax
+            (risesLeft_of_deriv_neg f a L h hlt)))
+        (ratLeRep_eq_or_lt L ratZeroRep hle))
+    (ratLeRep_total ratZeroRep L)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">localMaxAt_neg_of_localMin</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>极小值：把曲线翻过来</p></div></div><pre class="exercise-statement"><code>theorem localMaxAt_neg_of_localMin (f : ratRep → ratRep) (a : ratRep)
+    (h : LocalMinAt f a) : LocalMaxAt (fun (x : ratRep) =&gt; ratNegRep (f x)) a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>极小说 <code>f a ≤ f x</code>；两边取负，不等号翻成 <code>-f x ≤ -f a</code>，这正是 -f 的局部极大，半径原样沿用。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LocalMinAt f a → LocalMaxAt (fun x =&gt; -f x) a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_neg_gen · Exists.intro · And.intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-6"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">极小给 <code>f a ≤ f x</code>。取负把不等号翻成 <code>-f x ≤ -f a</code>，半径不动，就是
+<code>-f</code> 的局部极大。</p><pre><code>theorem localMaxAt_neg_of_localMin (f : ratRep → ratRep) (a : ratRep)
+    (h : LocalMinAt f a) : LocalMaxAt (fun (x : ratRep) =&gt; ratNegRep (f x)) a :=
+  Exists.elim h
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)) =&gt;
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta) =&gt;
+            ratLeRep_neg_gen (f a) (f x) ((And.right hd) x hx))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">deriv_zero_of_localMin</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-7">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem deriv_zero_of_localMin (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmin : LocalMinAt f a) :
+    ratRel L ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 -f 用极大版本，得到 <code>-L ~ 0</code>；两边同时取负，<code>-(-L)</code> 收回 L、<code>-0</code> 收回 0，就有 <code>L ~ 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt f a L → LocalMinAt f a → L ~ 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasDerivAt_neg · deriv_zero_of_localMax · ratNegRep_wd · ratNegRep_invol · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-7"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">对 <code>-f</code> 用极大版本，得到 <code>-L ~ 0</code>。两边同时取负：<code>-(-L)</code> 沿 <code>ratNegRep_invol</code>
+收回 L，<code>-0</code> 归约成 0；再把取负后的等式接到目标上。</p><pre><code>theorem deriv_zero_of_localMin (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmin : LocalMinAt f a) :
+    ratRel L ratZeroRep :=
+  ratRel_trans_gen L (ratNegRep ratZeroRep) ratZeroRep
+    (ratRel_trans_gen L (ratNegRep (ratNegRep L)) (ratNegRep ratZeroRep)
+      (ratRel_symm (ratNegRep (ratNegRep L)) L (ratNegRep_invol L))
+      (ratNegRep_wd (ratNegRep L) ratZeroRep
+        (deriv_zero_of_localMax (fun (x : ratRep) =&gt; ratNegRep (f x)) a
+          (ratNegRep L) (hasDerivAt_neg f a L h)
+          (localMaxAt_neg_of_localMin f a hmin))))
+    (ratRel_refl ratZeroRep)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">demo_id_not_localMax</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个反例</p></div></div><pre class="exercise-statement"><code>theorem demo_id_not_localMax : ¬ LocalMaxAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任取极大邻域的半径 delta，右侧点 <span class="math">0 + delta/2</span> 落在邻域里。极大要求它 <span class="math">≤ 0</span>，而它严格大于 0；反对称性给出 <code>0 ~ (0 + delta/2)</code>，与严格小的第二分量冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ LocalMaxAt (fun x =&gt; x) 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">close_add_right · ratLtRep_self_add_pos · ratLeRep_antisymm · not_ratRel_symm · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-8"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><p class="solution-note">恒等函数在零点：任取半径 delta，右侧点 <code>0 + delta/2</code> 落在邻域里，极大
+要求它不超过 0；它本身严格大于 0，两条不等式只能合成一个假等式。</p><pre><code>theorem demo_id_not_localMax : ¬ LocalMaxAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  fun (h : LocalMaxAt (fun (x : ratRep) =&gt; x) ratZeroRep) =&gt;
+    Exists.elim h
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x ratZeroRep delta → ratLeRep x ratZeroRep) =&gt;
+        (not_ratRel_symm ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+          (And.right (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+            (ratLtRep_half delta (And.left hd)))))
+          (ratLeRep_antisymm (ratAddRep ratZeroRep (ratHalf delta)) ratZeroRep
+            (le_apply (fun (x : ratRep) =&gt; x) ratZeroRep delta hd
+              (ratAddRep ratZeroRep (ratHalf delta))
+              (close_add_right ratZeroRep (ratHalf delta) delta
+                (ratLtRep_half delta (And.left hd))
+                (ratHalf_lt_self delta (And.left hd))))
+            (ratLtRep_le ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+              (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+                (ratLtRep_half delta (And.left hd))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-149-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">demo_id_not_localMin</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-149-9">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_id_not_localMin : ¬ LocalMinAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把右侧换成左侧：点 0 - delta/2 落在邻域里，极小要求它 <span class="math">≥ 0</span>，而它严格小于 0；反对称性给出它与 0 相等，与严格小的第二分量冲突。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ LocalMinAt (fun x =&gt; x) 0</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">close_sub_half · ratLtRep_self_sub_pos · ratLeRep_antisymm · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-149-9"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">极小那一支把右侧点换成左侧点 <code>0 - delta/2</code>：极小要求它不低于 0，它却
+严格小于 0。</p><pre><code>theorem demo_id_not_localMin : ¬ LocalMinAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  fun (h : LocalMinAt (fun (x : ratRep) =&gt; x) ratZeroRep) =&gt;
+    Exists.elim h
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x ratZeroRep delta → ratLeRep ratZeroRep x) =&gt;
+        (And.right (ratLtRep_self_sub_pos ratZeroRep (ratHalf delta)
+            (ratLtRep_half delta (And.left hd))))
+          (ratLeRep_antisymm (ratSubRep ratZeroRep (ratHalf delta)) ratZeroRep
+            (And.left (ratLtRep_self_sub_pos ratZeroRep (ratHalf delta)
+              (ratLtRep_half delta (And.left hd))))
+            (ge_apply (fun (x : ratRep) =&gt; x) ratZeroRep delta hd
+              (ratSubRep ratZeroRep (ratHalf delta))
+              (close_sub_half ratZeroRep delta (And.left hd)))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit148.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">导数的符号：曲线从切点往哪一边抬高</span></a><a class="unit-nav-home" href="../chapters/iii-7.html#units">目录</a><a class="unit-nav-link" href="../units/unit150.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">单调与导数的符号：不下降的曲线不会往下斜</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-149"><h3><a href="#top">极值点的导数为零：曲线在最高处没有斜率</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答 · 6 个解答独有声明</p><details open class="appendix-solution" id="app-sol-149-1"><summary>练习 1 · localMaxAt_iff <span class="sol-meta">定理</span></summary><pre><code>theorem localMaxAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMaxAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a) :=
+  Iff.intro
+    (fun (h : LocalMaxAt f a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f x) (f a)) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-149-2"><summary>练习 2 · localMinAt_iff <span class="sol-meta">定理</span></summary><pre><code>theorem localMinAt_iff (f : ratRep → ratRep) (a : ratRep) :
+    LocalMinAt f a ↔
+      ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x) :=
+  Iff.intro
+    (fun (h : LocalMinAt f a) =&gt; h)
+    (fun (h : ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)) =&gt; h)</code></pre></details><details open class="appendix-solution" id="app-sol-149-3"><summary>练习 3 · not_risesRight_of_localMax <span class="sol-meta">定理</span></summary><p class="solution-note">把局部极大的存在性与 <code>RisesRight</code> 的存在性各拆开，半径和全称命题交给
+上面的冲突引理。</p><pre><code>theorem not_risesRight_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesRight f a :=
+  fun (hr : RisesRight f a) =&gt;
+    Exists.elim hmax
+      (fun (dmax : ratRep)
+          (hdmax : ratLtRep ratZeroRep dmax ∧
+            ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a)) =&gt;
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep a x → close x a dr →
+                  ratLtRep (f a) (f x)) =&gt;
+            risesRight_conflict f a dmax dr (And.left hdmax)
+              (And.right hdmax) (And.left hdr) (And.right hdr)))</code></pre></details><details open class="appendix-solution" id="app-sol-149-4"><summary>练习 4 · not_risesLeft_of_localMax <span class="sol-meta">定理</span></summary><pre><code>theorem not_risesLeft_of_localMax (f : ratRep → ratRep) (a : ratRep)
+    (hmax : LocalMaxAt f a) : ¬ RisesLeft f a :=
+  fun (hr : RisesLeft f a) =&gt;
+    Exists.elim hmax
+      (fun (dmax : ratRep)
+          (hdmax : ratLtRep ratZeroRep dmax ∧
+            ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a)) =&gt;
+        Exists.elim hr
+          (fun (dr : ratRep)
+              (hdr : ratLtRep ratZeroRep dr ∧
+                ∀ (x : ratRep), ratLtRep x a → close x a dr →
+                  ratLtRep (f a) (f x)) =&gt;
+            risesLeft_conflict f a dmax dr (And.left hdmax)
+              (And.right hdmax) (And.left hdr) (And.right hdr)))</code></pre></details><details open class="appendix-solution" id="app-sol-149-5"><summary>练习 5 · deriv_zero_of_localMax <span class="sol-meta">定理</span></summary><p class="solution-note">两个严格不等式先立起来。收口时用序全性把 <code>0 ≤ L</code> 与 <code>L ≤ 0</code> 分成两支：
+每一支里 <code>ratLeRep_eq_or_lt</code> 再分成「相等」与「严格小」，严格小那一支
+正好撞上刚得到的否定。四个分支合并起来，剩下的只有 <code>L ~ 0</code>。</p><pre><code>theorem deriv_zero_of_localMax (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmax : LocalMaxAt f a) :
+    ratRel L ratZeroRep :=
+  @Or.elim (ratLeRep ratZeroRep L) (ratLeRep L ratZeroRep) (ratRel L ratZeroRep)
+    (fun (hge : ratLeRep ratZeroRep L) =&gt;
+      @Or.elim (ratRel ratZeroRep L) (ratLtRep ratZeroRep L) (ratRel L ratZeroRep)
+        (fun (heq : ratRel ratZeroRep L) =&gt; ratRel_symm ratZeroRep L heq)
+        (fun (hlt : ratLtRep ratZeroRep L) =&gt;
+          False.elim (not_risesRight_of_localMax f a hmax
+            (risesRight_of_deriv_pos f a L h hlt)))
+        (ratLeRep_eq_or_lt ratZeroRep L hge))
+    (fun (hle : ratLeRep L ratZeroRep) =&gt;
+      @Or.elim (ratRel L ratZeroRep) (ratLtRep L ratZeroRep) (ratRel L ratZeroRep)
+        (fun (heq : ratRel L ratZeroRep) =&gt; heq)
+        (fun (hlt : ratLtRep L ratZeroRep) =&gt;
+          False.elim (not_risesLeft_of_localMax f a hmax
+            (risesLeft_of_deriv_neg f a L h hlt)))
+        (ratLeRep_eq_or_lt L ratZeroRep hle))
+    (ratLeRep_total ratZeroRep L)</code></pre></details><details open class="appendix-solution" id="app-sol-149-6"><summary>练习 6 · localMaxAt_neg_of_localMin <span class="sol-meta">定理</span></summary><p class="solution-note">极小给 <code>f a ≤ f x</code>。取负把不等号翻成 <code>-f x ≤ -f a</code>，半径不动，就是
+<code>-f</code> 的局部极大。</p><pre><code>theorem localMaxAt_neg_of_localMin (f : ratRep → ratRep) (a : ratRep)
+    (h : LocalMinAt f a) : LocalMaxAt (fun (x : ratRep) =&gt; ratNegRep (f x)) a :=
+  Exists.elim h
+    (fun (delta : ratRep)
+        (hd : ratLtRep ratZeroRep delta ∧
+          ∀ (x : ratRep), close x a delta → ratLeRep (f a) (f x)) =&gt;
+      Exists.intro delta
+        (And.intro (And.left hd)
+          (fun (x : ratRep) (hx : close x a delta) =&gt;
+            ratLeRep_neg_gen (f a) (f x) ((And.right hd) x hx))))</code></pre></details><details open class="appendix-solution" id="app-sol-149-7"><summary>练习 7 · deriv_zero_of_localMin <span class="sol-meta">定理</span></summary><p class="solution-note">对 <code>-f</code> 用极大版本，得到 <code>-L ~ 0</code>。两边同时取负：<code>-(-L)</code> 沿 <code>ratNegRep_invol</code>
+收回 L，<code>-0</code> 归约成 0；再把取负后的等式接到目标上。</p><pre><code>theorem deriv_zero_of_localMin (f : ratRep → ratRep) (a L : ratRep)
+    (h : HasDerivAt f a L) (hmin : LocalMinAt f a) :
+    ratRel L ratZeroRep :=
+  ratRel_trans_gen L (ratNegRep ratZeroRep) ratZeroRep
+    (ratRel_trans_gen L (ratNegRep (ratNegRep L)) (ratNegRep ratZeroRep)
+      (ratRel_symm (ratNegRep (ratNegRep L)) L (ratNegRep_invol L))
+      (ratNegRep_wd (ratNegRep L) ratZeroRep
+        (deriv_zero_of_localMax (fun (x : ratRep) =&gt; ratNegRep (f x)) a
+          (ratNegRep L) (hasDerivAt_neg f a L h)
+          (localMaxAt_neg_of_localMin f a hmin))))
+    (ratRel_refl ratZeroRep)</code></pre></details><details open class="appendix-solution" id="app-sol-149-8"><summary>练习 8 · demo_id_not_localMax <span class="sol-meta">定理</span></summary><p class="solution-note">恒等函数在零点：任取半径 delta，右侧点 <code>0 + delta/2</code> 落在邻域里，极大
+要求它不超过 0；它本身严格大于 0，两条不等式只能合成一个假等式。</p><pre><code>theorem demo_id_not_localMax : ¬ LocalMaxAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  fun (h : LocalMaxAt (fun (x : ratRep) =&gt; x) ratZeroRep) =&gt;
+    Exists.elim h
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x ratZeroRep delta → ratLeRep x ratZeroRep) =&gt;
+        (not_ratRel_symm ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+          (And.right (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+            (ratLtRep_half delta (And.left hd)))))
+          (ratLeRep_antisymm (ratAddRep ratZeroRep (ratHalf delta)) ratZeroRep
+            (le_apply (fun (x : ratRep) =&gt; x) ratZeroRep delta hd
+              (ratAddRep ratZeroRep (ratHalf delta))
+              (close_add_right ratZeroRep (ratHalf delta) delta
+                (ratLtRep_half delta (And.left hd))
+                (ratHalf_lt_self delta (And.left hd))))
+            (ratLtRep_le ratZeroRep (ratAddRep ratZeroRep (ratHalf delta))
+              (ratLtRep_self_add_pos ratZeroRep (ratHalf delta)
+                (ratLtRep_half delta (And.left hd))))))</code></pre></details><details open class="appendix-solution" id="app-sol-149-9"><summary>练习 9 · demo_id_not_localMin <span class="sol-meta">定理</span></summary><p class="solution-note">极小那一支把右侧点换成左侧点 <code>0 - delta/2</code>：极小要求它不低于 0，它却
+严格小于 0。</p><pre><code>theorem demo_id_not_localMin : ¬ LocalMinAt (fun (x : ratRep) =&gt; x) ratZeroRep :=
+  fun (h : LocalMinAt (fun (x : ratRep) =&gt; x) ratZeroRep) =&gt;
+    Exists.elim h
+      (fun (delta : ratRep)
+          (hd : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x ratZeroRep delta → ratLeRep ratZeroRep x) =&gt;
+        (And.right (ratLtRep_self_sub_pos ratZeroRep (ratHalf delta)
+            (ratLtRep_half delta (And.left hd))))
+          (ratLeRep_antisymm (ratSubRep ratZeroRep (ratHalf delta)) ratZeroRep
+            (And.left (ratLtRep_self_sub_pos ratZeroRep (ratHalf delta)
+              (ratLtRep_half delta (And.left hd))))
+            (ge_apply (fun (x : ratRep) =&gt; x) ratZeroRep delta hd
+              (ratSubRep ratZeroRep (ratHalf delta))
+              (close_sub_half ratZeroRep delta (And.left hd)))))</code></pre></details><details open class="appendix-solution" id="app-extra-149-1"><summary>补充 · le_conflict <span class="sol-meta">定理</span></summary><pre><code>theorem le_conflict (p q : ratRep) (hlt : ratLtRep p q)
+    (hle : ratLeRep q p) : False :=
+  (And.right hlt) (ratLeRep_antisymm p q (And.left hlt) hle)</code></pre></details><details open class="appendix-solution" id="app-extra-149-2"><summary>补充 · risesRight_conflict <span class="sol-meta">定理</span></summary><pre><code>theorem risesRight_conflict (f : ratRep → ratRep) (a dmax dr : ratRep)
+    (hdmax : ratLtRep ratZeroRep dmax)
+    (hmax : ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a))
+    (hdr : ratLtRep ratZeroRep dr)
+    (hrise : ∀ (x : ratRep), ratLtRep a x → close x a dr →
+      ratLtRep (f a) (f x)) :
+    False :=
+  Exists.elim (exists_min_pos dmax dr hdmax hdr)
+    (fun (d : ratRep)
+        (hd : ratLtRep ratZeroRep d ∧ ratLeRep d dmax ∧ ratLeRep d dr) =&gt;
+      le_conflict (f a) (f (ratAddRep a (ratHalf d)))
+        (hrise (ratAddRep a (ratHalf d))
+          (ratLtRep_self_add_pos a (ratHalf d)
+            (ratLtRep_half d (And.left hd)))
+          (close_mono_eps (ratAddRep a (ratHalf d)) a d dr
+            (close_add_right a (ratHalf d) d (ratLtRep_half d (And.left hd))
+              (ratHalf_lt_self d (And.left hd)))
+            (And.right (And.right hd))))
+        (hmax (ratAddRep a (ratHalf d))
+          (close_mono_eps (ratAddRep a (ratHalf d)) a d dmax
+            (close_add_right a (ratHalf d) d (ratLtRep_half d (And.left hd))
+              (ratHalf_lt_self d (And.left hd)))
+            (And.left (And.right hd)))))</code></pre></details><details open class="appendix-solution" id="app-extra-149-3"><summary>补充 · close_sub_half <span class="sol-meta">定理</span></summary><pre><code>theorem close_sub_half (a d : ratRep) (hd : ratLtRep ratZeroRep d) :
+    close (ratSubRep a (ratHalf d)) a d :=
+  close_of_le_lb (ratSubRep a (ratHalf d)) a d (ratHalf d)
+    (ratLtRep_le (ratSubRep a (ratHalf d)) a
+      (ratLtRep_self_sub_pos a (ratHalf d) (ratLtRep_half d hd)))
+    (ratLeRep_of_ratRel a (ratAddRep (ratSubRep a (ratHalf d)) (ratHalf d))
+      (ratRel_symm (ratAddRep (ratSubRep a (ratHalf d)) (ratHalf d)) a
+        (ratSubRep_add_self a (ratHalf d))))
+    (ratHalf_lt_self d hd)</code></pre></details><details open class="appendix-solution" id="app-extra-149-4"><summary>补充 · risesLeft_conflict <span class="sol-meta">定理</span></summary><pre><code>theorem risesLeft_conflict (f : ratRep → ratRep) (a dmax dr : ratRep)
+    (hdmax : ratLtRep ratZeroRep dmax)
+    (hmax : ∀ (x : ratRep), close x a dmax → ratLeRep (f x) (f a))
+    (hdr : ratLtRep ratZeroRep dr)
+    (hrise : ∀ (x : ratRep), ratLtRep x a → close x a dr →
+      ratLtRep (f a) (f x)) :
+    False :=
+  Exists.elim (exists_min_pos dmax dr hdmax hdr)
+    (fun (d : ratRep)
+        (hd : ratLtRep ratZeroRep d ∧ ratLeRep d dmax ∧ ratLeRep d dr) =&gt;
+      le_conflict (f a) (f (ratSubRep a (ratHalf d)))
+        (hrise (ratSubRep a (ratHalf d))
+          (ratLtRep_self_sub_pos a (ratHalf d)
+            (ratLtRep_half d (And.left hd)))
+          (close_mono_eps (ratSubRep a (ratHalf d)) a d dr
+            (close_sub_half a d (And.left hd))
+            (And.right (And.right hd))))
+        (hmax (ratSubRep a (ratHalf d))
+          (close_mono_eps (ratSubRep a (ratHalf d)) a d dmax
+            (close_sub_half a d (And.left hd))
+            (And.left (And.right hd)))))</code></pre></details><details open class="appendix-solution" id="app-extra-149-5"><summary>补充 · le_apply <span class="sol-meta">定理</span></summary><pre><code>theorem le_apply (r : ratRep → ratRep) (a delta : ratRep)
+    (hd : ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLeRep (r x) (r a))
+    (x : ratRep) (hx : close x a delta) : ratLeRep (r x) (r a) :=
+  (And.right hd) x hx</code></pre></details><details open class="appendix-solution" id="app-extra-149-6"><summary>补充 · ge_apply <span class="sol-meta">定理</span></summary><pre><code>theorem ge_apply (r : ratRep → ratRep) (a delta : ratRep)
+    (hd : ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x a delta → ratLeRep (r a) (r x))
+    (x : ratRep) (hx : close x a delta) : ratLeRep (r a) (r x) :=
+  (And.right hd) x hx</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 145 导数的和与差：先让乘法对加法分配</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit145.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 145 导数的和与差：先让乘法对加法分配</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit145.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.7 微分 · 单元 145</p><h1>导数的和与差：先让乘法对加法分配</h1><p class="note">Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition</p></header><section class="unit" id="unit-145">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-7.html">III.7</a> · 本章第 6 / 11 单元 · 全书第 145 / 171 单元</p>
+<h2><span class="unit-number">145</span><span>导数的和与差：先让乘法对加法分配</span></h2>
+<p class="unit-title-en">Unit 145 — Sums and Differences of Derivatives: Distributing Multiplication Over Addition</p>
+<p class="unit-meta">12 个定理 · 12 道练习 · 36 条提示 · <a href="#appendix-unit-145">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>两条曲线在 a 点各有导数 L 与 M，把纵坐标逐点相加，新曲线在这一点的导数是不是 <span class="math">L + M</span>？差商的形状几乎是现成的：两条乘积等式 <code>(x - a) · q x ~ f x - f a</code> 与 <code>(x - a) · r x ~ g x - g a</code> 相加，右边正好是 <code>(f x + g x) - (f a + g a)</code>。挡路的只有左边一步：要把 <code>(x - a) · q x + (x - a) · r x</code> 收成 <code>(x - a) · (q x + r x)</code>。</p></div></div></section>
+<article class="exercise" id="ex-145-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratMul_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>课程的 <span class="math">ℚ</span> 是整数对的商，乘法与加法各自先通分再运算。乘法对加法分配在代表元层不是定义性相等：两边的分母相差一个因子，交叉相乘之后要比较四个单项式的次序。前面的单元没用到这条分配律，它一直空着；导数的和第一次需要它。</p></div><div class="block prose intuition-only"><p>证明把两边约到同一个分母。约掉公共因子之后，剩下的等式只关于四个单项式：左边按 <code>ac</code>、<code>ae</code>、<code>bd</code>、<code>bf</code> 排列，右边按 <code>ac</code>、<code>bd</code>、<code>ae</code>、<code>bf</code> 排列，只差中间两项。<span class="math">ℕ</span> 的乘法交换、结合与分配负责对齐每一项，<code>add_shift</code> 负责交换中间两项。</p></div><div class="block prose intuition-only"><p>边界：函数取 <span class="math">ratRep → ratRep</span>，停在有理代表元层；不构造倒数，不新增公理，也不碰 kernel/front。常数倍还要一条乘法对第二个因子的同余，留到后面的单元。</p></div><div class="block prose intuition-only"><p>乘法对加法分配</p></div><div class="block prose intuition-only"><p>把 x、y、z 依次写成 <code>(a - b)/(m + 1)</code>、<code>(c - d)/(n + 1)</code>、<code>(e - f)/(k + 1)</code>。左边的分母是 <code>(m + 1)(n + 1)(k + 1)</code>，右边的分母是 <code>(m + 1)²(n + 1)(k + 1)</code>，多出一个 <code>m + 1</code>。交叉相乘并约掉公共因子之后，要证的是四个单项式的重排：<code>ac(k+1) + ae(n+1) + bd(k+1) + bf(n+1)</code> 与 <code>ac(k+1) + bd(k+1) + ae(n+1) + bf(n+1)</code> 相等。</p></div></div><pre class="exercise-statement"><code>theorem ratMul_add (x y z : ratRep) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 x、y、z 拆成字面三元组；两边分别用 <code>mulRep_den_form</code> 化成同一形状的交叉乘积；约掉公共因子 <code>(m+1)(n+1)(k+1)</code> 后，用 <span class="math">ℕ</span> 的交换、结合、分配把四个单项式逐项对齐，再用 <code>add_shift</code> 交换中间两项。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratMulRep x (ratAddRep y z)) (ratAddRep (ratMulRep x y) (ratMulRep x z))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">mulRep_den_form · mul_cancel_pos · myMul_assoc · myMul_comm · mul_add · mul_add_right · add_shift · intRel_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-1"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><pre><code>theorem ratMul_add (x y z : ratRep) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_add_pack x y z</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratMul_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>分配律的减法版本</p></div><div class="block prose intuition-only"><p><code>x · (y - z)</code> 里的减法按定义是 <code>y + (-z)</code>。分配之后第二项是 <code>x · (-z)</code>，它等于 <code>-(x · z)</code>：两边按 <code>qrep</code> 展开后，第一格都是 <code>a·d + b·c</code> 取负，第二格都是 <code>a·c + b·d</code> 取负，只是两项的次序不同。把这一项换掉，<code>x · (y - z)</code> 就收成 <code>x · y - x · z</code>。</p></div></div><pre class="exercise-statement"><code>theorem ratMul_sub (x y z : ratRep) :
+    ratRel (ratMulRep x (ratSubRep y z))
+      (ratSubRep (ratMulRep x y) (ratMulRep x z)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>y - z</code> 展开成 <code>y + (-z)</code>；用 <code>ratMul_add</code> 分配；再用 <code>ratMul_neg</code> 把 <code>x·(-z)</code> 换成 <code>-(x·z)</code>；最后按减法的定义把 <code>x·y + -(x·z)</code> 收回 <code>x·y - x·z</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (ratMulRep x (ratSubRep y z)) (ratSubRep (ratMulRep x y) (ratMulRep x z))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratMul_add · ratMul_neg · ratAddRep_wd_snd_gen · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-2"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><pre><code>theorem ratMul_sub (x y z : ratRep) :
+    ratRel (ratMulRep x (ratSubRep y z))
+      (ratSubRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratRel_trans_gen
+    (ratMulRep x (ratSubRep y z))
+    (ratAddRep (ratMulRep x y) (ratMulRep x (ratNegRep z)))
+    (ratSubRep (ratMulRep x y) (ratMulRep x z))
+    (ratMul_add x y (ratNegRep z))
+    (ratAddRep_wd_snd_gen (ratMulRep x y) (ratMulRep x (ratNegRep z))
+      (ratNegRep (ratMulRep x z)) (ratMul_neg x z))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratAdd_sub_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个差相加</p></div><div class="block prose intuition-only"><p><code>(p - q) + (r - s)</code> 可以并成一个差 <code>(p + r) - (q + s)</code>。四个项不直接混在一起：先把两个差各补一个中间项，<code>p - q</code> 与 <code>(p + r) - (r + q)</code> 相等，<code>r - s</code> 与 <code>(r + q) - (s + q)</code> 相等。补好之后两个差共享中间项 <code>r + q</code>，<code>ratSubRep_add</code> 把它消掉，剩下的正是 <code>(p + r) - (q + s)</code>。</p></div></div><pre class="exercise-statement"><code>theorem ratAdd_sub_sub (p q r s : ratRep) :
+    ratRel (ratAddRep (ratSubRep p q) (ratSubRep r s))
+      (ratSubRep (ratAddRep p r) (ratAddRep q s)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把第一个差 <code>p - q</code> 换成 <code>(p+r) - (r+q)</code>（减去同一个加数），把第二个差 <code>r - s</code> 换成 <code>(r+q) - (s+q)</code>；两个补好的差共享中间项 <code>r+q</code>，交给 <code>ratSubRep_add</code> 消去，再把 <code>s+q</code> 换成 <code>q+s</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel ((p - q) + (r - s)) ((p + r) - (q + s))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratSubRep_add_cancel · ratSubRep_add · ratSubRep_wd · ratAdd_comm · ratAddRep_wd_gen · ratAddRep_wd_snd_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-3"><summary>查看解答 <span class="sol-meta">定理 · 41 行</span></summary><div class="solution-body"><pre><code>theorem ratAdd_sub_sub (p q r s : ratRep) :
+    ratRel (ratAddRep (ratSubRep p q) (ratSubRep r s))
+      (ratSubRep (ratAddRep p r) (ratAddRep q s)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep p q) (ratSubRep r s))
+    (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+               (ratSubRep r s))
+    (ratSubRep (ratAddRep p r) (ratAddRep q s))
+    (ratAddRep_wd_gen
+      (ratSubRep p q) (ratSubRep (ratAddRep p r) (ratAddRep r q))
+      (ratSubRep r s)
+      (ratRel_trans_gen
+        (ratSubRep p q)
+        (ratSubRep (ratAddRep p r) (ratAddRep q r))
+        (ratSubRep (ratAddRep p r) (ratAddRep r q))
+        (ratRel_symm (ratSubRep (ratAddRep p r) (ratAddRep q r))
+          (ratSubRep p q) (ratSubRep_add_cancel p q r))
+        (ratSubRep_wd (ratAddRep p r) (ratAddRep p r)
+          (ratAddRep q r) (ratAddRep r q)
+          (ratRel_refl (ratAddRep p r)) (ratAdd_comm q r))))
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                 (ratSubRep r s))
+      (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                 (ratSubRep (ratAddRep r q) (ratAddRep s q)))
+      (ratSubRep (ratAddRep p r) (ratAddRep q s))
+      (ratAddRep_wd_snd_gen
+        (ratSubRep (ratAddRep p r) (ratAddRep r q))
+        (ratSubRep r s)
+        (ratSubRep (ratAddRep r q) (ratAddRep s q))
+        (ratRel_symm (ratSubRep (ratAddRep r q) (ratAddRep s q))
+          (ratSubRep r s) (ratSubRep_add_cancel r s q)))
+      (ratRel_trans_gen
+        (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                   (ratSubRep (ratAddRep r q) (ratAddRep s q)))
+        (ratSubRep (ratAddRep p r) (ratAddRep s q))
+        (ratSubRep (ratAddRep p r) (ratAddRep q s))
+        (ratSubRep_add (ratAddRep p r) (ratAddRep r q) (ratAddRep s q))
+        (ratSubRep_wd (ratAddRep p r) (ratAddRep p r)
+          (ratAddRep s q) (ratAddRep q s)
+          (ratRel_refl (ratAddRep p r)) (ratAdd_comm s q))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">isSlope_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>斜率函数逐点相加</p></div><div class="block prose intuition-only"><p>f 与 g 的斜率函数分别是 q 与 r。逐点把 <code>(x - a) · (q x + r x)</code> 用 <code>ratMul_add</code> 拆成两份乘积，两条乘积等式分别换成 <code>f x - f a</code> 与 <code>g x - g a</code>，最后用 <code>ratAdd_sub_sub</code> 并成 <code>(f x + g x) - (f a + g a)</code>。</p></div></div><pre class="exercise-statement"><code>theorem isSlope_add (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratAddRep (q x) (r x)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>固定 x 与 <code>x ≠ a</code>；把 <code>(x-a)·(q x + r x)</code> 分配成两份乘积；每一份用对应的斜率等式换成函数值之差；再用 <code>ratAdd_sub_sub</code> 把两个差并成一个差。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSlope (fun x =&gt; f x + g x) a (fun x =&gt; q x + r x)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratMul_add · ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratAdd_sub_sub · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-4"><summary>查看解答 <span class="sol-meta">定理 · 35 行</span></summary><div class="solution-body"><pre><code>theorem isSlope_add (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratAddRep (q x) (r x)) :=
+  fun (x : ratRep) (hx : ¬ ratRel x a) =&gt;
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (ratAddRep (q x) (r x)))
+      (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                 (ratMulRep (ratSubRep x a) (r x)))
+      (ratSubRep (ratAddRep (f x) (g x)) (ratAddRep (f a) (g a)))
+      (ratMul_add (ratSubRep x a) (q x) (r x))
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                   (ratMulRep (ratSubRep x a) (r x)))
+        (ratAddRep (ratSubRep (f x) (f a))
+                   (ratSubRep (g x) (g a)))
+        (ratSubRep (ratAddRep (f x) (g x)) (ratAddRep (f a) (g a)))
+        (ratRel_trans_gen
+          (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                     (ratMulRep (ratSubRep x a) (r x)))
+          (ratAddRep (ratSubRep (f x) (f a))
+                     (ratMulRep (ratSubRep x a) (r x)))
+          (ratAddRep (ratSubRep (f x) (f a))
+                     (ratSubRep (g x) (g a)))
+          (ratAddRep_wd_gen
+            (ratMulRep (ratSubRep x a) (q x))
+            (ratSubRep (f x) (f a))
+            (ratMulRep (ratSubRep x a) (r x))
+            (hq x hx))
+          (ratAddRep_wd_snd_gen
+            (ratSubRep (f x) (f a))
+            (ratMulRep (ratSubRep x a) (r x))
+            (ratSubRep (g x) (g a))
+            (hr x hx)))
+        (ratAdd_sub_sub (f x) (f a) (g x) (g a)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">hasDerivAt_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个导数各给一个斜率函数与一个极限值。和的斜率函数取 <code>q + r</code>，和的极限值取 <code>L + M</code>：前半交给上一条，后半交给函数极限的加法律。</p></div></div><pre class="exercise-statement"><code>theorem hasDerivAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开两条导数，各得一个斜率函数与一条极限；把两个斜率函数逐点相加，用 <code>isSlope_add</code> 与前一半拼起来；极限交给 <code>tendsToAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt (fun x =&gt; f x + g x) a (L + M)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · isSlope_add · tendsToAt_add · And.left · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-5"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><pre><code>theorem hasDerivAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  Exists.elim hf
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =&gt;
+      Exists.elim hg
+        (fun (r : ratRep → ratRep)
+            (hr : IsSlope g a r ∧ TendsToAt r a M) =&gt;
+          Exists.intro (fun (x : ratRep) =&gt; ratAddRep (q x) (r x))
+            (And.intro
+              (isSlope_add f g a q r (And.left hq) (And.left hr))
+              (tendsToAt_add q r a L M (And.right hq) (And.right hr)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">differentiableAt_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>可导的存在性逐层搬运：和的导数就是两个导数值的和。</p></div></div><pre class="exercise-statement"><code>theorem differentiableAt_add (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>拆开两个可导假设，各取一个导数值；把两个值相加作为和的导数，交给 <code>hasDerivAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>DifferentiableAt (fun x =&gt; f x + g x) a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · hasDerivAt_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-6"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem differentiableAt_add (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a :=
+  Exists.elim hf
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =&gt;
+      Exists.elim hg
+        (fun (M : ratRep) (hM : HasDerivAt g a M) =&gt;
+          Exists.intro (ratAddRep L M)
+            (hasDerivAt_add f g a L M hL hM)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">isSlope_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>斜率函数逐点相减</p></div><div class="block prose intuition-only"><p>取负已经备好：<code>isSlope_neg</code> 把斜率函数整体取负。把 <code>f - g</code> 读成 <code>f + (-g)</code>，它的斜率函数就是 <code>q + (-r)</code>，也就是 <code>q - r</code>。</p></div></div><pre class="exercise-statement"><code>theorem isSlope_sub (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratSubRep (q x) (r x)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>f - g</code> 写成 <code>f + (-g)</code>；对 <code>-g</code> 用 <code>isSlope_neg</code> 把斜率函数取负；再把两个斜率函数交给 <code>isSlope_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSlope (fun x =&gt; f x - g x) a (fun x =&gt; q x - r x)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">isSlope_neg · isSlope_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-7"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem isSlope_sub (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratSubRep (q x) (r x)) :=
+  isSlope_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a q
+    (fun (x : ratRep) =&gt; ratNegRep (r x)) hq (isSlope_neg g a r hr)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">hasDerivAt_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>减法的导数同样接在加法与取负后面：<code>L - M</code> 是 <code>L + (-M)</code>。</p></div></div><pre class="exercise-statement"><code>theorem hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>g</code> 换成 <code>-g</code>，用 <code>hasDerivAt_neg</code> 得到它的导数 <code>-M</code>；再对 <code>f</code> 与 <code>-g</code> 用 <code>hasDerivAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt (fun x =&gt; f x - g x) a (L - M)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasDerivAt_neg · hasDerivAt_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-8"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  hasDerivAt_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a L
+    (ratNegRep M) hf (hasDerivAt_neg g a M hg)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">differentiableAt_sub</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>可导的差：两个可导函数的差仍可导。</p></div></div><pre class="exercise-statement"><code>theorem differentiableAt_sub (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>g</code> 换成 <code>-g</code>，用 <code>differentiableAt_neg</code> 得到可导性；再对 <code>f</code> 与 <code>-g</code> 用 <code>differentiableAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>DifferentiableAt (fun x =&gt; f x - g x) a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">differentiableAt_neg · differentiableAt_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-9"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem differentiableAt_sub (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a :=
+  differentiableAt_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a hf
+    (differentiableAt_neg g a hg)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">demo_deriv_id_add_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>三个读数</p></div><div class="block prose intuition-only"><p>恒等函数加自己，斜率是 <code>1 + 1</code>。</p></div></div><pre class="exercise-statement"><code>theorem demo_deriv_id_add_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep x x) a
+      (ratAddRep ratOneRep ratOneRep) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把恒等函数的导数一用两次，交给 <code>hasDerivAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt (fun x =&gt; x + x) a (1 + 1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasDerivAt_id · hasDerivAt_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-10"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_deriv_id_add_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep x x) a
+      (ratAddRep ratOneRep ratOneRep) :=
+  hasDerivAt_add (fun (x : ratRep) =&gt; x) (fun (x : ratRep) =&gt; x) a
+    ratOneRep ratOneRep (hasDerivAt_id a) (hasDerivAt_id a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">demo_deriv_const_add_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常函数加恒等函数，斜率是 <code>0 + 1</code>。</p></div></div><pre class="exercise-statement"><code>theorem demo_deriv_const_add_id (c a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep c x) a
+      (ratAddRep ratZeroRep ratOneRep) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常函数的导数零与恒等函数的导数一，交给 <code>hasDerivAt_add</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt (fun x =&gt; c + x) a (0 + 1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasDerivAt_const · hasDerivAt_id · hasDerivAt_add</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-11"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_deriv_const_add_id (c a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep c x) a
+      (ratAddRep ratZeroRep ratOneRep) :=
+  hasDerivAt_add (fun (_ : ratRep) =&gt; c) (fun (x : ratRep) =&gt; x) a
+    ratZeroRep ratOneRep (hasDerivAt_const c a) (hasDerivAt_id a)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-145-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">demo_deriv_id_sub_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-145-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>恒等函数减自己，斜率是 <code>1 - 1</code>。</p></div></div><pre class="exercise-statement"><code>theorem demo_deriv_id_sub_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep x x) a
+      (ratSubRep ratOneRep ratOneRep) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把恒等函数的导数一用两次，交给 <code>hasDerivAt_sub</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasDerivAt (fun x =&gt; x - x) a (1 - 1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hasDerivAt_id · hasDerivAt_sub</span>。</p></div></details></div><details open class="solution-panel" id="sol-145-12"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem demo_deriv_id_sub_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep x x) a
+      (ratSubRep ratOneRep ratOneRep) :=
+  hasDerivAt_sub (fun (x : ratRep) =&gt; x) (fun (x : ratRep) =&gt; x) a
+    ratOneRep ratOneRep (hasDerivAt_id a) (hasDerivAt_id a)</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit144.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">非零因子消去：导数为什么只有一个值</span></a><a class="unit-nav-home" href="../chapters/iii-7.html#units">目录</a><a class="unit-nav-link" href="../units/unit146.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">乘法的保序性：正因子不改变不等号</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-145"><h3><a href="#top">导数的和与差：先让乘法对加法分配</a></h3><p class="appendix-meta">12 道练习 · 12 份按名匹配的解答 · 24 个解答独有声明</p><details open class="appendix-solution" id="app-sol-145-1"><summary>练习 1 · ratMul_add <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add (x y z : ratRep) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratMul_add_pack x y z</code></pre></details><details open class="appendix-solution" id="app-sol-145-2"><summary>练习 2 · ratMul_sub <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_sub (x y z : ratRep) :
+    ratRel (ratMulRep x (ratSubRep y z))
+      (ratSubRep (ratMulRep x y) (ratMulRep x z)) :=
+  ratRel_trans_gen
+    (ratMulRep x (ratSubRep y z))
+    (ratAddRep (ratMulRep x y) (ratMulRep x (ratNegRep z)))
+    (ratSubRep (ratMulRep x y) (ratMulRep x z))
+    (ratMul_add x y (ratNegRep z))
+    (ratAddRep_wd_snd_gen (ratMulRep x y) (ratMulRep x (ratNegRep z))
+      (ratNegRep (ratMulRep x z)) (ratMul_neg x z))</code></pre></details><details open class="appendix-solution" id="app-sol-145-3"><summary>练习 3 · ratAdd_sub_sub <span class="sol-meta">定理</span></summary><pre><code>theorem ratAdd_sub_sub (p q r s : ratRep) :
+    ratRel (ratAddRep (ratSubRep p q) (ratSubRep r s))
+      (ratSubRep (ratAddRep p r) (ratAddRep q s)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratSubRep p q) (ratSubRep r s))
+    (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+               (ratSubRep r s))
+    (ratSubRep (ratAddRep p r) (ratAddRep q s))
+    (ratAddRep_wd_gen
+      (ratSubRep p q) (ratSubRep (ratAddRep p r) (ratAddRep r q))
+      (ratSubRep r s)
+      (ratRel_trans_gen
+        (ratSubRep p q)
+        (ratSubRep (ratAddRep p r) (ratAddRep q r))
+        (ratSubRep (ratAddRep p r) (ratAddRep r q))
+        (ratRel_symm (ratSubRep (ratAddRep p r) (ratAddRep q r))
+          (ratSubRep p q) (ratSubRep_add_cancel p q r))
+        (ratSubRep_wd (ratAddRep p r) (ratAddRep p r)
+          (ratAddRep q r) (ratAddRep r q)
+          (ratRel_refl (ratAddRep p r)) (ratAdd_comm q r))))
+    (ratRel_trans_gen
+      (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                 (ratSubRep r s))
+      (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                 (ratSubRep (ratAddRep r q) (ratAddRep s q)))
+      (ratSubRep (ratAddRep p r) (ratAddRep q s))
+      (ratAddRep_wd_snd_gen
+        (ratSubRep (ratAddRep p r) (ratAddRep r q))
+        (ratSubRep r s)
+        (ratSubRep (ratAddRep r q) (ratAddRep s q))
+        (ratRel_symm (ratSubRep (ratAddRep r q) (ratAddRep s q))
+          (ratSubRep r s) (ratSubRep_add_cancel r s q)))
+      (ratRel_trans_gen
+        (ratAddRep (ratSubRep (ratAddRep p r) (ratAddRep r q))
+                   (ratSubRep (ratAddRep r q) (ratAddRep s q)))
+        (ratSubRep (ratAddRep p r) (ratAddRep s q))
+        (ratSubRep (ratAddRep p r) (ratAddRep q s))
+        (ratSubRep_add (ratAddRep p r) (ratAddRep r q) (ratAddRep s q))
+        (ratSubRep_wd (ratAddRep p r) (ratAddRep p r)
+          (ratAddRep s q) (ratAddRep q s)
+          (ratRel_refl (ratAddRep p r)) (ratAdd_comm s q))))</code></pre></details><details open class="appendix-solution" id="app-sol-145-4"><summary>练习 4 · isSlope_add <span class="sol-meta">定理</span></summary><pre><code>theorem isSlope_add (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratAddRep (q x) (r x)) :=
+  fun (x : ratRep) (hx : ¬ ratRel x a) =&gt;
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x a) (ratAddRep (q x) (r x)))
+      (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                 (ratMulRep (ratSubRep x a) (r x)))
+      (ratSubRep (ratAddRep (f x) (g x)) (ratAddRep (f a) (g a)))
+      (ratMul_add (ratSubRep x a) (q x) (r x))
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                   (ratMulRep (ratSubRep x a) (r x)))
+        (ratAddRep (ratSubRep (f x) (f a))
+                   (ratSubRep (g x) (g a)))
+        (ratSubRep (ratAddRep (f x) (g x)) (ratAddRep (f a) (g a)))
+        (ratRel_trans_gen
+          (ratAddRep (ratMulRep (ratSubRep x a) (q x))
+                     (ratMulRep (ratSubRep x a) (r x)))
+          (ratAddRep (ratSubRep (f x) (f a))
+                     (ratMulRep (ratSubRep x a) (r x)))
+          (ratAddRep (ratSubRep (f x) (f a))
+                     (ratSubRep (g x) (g a)))
+          (ratAddRep_wd_gen
+            (ratMulRep (ratSubRep x a) (q x))
+            (ratSubRep (f x) (f a))
+            (ratMulRep (ratSubRep x a) (r x))
+            (hq x hx))
+          (ratAddRep_wd_snd_gen
+            (ratSubRep (f x) (f a))
+            (ratMulRep (ratSubRep x a) (r x))
+            (ratSubRep (g x) (g a))
+            (hr x hx)))
+        (ratAdd_sub_sub (f x) (f a) (g x) (g a)))</code></pre></details><details open class="appendix-solution" id="app-sol-145-5"><summary>练习 5 · hasDerivAt_add <span class="sol-meta">定理</span></summary><pre><code>theorem hasDerivAt_add (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a
+      (ratAddRep L M) :=
+  Exists.elim hf
+    (fun (q : ratRep → ratRep)
+        (hq : IsSlope f a q ∧ TendsToAt q a L) =&gt;
+      Exists.elim hg
+        (fun (r : ratRep → ratRep)
+            (hr : IsSlope g a r ∧ TendsToAt r a M) =&gt;
+          Exists.intro (fun (x : ratRep) =&gt; ratAddRep (q x) (r x))
+            (And.intro
+              (isSlope_add f g a q r (And.left hq) (And.left hr))
+              (tendsToAt_add q r a L M (And.right hq) (And.right hr)))))</code></pre></details><details open class="appendix-solution" id="app-sol-145-6"><summary>练习 6 · differentiableAt_add <span class="sol-meta">定理</span></summary><pre><code>theorem differentiableAt_add (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratAddRep (f x) (g x)) a :=
+  Exists.elim hf
+    (fun (L : ratRep) (hL : HasDerivAt f a L) =&gt;
+      Exists.elim hg
+        (fun (M : ratRep) (hM : HasDerivAt g a M) =&gt;
+          Exists.intro (ratAddRep L M)
+            (hasDerivAt_add f g a L M hL hM)))</code></pre></details><details open class="appendix-solution" id="app-sol-145-7"><summary>练习 7 · isSlope_sub <span class="sol-meta">定理</span></summary><pre><code>theorem isSlope_sub (f g : ratRep → ratRep) (a : ratRep)
+    (q r : ratRep → ratRep) (hq : IsSlope f a q) (hr : IsSlope g a r) :
+    IsSlope (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (fun (x : ratRep) =&gt; ratSubRep (q x) (r x)) :=
+  isSlope_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a q
+    (fun (x : ratRep) =&gt; ratNegRep (r x)) hq (isSlope_neg g a r hr)</code></pre></details><details open class="appendix-solution" id="app-sol-145-8"><summary>练习 8 · hasDerivAt_sub <span class="sol-meta">定理</span></summary><pre><code>theorem hasDerivAt_sub (f g : ratRep → ratRep) (a L M : ratRep)
+    (hf : HasDerivAt f a L) (hg : HasDerivAt g a M) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a
+      (ratSubRep L M) :=
+  hasDerivAt_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a L
+    (ratNegRep M) hf (hasDerivAt_neg g a M hg)</code></pre></details><details open class="appendix-solution" id="app-sol-145-9"><summary>练习 9 · differentiableAt_sub <span class="sol-meta">定理</span></summary><pre><code>theorem differentiableAt_sub (f g : ratRep → ratRep) (a : ratRep)
+    (hf : DifferentiableAt f a) (hg : DifferentiableAt g a) :
+    DifferentiableAt (fun (x : ratRep) =&gt; ratSubRep (f x) (g x)) a :=
+  differentiableAt_add f (fun (x : ratRep) =&gt; ratNegRep (g x)) a hf
+    (differentiableAt_neg g a hg)</code></pre></details><details open class="appendix-solution" id="app-sol-145-10"><summary>练习 10 · demo_deriv_id_add_id <span class="sol-meta">定理</span></summary><pre><code>theorem demo_deriv_id_add_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep x x) a
+      (ratAddRep ratOneRep ratOneRep) :=
+  hasDerivAt_add (fun (x : ratRep) =&gt; x) (fun (x : ratRep) =&gt; x) a
+    ratOneRep ratOneRep (hasDerivAt_id a) (hasDerivAt_id a)</code></pre></details><details open class="appendix-solution" id="app-sol-145-11"><summary>练习 11 · demo_deriv_const_add_id <span class="sol-meta">定理</span></summary><pre><code>theorem demo_deriv_const_add_id (c a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratAddRep c x) a
+      (ratAddRep ratZeroRep ratOneRep) :=
+  hasDerivAt_add (fun (_ : ratRep) =&gt; c) (fun (x : ratRep) =&gt; x) a
+    ratZeroRep ratOneRep (hasDerivAt_const c a) (hasDerivAt_id a)</code></pre></details><details open class="appendix-solution" id="app-sol-145-12"><summary>练习 12 · demo_deriv_id_sub_id <span class="sol-meta">定理</span></summary><pre><code>theorem demo_deriv_id_sub_id (a : ratRep) :
+    HasDerivAt (fun (x : ratRep) =&gt; ratSubRep x x) a
+      (ratSubRep ratOneRep ratOneRep) :=
+  hasDerivAt_sub (fun (x : ratRep) =&gt; x) (fun (x : ratRep) =&gt; x) a
+    ratOneRep ratOneRep (hasDerivAt_id a) (hasDerivAt_id a)</code></pre></details><details open class="appendix-solution" id="app-extra-145-1"><summary>补充 · mul_rotate <span class="sol-meta">定理</span></summary><pre><code>theorem mul_rotate (p q s r : Nat) :
+    myMul (myMul p (myMul q s)) r = myMul (myMul p q) (myMul r s) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul p (myMul q s)) r)
+    (myMul p (myMul (myMul q s) r))
+    (myMul (myMul p q) (myMul r s))
+    (myMul_assoc p (myMul q s) r)
+    (@Eq.trans.{1} Nat
+      (myMul p (myMul (myMul q s) r))
+      (myMul p (myMul q (myMul s r)))
+      (myMul (myMul p q) (myMul r s))
+      (congrArg.{1} (fun (Z : Nat) =&gt; myMul p Z) (myMul_assoc q s r))
+      (@Eq.trans.{1} Nat
+        (myMul p (myMul q (myMul s r)))
+        (myMul p (myMul q (myMul r s)))
+        (myMul (myMul p q) (myMul r s))
+        (congrArg.{1} (fun (Z : Nat) =&gt; myMul p (myMul q Z)) (myMul_comm s r))
+        (@Eq.symm.{1} Nat
+          (myMul (myMul p q) (myMul r s))
+          (myMul p (myMul q (myMul r s)))
+          (myMul_assoc p q (myMul r s)))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-2"><summary>补充 · sum4_mul <span class="sol-meta">定理</span></summary><pre><code>theorem sum4_mul (x1 x2 x3 x4 c : Nat) :
+    myMul (Nat.add (Nat.add x1 x2) (Nat.add x3 x4)) c =
+      Nat.add (Nat.add (myMul x1 c) (myMul x2 c))
+              (Nat.add (myMul x3 c) (myMul x4 c)) :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.add (Nat.add x1 x2) (Nat.add x3 x4)) c)
+    (Nat.add (myMul (Nat.add x1 x2) c) (myMul (Nat.add x3 x4) c))
+    (Nat.add (Nat.add (myMul x1 c) (myMul x2 c))
+             (Nat.add (myMul x3 c) (myMul x4 c)))
+    (mul_add_right (Nat.add x1 x2) (Nat.add x3 x4) c)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul (Nat.add x1 x2) c) (myMul (Nat.add x3 x4) c))
+      (Nat.add (Nat.add (myMul x1 c) (myMul x2 c))
+               (myMul (Nat.add x3 x4) c))
+      (Nat.add (Nat.add (myMul x1 c) (myMul x2 c))
+               (Nat.add (myMul x3 c) (myMul x4 c)))
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; Nat.add Z (myMul (Nat.add x3 x4) c))
+        (mul_add_right x1 x2 c))
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt;
+          Nat.add (Nat.add (myMul x1 c) (myMul x2 c)) Z)
+        (mul_add_right x3 x4 c)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-3"><summary>补充 · term1 <span class="sol-meta">定理</span></summary><pre><code>theorem term1 (a c m k : Nat) :
+    myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m) =
+      myMul (myMul a c) (Nat.succ (ratDenRep m k)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+    (myMul (myMul a c) (myMul (Nat.succ m) (Nat.succ k)))
+    (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+    (mul_rotate a c (Nat.succ k) (Nat.succ m))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul (myMul a c) Z)
+      (@Eq.symm.{1} Nat (Nat.succ (ratDenRep m k))
+        (myMul (Nat.succ m) (Nat.succ k)) (ratDenRep_succ m k)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-4"><summary>补充 · term2 <span class="sol-meta">定理</span></summary><pre><code>theorem term2 (a e m n : Nat) :
+    myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m) =
+      myMul (myMul a e) (Nat.succ (ratDenRep m n)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m))
+    (myMul (myMul a e) (myMul (Nat.succ m) (Nat.succ n)))
+    (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+    (mul_rotate a e (Nat.succ n) (Nat.succ m))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul (myMul a e) Z)
+      (@Eq.symm.{1} Nat (Nat.succ (ratDenRep m n))
+        (myMul (Nat.succ m) (Nat.succ n)) (ratDenRep_succ m n)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-5"><summary>补充 · term3 <span class="sol-meta">定理</span></summary><pre><code>theorem term3 (b d m k : Nat) :
+    myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m) =
+      myMul (myMul b d) (Nat.succ (ratDenRep m k)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+    (myMul (myMul b d) (myMul (Nat.succ m) (Nat.succ k)))
+    (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+    (mul_rotate b d (Nat.succ k) (Nat.succ m))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul (myMul b d) Z)
+      (@Eq.symm.{1} Nat (Nat.succ (ratDenRep m k))
+        (myMul (Nat.succ m) (Nat.succ k)) (ratDenRep_succ m k)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-6"><summary>补充 · term4 <span class="sol-meta">定理</span></summary><pre><code>theorem term4 (b f m n : Nat) :
+    myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m) =
+      myMul (myMul b f) (Nat.succ (ratDenRep m n)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))
+    (myMul (myMul b f) (myMul (Nat.succ m) (Nat.succ n)))
+    (myMul (myMul b f) (Nat.succ (ratDenRep m n)))
+    (mul_rotate b f (Nat.succ n) (Nat.succ m))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul (myMul b f) Z)
+      (@Eq.symm.{1} Nat (Nat.succ (ratDenRep m n))
+        (myMul (Nat.succ m) (Nat.succ n)) (ratDenRep_succ m n)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-7"><summary>补充 · a_expand <span class="sol-meta">定理</span></summary><pre><code>theorem a_expand (a b c d e f k n : Nat) :
+    Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))
+            (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) =
+      Nat.add
+        (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+        (Nat.add (myMul b (myMul d (Nat.succ k))) (myMul b (myMul f (Nat.succ n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))
+             (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))))
+    (Nat.add
+      (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+      (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))))
+    (Nat.add
+      (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+      (Nat.add (myMul b (myMul d (Nat.succ k))) (myMul b (myMul f (Nat.succ n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))))
+      (mul_add a (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+          Z)
+      (mul_add b (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-8"><summary>补充 · a_P <span class="sol-meta">定理</span></summary><pre><code>theorem a_P (a b m c d n e f k : Nat) :
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+            (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))) =
+      Nat.add
+        (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+        (Nat.add (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+                 (myMul (myMul b f) (Nat.succ (ratDenRep m n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+             (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+      (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+      (Nat.add (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+               (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+      (mul_add_right (myMul a c) (myMul b d) (Nat.succ (ratDenRep m k))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+          Z)
+      (mul_add_right (myMul a e) (myMul b f) (Nat.succ (ratDenRep m n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-9"><summary>补充 · a_terms <span class="sol-meta">定理</span></summary><pre><code>theorem a_terms (a b m c d n e f k : Nat) :
+    Nat.add
+      (Nat.add (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+      (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))) =
+    Nat.add
+      (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b f) (Nat.succ (ratDenRep m n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+      (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z
+          (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add Z (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+          (term1 a c m k))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k))) Z)
+          (term2 a e m n))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+          Z)
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b f) (Nat.succ (ratDenRep m n))))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add Z (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m)))
+          (term3 b d m k))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k))) Z)
+          (term4 b f m n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-10"><summary>补充 · a_main <span class="sol-meta">定理</span></summary><pre><code>theorem a_main (a b m c d n e f k : Nat) :
+    myMul
+      (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))
+               (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))))
+      (Nat.succ m) =
+    Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+            (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))) :=
+  @Eq.trans.{1} Nat
+    (myMul
+      (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))
+               (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))))
+      (Nat.succ m))
+    (myMul
+      (Nat.add
+        (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+        (Nat.add (myMul b (myMul d (Nat.succ k))) (myMul b (myMul f (Nat.succ n)))))
+      (Nat.succ m))
+    (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+             (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z (Nat.succ m))
+      (a_expand a b c d e f k n))
+    (@Eq.trans.{1} Nat
+      (myMul
+        (Nat.add
+          (Nat.add (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n))))
+          (Nat.add (myMul b (myMul d (Nat.succ k))) (myMul b (myMul f (Nat.succ n)))))
+        (Nat.succ m))
+      (Nat.add
+        (Nat.add (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))))
+      (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+               (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+      (sum4_mul (myMul a (myMul c (Nat.succ k))) (myMul a (myMul e (Nat.succ n)))
+        (myMul b (myMul d (Nat.succ k))) (myMul b (myMul f (Nat.succ n)))
+        (Nat.succ m))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (Nat.add (myMul (myMul a (myMul c (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul a (myMul e (Nat.succ n))) (Nat.succ m)))
+          (Nat.add (myMul (myMul b (myMul d (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul b (myMul f (Nat.succ n))) (Nat.succ m))))
+        (Nat.add
+          (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+          (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+        (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+                 (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+        (a_terms a b m c d n e f k)
+        (@Eq.trans.{1} Nat
+          (Nat.add
+            (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul a e) (Nat.succ (ratDenRep m n))))
+            (Nat.add (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+          (Nat.add
+            (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+            (Nat.add (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+                     (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+          (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+                   (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+          (add_shift (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+            (myMul (myMul b d) (Nat.succ (ratDenRep m k)))
+            (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+            (myMul (myMul b f) (Nat.succ (ratDenRep m n))))
+          (@Eq.symm.{1} Nat
+            (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k)))
+                     (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n))))
+            (Nat.add
+              (Nat.add (myMul (myMul a c) (Nat.succ (ratDenRep m k)))
+                       (myMul (myMul b d) (Nat.succ (ratDenRep m k))))
+              (Nat.add (myMul (myMul a e) (Nat.succ (ratDenRep m n)))
+                       (myMul (myMul b f) (Nat.succ (ratDenRep m n)))))
+            (a_P a b m c d n e f k)))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-11"><summary>补充 · b_expand <span class="sol-meta">定理</span></summary><pre><code>theorem b_expand (a b c d e f k n : Nat) :
+    Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))
+            (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) =
+      Nat.add
+        (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+        (Nat.add (myMul b (myMul c (Nat.succ k))) (myMul b (myMul e (Nat.succ n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))
+             (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))
+    (Nat.add
+      (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+      (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))
+    (Nat.add
+      (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+      (Nat.add (myMul b (myMul c (Nat.succ k))) (myMul b (myMul e (Nat.succ n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))
+      (mul_add a (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+          Z)
+      (mul_add b (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-12"><summary>补充 · b_P <span class="sol-meta">定理</span></summary><pre><code>theorem b_P (a b m c d n e f k : Nat) :
+    Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+            (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))) =
+      Nat.add
+        (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+        (Nat.add (myMul (myMul a f) (Nat.succ (ratDenRep m n)))
+                 (myMul (myMul b e) (Nat.succ (ratDenRep m n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+             (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+      (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+    (Nat.add
+      (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+      (Nat.add (myMul (myMul a f) (Nat.succ (ratDenRep m n)))
+               (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+      (mul_add_right (myMul a d) (myMul b c) (Nat.succ (ratDenRep m k))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+          Z)
+      (mul_add_right (myMul a f) (myMul b e) (Nat.succ (ratDenRep m n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-13"><summary>补充 · b_terms <span class="sol-meta">定理</span></summary><pre><code>theorem b_terms (a b m c d n e f k : Nat) :
+    Nat.add
+      (Nat.add (myMul (myMul a (myMul d (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+      (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))) =
+    Nat.add
+      (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b e) (Nat.succ (ratDenRep m n)))) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul (myMul a (myMul d (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+      (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+               (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+      (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+               (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add Z
+          (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (myMul a (myMul d (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add Z (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+          (term1 a d m k))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k))) Z)
+          (term2 a f m n))))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt;
+        Nat.add
+          (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+          Z)
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+                 (myMul (myMul b e) (Nat.succ (ratDenRep m n))))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add Z (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m)))
+          (term3 b c m k))
+        (congrArg.{1}
+          (fun (Z : Nat) =&gt;
+            Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k))) Z)
+          (term4 b e m n))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-14"><summary>补充 · b_main <span class="sol-meta">定理</span></summary><pre><code>theorem b_main (a b m c d n e f k : Nat) :
+    myMul
+      (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))
+               (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))
+      (Nat.succ m) =
+    Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+            (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))) :=
+  @Eq.trans.{1} Nat
+    (myMul
+      (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))
+               (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))
+      (Nat.succ m))
+    (myMul
+      (Nat.add
+        (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+        (Nat.add (myMul b (myMul c (Nat.succ k))) (myMul b (myMul e (Nat.succ n)))))
+      (Nat.succ m))
+    (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+             (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z (Nat.succ m))
+      (b_expand a b c d e f k n))
+    (@Eq.trans.{1} Nat
+      (myMul
+        (Nat.add
+          (Nat.add (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n))))
+          (Nat.add (myMul b (myMul c (Nat.succ k))) (myMul b (myMul e (Nat.succ n)))))
+        (Nat.succ m))
+      (Nat.add
+        (Nat.add (myMul (myMul a (myMul d (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+        (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+                 (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))))
+      (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+               (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+      (sum4_mul (myMul a (myMul d (Nat.succ k))) (myMul a (myMul f (Nat.succ n)))
+        (myMul b (myMul c (Nat.succ k))) (myMul b (myMul e (Nat.succ n)))
+        (Nat.succ m))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (Nat.add (myMul (myMul a (myMul d (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul a (myMul f (Nat.succ n))) (Nat.succ m)))
+          (Nat.add (myMul (myMul b (myMul c (Nat.succ k))) (Nat.succ m))
+                   (myMul (myMul b (myMul e (Nat.succ n))) (Nat.succ m))))
+        (Nat.add
+          (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+          (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+                   (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+        (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+                 (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+        (b_terms a b m c d n e f k)
+        (@Eq.trans.{1} Nat
+          (Nat.add
+            (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul a f) (Nat.succ (ratDenRep m n))))
+            (Nat.add (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+          (Nat.add
+            (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                     (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+            (Nat.add (myMul (myMul a f) (Nat.succ (ratDenRep m n)))
+                     (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+          (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+                   (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+          (add_shift (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+            (myMul (myMul b c) (Nat.succ (ratDenRep m k)))
+            (myMul (myMul a f) (Nat.succ (ratDenRep m n)))
+            (myMul (myMul b e) (Nat.succ (ratDenRep m n))))
+          (@Eq.symm.{1} Nat
+            (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k)))
+                     (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))
+            (Nat.add
+              (Nat.add (myMul (myMul a d) (Nat.succ (ratDenRep m k)))
+                       (myMul (myMul b c) (Nat.succ (ratDenRep m k))))
+              (Nat.add (myMul (myMul a f) (Nat.succ (ratDenRep m n)))
+                       (myMul (myMul b e) (Nat.succ (ratDenRep m n)))))
+            (b_P a b m c d n e f k)))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-15"><summary>补充 · denD_R <span class="sol-meta">定理</span></summary><pre><code>theorem denD_R (m n k : Nat) :
+    Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)) =
+      myMul (myMul (Nat.succ m) (Nat.succ n))
+            (myMul (Nat.succ m) (Nat.succ k)) :=
+  @Eq.trans.{1} Nat
+    (Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))
+    (myMul (Nat.succ (ratDenRep m n)) (Nat.succ (ratDenRep m k)))
+    (myMul (myMul (Nat.succ m) (Nat.succ n))
+           (myMul (Nat.succ m) (Nat.succ k)))
+    (ratDenRep_succ (ratDenRep m n) (ratDenRep m k))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ (ratDenRep m n)) (Nat.succ (ratDenRep m k)))
+      (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ (ratDenRep m k)))
+      (myMul (myMul (Nat.succ m) (Nat.succ n))
+             (myMul (Nat.succ m) (Nat.succ k)))
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; myMul Z (Nat.succ (ratDenRep m k)))
+        (ratDenRep_succ m n))
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; myMul (myMul (Nat.succ m) (Nat.succ n)) Z)
+        (ratDenRep_succ m k)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-16"><summary>补充 · denD_L <span class="sol-meta">定理</span></summary><pre><code>theorem denD_L (m n k : Nat) :
+    Nat.succ (ratDenRep m (ratDenRep n k)) =
+      myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k)) :=
+  @Eq.trans.{1} Nat
+    (Nat.succ (ratDenRep m (ratDenRep n k)))
+    (myMul (Nat.succ m) (Nat.succ (ratDenRep n k)))
+    (myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k)))
+    (ratDenRep_succ m (ratDenRep n k))
+    (congrArg.{1}
+      (fun (Z : Nat) =&gt; myMul (Nat.succ m) Z)
+      (ratDenRep_succ n k))</code></pre></details><details open class="appendix-solution" id="app-extra-145-17"><summary>补充 · mul_mid_swap <span class="sol-meta">定理</span></summary><pre><code>theorem mul_mid_swap (q r s : Nat) :
+    myMul r (myMul q s) = myMul q (myMul r s) :=
+  @Eq.trans.{1} Nat
+    (myMul r (myMul q s))
+    (myMul (myMul r q) s)
+    (myMul q (myMul r s))
+    (@Eq.symm.{1} Nat (myMul (myMul r q) s) (myMul r (myMul q s)) (myMul_assoc r q s))
+    (@Eq.trans.{1} Nat
+      (myMul (myMul r q) s)
+      (myMul (myMul q r) s)
+      (myMul q (myMul r s))
+      (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z s) (myMul_comm r q))
+      (myMul_assoc q r s))</code></pre></details><details open class="appendix-solution" id="app-extra-145-18"><summary>补充 · den_rotate <span class="sol-meta">定理</span></summary><pre><code>theorem den_rotate (p q r s : Nat) :
+    myMul p (myMul (myMul q r) (myMul q s)) =
+      myMul (myMul p q) (myMul q (myMul r s)) :=
+  @Eq.trans.{1} Nat
+    (myMul p (myMul (myMul q r) (myMul q s)))
+    (myMul (myMul p (myMul q r)) (myMul q s))
+    (myMul (myMul p q) (myMul q (myMul r s)))
+    (@Eq.symm.{1} Nat (myMul (myMul p (myMul q r)) (myMul q s))
+      (myMul p (myMul (myMul q r) (myMul q s)))
+      (myMul_assoc p (myMul q r) (myMul q s)))
+    (@Eq.trans.{1} Nat
+      (myMul (myMul p (myMul q r)) (myMul q s))
+      (myMul (myMul (myMul p q) r) (myMul q s))
+      (myMul (myMul p q) (myMul q (myMul r s)))
+      (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z (myMul q s))
+        (@Eq.symm.{1} Nat (myMul (myMul p q) r) (myMul p (myMul q r))
+          (myMul_assoc p q r)))
+      (@Eq.trans.{1} Nat
+        (myMul (myMul (myMul p q) r) (myMul q s))
+        (myMul (myMul p q) (myMul r (myMul q s)))
+        (myMul (myMul p q) (myMul q (myMul r s)))
+        (myMul_assoc (myMul p q) r (myMul q s))
+        (congrArg.{1} (fun (Z : Nat) =&gt; myMul (myMul p q) Z)
+          (mul_mid_swap q r s))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-19"><summary>补充 · crossA <span class="sol-meta">定理</span></summary><pre><code>theorem crossA (x m n k : Nat) :
+    myMul x (Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))) =
+      myMul (myMul x (Nat.succ m)) (Nat.succ (ratDenRep m (ratDenRep n k))) :=
+  @Eq.trans.{1} Nat
+    (myMul x (Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))
+    (myMul x (myMul (myMul (Nat.succ m) (Nat.succ n))
+                    (myMul (Nat.succ m) (Nat.succ k))))
+    (myMul (myMul x (Nat.succ m)) (Nat.succ (ratDenRep m (ratDenRep n k))))
+    (congrArg.{1} (fun (Z : Nat) =&gt; myMul x Z) (denD_R m n k))
+    (@Eq.trans.{1} Nat
+      (myMul x (myMul (myMul (Nat.succ m) (Nat.succ n))
+                      (myMul (Nat.succ m) (Nat.succ k))))
+      (myMul (myMul x (Nat.succ m))
+             (myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k))))
+      (myMul (myMul x (Nat.succ m)) (Nat.succ (ratDenRep m (ratDenRep n k))))
+      (den_rotate x (Nat.succ m) (Nat.succ n) (Nat.succ k))
+      (congrArg.{1}
+        (fun (Z : Nat) =&gt; myMul (myMul x (Nat.succ m)) Z)
+        (@Eq.symm.{1} Nat (Nat.succ (ratDenRep m (ratDenRep n k)))
+          (myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k)))
+          (denD_L m n k))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-20"><summary>补充 · ratMul_add_step1 <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add_step1 (a b m c d n e f k : Nat) :
+    intRel
+      (mulRep (@prod_mk Nat Nat (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))) (den (ratDenRep (ratDenRep m n) (ratDenRep m k))))
+      (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))) :=
+  intRel_of_eq (mulRep (@prod_mk Nat Nat (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))) (den (ratDenRep (ratDenRep m n) (ratDenRep m k)))) (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))))
+    (mulRep_den_form (@prod_mk Nat Nat (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))) (ratDenRep (ratDenRep m n) (ratDenRep m k)))</code></pre></details><details open class="appendix-solution" id="app-extra-145-21"><summary>补充 · ratMul_add_step2 <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add_step2 (a b m c d n e f k : Nat) :
+    intRel
+      (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))))
+      (@prod_mk Nat Nat (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))) (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))) :=
+  intRel_of_eq (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))) (@prod_mk Nat Nat (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))) (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))))
+    (prod_mk_congr
+      (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))
+      (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))
+      (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (@Eq.trans.{1} Nat
+      (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))
+      (myMul ((myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ m)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (crossA (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) m n k)
+      (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z (Nat.succ (ratDenRep m (ratDenRep n k)))) (a_main a b m c d n e f k)))
+      (@Eq.trans.{1} Nat
+      (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))
+      (myMul ((myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ m)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (crossA (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) m n k)
+      (congrArg.{1} (fun (Z : Nat) =&gt; myMul Z (Nat.succ (ratDenRep m (ratDenRep n k)))) (b_main a b m c d n e f k))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-22"><summary>补充 · ratMul_add_step3 <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add_step3 (a b m c d n e f k : Nat) :
+    intRel
+      (@prod_mk Nat Nat (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))) (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))))
+      (mulRep (@prod_mk Nat Nat (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))) (den (ratDenRep m (ratDenRep n k)))) :=
+  intRel_of_eq (@prod_mk Nat Nat (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))) (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))) (mulRep (@prod_mk Nat Nat (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))) (den (ratDenRep m (ratDenRep n k))))
+    (Eq.symm (mulRep_den_form (@prod_mk Nat Nat (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))) (ratDenRep m (ratDenRep n k))))</code></pre></details><details open class="appendix-solution" id="app-extra-145-23"><summary>补充 · ratMul_add_aux <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add_aux (a b m c d n e f k : Nat) :
+    ratRel
+      (ratMulRep (qrep a b m) (ratAddRep (qrep c d n) (qrep e f k)))
+      (ratAddRep (ratMulRep (qrep a b m) (qrep c d n))
+                 (ratMulRep (qrep a b m) (qrep e f k))) :=
+  intRel_trans (mulRep (@prod_mk Nat Nat (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))))) (den (ratDenRep (ratDenRep m n) (ratDenRep m k)))) (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))) (mulRep (@prod_mk Nat Nat (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))) (den (ratDenRep m (ratDenRep n k))))
+    (ratMul_add_step1 a b m c d n e f k)
+    (intRel_trans (@prod_mk Nat Nat (myMul (Nat.add (myMul a (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n)))) (myMul b (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k))))) (myMul (Nat.add (myMul a (Nat.add (myMul d (Nat.succ k)) (myMul f (Nat.succ n)))) (myMul b (Nat.add (myMul c (Nat.succ k)) (myMul e (Nat.succ n))))) ((Nat.succ (ratDenRep (ratDenRep m n) (ratDenRep m k)))))) (@prod_mk Nat Nat (myMul (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k))))) (myMul (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n)))) ((Nat.succ (ratDenRep m (ratDenRep n k)))))) (mulRep (@prod_mk Nat Nat (Nat.add (myMul (Nat.add (myMul a c) (myMul b d)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a e) (myMul b f)) (Nat.succ (ratDenRep m n)))) (Nat.add (myMul (Nat.add (myMul a d) (myMul b c)) (Nat.succ (ratDenRep m k))) (myMul (Nat.add (myMul a f) (myMul b e)) (Nat.succ (ratDenRep m n))))) (den (ratDenRep m (ratDenRep n k))))
+      (ratMul_add_step2 a b m c d n e f k)
+      (ratMul_add_step3 a b m c d n e f k))</code></pre></details><details open class="appendix-solution" id="app-extra-145-24"><summary>补充 · ratMul_add_pack <span class="sol-meta">定理</span></summary><pre><code>theorem ratMul_add_pack (x y z : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep x (ratAddRep y z))
+      (ratAddRep (ratMulRep x y) (ratMulRep x z)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =&gt;
+    match y with
+    | prod_mk (prod_mk c d) n =&gt;
+      match z with
+      | prod_mk (prod_mk e f) k =&gt;
+        ratMul_add_aux a b m c d n e f k</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

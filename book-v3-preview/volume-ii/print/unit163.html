@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 163 阿基米德性质：反复相加总能超过</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit163.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 163 阿基米德性质：反复相加总能超过</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit163.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.8 Riemann 积分 · 单元 163</p><h1>阿基米德性质：反复相加总能超过</h1><p class="note">Unit 163 — The Archimedean Property: Repeated Addition Eventually Wins</p></header><section class="unit" id="unit-163">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-8.html">III.8</a> · 本章第 13 / 16 单元 · 全书第 163 / 171 单元</p>
+<h2><span class="unit-number">163</span><span>阿基米德性质：反复相加总能超过</span></h2>
+<p class="unit-title-en">Unit 163 — The Archimedean Property: Repeated Addition Eventually Wins</p>
+<p class="unit-meta">1 个定义 · 11 个定理 · 7 道练习 · 21 条提示 · <a href="#appendix-unit-163">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>要把面积误差压到 <span class="math">ε</span> 以下，靠的是把区间切得足够细。切得够不够细，取决于同一个问题：一个正数反复相加，能不能超过区间长度？如果无论加多少次都超不过 b - a，那么段数再多也只能覆盖很窄的一段，误差压不下去。</p></div></div></section>
+<div class="block prose intuition-only"><p>在有理数里这件事可以直接算。一个正数写成 <span class="math">(p - q)/(m+1)</span>，其中 p &gt; q；把它乘上 <span class="math">(r+1)(m+1)</span>，分式变成 <span class="math">(r+1)(p - q)</span>，而任何待超过的量 <span class="math">r/(j+1)</span> 都不超过 r。倍数取得够大，就一定超过。</p></div><div class="block prose intuition-only"><p>要把这句话写成证明，第一步是把「一个有理数不超过另一个」翻译成整数乘法的大小比较。交叉相乘之后，两个分母各被消到一边，剩下两条 <span class="math">ℕ</span> 上的不等式；这一步把分式问题变成算术问题。</p></div><div class="block prose intuition-only"><p>第二步是 <span class="math">ℕ</span> 上的估计。下面四条事实反复出现：一乘任何数还是它自己；某数加上一段不会变小；两个至少为 1 的数相乘仍然至少为 1；把一段乘到两边，大小关系不变。主定理取 <span class="math">n = (r+1)(m+1)</span>，代进交叉相乘的形式后，待证的不等式变成「一个乘积不超过另一个乘积」，四项各交给上面的一条。</p></div><div class="block prose intuition-only"><p>严格版本不必重新算：把待超过的量换成它加一，弱序就收紧成严格序。</p></div><div class="block prose intuition-only"><p>这条性质只管倍数能超过，不谈倒数，也不谈倍数能任意接近某个数；证明停在有理代表元层。</p></div><div class="block prose intuition-only"><p>把正数写成 n/1 的倍数</p></div><div class="block prose intuition-only"><p>自然数放进有理数：n/1。</p></div><article class="decl decl-def" id="decl-163-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">natToRat</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def natToRat (n : Nat) : ratRep := qrep n Nat.zero Nat.zero</code></pre></div></article>
+<div class="block prose intuition-only"><p>分母字段：<code>ratDenRep 0 m</code> 就是 m。</p></div><article class="decl decl-theorem" id="decl-163-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">ratDenRep_zero_left</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem ratDenRep_zero_left (m : Nat) : ratDenRep Nat.zero m = m :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} Nat
+    (ratDenRep Nat.zero m)
+    (ratDenRep m Nat.zero)
+    m
+    (ratDenRep_comm Nat.zero m)
+    (ratAdd_zero_den m)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p><code>n · (p - q)/(m+1) = (n·p - n·q)/(m+1)</code>：分子两个坐标各用 <code>myMul 0</code> 的零律。</p></div><article class="decl decl-theorem" id="decl-163-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">natToRat_mul_rep</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem natToRat_mul_rep (n p q m : Nat) :
+    ratMulRep (natToRat n) (qrep p q m) =
+      qrep (myMul n p) (myMul n q) m :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 34 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.trans.{1} ratRep
+    (ratMulRep (natToRat n) (qrep p q m))
+    (qrep
+      (Nat.add (myMul n p) (myMul Nat.zero q))
+      (Nat.add (myMul n q) (myMul Nat.zero p))
+      (ratDenRep Nat.zero m))
+    (qrep (myMul n p) (myMul n q) m)
+    (@Eq.refl.{1} ratRep
+      (qrep
+        (Nat.add (myMul n p) (myMul Nat.zero q))
+        (Nat.add (myMul n q) (myMul Nat.zero p))
+        (ratDenRep Nat.zero m)))
+    (qrep_congr
+      (Nat.add (myMul n p) (myMul Nat.zero q))
+      (myMul n p)
+      (Nat.add (myMul n q) (myMul Nat.zero p))
+      (myMul n q)
+      (ratDenRep Nat.zero m)
+      m
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul n p) (myMul Nat.zero q))
+        (Nat.add (myMul n p) Nat.zero)
+        (myMul n p)
+        (@congrArg.{1} Nat Nat (myMul Nat.zero q) Nat.zero
+          (fun (z : Nat) =&gt; Nat.add (myMul n p) z) (zero_mul q))
+        (add_zero (myMul n p)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul n q) (myMul Nat.zero p))
+        (Nat.add (myMul n q) Nat.zero)
+        (myMul n q)
+        (@congrArg.{1} Nat Nat (myMul Nat.zero p) Nat.zero
+          (fun (z : Nat) =&gt; Nat.add (myMul n q) z) (zero_mul p))
+        (add_zero (myMul n q)))
+      (ratDenRep_zero_left m))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>零作左因子：交叉相乘的第一半是 (0,0)。</p></div><article class="decl decl-theorem" id="decl-163-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNum_zero_lit</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNum_zero_lit (a b m : Nat) :
+    leNum ratZeroRep (qrep a b m) = @prod_mk Nat Nat Nat.zero Nat.zero :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  mulRep_zero_pair (Nat.succ m) Nat.zero</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>零作右因子：交叉相乘的第二半是原来的分子。</p></div><article class="decl decl-theorem" id="decl-163-5"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">leNum_lit_zero</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem leNum_lit_zero (a b m : Nat) :
+    leNum (qrep a b m) ratZeroRep = @prod_mk Nat Nat a b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 27 行</summary><ol class="proof-steps"><li><pre><code>  prod_mk_congr
+    (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+    a
+    (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+    b
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a (Nat.succ Nat.zero)) (myMul b Nat.zero))
+      (Nat.add (Nat.add a Nat.zero) Nat.zero)
+      a
+      (@Eq.refl.{1} Nat (Nat.add (Nat.add a Nat.zero) Nat.zero))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add a Nat.zero) Nat.zero)
+        (Nat.add a Nat.zero)
+        a
+        (add_zero (Nat.add a Nat.zero))
+        (add_zero a)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul a Nat.zero) (myMul b (Nat.succ Nat.zero)))
+      (Nat.add Nat.zero (Nat.add b Nat.zero))
+      b
+      (@Eq.refl.{1} Nat (Nat.add Nat.zero (Nat.add b Nat.zero)))
+      (@Eq.trans.{1} Nat
+        (Nat.add Nat.zero (Nat.add b Nat.zero))
+        (Nat.add b Nat.zero)
+        b
+        (zero_add (Nat.add b Nat.zero))
+        (add_zero b)))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-163-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">ratLeRep_zero_lit</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>把「<span class="math">0 ≤ x</span>」化成整数的大小</p></div></div><pre class="exercise-statement"><code>theorem ratLeRep_zero_lit (a b m : Nat) :
+    ratLeRep ratZeroRep (qrep a b m) ↔ LeNat b a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <code>ratLeRep</code> 展开成 <code>leRep (leNum …) (leNum …)</code>，再用两条已给的交叉相乘公式把两个 <code>leNum</code> 换成 (0,0) 与 (a,b)；剩下的 <code>0 + b ≤ a + 0</code> 用 <code>zero_add</code> 与 <code>add_zero</code> 消掉。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep ratZeroRep (qrep a b m) ↔ LeNat b a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">leNum_zero_lit · leNum_lit_zero · zero_add · add_zero · Eq.subst</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-1"><summary>查看解答 <span class="sol-meta">定理 · 44 行</span></summary><div class="solution-body"><p class="solution-note"><code>0 ≤ x</code> 在字面代表元上就是「分子第二格不超过第一格」。</p><pre><code>theorem ratLeRep_zero_lit (a b m : Nat) :
+    ratLeRep ratZeroRep (qrep a b m) ↔ LeNat b a :=
+  Iff.intro
+    (fun (h : ratLeRep ratZeroRep (qrep a b m)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) =&gt; LeNat b z)
+        (Nat.add a Nat.zero) a (add_zero a)
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) =&gt; LeNat z (Nat.add a Nat.zero))
+          (Nat.add Nat.zero b) b (zero_add b)
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (p : Prod Nat Nat) =&gt; leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m)
+            (@Eq.subst.{1} (Prod Nat Nat)
+              (fun (p : Prod Nat Nat) =&gt;
+                leRep p (leNum (qrep a b m) ratZeroRep))
+              (leNum ratZeroRep (qrep a b m))
+              (@prod_mk Nat Nat Nat.zero Nat.zero)
+              (leNum_zero_lit a b m) h))))
+    (fun (h : LeNat b a) =&gt;
+      @Eq.subst.{1} (Prod Nat Nat)
+        (fun (p : Prod Nat Nat) =&gt;
+          leRep p (leNum (qrep a b m) ratZeroRep))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (leNum ratZeroRep (qrep a b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (leNum ratZeroRep (qrep a b m))
+          (@prod_mk Nat Nat Nat.zero Nat.zero)
+          (leNum_zero_lit a b m))
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (p : Prod Nat Nat) =&gt; leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+          (@prod_mk Nat Nat a b) (leNum (qrep a b m) ratZeroRep)
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m))
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) =&gt; LeNat z (Nat.add a Nat.zero))
+            b (Nat.add Nat.zero b)
+            (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b))
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) =&gt; LeNat b z)
+              a (Nat.add a Nat.zero)
+              (@Eq.symm.{1} Nat (Nat.add a Nat.zero) a (add_zero a)) h))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">ratRel_zero_of_num_eq</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ratRel_zero_of_num_eq (a b m : Nat) (h : b = a) :
+    ratRel ratZeroRep (qrep a b m) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>分子两格相等就把这个有理数认成零：先由 <code>ratRel_zero_iff_num_zero</code> 得到「分子序对与 (0,0) 相等」，这条等式在 <code>b = a</code> 时由 <code>add_zero</code> 与 <code>zero_add</code> 拼出来；最后用对称性换成 <code>0 ~ x</code> 的方向。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel ratZeroRep (qrep a b m)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratRel_zero_iff_num_zero · ratRel_symm · add_zero · zero_add · Eq.trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-2"><summary>查看解答 <span class="sol-meta">定理 · 13 行</span></summary><div class="solution-body"><p class="solution-note">分子两格相等时这个有理数就是零。</p><pre><code>theorem ratRel_zero_of_num_eq (a b m : Nat) (h : b = a) :
+    ratRel ratZeroRep (qrep a b m) :=
+  ratRel_symm (qrep a b m) ratZeroRep
+    (Iff.mpr (ratRel_zero_iff_num_zero a b m)
+      (@Eq.trans.{1} Nat
+        (Nat.add a Nat.zero)
+        a
+        (Nat.add Nat.zero b)
+        (add_zero a)
+        (@Eq.trans.{1} Nat
+          a b (Nat.add Nat.zero b)
+          (@Eq.symm.{1} Nat b a h)
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">ratLtRep_zero_num</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ratLtRep_zero_num (a b m : Nat)
+    (h : ratLtRep ratZeroRep (qrep a b m)) : LeNat (Nat.succ b) a :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先由上一条得到 <code>b ≤ a</code>；<code>b = a</code> 那一支与「不相等」撞上矛盾，于是 <code>leNat_eq_or_succ</code> 只能给出 <code>b + 1 ≤ a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LeNat (Nat.succ b) a</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_zero_lit · leNat_eq_or_succ · ratRel_zero_of_num_eq · False.elim</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-3"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note"><code>0 &lt; qrep p q m</code> 说分子第一格严格大于第二格。</p><pre><code>theorem ratLtRep_zero_num (a b m : Nat)
+    (h : ratLtRep ratZeroRep (qrep a b m)) : LeNat (Nat.succ b) a :=
+  Or.elim
+    (fun (hba : b = a) =&gt;
+      @False.elim (LeNat (Nat.succ b) a)
+        ((And.right h) (ratRel_zero_of_num_eq a b m hba)))
+    (fun (hlt : LeNat (Nat.succ b) a) =&gt; hlt)
+    (leNat_eq_or_succ b a
+      (Iff.mp (ratLeRep_zero_lit a b m) (And.left h)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">arch_le_lit</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>阿基米德性质</p></div></div><pre class="exercise-statement"><code>theorem arch_le_lit (p q m : Nat) (hpq : ratLtRep ratZeroRep (qrep p q m))
+    (r s j : Nat) (hc : ratLeRep ratZeroRep (qrep r s j)) :
+    ∃ (n : Nat), ratLeRep (qrep r s j)
+      (ratMulRep (natToRat n) (qrep p q m)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由正性取 <code>p = q + (k+1)</code>，由非负取 <code>r = s + u</code>；倍数取 <span class="math">n = (r+1)(m+1)</span>。代进交叉相乘的形式后，<code>n·p</code> 拆成 <code>n·q + n·(k+1)</code>，<code>r</code> 拆成 <code>s + u</code>，公共项两两对齐，剩下的 <code>u(m+1) ≤ n(k+1)(j+1)</code> 由「<span class="math">u ≤ r &lt; r+1 ≤ n</span>」与「两个至少为 1 的因子」两步乘出来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ n, ratLeRep (qrep r s j) (ratMulRep (natToRat n) (qrep p q m))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_zero_num · ratLeRep_zero_lit · leNat_exists_add · mul_add · mul_add_right · succ_mul · leNat_mul_right · leNat_trans · ratLeRep_lit</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-4"><summary>查看解答 <span class="sol-meta">定理 · 33 行</span></summary><div class="solution-body"><p class="solution-note">字面形式：<code>0 &lt; (p - q)/(m+1)</code> 且 <code>0 ≤ (r - s)/(j+1)</code> 时，取
+<code>n = (r+1)(m+1)</code> 就有 <code>(r-s)/(j+1) ≤ n·(p-q)/(m+1)</code>。</p><pre><code>theorem arch_le_lit (p q m : Nat) (hpq : ratLtRep ratZeroRep (qrep p q m))
+    (r s j : Nat) (hc : ratLeRep ratZeroRep (qrep r s j)) :
+    ∃ (n : Nat), ratLeRep (qrep r s j)
+      (ratMulRep (natToRat n) (qrep p q m)) :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ q) p (ratLtRep_zero_num p q m hpq))
+    (fun (k : Nat) (hk : p = Nat.add (Nat.succ q) k) =&gt;
+      Exists.elim
+        (leNat_exists_add s r (Iff.mp (ratLeRep_zero_lit r s j) hc))
+        (fun (u : Nat) (hu : r = Nat.add s u) =&gt;
+          Exists.intro (myMul (Nat.succ r) (Nat.succ m))
+            (@Eq.subst.{1} ratRep
+              (fun (z : ratRep) =&gt; ratLeRep (qrep r s j) z)
+              (qrep
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                m)
+              (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                (qrep p q m))
+              (@Eq.symm.{1} ratRep
+                (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                  (qrep p q m))
+                (qrep
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (natToRat_mul_rep (myMul (Nat.succ r) (Nat.succ m)) p q m))
+              (Iff.mpr
+                (ratLeRep_lit r s j
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (arch_G p q m r s u k j hk hu)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">arch_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem arch_le (x c : Prod (Prod Nat Nat) Nat) :
+    ratLtRep ratZeroRep x → ratLeRep ratZeroRep c →
+      ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>任意代表元是三个分量，按「分母字段在外、分子序对在内」两层 <code>match</code> 拆开，两条前提的类型跟着变成字面形式，直接交给字面版本。前提要写在 <code>match</code> 里面的 <code>fun</code> 上，否则内核看不到替换后的形状。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLtRep ratZeroRep x → ratLeRep ratZeroRep c → ∃ n, ratLeRep c (ratMulRep (natToRat n) x)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">arch_le_lit ·</span> 两层 <span class="math">match ·</span> 前提写成 fun 的绑定点。</p></div></details></div><details open class="solution-panel" id="sol-163-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">任意代表元：两条前提换成「正」与「非负」，直接交给字面形式。</p><pre><code>theorem arch_le (x c : Prod (Prod Nat Nat) Nat) :
+    ratLtRep ratZeroRep x → ratLeRep ratZeroRep c →
+      ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  match x with
+  | prod_mk (prod_mk p q) m =&gt;
+    match c with
+    | prod_mk (prod_mk r s) j =&gt;
+      fun (hx : ratLtRep ratZeroRep (qrep p q m))
+          (hc : ratLeRep ratZeroRep (qrep r s j)) =&gt;
+        arch_le_lit p q m hx r s j hc</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">arch_lt_of_nonneg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem arch_lt_of_nonneg (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把待超过的量换成 <code>c + 1</code> 再取倍数，得到 <code>c + 1 ≤ n·x</code>；另一侧 <code>c &lt; c + 1</code> 由「0 &lt; 1 加在右边」得到，两条一夹就是 <code>c &lt; n·x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ n, ratLtRep c (ratMulRep (natToRat n) x)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">arch_le · ratLeRep_zero_add_nonneg · ratLtRep_zero_one · ratLtRep_self_add_pos · ratLtRep_of_lt_le</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-6"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">严格版本：把 <code>c</code> 换成 <code>c + 1</code> 再取同一个倍数。</p><pre><code>theorem arch_lt_of_nonneg (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  Exists.elim
+    (arch_le x (ratAddRep c ratOneRep) hx
+      (ratLeRep_zero_add_nonneg c ratOneRep hc
+        (ratLtRep_le ratZeroRep ratOneRep ratLtRep_zero_one)))
+    (fun (n : Nat)
+        (hn : ratLeRep (ratAddRep c ratOneRep) (ratMulRep (natToRat n) x)) =&gt;
+      Exists.intro n
+        (ratLtRep_of_lt_le c (ratAddRep c ratOneRep)
+          (ratMulRep (natToRat n) x)
+          (ratLtRep_self_add_pos c ratOneRep ratLtRep_zero_one)
+          hn))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-163-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">demo_arch_two</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-163-7">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_arch_two :
+    ratLeRep ratOneRep
+      (ratMulRep (natToRat (Nat.succ (Nat.succ Nat.zero)))
+        (qrep 1 Nat.zero (Nat.succ Nat.zero))) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>待证形式换成字面比较：左边是 1/1，右边是 <span class="math">2·1/2</span>；交叉相乘后两边都是 2，交给自反的弱序。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep ratOneRep (ratMulRep (natToRat 2) (qrep 1 Nat.zero (Nat.succ Nat.zero)))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_lit · le_refl · natToRat_mul_rep</span>。</p></div></details></div><details open class="solution-panel" id="sol-163-7"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">具体读数：半的三倍是 3/2，超过 1；两倍恰好是 1，所以弱序也成立。</p><pre><code>theorem demo_arch_two :
+    ratLeRep ratOneRep
+      (ratMulRep (natToRat (Nat.succ (Nat.succ Nat.zero)))
+        (qrep 1 Nat.zero (Nat.succ Nat.zero))) :=
+  Iff.mpr
+    (ratLeRep_lit 1 Nat.zero Nat.zero
+      (myMul (Nat.succ (Nat.succ Nat.zero)) 1)
+      (myMul (Nat.succ (Nat.succ Nat.zero)) Nat.zero)
+      (Nat.succ Nat.zero))
+    (le_refl (myMul (Nat.succ (Nat.succ Nat.zero)) 1))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit162.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">整条曲线抬高：面积差只认起伏</span></a><a class="unit-nav-home" href="../chapters/iii-8.html#units">目录</a><a class="unit-nav-link" href="../units/unit164.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">细分割上的振幅：一致连续把曲线压成窄带</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-163"><h3><a href="#top">阿基米德性质：反复相加总能超过</a></h3><p class="appendix-meta">7 道练习 · 7 份按名匹配的解答 · 14 个解答独有声明</p><details open class="appendix-solution" id="app-sol-163-1"><summary>练习 1 · ratLeRep_zero_lit <span class="sol-meta">定理</span></summary><p class="solution-note"><code>0 ≤ x</code> 在字面代表元上就是「分子第二格不超过第一格」。</p><pre><code>theorem ratLeRep_zero_lit (a b m : Nat) :
+    ratLeRep ratZeroRep (qrep a b m) ↔ LeNat b a :=
+  Iff.intro
+    (fun (h : ratLeRep ratZeroRep (qrep a b m)) =&gt;
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) =&gt; LeNat b z)
+        (Nat.add a Nat.zero) a (add_zero a)
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) =&gt; LeNat z (Nat.add a Nat.zero))
+          (Nat.add Nat.zero b) b (zero_add b)
+          (@Eq.subst.{1} (Prod Nat Nat)
+            (fun (p : Prod Nat Nat) =&gt; leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m)
+            (@Eq.subst.{1} (Prod Nat Nat)
+              (fun (p : Prod Nat Nat) =&gt;
+                leRep p (leNum (qrep a b m) ratZeroRep))
+              (leNum ratZeroRep (qrep a b m))
+              (@prod_mk Nat Nat Nat.zero Nat.zero)
+              (leNum_zero_lit a b m) h))))
+    (fun (h : LeNat b a) =&gt;
+      @Eq.subst.{1} (Prod Nat Nat)
+        (fun (p : Prod Nat Nat) =&gt;
+          leRep p (leNum (qrep a b m) ratZeroRep))
+        (@prod_mk Nat Nat Nat.zero Nat.zero)
+        (leNum ratZeroRep (qrep a b m))
+        (@Eq.symm.{1} (Prod Nat Nat)
+          (leNum ratZeroRep (qrep a b m))
+          (@prod_mk Nat Nat Nat.zero Nat.zero)
+          (leNum_zero_lit a b m))
+        (@Eq.subst.{1} (Prod Nat Nat)
+          (fun (p : Prod Nat Nat) =&gt; leRep (@prod_mk Nat Nat Nat.zero Nat.zero) p)
+          (@prod_mk Nat Nat a b) (leNum (qrep a b m) ratZeroRep)
+          (@Eq.symm.{1} (Prod Nat Nat)
+            (leNum (qrep a b m) ratZeroRep) (@prod_mk Nat Nat a b)
+            (leNum_lit_zero a b m))
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) =&gt; LeNat z (Nat.add a Nat.zero))
+            b (Nat.add Nat.zero b)
+            (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b))
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) =&gt; LeNat b z)
+              a (Nat.add a Nat.zero)
+              (@Eq.symm.{1} Nat (Nat.add a Nat.zero) a (add_zero a)) h))))</code></pre></details><details open class="appendix-solution" id="app-sol-163-2"><summary>练习 2 · ratRel_zero_of_num_eq <span class="sol-meta">定理</span></summary><p class="solution-note">分子两格相等时这个有理数就是零。</p><pre><code>theorem ratRel_zero_of_num_eq (a b m : Nat) (h : b = a) :
+    ratRel ratZeroRep (qrep a b m) :=
+  ratRel_symm (qrep a b m) ratZeroRep
+    (Iff.mpr (ratRel_zero_iff_num_zero a b m)
+      (@Eq.trans.{1} Nat
+        (Nat.add a Nat.zero)
+        a
+        (Nat.add Nat.zero b)
+        (add_zero a)
+        (@Eq.trans.{1} Nat
+          a b (Nat.add Nat.zero b)
+          (@Eq.symm.{1} Nat b a h)
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero b) b (zero_add b)))))</code></pre></details><details open class="appendix-solution" id="app-sol-163-3"><summary>练习 3 · ratLtRep_zero_num <span class="sol-meta">定理</span></summary><p class="solution-note"><code>0 &lt; qrep p q m</code> 说分子第一格严格大于第二格。</p><pre><code>theorem ratLtRep_zero_num (a b m : Nat)
+    (h : ratLtRep ratZeroRep (qrep a b m)) : LeNat (Nat.succ b) a :=
+  Or.elim
+    (fun (hba : b = a) =&gt;
+      @False.elim (LeNat (Nat.succ b) a)
+        ((And.right h) (ratRel_zero_of_num_eq a b m hba)))
+    (fun (hlt : LeNat (Nat.succ b) a) =&gt; hlt)
+    (leNat_eq_or_succ b a
+      (Iff.mp (ratLeRep_zero_lit a b m) (And.left h)))</code></pre></details><details open class="appendix-solution" id="app-sol-163-4"><summary>练习 4 · arch_le_lit <span class="sol-meta">定理</span></summary><p class="solution-note">字面形式：<code>0 &lt; (p - q)/(m+1)</code> 且 <code>0 ≤ (r - s)/(j+1)</code> 时，取
+<code>n = (r+1)(m+1)</code> 就有 <code>(r-s)/(j+1) ≤ n·(p-q)/(m+1)</code>。</p><pre><code>theorem arch_le_lit (p q m : Nat) (hpq : ratLtRep ratZeroRep (qrep p q m))
+    (r s j : Nat) (hc : ratLeRep ratZeroRep (qrep r s j)) :
+    ∃ (n : Nat), ratLeRep (qrep r s j)
+      (ratMulRep (natToRat n) (qrep p q m)) :=
+  Exists.elim
+    (leNat_exists_add (Nat.succ q) p (ratLtRep_zero_num p q m hpq))
+    (fun (k : Nat) (hk : p = Nat.add (Nat.succ q) k) =&gt;
+      Exists.elim
+        (leNat_exists_add s r (Iff.mp (ratLeRep_zero_lit r s j) hc))
+        (fun (u : Nat) (hu : r = Nat.add s u) =&gt;
+          Exists.intro (myMul (Nat.succ r) (Nat.succ m))
+            (@Eq.subst.{1} ratRep
+              (fun (z : ratRep) =&gt; ratLeRep (qrep r s j) z)
+              (qrep
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                m)
+              (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                (qrep p q m))
+              (@Eq.symm.{1} ratRep
+                (ratMulRep (natToRat (myMul (Nat.succ r) (Nat.succ m)))
+                  (qrep p q m))
+                (qrep
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (natToRat_mul_rep (myMul (Nat.succ r) (Nat.succ m)) p q m))
+              (Iff.mpr
+                (ratLeRep_lit r s j
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+                  (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+                  m)
+                (arch_G p q m r s u k j hk hu)))))</code></pre></details><details open class="appendix-solution" id="app-sol-163-5"><summary>练习 5 · arch_le <span class="sol-meta">定理</span></summary><p class="solution-note">任意代表元：两条前提换成「正」与「非负」，直接交给字面形式。</p><pre><code>theorem arch_le (x c : Prod (Prod Nat Nat) Nat) :
+    ratLtRep ratZeroRep x → ratLeRep ratZeroRep c →
+      ∃ (n : Nat), ratLeRep c (ratMulRep (natToRat n) x) :=
+  match x with
+  | prod_mk (prod_mk p q) m =&gt;
+    match c with
+    | prod_mk (prod_mk r s) j =&gt;
+      fun (hx : ratLtRep ratZeroRep (qrep p q m))
+          (hc : ratLeRep ratZeroRep (qrep r s j)) =&gt;
+        arch_le_lit p q m hx r s j hc</code></pre></details><details open class="appendix-solution" id="app-sol-163-6"><summary>练习 6 · arch_lt_of_nonneg <span class="sol-meta">定理</span></summary><p class="solution-note">严格版本：把 <code>c</code> 换成 <code>c + 1</code> 再取同一个倍数。</p><pre><code>theorem arch_lt_of_nonneg (x c : ratRep) (hx : ratLtRep ratZeroRep x)
+    (hc : ratLeRep ratZeroRep c) :
+    ∃ (n : Nat), ratLtRep c (ratMulRep (natToRat n) x) :=
+  Exists.elim
+    (arch_le x (ratAddRep c ratOneRep) hx
+      (ratLeRep_zero_add_nonneg c ratOneRep hc
+        (ratLtRep_le ratZeroRep ratOneRep ratLtRep_zero_one)))
+    (fun (n : Nat)
+        (hn : ratLeRep (ratAddRep c ratOneRep) (ratMulRep (natToRat n) x)) =&gt;
+      Exists.intro n
+        (ratLtRep_of_lt_le c (ratAddRep c ratOneRep)
+          (ratMulRep (natToRat n) x)
+          (ratLtRep_self_add_pos c ratOneRep ratLtRep_zero_one)
+          hn))</code></pre></details><details open class="appendix-solution" id="app-sol-163-7"><summary>练习 7 · demo_arch_two <span class="sol-meta">定理</span></summary><p class="solution-note">具体读数：半的三倍是 3/2，超过 1；两倍恰好是 1，所以弱序也成立。</p><pre><code>theorem demo_arch_two :
+    ratLeRep ratOneRep
+      (ratMulRep (natToRat (Nat.succ (Nat.succ Nat.zero)))
+        (qrep 1 Nat.zero (Nat.succ Nat.zero))) :=
+  Iff.mpr
+    (ratLeRep_lit 1 Nat.zero Nat.zero
+      (myMul (Nat.succ (Nat.succ Nat.zero)) 1)
+      (myMul (Nat.succ (Nat.succ Nat.zero)) Nat.zero)
+      (Nat.succ Nat.zero))
+    (le_refl (myMul (Nat.succ (Nat.succ Nat.zero)) 1))</code></pre></details><details open class="appendix-solution" id="app-extra-163-1"><summary>补充 · myMul_one_left <span class="sol-meta">定理</span></summary><pre><code>theorem myMul_one_left (n : Nat) :
+    myMul (Nat.succ Nat.zero) n = n :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.succ Nat.zero) n)
+    (Nat.add (myMul Nat.zero n) n)
+    n
+    (succ_mul Nat.zero n)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero n) n)
+      (Nat.add Nat.zero n)
+      n
+      (@congrArg.{1} Nat Nat (myMul Nat.zero n) Nat.zero
+        (fun (z : Nat) =&gt; Nat.add z n) (zero_mul n))
+      (zero_add n))</code></pre></details><details open class="appendix-solution" id="app-extra-163-2"><summary>补充 · myMul_succ_le <span class="sol-meta">定理</span></summary><pre><code>theorem myMul_succ_le (r E : Nat) :
+    LeNat (myMul r E) (myMul (Nat.succ r) E) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt; LeNat (myMul r E) z)
+    (Nat.add (myMul r E) E)
+    (myMul (Nat.succ r) E)
+    (@Eq.symm.{1} Nat
+      (myMul (Nat.succ r) E) (Nat.add (myMul r E) E) (succ_mul r E))
+    (leNat_self_add (myMul r E) E)</code></pre></details><details open class="appendix-solution" id="app-extra-163-3"><summary>补充 · leNat_one_mul <span class="sol-meta">定理</span></summary><pre><code>theorem leNat_one_mul (t D : Nat)
+    (ht : LeNat (Nat.succ Nat.zero) t)
+    (hD : LeNat (Nat.succ Nat.zero) D) :
+    LeNat (Nat.succ Nat.zero) (myMul t D) :=
+  leNat_trans (Nat.succ Nat.zero) D (myMul t D)
+    hD
+    (@Eq.subst.{1} Nat
+      (fun (z : Nat) =&gt; LeNat z (myMul t D))
+      (myMul (Nat.succ Nat.zero) D) D
+      (myMul_one_left D)
+      (leNat_mul_right (Nat.succ Nat.zero) t D ht))</code></pre></details><details open class="appendix-solution" id="app-extra-163-4"><summary>补充 · leNat_self_mul <span class="sol-meta">定理</span></summary><pre><code>theorem leNat_self_mul (n x : Nat)
+    (hx : LeNat (Nat.succ Nat.zero) x) :
+    LeNat n (myMul n x) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt; LeNat n z)
+    (myMul x n) (myMul n x)
+    (myMul_comm x n)
+    (@Eq.subst.{1} Nat
+      (fun (z : Nat) =&gt; LeNat z (myMul x n))
+      (myMul (Nat.succ Nat.zero) n) n
+      (myMul_one_left n)
+      (leNat_mul_right (Nat.succ Nat.zero) x n hx))</code></pre></details><details open class="appendix-solution" id="app-extra-163-5"><summary>补充 · leNat_left_of_add <span class="sol-meta">定理</span></summary><pre><code>theorem leNat_left_of_add (s u : Nat) : LeNat u (Nat.add s u) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt; LeNat u z)
+    (Nat.add u s) (Nat.add s u)
+    (add_comm u s)
+    (leNat_self_add u s)</code></pre></details><details open class="appendix-solution" id="app-extra-163-6"><summary>补充 · arch_uE_le <span class="sol-meta">定理</span></summary><pre><code>theorem arch_uE_le (r s u m : Nat) (hu : r = Nat.add s u) :
+    LeNat (myMul u (Nat.succ m))
+      (myMul (Nat.succ r) (Nat.succ m)) :=
+  leNat_trans (myMul u (Nat.succ m))
+    (myMul r (Nat.succ m))
+    (myMul (Nat.succ r) (Nat.succ m))
+    (leNat_mul_right u r (Nat.succ m)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) =&gt; LeNat u z)
+        (Nat.add s u) r
+        (@Eq.symm.{1} Nat r (Nat.add s u) hu)
+        (leNat_left_of_add s u)))
+    (myMul_succ_le r (Nat.succ m))</code></pre></details><details open class="appendix-solution" id="app-extra-163-7"><summary>补充 · arch_n_le <span class="sol-meta">定理</span></summary><pre><code>theorem arch_n_le (r m k j : Nat) :
+    LeNat (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j)) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt; LeNat (myMul (Nat.succ r) (Nat.succ m)) z)
+    (myMul (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (Nat.succ k) (Nat.succ j)))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (@Eq.symm.{1} Nat
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j))
+      (myMul (myMul (Nat.succ r) (Nat.succ m))
+        (myMul (Nat.succ k) (Nat.succ j)))
+      (myMul_assoc (myMul (Nat.succ r) (Nat.succ m))
+        (Nat.succ k) (Nat.succ j)))
+    (leNat_self_mul (myMul (Nat.succ r) (Nat.succ m))
+      (myMul (Nat.succ k) (Nat.succ j))
+      (leNat_one_mul (Nat.succ k) (Nat.succ j)
+        (leNat_succ_succ Nat.zero k (leNat_zero_le k))
+        (leNat_succ_succ Nat.zero j (leNat_zero_le j))))</code></pre></details><details open class="appendix-solution" id="app-extra-163-8"><summary>补充 · arch_uE_le_nt <span class="sol-meta">定理</span></summary><pre><code>theorem arch_uE_le_nt (r s u m k j : Nat) (hu : r = Nat.add s u) :
+    LeNat (myMul u (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j)) :=
+  leNat_trans (myMul u (Nat.succ m))
+    (myMul (Nat.succ r) (Nat.succ m))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (arch_uE_le r s u m hu)
+    (arch_n_le r m k j)</code></pre></details><details open class="appendix-solution" id="app-extra-163-9"><summary>补充 · arch_LHS_eq <span class="sol-meta">定理</span></summary><pre><code>theorem arch_LHS_eq (r s u m n q j : Nat) (hu : r = Nat.add s u) :
+    Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m))
+    = Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+      (myMul (myMul n q) (Nat.succ j)))
+    (Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+    (add_rotate (myMul u (Nat.succ m))
+      (myMul (myMul n q) (Nat.succ j))
+      (myMul s (Nat.succ m)))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add (myMul r (Nat.succ m)) (myMul (myMul n q) (Nat.succ j)))
+      (@congrArg.{1} Nat Nat
+        (Nat.add (myMul u (Nat.succ m)) (myMul s (Nat.succ m)))
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (fun (z : Nat) =&gt; Nat.add z (myMul (myMul n q) (Nat.succ j)))
+        (add_comm (myMul u (Nat.succ m)) (myMul s (Nat.succ m))))
+      (@congrArg.{1} Nat Nat
+        (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+        (myMul r (Nat.succ m))
+        (fun (z : Nat) =&gt; Nat.add z (myMul (myMul n q) (Nat.succ j)))
+        (@Eq.trans.{1} Nat
+          (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+          (myMul (Nat.add s u) (Nat.succ m))
+          (myMul r (Nat.succ m))
+          (@Eq.symm.{1} Nat
+            (myMul (Nat.add s u) (Nat.succ m))
+            (Nat.add (myMul s (Nat.succ m)) (myMul u (Nat.succ m)))
+            (mul_add_right s u (Nat.succ m)))
+          (@congrArg.{1} Nat Nat
+            (Nat.add s u) r (fun (z : Nat) =&gt; myMul z (Nat.succ m))
+            (@Eq.symm.{1} Nat r (Nat.add s u) hu)))))</code></pre></details><details open class="appendix-solution" id="app-extra-163-10"><summary>补充 · arch_RHS_eq <span class="sol-meta">定理</span></summary><pre><code>theorem arch_RHS_eq (p q m n s k j : Nat)
+    (hnp : myMul n p =
+      Nat.add (myMul n q) (myMul n (Nat.succ k))) :
+    Nat.add
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m))
+    = Nat.add (myMul (myMul n p) (Nat.succ j)) (myMul s (Nat.succ m)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add (myMul (myMul n p) (Nat.succ j)) (myMul s (Nat.succ m)))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j)))
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (fun (z : Nat) =&gt; Nat.add z (myMul s (Nat.succ m)))
+      (add_comm (myMul (myMul n (Nat.succ k)) (Nat.succ j))
+        (myMul (myMul n q) (Nat.succ j))))
+    (@congrArg.{1} Nat Nat
+      (Nat.add (myMul (myMul n q) (Nat.succ j))
+        (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+      (myMul (myMul n p) (Nat.succ j))
+      (fun (z : Nat) =&gt; Nat.add z (myMul s (Nat.succ m)))
+      (@Eq.symm.{1} Nat
+        (myMul (myMul n p) (Nat.succ j))
+        (Nat.add (myMul (myMul n q) (Nat.succ j))
+          (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+        (@Eq.trans.{1} Nat
+          (myMul (myMul n p) (Nat.succ j))
+          (myMul (Nat.add (myMul n q) (myMul n (Nat.succ k))) (Nat.succ j))
+          (Nat.add (myMul (myMul n q) (Nat.succ j))
+            (myMul (myMul n (Nat.succ k)) (Nat.succ j)))
+          (@congrArg.{1} Nat Nat
+            (myMul n p) (Nat.add (myMul n q) (myMul n (Nat.succ k)))
+            (fun (z : Nat) =&gt; myMul z (Nat.succ j)) hnp)
+          (mul_add_right (myMul n q) (myMul n (Nat.succ k)) (Nat.succ j)))))</code></pre></details><details open class="appendix-solution" id="app-extra-163-11"><summary>补充 · arch_h10 <span class="sol-meta">定理</span></summary><pre><code>theorem arch_h10 (r s u m q k j : Nat) (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add (myMul u (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+          (Nat.succ j))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j))) :=
+  leNat_add_right (myMul u (Nat.succ m))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+      (Nat.succ j))
+    (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j))
+    (arch_uE_le_nt r s u m k j hu)</code></pre></details><details open class="appendix-solution" id="app-extra-163-12"><summary>补充 · arch_h11 <span class="sol-meta">定理</span></summary><pre><code>theorem arch_h11 (r s u m q k j : Nat) (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m)))
+      (Nat.add
+        (Nat.add
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+            (Nat.succ j))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m))) :=
+  leNat_add_right
+    (Nat.add (myMul u (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (Nat.add
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+        (Nat.succ j))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (myMul s (Nat.succ m))
+    (arch_h10 r s u m q k j hu)</code></pre></details><details open class="appendix-solution" id="app-extra-163-13"><summary>补充 · arch_h12 <span class="sol-meta">定理</span></summary><pre><code>theorem arch_h12 (p q m r s u k j : Nat)
+    (hnp : myMul (myMul (Nat.succ r) (Nat.succ m)) p =
+      Nat.add (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k)))
+    (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add
+        (Nat.add (myMul u (Nat.succ m))
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+        (myMul s (Nat.succ m)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+        (myMul s (Nat.succ m))) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt;
+      LeNat
+        (Nat.add
+          (Nat.add (myMul u (Nat.succ m))
+            (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+          (myMul s (Nat.succ m)))
+        z)
+    (Nat.add
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k))
+          (Nat.succ j))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+      (myMul s (Nat.succ m)))
+    (arch_RHS_eq p q m (myMul (Nat.succ r) (Nat.succ m)) s k j hnp)
+    (arch_h11 r s u m q k j hu)</code></pre></details><details open class="appendix-solution" id="app-extra-163-14"><summary>补充 · arch_G <span class="sol-meta">定理</span></summary><pre><code>theorem arch_G (p q m r s u k j : Nat)
+    (hk : p = Nat.add (Nat.succ q) k)
+    (hu : r = Nat.add s u) :
+    LeNat
+      (Nat.add (myMul r (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (Nat.add
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+        (myMul s (Nat.succ m))) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =&gt;
+      LeNat z
+        (Nat.add
+          (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) p) (Nat.succ j))
+          (myMul s (Nat.succ m))))
+    (Nat.add
+      (Nat.add (myMul u (Nat.succ m))
+        (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+      (myMul s (Nat.succ m)))
+    (Nat.add (myMul r (Nat.succ m))
+      (myMul (myMul (myMul (Nat.succ r) (Nat.succ m)) q) (Nat.succ j)))
+    (arch_LHS_eq r s u m (myMul (Nat.succ r) (Nat.succ m)) q j hu)
+    (arch_h12 p q m r s u k j
+      (@Eq.trans.{1} Nat
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) p)
+        (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.add q (Nat.succ k)))
+        (Nat.add (myMul (myMul (Nat.succ r) (Nat.succ m)) q)
+          (myMul (myMul (Nat.succ r) (Nat.succ m)) (Nat.succ k)))
+        (@congrArg.{1} Nat Nat p (Nat.add q (Nat.succ k))
+          (fun (z : Nat) =&gt; myMul (myMul (Nat.succ r) (Nat.succ m)) z)
+          (@Eq.trans.{1} Nat
+            p (Nat.add (Nat.succ q) k) (Nat.add q (Nat.succ k))
+            hk
+            (@Eq.trans.{1} Nat
+              (Nat.add (Nat.succ q) k)
+              (Nat.succ (Nat.add q k))
+              (Nat.add q (Nat.succ k))
+              (succ_add q k)
+              (@Eq.symm.{1} Nat
+                (Nat.add q (Nat.succ k))
+                (Nat.succ (Nat.add q k))
+                (add_succ q k)))))
+        (mul_add (myMul (Nat.succ r) (Nat.succ m)) q (Nat.succ k)))
+      hu)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

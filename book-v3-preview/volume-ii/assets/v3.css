@@ -434,3 +434,23 @@ html{scroll-behavior:smooth}
 
 /* right rail on unit pages: chapter unit list, not page-section TOC */
 .unit-layout>.page-outline ol a[aria-current="page"]{color:var(--accent);font-weight:650;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+
+/* ---------- online-textbook theorem box (OpenStax / LibreTexts pattern) ---------- */
+.decl{background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:4px!important;box-shadow:none!important;padding:.85rem 1rem .9rem!important;margin:1.5rem 0!important}
+.decl-head{background:none!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)!important;padding:0 0 .32rem!important;margin:0 0 .4rem!important;display:block!important}
+.decl-kind{display:inline!important;background:none!important;border:0!important;padding:0!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:700!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink)!important}
+.decl-kind::after{content:"."}
+.decl-name{display:inline!important;background:none!important;border:0!important;padding:0!important;font-family:var(--font-body)!important;font-size:1rem!important;font-weight:400!important;font-style:italic!important;color:var(--ink)!important}
+.decl-name::before{content:"（";font-style:normal}
+.decl-name::after{content:"）";font-style:normal}
+.decl-where{display:none!important}
+.decl-statement{background:var(--code-bg)!important;border:0!important;border-left:2px solid var(--line)!important;border-radius:3px!important;padding:.55rem .7rem!important;margin:.45rem 0 0!important;font-family:var(--font-code)!important;font-size:.82rem!important;line-height:1.6!important}
+.decl-statement code{font-family:var(--font-code)!important;background:none!important;padding:0!important}
+.proof-panel{border:0!important;background:none!important;margin:.7rem 0 1.1rem!important;padding:0!important}
+.proof-panel[open]::after{content:"∎";display:block;text-align:right;margin-top:.3rem;color:var(--muted)}
+.proof-panel summary{font-weight:700!important;font-style:normal!important}
+.exercise{background:var(--panel)!important;border:1px solid var(--line)!important;border-radius:4px!important;box-shadow:none!important;padding:.8rem 1rem!important;margin:1.2rem 0!important}
+.exercise-head{display:flex!important;flex-wrap:wrap!important;align-items:baseline!important;gap:.4rem!important;background:none!important;border:0!important;border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)!important;padding:0 0 .3rem!important;margin:0 0 .4rem!important}
+.exercise-badge{background:none!important;border:0!important;border-radius:0!important;padding:0!important;font-family:var(--font-body)!important;font-weight:700!important;font-size:1rem!important;letter-spacing:0!important;text-transform:none!important;color:var(--ink)!important}
+.exercise-kind{display:inline!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--muted)!important;font-size:.85em!important;font-weight:400!important}
+.exercise-kind::before{content:"（"} .exercise-kind::after{content:"）"}

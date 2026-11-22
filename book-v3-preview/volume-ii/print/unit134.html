@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 134 闭区间上的最值：上确界与达到</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit134.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 134 闭区间上的最值：上确界与达到</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit134.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.6 连续函数 · 单元 134</p><h1>闭区间上的最值：上确界与达到</h1><p class="note">Unit 134 — Extreme Values on a Closed Interval: The Supremum Must Be Attained</p></header><section class="unit" id="unit-134">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-6.html">III.6</a> · 本章第 11 / 16 单元 · 全书第 134 / 171 单元</p>
+<h2><span class="unit-number">134</span><span>闭区间上的最值：上确界与达到</span></h2>
+<p class="unit-title-en">Unit 134 — Extreme Values on a Closed Interval: The Supremum Must Be Attained</p>
+<p class="unit-meta">5 个定义 · 21 个定理 · 16 道练习 · 48 条提示 · <a href="#appendix-unit-134">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>连续函数在闭区间上取到最大值，这是分析里第一个「存在性」结论：它不是从定义直接读出来的，而是先取像的上确界，再证明这个上确界被某个点取到。前一半只依赖序，后一半才是真正的分析内容。</p></div></div></section>
+<div class="block prose intuition-only"><p>把两半分开写，结构就清楚了。设 A 是区间里的点，f 的像指所有 f x 的等价类。若像有上确界 M，并且有 <span class="math">c ∈ A</span> 使 f c ~ M，那么 M 就是最大值：上界给出 <span class="math">f x ≤ M</span>，而 f c ~ M 说明 M 本身在像里。反过来，若最大值存在，它的值就是像的上确界。于是「最大值存在」与「像的上确界存在且被取到」是同一件事；连续性的全部工作，都花在证明后一句的后半段上。</p></div><div class="block prose intuition-only"><p>这一步在 <span class="math">ℚ</span> 上会断。像的上确界可能是一个无理数，因而没有任何有理点取到它；要把它写成一个具体反例，需要乘法与序的相容性，以及 2 没有有理平方根这条数论事实。课程库还没有这两样，所以这里先把「上确界被取到」留作假设，等 <span class="math">ℝ</span> 层的完备性接上以后再用。</p></div><div class="block prose intuition-only"><p>能立刻证明的充分条件是单调。f 在 [a,b] 上不降时，右端点 b 就是最大值：每个 <span class="math">x ≤ b</span>，单调性直接把 f x 压到 f b 以下；左端点 a 同理给出最小值。这条定理不需要完备性，也不需要乘法，是闭区间上最值问题的一块干净样本。</p></div><div class="block prose intuition-only"><p>闭区间三个字不能省。把 [0,1] 换成开区间 (0,1)，恒等函数就没有最大值：任取 <span class="math">c ∈ (0</span>,1)，<span class="math">c + (1-c)/2</span> 仍落在区间里，而且比 c 大。取中点是构造性的，只用加法和减法，正好说明「端点闭」在最大值的论证里承担了什么。</p></div><div class="block prose intuition-only"><p>边界：函数取 <code>ratRep → ratRep</code>，序取有理代表元上的 <code>ratLeRep</code>；不新增公理，也不碰 kernel/front。连续函数的无条件最值定理留到完备性一章。</p></div><div class="block prose intuition-only"><p>定义：区间、像、最大值与单调</p></div><div class="block prose intuition-only"><p>闭区间的成员谓词：两端都取非严格序。把它写成谓词而不是集合，后面的上界与上确界就能直接套 <code>lib/Order</code> 里的定义。</p></div><article class="decl decl-def" id="decl-134-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">InClosed</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def InClosed (a b x : ratRep) : Prop :=
+  ratLeRep a x ∧ ratLeRep x b</code></pre></div></article>
+<div class="block prose intuition-only"><p>像里的一个值：存在 A 中的点，其函数值与 y 代表元等价。用 <code>ratRel</code> 而不是字面相等，是因为函数的输出本来就只在商的意义下比较。</p></div><article class="decl decl-def" id="decl-134-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">ImageOn</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def ImageOn (f : ratRep → ratRep) (A : ratRep → Prop) (y : ratRep) : Prop :=
+  ∃ (x : ratRep), A x ∧ ratRel (f x) y</code></pre></div></article>
+<div class="block prose intuition-only"><p>「M 是 f 在 A 上的最大值」分两件事：M 确实被某点取到，且 M 压住所有函数值。两件事缺一不可：只有上界不知道是否取到，只有取到不知道是不是最大。</p></div><article class="decl decl-def" id="decl-134-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">IsMaxOn</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def IsMaxOn (f : ratRep → ratRep) (A : ratRep → Prop) (M : ratRep) : Prop :=
+  (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+    ∀ (x : ratRep), A x → ratLeRep (f x) M</code></pre></div></article>
+<div class="block prose intuition-only"><p>「f 在 A 上取到最大值」：有一个点，它的函数值压住 A 上所有函数值。</p></div><article class="decl decl-def" id="decl-134-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">AttainsMaxOn</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def AttainsMaxOn (f : ratRep → ratRep) (A : ratRep → Prop) : Prop :=
+  ∃ (c : ratRep), A c ∧ ∀ (x : ratRep), A x → ratLeRep (f x) (f c)</code></pre></div></article>
+<div class="block prose intuition-only"><p>闭区间上的单调不降：只比较区间里的点，所以量词带着两个成员前提。</p></div><article class="decl decl-def" id="decl-134-5"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">NondecreasingOn</code><span class="decl-where">声明 5</span></header><div class="decl-body"><pre class="decl-statement"><code>def NondecreasingOn (f : ratRep → ratRep) (a b : ratRep) : Prop :=
+  ∀ (x y : ratRep), InClosed a b x → InClosed a b y →
+    ratLeRep x y → ratLeRep (f x) (f y)</code></pre></div></article>
+<div class="block prose intuition-only"><p>定义的展开形式与投影</p></div><div class="block prose intuition-only"><p>定义与展开是同一个命题，两个方向都直接返回假设。</p></div><article class="decl decl-theorem" id="decl-134-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inClosed_iff</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inClosed_iff (a b x : ratRep) :
+    InClosed a b x ↔ ratLeRep a x ∧ ratLeRep x b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro
+    (fun (h : InClosed a b x) =&gt; h)
+    (fun (h : ratLeRep a x ∧ ratLeRep x b) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-134-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">imageOn_iff</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem imageOn_iff (f : ratRep → ratRep) (A : ratRep → Prop) (y : ratRep) :
+    ImageOn f A y ↔ ∃ (x : ratRep), A x ∧ ratRel (f x) y :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro
+    (fun (h : ImageOn f A y) =&gt; h)
+    (fun (h : ∃ (x : ratRep), A x ∧ ratRel (f x) y) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-134-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">isMaxOn_iff</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem isMaxOn_iff (f : ratRep → ratRep) (A : ratRep → Prop) (M : ratRep) :
+    IsMaxOn f A M ↔
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+        ∀ (x : ratRep), A x → ratLeRep (f x) M :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro
+    (fun (h : IsMaxOn f A M) =&gt; h)
+    (fun (h : (∃ (c : ratRep), A c ∧ ratRel (f c) M) ∧
+        ∀ (x : ratRep), A x → ratLeRep (f x) M) =&gt; h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>从区间成员取出两端的界。单调定理一个方向用左端，另一个方向用右端。</p></div><article class="decl decl-theorem" id="decl-134-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inClosed_left</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inClosed_left (a b x : ratRep) (h : InClosed a b x) :
+    ratLeRep a x :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.left (Iff.mp (inClosed_iff a b x) h)</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-134-10"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inClosed_right</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inClosed_right (a b x : ratRep) (h : InClosed a b x) :
+    ratLeRep x b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.right (Iff.mp (inClosed_iff a b x) h)</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-134-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">maxOn_upperBound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>最大值给出像的上界</p></div></div><pre class="exercise-statement"><code>theorem maxOn_upperBound (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    UpperBound ratRep ratLeRep (ImageOn f A) M :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把像里的 y 写成 f x，沿 <code>ratRel</code> 换成 <span class="math">f x ≤ y</span>，再和最大值自带的 <span class="math">f x ≤ M</span> 传递。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperBound ratRep ratLeRep (ImageOn f A) M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">imageOn_iff · ratRel_symm · ratLeRep_of_ratRel · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-1"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">像里的元素写成 f x，先沿 <code>ratRel</code> 换成函数值，再用最大值自带的界。</p><pre><code>theorem maxOn_upperBound (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    UpperBound ratRep ratLeRep (ImageOn f A) M :=
+  fun (y : ratRep) (hy : ImageOn f A y) =&gt;
+    Exists.elim (Iff.mp (imageOn_iff f A y) hy)
+      (fun (x : ratRep) (hx : A x ∧ ratRel (f x) y) =&gt;
+        ratLeRep_trans y (f x) M
+          (ratLeRep_of_ratRel y (f x)
+            (ratRel_symm (f x) y (And.right hx)))
+          ((And.right h) x (And.left hx)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">maxOn_isSup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>最大值就是像的上确界</p></div></div><pre class="exercise-statement"><code>theorem maxOn_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    IsSup ratRep ratLeRep (ImageOn f A) M :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>上界取上一条；最小性取最大值点 c，任何上界都要压住像里的 f c，而 f c 与 M 等价。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsSup ratRep ratLeRep (ImageOn f A) M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">maxOn_upperBound · And.left h · ratRel_symm · ratLeRep_trans</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-2"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">上界已在上一节；最小性取最大值点 c：任何上界都要压住 f c，而 f c ~ M。</p><pre><code>theorem maxOn_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    IsSup ratRep ratLeRep (ImageOn f A) M :=
+  And.intro
+    (maxOn_upperBound f A M h)
+    (fun (C : ratRep) (hC : UpperBound ratRep ratLeRep (ImageOn f A) C) =&gt;
+      Exists.elim (And.left h)
+        (fun (c : ratRep) (hc : A c ∧ ratRel (f c) M) =&gt;
+          ratLeRep_trans M (f c) C
+            (ratLeRep_of_ratRel M (f c)
+              (ratRel_symm (f c) M (And.right hc)))
+            (hC (f c)
+              (Exists.intro c
+                (And.intro (And.left hc) (ratRel_refl (f c)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">isMaxOn_of_isSup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>上确界被取到就是最大值</p></div></div><pre class="exercise-statement"><code>theorem isMaxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (hsup : IsSup ratRep ratLeRep (ImageOn f A) M)
+    (hmem : ∃ (c : ratRep), A c ∧ ratRel (f c) M) :
+    IsMaxOn f A M :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>上确界的第一分量就是上界；第二分量原样当作最大值的「被取到」。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsMaxOn f A M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · And.left hsup · Exists.intro · ratRel_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">上确界的上界部分直接就是最大值的界；被取到那一半原样搬过来。</p><pre><code>theorem isMaxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (hsup : IsSup ratRep ratLeRep (ImageOn f A) M)
+    (hmem : ∃ (c : ratRep), A c ∧ ratRel (f c) M) :
+    IsMaxOn f A M :=
+  And.intro hmem
+    (fun (x : ratRep) (hx : A x) =&gt;
+      (And.left hsup) (f x)
+        (Exists.intro x (And.intro hx (ratRel_refl (f x)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">exists_isSup_of_maxOn</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两个方向合起来：条件版的最值定理</p></div></div><pre class="exercise-statement"><code>theorem exists_isSup_of_maxOn (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsMaxOn f A M) :
+    ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>最大值点 c 取 M :<span class="math">= f c</span>；<code>IsMaxOn</code> 的「被取到」用 <code>ratRel_refl</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ M, IsSup ... M ∧ ∃ c, A c ∧ f c ~ M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · maxOn_isSup · Exists.intro · ratRel_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-4"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">最大值存在 <span class="math">⇒</span> 像的上确界存在且被取到。</p><pre><code>theorem exists_isSup_of_maxOn (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsMaxOn f A M) :
+    ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) :=
+  Exists.elim h
+    (fun (M : ratRep) (hM : IsMaxOn f A M) =&gt;
+      Exists.intro M
+        (And.intro (maxOn_isSup f A M hM) (And.left hM)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">exists_maxOn_of_isSup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem exists_maxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :
+    ∃ (M : ratRep), IsMaxOn f A M :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>上确界与「被取到」装成 <code>IsMaxOn</code>，上界部分直接来自 <code>And.left hsup</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ M, IsMaxOn f A M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · isMaxOn_of_isSup · And.left · And.right</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-5"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">像的上确界存在且被取到 <span class="math">⇒</span> 最大值存在。</p><pre><code>theorem exists_maxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :
+    ∃ (M : ratRep), IsMaxOn f A M :=
+  Exists.elim h
+    (fun (M : ratRep)
+        (hM : IsSup ratRep ratLeRep (ImageOn f A) M ∧
+          (∃ (c : ratRep), A c ∧ ratRel (f c) M)) =&gt;
+      Exists.intro M
+        (isMaxOn_of_isSup f A M (And.left hM) (And.right hM)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">maxOn_iff_isSup</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem maxOn_iff_isSup (f : ratRep → ratRep) (A : ratRep → Prop) :
+    (∃ (M : ratRep), IsMaxOn f A M) ↔
+      (∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+        (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个方向分别是上两条定理，<code>Iff.intro</code> 把正、反两个蕴含接起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∃ M, IsMaxOn f A M) ↔ (∃ M, IsSup ... M ∧ ∃ c, A c ∧ f c ~ M)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Iff.intro · exists_isSup_of_maxOn · exists_maxOn_of_isSup</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-6"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">条件版的最值定理：最大值存在，恰好等价于像的上确界存在并且被取到。</p><pre><code>theorem maxOn_iff_isSup (f : ratRep → ratRep) (A : ratRep → Prop) :
+    (∃ (M : ratRep), IsMaxOn f A M) ↔
+      (∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+        (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :=
+  Iff.intro
+    (exists_isSup_of_maxOn f A)
+    (exists_maxOn_of_isSup f A)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">maxValue_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>最大值的值唯一</p></div></div><pre class="exercise-statement"><code>theorem maxValue_unique (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M M' : ratRep) (hM : IsMaxOn f A M) (hM' : IsMaxOn f A M') :
+    ratRel M M' :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>M 压住 hM' 的见证点、M' 压住 hM 的见证点，两个方向各得一条弱序，再反对称。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsMaxOn f A M → IsMaxOn f A M' → M ~ M'</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>两次 <span class="math">Exists.elim · ratRel_symm · ratLeRep_trans · ratLeRep_antisymm</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-7"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">两个最大值互相压住：M 压 M' 取 hM 的点，M' 压 M 取 hM' 的点，反对称收口。</p><pre><code>theorem maxValue_unique (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M M' : ratRep) (hM : IsMaxOn f A M) (hM' : IsMaxOn f A M') :
+    ratRel M M' :=
+  Exists.elim (And.left hM)
+    (fun (c : ratRep) (hc : A c ∧ ratRel (f c) M) =&gt;
+      Exists.elim (And.left hM')
+        (fun (d : ratRep) (hd : A d ∧ ratRel (f d) M') =&gt;
+          ratLeRep_antisymm M M'
+            (ratLeRep_trans M (f c) M'
+              (ratLeRep_of_ratRel M (f c)
+                (ratRel_symm (f c) M (And.right hc)))
+              ((And.right hM') c (And.left hc)))
+            (ratLeRep_trans M' (f d) M
+              (ratLeRep_of_ratRel M' (f d)
+                (ratRel_symm (f d) M' (And.right hd)))
+              ((And.right hM) d (And.left hd)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">attMax_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常函数：只要定义域非空就取到最大值</p></div></div><pre class="exercise-statement"><code>theorem attMax_const (A : ratRep → Prop) (c : ratRep)
+    (hA : ∃ (a : ratRep), A a) :
+    AttainsMaxOn (fun (_ : ratRep) =&gt; c) A :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>定义域非空给一个点 a，所有函数值都等于 c，用自反性收口。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AttainsMaxOn (fun _ =&gt; c) A</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · Exists.intro · ratLeRep_refl</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-8"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">任取定义域里的点当见证；所有函数值相等，<code>ratLeRep_refl</code> 直接付清。</p><pre><code>theorem attMax_const (A : ratRep → Prop) (c : ratRep)
+    (hA : ∃ (a : ratRep), A a) :
+    AttainsMaxOn (fun (_ : ratRep) =&gt; c) A :=
+  Exists.elim hA
+    (fun (a : ratRep) (ha : A a) =&gt;
+      Exists.intro a
+        (And.intro ha (fun (x : ratRep) (_hx : A x) =&gt; ratLeRep_refl c)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">attMax_of_monotone</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单调：闭区间的右端点是最大值</p></div></div><pre class="exercise-statement"><code>theorem attMax_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    AttainsMaxOn f (InClosed a b) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 b；<span class="math">b ∈ [a</span>,b] 用 <code>hab</code> 与自反，其余 x 的 <span class="math">x ≤ b</span> 来自 <code>inClosed_right</code>，交给单调性。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AttainsMaxOn f (InClosed a b)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · And.intro · ratLeRep_refl · inClosed_right · h</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-9"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">右端点 b 属于 [a,b] 要用 <span class="math">a ≤ b</span> 与自反；其余每个 x 的界由单调性给出。</p><pre><code>theorem attMax_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    AttainsMaxOn f (InClosed a b) :=
+  Exists.intro b
+    (And.intro (And.intro hab (ratLeRep_refl b))
+      (fun (x : ratRep) (hx : InClosed a b x) =&gt;
+        h x b hx (And.intro hab (ratLeRep_refl b))
+          (inClosed_right a b x hx)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">attMin_of_monotone</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-10">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem attMin_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    ∃ (c : ratRep), InClosed a b c ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep (f c) (f x) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>见证取 a；<span class="math">a ≤ x</span> 来自 <code>inClosed_left</code>，单调性给出 <span class="math">f a ≤ f x</span>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ c, InClosed a b c ∧ ∀ x, InClosed a b x → f c ≤ f x</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · ratLeRep_refl · inClosed_left · h</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-10"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">把序反过来：左端点 a 是最小值，证明与上一条对称。</p><pre><code>theorem attMin_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    ∃ (c : ratRep), InClosed a b c ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep (f c) (f x) :=
+  Exists.intro a
+    (And.intro (And.intro (ratLeRep_refl a) hab)
+      (fun (x : ratRep) (hx : InClosed a b x) =&gt;
+        h a x (And.intro (ratLeRep_refl a) hab) hx
+          (inClosed_left a b x hx)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">attMax_id_closed</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>具体：闭区间上的恒等函数取到最大值</p></div></div><pre class="exercise-statement"><code>theorem attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (InClosed ratZeroRep ratOneRep) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>恒等函数不降（前提就是结论），<span class="math">0 ≤ 1</span> 由 <code>0 &lt; 1</code> 投影；交给单调定理。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>AttainsMaxOn (fun x =&gt; x) (InClosed 0 1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">attMax_of_monotone · ratLtRep_le · ratLtRep_zero_one</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-11"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">恒等函数在 [0,1] 上不降，交给上一条定理；<span class="math">0 ≤ 1</span> 是库里的 <code>ratLtRep_zero_one</code>。</p><pre><code>theorem attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (InClosed ratZeroRep ratOneRep) :=
+  attMax_of_monotone (fun (x : ratRep) =&gt; x) ratZeroRep ratOneRep
+    (ratLtRep_le ratZeroRep ratOneRep ratLtRep_zero_one)
+    (fun (x y : ratRep) (_hx : InClosed ratZeroRep ratOneRep x)
+        (_hy : InClosed ratZeroRep ratOneRep y) (hxy : ratLeRep x y) =&gt; hxy)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">ratLtRep_add_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>反例：开区间上的恒等函数没有最大值</p></div></div><pre class="exercise-statement"><code>theorem ratLtRep_add_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>弱序用 <code>ratLeRep_add_right</code>；若两边相加后相等，<code>ratRel_add_cancel_gen</code> 消去 z 回到 x ~ y，撞上严格序的第二分量。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>x &lt; y → x + z &lt; y + z</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_add_right · ratLtRep_le · ratRel_add_cancel_gen · ratLtRep_right</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-12"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><p class="solution-note">严格序对右加同一个数稳定：弱序来自 <code>ratLeRep_add_right</code>，严格性用加法
+消去——两边相加后若相等，消去公共加数就回到原来的相等，撞上严格序。</p><pre><code>theorem ratLtRep_add_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  And.intro
+    (ratLeRep_add_right x y z (ratLtRep_le x y h))
+    (fun (hxy : ratRel (ratAddRep x z) (ratAddRep y z)) =&gt;
+      ratLtRep_right x y h (ratRel_add_cancel_gen x y z hxy))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-13" data-exercise="13"><header class="exercise-head"><span class="exercise-badge">练习 13</span><code class="exercise-name">ratLtRep_self_add_pos</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-13">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem ratLtRep_self_add_pos (x h : ratRep) (hh : ratLtRep ratZeroRep h) :
+    ratLtRep x (ratAddRep x h) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>0 + x &lt; h + x</code> 由严格序加法得到；右端换成 <span class="math">x + h</span>，左端用 <code>0 + x ~ x</code> 收回。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>0 &lt; h → x &lt; x + h</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_add_right · ratLtRep_congr_snd · ratAdd_comm · ratLtRep_of_le_lt · ratAdd_zero_left</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-13"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">正数加在右边会把数抬大。<code>0 + x &lt; h + x</code> 由严格序的加法得到，右端
+交换成 <span class="math">x + h</span>，左端再用 <code>0 + x ~ x</code> 收回。</p><pre><code>theorem ratLtRep_self_add_pos (x h : ratRep) (hh : ratLtRep ratZeroRep h) :
+    ratLtRep x (ratAddRep x h) :=
+  ratLtRep_of_le_lt x (ratAddRep ratZeroRep x) (ratAddRep x h)
+    (ratLeRep_of_ratRel x (ratAddRep ratZeroRep x)
+      (ratRel_symm (ratAddRep ratZeroRep x) x (ratAdd_zero_left x)))
+    (ratLtRep_congr_snd (ratAddRep ratZeroRep x) (ratAddRep h x)
+      (ratAddRep x h)
+      (ratLtRep_add_right ratZeroRep h x hh)
+      (ratAdd_comm h x))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-14" data-exercise="14"><header class="exercise-head"><span class="exercise-badge">练习 14</span><code class="exercise-name">lt_add_mid</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-14">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lt_add_mid (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep c (ratAddRep c (ratHalf (ratSubRep b c))) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由 c &lt; b 得 0 &lt; b - c，半数仍正，再交给 <code>ratLtRep_self_add_pos</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>c &lt; b → c &lt; c + (b-c)/2</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_sub_pos · ratLtRep_half · ratLtRep_self_add_pos</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-14"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">中点严格大于左端点：0 &lt; b - c，半数仍是正的，再交给上一条。</p><pre><code>theorem lt_add_mid (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep c (ratAddRep c (ratHalf (ratSubRep b c))) :=
+  ratLtRep_self_add_pos c (ratHalf (ratSubRep b c))
+    (ratLtRep_half (ratSubRep b c) (ratLtRep_sub_pos b c h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-15" data-exercise="15"><header class="exercise-head"><span class="exercise-badge">练习 15</span><code class="exercise-name">add_mid_lt_right</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-15">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem add_mid_lt_right (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep (ratAddRep c (ratHalf (ratSubRep b c))) b :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>半数 &lt; b-c，两边同加 c；把 <span class="math">(b-c)+c</span> 收回 b，再把 <span class="math">h+c</span> 交换成 <span class="math">c+h</span>，左端用弱序接上交换。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>c &lt; b → c + (b-c)/2 &lt; b</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratHalf_lt_self · ratLtRep_add_right · ratSubRep_add_self · ratAdd_comm · ratLeRep_of_ratRel · ratLtRep_of_le_lt</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-15"><summary>查看解答 <span class="sol-meta">定理 · 16 行</span></summary><div class="solution-body"><p class="solution-note">中点仍落在 b 的左侧：半数小于 b - c，两边同加 c 后把 <span class="math">(b-c)+c</span> 收回 b，
+再把 <span class="math">h + c</span> 交换成 <span class="math">c + h</span>。左端用弱序接上 <code>c + h ~ h + c</code>。</p><pre><code>theorem add_mid_lt_right (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep (ratAddRep c (ratHalf (ratSubRep b c))) b :=
+  ratLtRep_of_le_lt
+    (ratAddRep c (ratHalf (ratSubRep b c)))
+    (ratAddRep (ratHalf (ratSubRep b c)) c)
+    b
+    (ratLeRep_of_ratRel (ratAddRep c (ratHalf (ratSubRep b c)))
+      (ratAddRep (ratHalf (ratSubRep b c)) c)
+      (ratAdd_comm c (ratHalf (ratSubRep b c))))
+    (ratLtRep_congr_snd
+      (ratAddRep (ratHalf (ratSubRep b c)) c)
+      (ratAddRep (ratSubRep b c) c)
+      b
+      (ratLtRep_add_right (ratHalf (ratSubRep b c)) (ratSubRep b c) c
+        (ratHalf_lt_self (ratSubRep b c) (ratLtRep_sub_pos b c h)))
+      (ratSubRep_add_self b c))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-134-16" data-exercise="16"><header class="exercise-head"><span class="exercise-badge">练习 16</span><code class="exercise-name">not_attMax_id_open</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-134-16">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (fun (x : ratRep) =&gt; ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>假设有最大值点 c，取 <span class="math">x = c + (1-c)/2</span>：它比 c 大（<code>lt_add_mid</code>）且仍在 (0,1)（<code>add_mid_lt_right</code> 与传递），与 c 压住所有值矛盾。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>¬ AttainsMaxOn (fun x =&gt; x) (fun x =&gt; 0 &lt; x ∧ x &lt; 1)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · lt_add_mid · add_mid_lt_right · ratLeRep_antisymm · ratLtRep_right</span>。</p></div></details></div><details open class="solution-panel" id="sol-134-16"><summary>查看解答 <span class="sol-meta">定理 · 29 行</span></summary><div class="solution-body"><p class="solution-note">任取 <span class="math">c ∈ (0</span>,1)，中点 <span class="math">c + (1-c)/2</span> 仍在区间里，而且严格大于 c；于是没有
+哪个 c 能压住所有函数值。</p><pre><code>theorem not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (fun (x : ratRep) =&gt; ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  fun (h : AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (fun (x : ratRep) =&gt; ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep)) =&gt;
+    Exists.elim h
+      (fun (c : ratRep)
+          (hc : (ratLtRep ratZeroRep c ∧ ratLtRep c ratOneRep) ∧
+            ∀ (x : ratRep),
+              (ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) →
+                ratLeRep x c) =&gt;
+        ratLtRep_right c
+          (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+          (lt_add_mid ratOneRep c (And.right (And.left hc)))
+          (ratRel_symm
+            (ratAddRep c (ratHalf (ratSubRep ratOneRep c))) c
+            (ratLeRep_antisymm
+              (ratAddRep c (ratHalf (ratSubRep ratOneRep c))) c
+              ((And.right hc)
+                (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                (And.intro
+                  (ratLtRep_trans ratZeroRep c
+                    (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                    (And.left (And.left hc))
+                    (lt_add_mid ratOneRep c (And.right (And.left hc))))
+                  (add_mid_lt_right ratOneRep c (And.right (And.left hc)))))
+              (ratLtRep_le c
+                (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                (lt_add_mid ratOneRep c (And.right (And.left hc)))))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit133.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">局部保号：连续函数在一点附近不变号</span></a><a class="unit-nav-home" href="../chapters/iii-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit135.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">最后一个负点：保号性把负点往右推一步</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-134"><h3><a href="#top">闭区间上的最值：上确界与达到</a></h3><p class="appendix-meta">16 道练习 · 16 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-134-1"><summary>练习 1 · maxOn_upperBound <span class="sol-meta">定理</span></summary><p class="solution-note">像里的元素写成 f x，先沿 <code>ratRel</code> 换成函数值，再用最大值自带的界。</p><pre><code>theorem maxOn_upperBound (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    UpperBound ratRep ratLeRep (ImageOn f A) M :=
+  fun (y : ratRep) (hy : ImageOn f A y) =&gt;
+    Exists.elim (Iff.mp (imageOn_iff f A y) hy)
+      (fun (x : ratRep) (hx : A x ∧ ratRel (f x) y) =&gt;
+        ratLeRep_trans y (f x) M
+          (ratLeRep_of_ratRel y (f x)
+            (ratRel_symm (f x) y (And.right hx)))
+          ((And.right h) x (And.left hx)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-2"><summary>练习 2 · maxOn_isSup <span class="sol-meta">定理</span></summary><p class="solution-note">上界已在上一节；最小性取最大值点 c：任何上界都要压住 f c，而 f c ~ M。</p><pre><code>theorem maxOn_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (h : IsMaxOn f A M) :
+    IsSup ratRep ratLeRep (ImageOn f A) M :=
+  And.intro
+    (maxOn_upperBound f A M h)
+    (fun (C : ratRep) (hC : UpperBound ratRep ratLeRep (ImageOn f A) C) =&gt;
+      Exists.elim (And.left h)
+        (fun (c : ratRep) (hc : A c ∧ ratRel (f c) M) =&gt;
+          ratLeRep_trans M (f c) C
+            (ratLeRep_of_ratRel M (f c)
+              (ratRel_symm (f c) M (And.right hc)))
+            (hC (f c)
+              (Exists.intro c
+                (And.intro (And.left hc) (ratRel_refl (f c)))))))</code></pre></details><details open class="appendix-solution" id="app-sol-134-3"><summary>练习 3 · isMaxOn_of_isSup <span class="sol-meta">定理</span></summary><p class="solution-note">上确界的上界部分直接就是最大值的界；被取到那一半原样搬过来。</p><pre><code>theorem isMaxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M : ratRep) (hsup : IsSup ratRep ratLeRep (ImageOn f A) M)
+    (hmem : ∃ (c : ratRep), A c ∧ ratRel (f c) M) :
+    IsMaxOn f A M :=
+  And.intro hmem
+    (fun (x : ratRep) (hx : A x) =&gt;
+      (And.left hsup) (f x)
+        (Exists.intro x (And.intro hx (ratRel_refl (f x)))))</code></pre></details><details open class="appendix-solution" id="app-sol-134-4"><summary>练习 4 · exists_isSup_of_maxOn <span class="sol-meta">定理</span></summary><p class="solution-note">最大值存在 <span class="math">⇒</span> 像的上确界存在且被取到。</p><pre><code>theorem exists_isSup_of_maxOn (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsMaxOn f A M) :
+    ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M) :=
+  Exists.elim h
+    (fun (M : ratRep) (hM : IsMaxOn f A M) =&gt;
+      Exists.intro M
+        (And.intro (maxOn_isSup f A M hM) (And.left hM)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-5"><summary>练习 5 · exists_maxOn_of_isSup <span class="sol-meta">定理</span></summary><p class="solution-note">像的上确界存在且被取到 <span class="math">⇒</span> 最大值存在。</p><pre><code>theorem exists_maxOn_of_isSup (f : ratRep → ratRep) (A : ratRep → Prop)
+    (h : ∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+      (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :
+    ∃ (M : ratRep), IsMaxOn f A M :=
+  Exists.elim h
+    (fun (M : ratRep)
+        (hM : IsSup ratRep ratLeRep (ImageOn f A) M ∧
+          (∃ (c : ratRep), A c ∧ ratRel (f c) M)) =&gt;
+      Exists.intro M
+        (isMaxOn_of_isSup f A M (And.left hM) (And.right hM)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-6"><summary>练习 6 · maxOn_iff_isSup <span class="sol-meta">定理</span></summary><p class="solution-note">条件版的最值定理：最大值存在，恰好等价于像的上确界存在并且被取到。</p><pre><code>theorem maxOn_iff_isSup (f : ratRep → ratRep) (A : ratRep → Prop) :
+    (∃ (M : ratRep), IsMaxOn f A M) ↔
+      (∃ (M : ratRep), IsSup ratRep ratLeRep (ImageOn f A) M ∧
+        (∃ (c : ratRep), A c ∧ ratRel (f c) M)) :=
+  Iff.intro
+    (exists_isSup_of_maxOn f A)
+    (exists_maxOn_of_isSup f A)</code></pre></details><details open class="appendix-solution" id="app-sol-134-7"><summary>练习 7 · maxValue_unique <span class="sol-meta">定理</span></summary><p class="solution-note">两个最大值互相压住：M 压 M' 取 hM 的点，M' 压 M 取 hM' 的点，反对称收口。</p><pre><code>theorem maxValue_unique (f : ratRep → ratRep) (A : ratRep → Prop)
+    (M M' : ratRep) (hM : IsMaxOn f A M) (hM' : IsMaxOn f A M') :
+    ratRel M M' :=
+  Exists.elim (And.left hM)
+    (fun (c : ratRep) (hc : A c ∧ ratRel (f c) M) =&gt;
+      Exists.elim (And.left hM')
+        (fun (d : ratRep) (hd : A d ∧ ratRel (f d) M') =&gt;
+          ratLeRep_antisymm M M'
+            (ratLeRep_trans M (f c) M'
+              (ratLeRep_of_ratRel M (f c)
+                (ratRel_symm (f c) M (And.right hc)))
+              ((And.right hM') c (And.left hc)))
+            (ratLeRep_trans M' (f d) M
+              (ratLeRep_of_ratRel M' (f d)
+                (ratRel_symm (f d) M' (And.right hd)))
+              ((And.right hM) d (And.left hd)))))</code></pre></details><details open class="appendix-solution" id="app-sol-134-8"><summary>练习 8 · attMax_const <span class="sol-meta">定理</span></summary><p class="solution-note">任取定义域里的点当见证；所有函数值相等，<code>ratLeRep_refl</code> 直接付清。</p><pre><code>theorem attMax_const (A : ratRep → Prop) (c : ratRep)
+    (hA : ∃ (a : ratRep), A a) :
+    AttainsMaxOn (fun (_ : ratRep) =&gt; c) A :=
+  Exists.elim hA
+    (fun (a : ratRep) (ha : A a) =&gt;
+      Exists.intro a
+        (And.intro ha (fun (x : ratRep) (_hx : A x) =&gt; ratLeRep_refl c)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-9"><summary>练习 9 · attMax_of_monotone <span class="sol-meta">定理</span></summary><p class="solution-note">右端点 b 属于 [a,b] 要用 <span class="math">a ≤ b</span> 与自反；其余每个 x 的界由单调性给出。</p><pre><code>theorem attMax_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    AttainsMaxOn f (InClosed a b) :=
+  Exists.intro b
+    (And.intro (And.intro hab (ratLeRep_refl b))
+      (fun (x : ratRep) (hx : InClosed a b x) =&gt;
+        h x b hx (And.intro hab (ratLeRep_refl b))
+          (inClosed_right a b x hx)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-10"><summary>练习 10 · attMin_of_monotone <span class="sol-meta">定理</span></summary><p class="solution-note">把序反过来：左端点 a 是最小值，证明与上一条对称。</p><pre><code>theorem attMin_of_monotone (f : ratRep → ratRep) (a b : ratRep)
+    (hab : ratLeRep a b) (h : NondecreasingOn f a b) :
+    ∃ (c : ratRep), InClosed a b c ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep (f c) (f x) :=
+  Exists.intro a
+    (And.intro (And.intro (ratLeRep_refl a) hab)
+      (fun (x : ratRep) (hx : InClosed a b x) =&gt;
+        h a x (And.intro (ratLeRep_refl a) hab) hx
+          (inClosed_left a b x hx)))</code></pre></details><details open class="appendix-solution" id="app-sol-134-11"><summary>练习 11 · attMax_id_closed <span class="sol-meta">定理</span></summary><p class="solution-note">恒等函数在 [0,1] 上不降，交给上一条定理；<span class="math">0 ≤ 1</span> 是库里的 <code>ratLtRep_zero_one</code>。</p><pre><code>theorem attMax_id_closed :
+    AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (InClosed ratZeroRep ratOneRep) :=
+  attMax_of_monotone (fun (x : ratRep) =&gt; x) ratZeroRep ratOneRep
+    (ratLtRep_le ratZeroRep ratOneRep ratLtRep_zero_one)
+    (fun (x y : ratRep) (_hx : InClosed ratZeroRep ratOneRep x)
+        (_hy : InClosed ratZeroRep ratOneRep y) (hxy : ratLeRep x y) =&gt; hxy)</code></pre></details><details open class="appendix-solution" id="app-sol-134-12"><summary>练习 12 · ratLtRep_add_right <span class="sol-meta">定理</span></summary><p class="solution-note">严格序对右加同一个数稳定：弱序来自 <code>ratLeRep_add_right</code>，严格性用加法
+消去——两边相加后若相等，消去公共加数就回到原来的相等，撞上严格序。</p><pre><code>theorem ratLtRep_add_right (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep x z) (ratAddRep y z) :=
+  And.intro
+    (ratLeRep_add_right x y z (ratLtRep_le x y h))
+    (fun (hxy : ratRel (ratAddRep x z) (ratAddRep y z)) =&gt;
+      ratLtRep_right x y h (ratRel_add_cancel_gen x y z hxy))</code></pre></details><details open class="appendix-solution" id="app-sol-134-13"><summary>练习 13 · ratLtRep_self_add_pos <span class="sol-meta">定理</span></summary><p class="solution-note">正数加在右边会把数抬大。<code>0 + x &lt; h + x</code> 由严格序的加法得到，右端
+交换成 <span class="math">x + h</span>，左端再用 <code>0 + x ~ x</code> 收回。</p><pre><code>theorem ratLtRep_self_add_pos (x h : ratRep) (hh : ratLtRep ratZeroRep h) :
+    ratLtRep x (ratAddRep x h) :=
+  ratLtRep_of_le_lt x (ratAddRep ratZeroRep x) (ratAddRep x h)
+    (ratLeRep_of_ratRel x (ratAddRep ratZeroRep x)
+      (ratRel_symm (ratAddRep ratZeroRep x) x (ratAdd_zero_left x)))
+    (ratLtRep_congr_snd (ratAddRep ratZeroRep x) (ratAddRep h x)
+      (ratAddRep x h)
+      (ratLtRep_add_right ratZeroRep h x hh)
+      (ratAdd_comm h x))</code></pre></details><details open class="appendix-solution" id="app-sol-134-14"><summary>练习 14 · lt_add_mid <span class="sol-meta">定理</span></summary><p class="solution-note">中点严格大于左端点：0 &lt; b - c，半数仍是正的，再交给上一条。</p><pre><code>theorem lt_add_mid (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep c (ratAddRep c (ratHalf (ratSubRep b c))) :=
+  ratLtRep_self_add_pos c (ratHalf (ratSubRep b c))
+    (ratLtRep_half (ratSubRep b c) (ratLtRep_sub_pos b c h))</code></pre></details><details open class="appendix-solution" id="app-sol-134-15"><summary>练习 15 · add_mid_lt_right <span class="sol-meta">定理</span></summary><p class="solution-note">中点仍落在 b 的左侧：半数小于 b - c，两边同加 c 后把 <span class="math">(b-c)+c</span> 收回 b，
+再把 <span class="math">h + c</span> 交换成 <span class="math">c + h</span>。左端用弱序接上 <code>c + h ~ h + c</code>。</p><pre><code>theorem add_mid_lt_right (b c : ratRep) (h : ratLtRep c b) :
+    ratLtRep (ratAddRep c (ratHalf (ratSubRep b c))) b :=
+  ratLtRep_of_le_lt
+    (ratAddRep c (ratHalf (ratSubRep b c)))
+    (ratAddRep (ratHalf (ratSubRep b c)) c)
+    b
+    (ratLeRep_of_ratRel (ratAddRep c (ratHalf (ratSubRep b c)))
+      (ratAddRep (ratHalf (ratSubRep b c)) c)
+      (ratAdd_comm c (ratHalf (ratSubRep b c))))
+    (ratLtRep_congr_snd
+      (ratAddRep (ratHalf (ratSubRep b c)) c)
+      (ratAddRep (ratSubRep b c) c)
+      b
+      (ratLtRep_add_right (ratHalf (ratSubRep b c)) (ratSubRep b c) c
+        (ratHalf_lt_self (ratSubRep b c) (ratLtRep_sub_pos b c h)))
+      (ratSubRep_add_self b c))</code></pre></details><details open class="appendix-solution" id="app-sol-134-16"><summary>练习 16 · not_attMax_id_open <span class="sol-meta">定理</span></summary><p class="solution-note">任取 <span class="math">c ∈ (0</span>,1)，中点 <span class="math">c + (1-c)/2</span> 仍在区间里，而且严格大于 c；于是没有
+哪个 c 能压住所有函数值。</p><pre><code>theorem not_attMax_id_open :
+    ¬ AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (fun (x : ratRep) =&gt; ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) :=
+  fun (h : AttainsMaxOn (fun (x : ratRep) =&gt; x)
+      (fun (x : ratRep) =&gt; ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep)) =&gt;
+    Exists.elim h
+      (fun (c : ratRep)
+          (hc : (ratLtRep ratZeroRep c ∧ ratLtRep c ratOneRep) ∧
+            ∀ (x : ratRep),
+              (ratLtRep ratZeroRep x ∧ ratLtRep x ratOneRep) →
+                ratLeRep x c) =&gt;
+        ratLtRep_right c
+          (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+          (lt_add_mid ratOneRep c (And.right (And.left hc)))
+          (ratRel_symm
+            (ratAddRep c (ratHalf (ratSubRep ratOneRep c))) c
+            (ratLeRep_antisymm
+              (ratAddRep c (ratHalf (ratSubRep ratOneRep c))) c
+              ((And.right hc)
+                (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                (And.intro
+                  (ratLtRep_trans ratZeroRep c
+                    (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                    (And.left (And.left hc))
+                    (lt_add_mid ratOneRep c (And.right (And.left hc))))
+                  (add_mid_lt_right ratOneRep c (And.right (And.left hc)))))
+              (ratLtRep_le c
+                (ratAddRep c (ratHalf (ratSubRep ratOneRep c)))
+                (lt_add_mid ratOneRep c (And.right (And.left hc)))))))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

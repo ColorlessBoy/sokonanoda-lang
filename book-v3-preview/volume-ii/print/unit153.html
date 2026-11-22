@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 153 阶梯函数：每一段上取常值</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit153.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 153 阶梯函数：每一段上取常值</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit153.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.8 Riemann 积分 · 单元 153</p><h1>阶梯函数：每一段上取常值</h1><p class="note">Unit 153 — Step Functions: Constant on Each Piece</p></header><section class="unit" id="unit-153">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-8.html">III.8</a> · 本章第 3 / 16 单元 · 全书第 153 / 171 单元</p>
+<h2><span class="unit-number">153</span><span>阶梯函数：每一段上取常值</span></h2>
+<p class="unit-title-en">Unit 153 — Step Functions: Constant on Each Piece</p>
+<p class="unit-meta">6 个定义 · 14 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-153">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>区间被切成有限段之后，每一段上仍然有曲线的一整段弧，面积还是算不出来。能直接算的是一类更窄的函数：它在每一段里只取一个值，图像由若干条水平线段拼成，像一级一级的台阶。一个台阶的高度乘上那一段的长度就是一个矩形的面积，有限多个矩形加起来，就是曲线下面积的第一次近似。要问的是「每一段」怎么划：如果一段取闭区间，相邻两段在公共端点上都算数，那个点就必须同时等于两个不同的高度，台阶也就跳不起来。</p></div></div></section>
+<div class="block prose intuition-only"><p>面积不受个别点的影响，所以让每一段只认左边：左端点算进来，右端点留给下一段。这样每段的常数在自己的左端点被钉住，相邻两段可以取不同的值，公共端点的归属不改变任何一个矩形的宽。<code>StepOn</code> 把「函数在第 i 段上取常值 c i」写成一条量词，<code>threePoint</code> 是最小的、真正会跳一次的分割。</p></div><div class="block prose intuition-only"><p>边界：只谈「在每一段上取常值」这件事与它对加法、取负的封闭性，不谈面积的和，也不谈加细。函数取 <code>ratRep → ratRep</code>，停在有理代表元层。不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>每段只认左边</p></div><div class="block prose intuition-only"><p>「x 落在 [a, b) 里」：左端点算，右端点不算。写成两个分量，是因为后面取常值只需要这两条：x 不早于左端点、x 严格早于右端点。</p></div><article class="decl decl-def" id="decl-153-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">InHalfOpen</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def InHalfOpen (a b x : ratRep) : Prop :=
+  ratLeRep a x ∧ ratLtRep x b</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-153-2"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inHalfOpen_left</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inHalfOpen_left (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLeRep a x :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.left h</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-153-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">inHalfOpen_right</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem inHalfOpen_right (a b x : ratRep) (h : InHalfOpen a b x) :
+    ratLtRep x b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  And.right h</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>阶梯函数</p></div><div class="block prose intuition-only"><p>函数 f 在分割 p 的每一段上取常值 c i。量词里带着「第 i 段存在」的前提：下标越过段数时没有义务。段是左闭右开的，所以两条相邻的段只在左端点这一侧与常数相接。</p></div><article class="decl decl-def" id="decl-153-4"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">StepOn</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>def StepOn (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) : Prop :=
+  ∀ (i : Nat), LeNat (Nat.succ i) (partCount p) →
+    ∀ (x : ratRep), InHalfOpen (partPoint p i) (partPoint p (Nat.succ i)) x →
+      ratRel (f x) (c i)</code></pre></div></article>
+<article class="exercise" id="ex-153-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">stepOn_value</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem stepOn_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (f (partPoint p i)) (c i) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把左端点本身代进定义，它落在自己的段里：左边是自反的弱序，右边是相邻切点的严格上升。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (f (partPoint p i)) (c i)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义性展开 <span class="math">· ratLeRep_refl · isPartition_step · And.intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-1"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">左端点落在自己的段里，是两条前提的直接拼装：弱序的自反性管左边，相邻
+切点的严格上升管右边。这一段不需要任何关于 f 的信息，<code>StepOn</code> 的定义
+本身就把结论交出来了。</p><pre><code>theorem stepOn_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (f (partPoint p i)) (c i) :=
+  h i hi (partPoint p i)
+    (And.intro (ratLeRep_refl (partPoint p i))
+      (isPartition_step a b p hp i hi))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">stepOn_unique</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem stepOn_unique (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c d : Nat → ratRep) (hp : IsPartition a b p)
+    (hc : StepOn a b p f c) (hd : StepOn a b p f d)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (c i) (d i) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>同一个左端点被两组常数各钉一次，把 <code>f (point i) ~ c i</code> 翻向，再与 <code>f (point i) ~ d i</code> 串起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (c i) (d i)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">stepOn_value · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">同一个函数的两组常数在同一个左端点上都取到，于是它们彼此等价。这条唯一
+性说明常数由函数与分割决定，换一组写法不会换出另一个高度。</p><pre><code>theorem stepOn_unique (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c d : Nat → ratRep) (hp : IsPartition a b p)
+    (hc : StepOn a b p f c) (hd : StepOn a b p f d)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (c i) (d i) :=
+  ratRel_trans_gen (c i) (f (partPoint p i)) (d i)
+    (ratRel_symm (f (partPoint p i)) (c i)
+      (stepOn_value a b p f c hc hp i hi))
+    (stepOn_value a b p f d hd hp i hi)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">stepOn_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-3">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem stepOn_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    StepOn a b p (fun (_ : ratRep) =&gt; k) (fun (_ : Nat) =&gt; k) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常函数与常数列都是同一个 k，目标退化成 <code>k ~ k</code>；四个前提都用不上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>StepOn a b p (fun _ =&gt; k) (fun _ =&gt; k)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratRel_refl ·</span> 逐层写 <code>fun</code>。</p></div></details></div><details open class="solution-panel" id="sol-153-3"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem stepOn_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    StepOn a b p (fun (_ : ratRep) =&gt; k) (fun (_ : Nat) =&gt; k) :=
+  fun (_i : Nat) (_hi : LeNat (Nat.succ _i) (partCount p))
+      (_x : ratRep) (_hx : InHalfOpen (partPoint p _i)
+        (partPoint p (Nat.succ _i)) _x) =&gt;
+    ratRel_refl k</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">stepOn_congr</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem stepOn_congr (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c : Nat → ratRep) (hfg : ∀ (x : ratRep), ratRel (f x) (g x))
+    (h : StepOn a b p f c) : StepOn a b p g c :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在每一段上把 <code>g x ~ f x</code> 与 <code>f x ~ c i</code> 串起来，前一条要翻向。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>StepOn a b p g c</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratRel_symm · ratRel_trans_gen ·</span> 逐层写 <code>fun</code>。</p></div></details></div><details open class="solution-panel" id="sol-153-4"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><pre><code>theorem stepOn_congr (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c : Nat → ratRep) (hfg : ∀ (x : ratRep), ratRel (f x) (g x))
+    (h : StepOn a b p f c) : StepOn a b p g c :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratRel_trans_gen (g x) (f x) (c i)
+      (ratRel_symm (f x) (g x) (hfg x))
+      (h i hi x hx)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">stepOn_add</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>加法与取负</p></div></div><pre class="exercise-statement"><code>theorem stepOn_add (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c d : Nat → ratRep) (hf : StepOn a b p f c) (hg : StepOn a b p g d) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratAddRep (f x) (g x))
+      (fun (i : Nat) =&gt; ratAddRep (c i) (d i)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>在每一段上，<code>f x ~ c i</code> 与 <code>g x ~ d i</code> 各自搬到同一个和的左右两侧，用两条加法的同余律接起来。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>StepOn a b p (fun x =&gt; f x + g x) (fun i =&gt; c i + d i)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratAddRep_wd_gen · ratAddRep_wd_snd_gen · ratRel_trans_gen</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-5"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">两条常数各搬一个加数：先把 <code>f x</code> 换成 <code>c i</code>，再把 <code>g x</code> 换成 <code>d i</code>。两
+步都是加法的同余律，中间那一项 <code>c i + g x</code> 只是桥。</p><pre><code>theorem stepOn_add (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c d : Nat → ratRep) (hf : StepOn a b p f c) (hg : StepOn a b p g d) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratAddRep (f x) (g x))
+      (fun (i : Nat) =&gt; ratAddRep (c i) (d i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratRel_trans_gen (ratAddRep (f x) (g x)) (ratAddRep (c i) (g x))
+      (ratAddRep (c i) (d i))
+      (ratAddRep_wd_gen (f x) (c i) (g x) (hf i hi x hx))
+      (ratAddRep_wd_snd_gen (c i) (g x) (d i) (hg i hi x hx))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">stepOn_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem stepOn_neg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (fun (i : Nat) =&gt; ratNegRep (c i)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取负保持代表元的等价，所以在每一段上直接把 <code>f x ~ c i</code> 搬过去。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>StepOn a b p (fun x =&gt; -f x) (fun i =&gt; -c i)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratNegRep_wd ·</span> 逐层写 <code>fun</code>。</p></div></details></div><details open class="solution-panel" id="sol-153-6"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><pre><code>theorem stepOn_neg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (fun (i : Nat) =&gt; ratNegRep (c i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratNegRep_wd (f x) (c i) (h i hi x hx)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>会跳一次的分割</p></div><div class="block prose intuition-only"><p>三个切点 a、m、b 把区间切成两段，段数是 2。切点函数按两层拆开写：先看下标是不是零，再看剩下的是不是零，因为 <code>def</code> 里不能嵌套 <code>match</code>。</p></div><article class="decl decl-def" id="decl-153-11"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">threePointTail</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>def threePointTail (m b : ratRep) (j : Nat) : ratRep :=
+  match j with
+  | Nat.zero =&gt; m
+  | Nat.succ _ =&gt; b</code></pre></div></article>
+<article class="decl decl-def" id="decl-153-12"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">threePointAt</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>def threePointAt (a m b : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero =&gt; a
+  | Nat.succ j =&gt; threePointTail m b j</code></pre></div></article>
+<article class="decl decl-def" id="decl-153-13"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">threePoint</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>def threePoint (a m b : ratRep) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ (Nat.succ Nat.zero)) (threePointAt a m b)</code></pre></div></article>
+<article class="decl decl-theorem" id="decl-153-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">threePoint_zero</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem threePoint_zero (a m b : ratRep) :
+    partPoint (threePoint a m b) Nat.zero = a :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} ratRep a</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-153-15"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">threePoint_one</code><span class="decl-where">声明 15</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem threePoint_one (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ Nat.zero) = m :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} ratRep m</code></pre></li></ol></details></div></article>
+<article class="decl decl-theorem" id="decl-153-16"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">threePoint_two</code><span class="decl-where">声明 16</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem threePoint_two (a m b : ratRep) :
+    partPoint (threePoint a m b) (Nat.succ (Nat.succ Nat.zero)) = b :=</code></pre><details open class="proof-panel formal-only"><summary>证明 · 1 步 · 1 行</summary><ol class="proof-steps"><li><pre><code>  @Eq.refl.{1} ratRep b</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-153-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">threePoint_step</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-7">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem threePoint_step (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+      ratLtRep (partPoint (threePoint a m b) i)
+        (partPoint (threePoint a m b) (Nat.succ i)) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对下标归纳。0 时前提是 <code>1 ≤ 2</code>，结论就是 a &lt; m；1 时前提是 <code>2 ≤ 2</code>，结论就是 m &lt; b；再往后前提是 <code>k+3 ≤ 2</code>，两次 <code>leNat_pred</code> 化成 <code>k+1 ≤ 0</code>，交给 <code>leNat_succ_zero_absurd</code> 排除。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∀ i, LeNat (succ i) 2 → ratLtRep (partPoint (threePoint a m b) i) (partPoint (threePoint a m b) (succ i))</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>Nat.rec（两层）<span class="math">· leNat_pred · leNat_succ_zero_absurd</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-7"><summary>查看解答 <span class="sol-meta">定理 · 38 行</span></summary><div class="solution-body"><p class="solution-note">两次归纳：外层管下标 0，内层管下标 1 与更远的。内层只剩两个可能：1 时前
+提 <code>2 ≤ 2</code> 成立，结论是 m &lt; b；再往后前提要求 <code>k+3 ≤ 2</code>，两次 <code>leNat_pred</code>
+剥到 <code>k+1 ≤ 0</code>，与 <code>leNat_succ_zero_absurd</code> 冲突。</p><pre><code>theorem threePoint_step (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+      ratLtRep (partPoint (threePoint a m b) i)
+        (partPoint (threePoint a m b) (Nat.succ i)) :=
+  fun (i : Nat) =&gt;
+    Nat.rec
+      (fun (i : Nat) =&gt;
+        LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+          ratLtRep (partPoint (threePoint a m b) i)
+            (partPoint (threePoint a m b) (Nat.succ i)))
+      (fun (_hi : LeNat (Nat.succ Nat.zero) (partCount (threePoint a m b))) =&gt;
+        ham)
+      (fun (j : Nat)
+          (_ih : LeNat (Nat.succ j) (partCount (threePoint a m b)) →
+            ratLtRep (partPoint (threePoint a m b) j)
+              (partPoint (threePoint a m b) (Nat.succ j))) =&gt;
+        Nat.rec
+          (fun (j : Nat) =&gt;
+            LeNat (Nat.succ (Nat.succ j)) (partCount (threePoint a m b)) →
+              ratLtRep (partPoint (threePoint a m b) (Nat.succ j))
+                (partPoint (threePoint a m b) (Nat.succ (Nat.succ j))))
+          (fun (_h : LeNat (Nat.succ (Nat.succ Nat.zero))
+              (partCount (threePoint a m b))) =&gt; hmb)
+          (fun (k : Nat)
+              (_ih2 : LeNat (Nat.succ (Nat.succ k))
+                  (partCount (threePoint a m b)) →
+                ratLtRep (partPoint (threePoint a m b) (Nat.succ k))
+                  (partPoint (threePoint a m b) (Nat.succ (Nat.succ k))))
+              (hbad : LeNat (Nat.succ (Nat.succ (Nat.succ k)))
+                (partCount (threePoint a m b))) =&gt;
+            False.elim
+              (leNat_succ_zero_absurd k
+                (leNat_pred (Nat.succ k) Nat.zero
+                  (leNat_pred (Nat.succ (Nat.succ k)) (Nat.succ Nat.zero)
+                    hbad))))
+          j)
+      i</code></pre></div></details></div></article>
+<article class="exercise" id="ex-153-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">threePoint_isPartition</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-8">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem threePoint_isPartition (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) : IsPartition a b (threePoint a m b) :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>端点两条是定义性展开；上升条件整条交给 <code>threePoint_step</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>IsPartition a b (threePoint a m b)</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>定义性展开 <span class="math">· threePoint_step · And.intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-8"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem threePoint_isPartition (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) : IsPartition a b (threePoint a m b) :=
+  And.intro
+    (@Eq.refl.{1} ratRep a)
+    (And.intro
+      (@Eq.refl.{1} ratRep b)
+      (threePoint_step a m b ham hmb))</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>两个读数</p></div><div class="block prose intuition-only"><p>两段的常数：下标 0 取 c0，其余取 c1。</p></div><article class="decl decl-def" id="decl-153-19"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">twoStep</code><span class="decl-where">声明 19</span></header><div class="decl-body"><pre class="decl-statement"><code>def twoStep (c0 c1 : ratRep) (i : Nat) : ratRep :=
+  match i with
+  | Nat.zero =&gt; c0
+  | Nat.succ _ =&gt; c1</code></pre></div></article>
+<article class="exercise" id="ex-153-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">demo_threePoint_values</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-153-9">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem demo_threePoint_values (a m b c0 c1 : ratRep) (f : ratRep → ratRep)
+    (ham : ratLtRep a m) (hmb : ratLtRep m b)
+    (h : StepOn a b (threePoint a m b) f (twoStep c0 c1)) :
+    ratRel (f a) c0 ∧ ratRel (f m) c1 :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对第 0 段用一次 <code>stepOn_value</code>，对第 1 段再用一次；两段都存在，因为段数是 2。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel (f a) c0 ∧ ratRel (f m) c1</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">stepOn_value · threePoint_isPartition · le_succ · le_refl · And.intro</span>。</p></div></details></div><details open class="solution-panel" id="sol-153-9"><summary>查看解答 <span class="sol-meta">定理 · 12 行</span></summary><div class="solution-body"><p class="solution-note">第 0 段的左端点是 a，第 1 段的左端点是 m；两段都存在，因为段数是 2。
+<code>stepOn_value</code> 把两处的函数值分别钉在 c0 与 c1 上，这就是一个真正跳了
+一次的阶梯函数在两段上的取值。</p><pre><code>theorem demo_threePoint_values (a m b c0 c1 : ratRep) (f : ratRep → ratRep)
+    (ham : ratLtRep a m) (hmb : ratLtRep m b)
+    (h : StepOn a b (threePoint a m b) f (twoStep c0 c1)) :
+    ratRel (f a) c0 ∧ ratRel (f m) c1 :=
+  And.intro
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) Nat.zero
+      (le_succ (Nat.succ Nat.zero) (Nat.succ Nat.zero)
+        (le_refl (Nat.succ Nat.zero))))
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) (Nat.succ Nat.zero)
+      (le_refl (Nat.succ (Nat.succ Nat.zero))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit152.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">切点只往前走：分割上的序</span></a><a class="unit-nav-home" href="../chapters/iii-8.html#units">目录</a><a class="unit-nav-link" href="../units/unit154.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">矩形和：把每一段的面积加起来</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-153"><h3><a href="#top">阶梯函数：每一段上取常值</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-153-1"><summary>练习 1 · stepOn_value <span class="sol-meta">定理</span></summary><p class="solution-note">左端点落在自己的段里，是两条前提的直接拼装：弱序的自反性管左边，相邻
+切点的严格上升管右边。这一段不需要任何关于 f 的信息，<code>StepOn</code> 的定义
+本身就把结论交出来了。</p><pre><code>theorem stepOn_value (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) (hp : IsPartition a b p)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (f (partPoint p i)) (c i) :=
+  h i hi (partPoint p i)
+    (And.intro (ratLeRep_refl (partPoint p i))
+      (isPartition_step a b p hp i hi))</code></pre></details><details open class="appendix-solution" id="app-sol-153-2"><summary>练习 2 · stepOn_unique <span class="sol-meta">定理</span></summary><p class="solution-note">同一个函数的两组常数在同一个左端点上都取到，于是它们彼此等价。这条唯一
+性说明常数由函数与分割决定，换一组写法不会换出另一个高度。</p><pre><code>theorem stepOn_unique (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c d : Nat → ratRep) (hp : IsPartition a b p)
+    (hc : StepOn a b p f c) (hd : StepOn a b p f d)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratRel (c i) (d i) :=
+  ratRel_trans_gen (c i) (f (partPoint p i)) (d i)
+    (ratRel_symm (f (partPoint p i)) (c i)
+      (stepOn_value a b p f c hc hp i hi))
+    (stepOn_value a b p f d hd hp i hi)</code></pre></details><details open class="appendix-solution" id="app-sol-153-3"><summary>练习 3 · stepOn_const <span class="sol-meta">定理</span></summary><pre><code>theorem stepOn_const (a b : ratRep) (p : Partition) (k : ratRep) :
+    StepOn a b p (fun (_ : ratRep) =&gt; k) (fun (_ : Nat) =&gt; k) :=
+  fun (_i : Nat) (_hi : LeNat (Nat.succ _i) (partCount p))
+      (_x : ratRep) (_hx : InHalfOpen (partPoint p _i)
+        (partPoint p (Nat.succ _i)) _x) =&gt;
+    ratRel_refl k</code></pre></details><details open class="appendix-solution" id="app-sol-153-4"><summary>练习 4 · stepOn_congr <span class="sol-meta">定理</span></summary><pre><code>theorem stepOn_congr (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c : Nat → ratRep) (hfg : ∀ (x : ratRep), ratRel (f x) (g x))
+    (h : StepOn a b p f c) : StepOn a b p g c :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratRel_trans_gen (g x) (f x) (c i)
+      (ratRel_symm (f x) (g x) (hfg x))
+      (h i hi x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-153-5"><summary>练习 5 · stepOn_add <span class="sol-meta">定理</span></summary><p class="solution-note">两条常数各搬一个加数：先把 <code>f x</code> 换成 <code>c i</code>，再把 <code>g x</code> 换成 <code>d i</code>。两
+步都是加法的同余律，中间那一项 <code>c i + g x</code> 只是桥。</p><pre><code>theorem stepOn_add (a b : ratRep) (p : Partition) (f g : ratRep → ratRep)
+    (c d : Nat → ratRep) (hf : StepOn a b p f c) (hg : StepOn a b p g d) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratAddRep (f x) (g x))
+      (fun (i : Nat) =&gt; ratAddRep (c i) (d i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratRel_trans_gen (ratAddRep (f x) (g x)) (ratAddRep (c i) (g x))
+      (ratAddRep (c i) (d i))
+      (ratAddRep_wd_gen (f x) (c i) (g x) (hf i hi x hx))
+      (ratAddRep_wd_snd_gen (c i) (g x) (d i) (hg i hi x hx))</code></pre></details><details open class="appendix-solution" id="app-sol-153-6"><summary>练习 6 · stepOn_neg <span class="sol-meta">定理</span></summary><pre><code>theorem stepOn_neg (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (c : Nat → ratRep) (h : StepOn a b p f c) :
+    StepOn a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (fun (i : Nat) =&gt; ratNegRep (c i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p))
+      (x : ratRep) (hx : InHalfOpen (partPoint p i)
+        (partPoint p (Nat.succ i)) x) =&gt;
+    ratNegRep_wd (f x) (c i) (h i hi x hx)</code></pre></details><details open class="appendix-solution" id="app-sol-153-7"><summary>练习 7 · threePoint_step <span class="sol-meta">定理</span></summary><p class="solution-note">两次归纳：外层管下标 0，内层管下标 1 与更远的。内层只剩两个可能：1 时前
+提 <code>2 ≤ 2</code> 成立，结论是 m &lt; b；再往后前提要求 <code>k+3 ≤ 2</code>，两次 <code>leNat_pred</code>
+剥到 <code>k+1 ≤ 0</code>，与 <code>leNat_succ_zero_absurd</code> 冲突。</p><pre><code>theorem threePoint_step (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+      ratLtRep (partPoint (threePoint a m b) i)
+        (partPoint (threePoint a m b) (Nat.succ i)) :=
+  fun (i : Nat) =&gt;
+    Nat.rec
+      (fun (i : Nat) =&gt;
+        LeNat (Nat.succ i) (partCount (threePoint a m b)) →
+          ratLtRep (partPoint (threePoint a m b) i)
+            (partPoint (threePoint a m b) (Nat.succ i)))
+      (fun (_hi : LeNat (Nat.succ Nat.zero) (partCount (threePoint a m b))) =&gt;
+        ham)
+      (fun (j : Nat)
+          (_ih : LeNat (Nat.succ j) (partCount (threePoint a m b)) →
+            ratLtRep (partPoint (threePoint a m b) j)
+              (partPoint (threePoint a m b) (Nat.succ j))) =&gt;
+        Nat.rec
+          (fun (j : Nat) =&gt;
+            LeNat (Nat.succ (Nat.succ j)) (partCount (threePoint a m b)) →
+              ratLtRep (partPoint (threePoint a m b) (Nat.succ j))
+                (partPoint (threePoint a m b) (Nat.succ (Nat.succ j))))
+          (fun (_h : LeNat (Nat.succ (Nat.succ Nat.zero))
+              (partCount (threePoint a m b))) =&gt; hmb)
+          (fun (k : Nat)
+              (_ih2 : LeNat (Nat.succ (Nat.succ k))
+                  (partCount (threePoint a m b)) →
+                ratLtRep (partPoint (threePoint a m b) (Nat.succ k))
+                  (partPoint (threePoint a m b) (Nat.succ (Nat.succ k))))
+              (hbad : LeNat (Nat.succ (Nat.succ (Nat.succ k)))
+                (partCount (threePoint a m b))) =&gt;
+            False.elim
+              (leNat_succ_zero_absurd k
+                (leNat_pred (Nat.succ k) Nat.zero
+                  (leNat_pred (Nat.succ (Nat.succ k)) (Nat.succ Nat.zero)
+                    hbad))))
+          j)
+      i</code></pre></details><details open class="appendix-solution" id="app-sol-153-8"><summary>练习 8 · threePoint_isPartition <span class="sol-meta">定理</span></summary><pre><code>theorem threePoint_isPartition (a m b : ratRep) (ham : ratLtRep a m)
+    (hmb : ratLtRep m b) : IsPartition a b (threePoint a m b) :=
+  And.intro
+    (@Eq.refl.{1} ratRep a)
+    (And.intro
+      (@Eq.refl.{1} ratRep b)
+      (threePoint_step a m b ham hmb))</code></pre></details><details open class="appendix-solution" id="app-sol-153-9"><summary>练习 9 · demo_threePoint_values <span class="sol-meta">定理</span></summary><p class="solution-note">第 0 段的左端点是 a，第 1 段的左端点是 m；两段都存在，因为段数是 2。
+<code>stepOn_value</code> 把两处的函数值分别钉在 c0 与 c1 上，这就是一个真正跳了
+一次的阶梯函数在两段上的取值。</p><pre><code>theorem demo_threePoint_values (a m b c0 c1 : ratRep) (f : ratRep → ratRep)
+    (ham : ratLtRep a m) (hmb : ratLtRep m b)
+    (h : StepOn a b (threePoint a m b) f (twoStep c0 c1)) :
+    ratRel (f a) c0 ∧ ratRel (f m) c1 :=
+  And.intro
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) Nat.zero
+      (le_succ (Nat.succ Nat.zero) (Nat.succ Nat.zero)
+        (le_refl (Nat.succ Nat.zero))))
+    (stepOn_value a b (threePoint a m b) f (twoStep c0 c1) h
+      (threePoint_isPartition a m b ham hmb) (Nat.succ Nat.zero)
+      (le_refl (Nat.succ (Nat.succ Nat.zero))))</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

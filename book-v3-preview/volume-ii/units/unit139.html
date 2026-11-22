@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>139 单调函数：介值性反过来给出连续 · 从集合论到实分析</title>
+<meta name="description" content="单元139 单调函数：介值性反过来给出连续：导语、定义与定理、练习与解答。Unit 139 — Monotone Functions: Intermediate Values Force Continuity">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit139.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../../volume-i/index.html">卷 I</a><a href="../index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter" open><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li class="is-current"><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/iii-6.html">III.6 连续函数</a></li><li aria-current="page">单元 139 单调函数：介值性反过来给出连续</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <article class="unit-page">
+<section class="unit" id="unit-139">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-6.html">III.6</a> · 本章第 16 / 16 单元 · 全书第 139 / 171 单元</p>
+<h1><span class="unit-number">139</span> <span>单调函数：介值性反过来给出连续</span></h1>
+<p class="unit-title-en">Unit 139 — Monotone Functions: Intermediate Values Force Continuity</p>
+<p class="unit-meta">2 个定义 · 24 个定理 · 13 道练习 · 39 条提示 · <a href="#appendix-unit-139">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="139" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-139" aria-label="复制单元 139 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit139.html">打印 / PDF 本单元</a></p>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>134 到 136 用连续性换来了最值与介值：连续函数在闭区间上取到最值，从一个负值走到正值时必经过零。这些结论都从连续性出发。反过来的问题同样值得问：「不跳过中间值」这一条性质，能不能把连续性认出来？</p></div></div></section>
+<div class="block prose intuition-only"><p>单调函数是回答这个问题最省的对象。它的图像只朝一个方向走，所以不连续的方式只剩一种：在某个点跳过去，把一段区间里的值整段让开。若它从不跳过任何一个中间值，就无处可跳，只能连续。<span class="math">ℚ</span> 上的连续函数未必有介值性（<span class="math">x² - 2</span> 在 [1,2] 上连续却没有有理零点），所以这里的介值性是一条显式假设，不是自动成立的事实。</p></div><div class="block prose intuition-only"><p>证明把连续性拆成两个单侧的上界。给定 eps，在 c 的右边找一个分界点 u，使 c 到 u 之间的函数值都不超过 <span class="math">f c + eps/2</span>。若右端点的值本来就不超过这个阈值，右端点本身就是 u；否则介值性在 c 与 b 之间给出一个点，它的值正好是阈值。左边对称地得到 l。<span class="math">δ</span> 取 u - c 与 c - l 中较小的那个，于是 c 的 <span class="math">δ</span> 邻域被夹在 [l, u] 里，两次单侧估计合起来就是 |f x - f c| &lt; eps。</p></div><div class="block prose intuition-only"><p>边界：函数取 <code>ratRep → ratRep</code>，停在有理代表元层；介值性作为假设出现，因为它在 <span class="math">ℚ</span> 上不是连续性的推论。不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>定义：严格递增与介值性</p></div><div class="block prose intuition-only"><p>严格递增只看严格序：x &lt; y 时 f x &lt; f y。它不假设函数尊重代表元的等价，所以这条性质只在不跨越等价类的地方使用，构造单射时正好够用。</p></div><article class="decl decl-def" id="decl-139-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">StrictlyIncreasing</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def StrictlyIncreasing (f : ratRep → ratRep) : Prop :=
+  ∀ (x y : ratRep), ratLtRep x y → ratLtRep (f x) (f y)</code></pre></div></article>
+<div class="block prose intuition-only"><p>介值性把「不跳过中间值」写成一个量词句：区间里两点之间取到的每个值，都被某个严格的中间点取到。函数停在代表元层，取到的值只能报到等价类，所以结论写成 <code>ratRel (f c) v</code> 而不是相等。</p></div><article class="decl decl-def" id="decl-139-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">HasIntermediateValue</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def HasIntermediateValue (f : ratRep → ratRep) (a b : ratRep) : Prop :=
+  ∀ (x y : ratRep), InClosed a b x → InClosed a b y → ratLtRep x y →
+    ∀ (v : ratRep), ratLtRep (f x) v → ratLtRep v (f y) →
+      ∃ (c : ratRep), ratLtRep x c ∧ ratLtRep c y ∧ ratRel (f c) v</code></pre></div></article>
+<div class="block prose intuition-only"><p>定义的展开</p></div><div class="block prose intuition-only"><p>定义与展开是同一个命题，两个方向都直接返回假设。</p></div><article class="decl decl-theorem" id="decl-139-3"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">strictlyIncreasing_iff</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem strictlyIncreasing_iff (f : ratRep → ratRep) :
+    StrictlyIncreasing f ↔
+      ∀ (x y : ratRep), ratLtRep x y → ratLtRep (f x) (f y) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 2 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : StrictlyIncreasing f) =&gt; h)
+    (fun (h : ∀ (x y : ratRep), ratLtRep x y → ratLtRep (f x) (f y)) =&gt; h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>同一个定义换一行写，展开后逐字相同。</p></div><article class="decl decl-theorem" id="decl-139-4"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">hasIntermediateValue_iff</code><span class="decl-where">声明 4</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem hasIntermediateValue_iff (f : ratRep → ratRep) (a b : ratRep) :
+    HasIntermediateValue f a b ↔
+      ∀ (x y : ratRep), InClosed a b x → InClosed a b y → ratLtRep x y →
+        ∀ (v : ratRep), ratLtRep (f x) v → ratLtRep v (f y) →
+          ∃ (c : ratRep), ratLtRep x c ∧ ratLtRep c y ∧ ratRel (f c) v :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  Iff.intro (fun (h : HasIntermediateValue f a b) =&gt; h)
+    (fun (h : ∀ (x y : ratRep), InClosed a b x → InClosed a b y →
+        ratLtRep x y → ∀ (v : ratRep), ratLtRep (f x) v →
+          ratLtRep v (f y) → ∃ (c : ratRep),
+            ratLtRep x c ∧ ratLtRep c y ∧ ratRel (f c) v) =&gt; h)</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-139-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">strictlyIncreasing_injective</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>单射</p></div><div class="block prose intuition-only"><p>严格递增把不同的点推开：f x 与 f y 等价时，x 与 y 必须等价。证明按序的全性分左右两支；每支再用「弱序或者相等、或者严格小」拆开，严格小的那一支与已知的等价直接冲突。</p></div></div><pre class="exercise-statement"><code>theorem strictlyIncreasing_injective (f : ratRep → ratRep)
+    (hf : StrictlyIncreasing f) (x y : ratRep) (h : ratRel (f x) (f y)) :
+    ratRel x y :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>ratLeRep_total x y</code> 分两支；每支用 <code>ratLeRep_eq_or_lt</code> 拆成相等或严格小，严格小的一支把 <code>hf</code> 给出的严格不等式与 <code>h</code> 摆在一起，用 <code>ratLtRep_right</code> 收尾。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>StrictlyIncreasing f → ratRel (f x) (f y) → ratRel x y</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_eq_or_lt · ratLtRep_right · False.elim · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-139-1"><summary>查看解答 <span class="sol-meta">定理 · 18 行</span></summary><div class="solution-body"><pre><code>theorem strictlyIncreasing_injective (f : ratRep → ratRep)
+    (hf : StrictlyIncreasing f) (x y : ratRep) (h : ratRel (f x) (f y)) :
+    ratRel x y :=
+  @Or.elim (ratLeRep x y) (ratLeRep y x) (ratRel x y)
+    (fun (hxy : ratLeRep x y) =&gt;
+      @Or.elim (ratRel x y) (ratLtRep x y) (ratRel x y)
+        (fun (heq : ratRel x y) =&gt; heq)
+        (fun (hlt : ratLtRep x y) =&gt;
+          False.elim (ratLtRep_right (f x) (f y) (hf x y hlt) h))
+        (ratLeRep_eq_or_lt x y hxy))
+    (fun (hyx : ratLeRep y x) =&gt;
+      @Or.elim (ratRel y x) (ratLtRep y x) (ratRel x y)
+        (fun (heq : ratRel y x) =&gt; ratRel_symm y x heq)
+        (fun (hlt : ratLtRep y x) =&gt;
+          False.elim (ratLtRep_right (f y) (f x) (hf y x hlt)
+            (ratRel_symm (f x) (f y) h)))
+        (ratLeRep_eq_or_lt y x hyx))
+    (ratLeRep_total x y)</code></pre></div></details></div></article>
+<div class="block prose intuition-only"><p>序与差的小工具</p></div><div class="block prose intuition-only"><p>严格序在左边加同一个数也稳定。先对右边加，再用交换律把两端的次序搬回来。</p></div><article class="decl decl-theorem" id="decl-139-6"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">ratLtRep_add_left</code><span class="decl-where">声明 6</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem ratLtRep_add_left (x y z : ratRep) (h : ratLtRep x y) :
+    ratLtRep (ratAddRep z x) (ratAddRep z y) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  ratLtRep_congr_snd (ratAddRep z x) (ratAddRep y z) (ratAddRep z y)
+    (ratLtRep_congr_fst (ratAddRep z x) (ratAddRep x z) (ratAddRep y z)
+      (ratLtRep_add_right x y z h) (ratAdd_comm z x))
+    (ratAdd_comm y z)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>弱序换个说法：<span class="math">x ≤ y</span> 就是 <span class="math">0 ≤ y - x</span>。两边同加 -x 得 <span class="math">-y ≤ -x</span>，再在左边加上 y，把 <span class="math">y + (-y)</span> 收成零。</p></div><article class="decl decl-theorem" id="decl-139-7"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">le_sub_of_le</code><span class="decl-where">声明 7</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem le_sub_of_le (x y : ratRep) (h : ratLeRep x y) :
+    ratLeRep ratZeroRep (ratSubRep y x) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 5 行</summary><ol class="proof-steps"><li><pre><code>  ratLeRep_congr_gen
+    (ratAddRep y (ratNegRep y)) ratZeroRep
+    (ratSubRep y x) (ratSubRep y x)
+    (ratAdd_neg_gen y) (ratRel_refl (ratSubRep y x))
+    (ratLeRep_add_left (ratNegRep y) (ratNegRep x) y (ratLeRep_neg_gen x y h))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>上一条的逆用：<span class="math">x - y ≤ d</span> 时两边加 y，得到 <span class="math">x ≤ y + d</span>；左边用 <code>(x - y) + y ~ x</code> 收回。</p></div><article class="decl decl-theorem" id="decl-139-8"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">le_add_of_sub_le</code><span class="decl-where">声明 8</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem le_add_of_sub_le (x y d : ratRep)
+    (h : ratLeRep (ratSubRep x y) d) : ratLeRep x (ratAddRep y d) :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 6 行</summary><ol class="proof-steps"><li><pre><code>  ratLeRep_trans x (ratAddRep (ratSubRep x y) y) (ratAddRep y d)
+    (ratLeRep_of_ratRel x (ratAddRep (ratSubRep x y) y)
+      (ratRel_symm (ratAddRep (ratSubRep x y) y) x (ratSubRep_add_self x y)))
+    (ratLeRep_trans (ratAddRep (ratSubRep x y) y) (ratAddRep d y) (ratAddRep y d)
+      (ratLeRep_add_right (ratSubRep x y) d y h)
+      (ratLeRep_of_ratRel (ratAddRep d y) (ratAddRep y d) (ratAdd_comm d y)))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>两边同时减去同一个数不改变弱序：把 <span class="math">c - x ≤ c - l</span> 的公共被减数 c 消掉，得到 <span class="math">-x ≤ -l</span>，再取负换成 <span class="math">l ≤ x</span>。</p></div><article class="decl decl-theorem" id="decl-139-9"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">le_of_sub_right_le</code><span class="decl-where">声明 9</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem le_of_sub_right_le (c x l : ratRep)
+    (h : ratLeRep (ratSubRep c x) (ratSubRep c l)) : ratLeRep l x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 11 行</summary><ol class="proof-steps"><li><pre><code>  ratLeRep_congr_gen (ratNegRep (ratNegRep l)) l
+    (ratNegRep (ratNegRep x)) x
+    (ratNegRep_invol l) (ratNegRep_invol x)
+    (ratLeRep_neg_gen (ratNegRep x) (ratNegRep l)
+      (ratLeRep_add_cancel_gen (ratNegRep x) (ratNegRep l) c
+        (ratLeRep_congr_gen
+          (ratSubRep c x) (ratAddRep (ratNegRep x) c)
+          (ratSubRep c l) (ratAddRep (ratNegRep l) c)
+          (ratAdd_comm c (ratNegRep x))
+          (ratAdd_comm c (ratNegRep l))
+          h)))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>减去一个正数会变小：x - h 加回 h 得到 x，而加正数严格抬大。</p></div><article class="decl decl-theorem" id="decl-139-10"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">ratLtRep_self_sub_pos</code><span class="decl-where">声明 10</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem ratLtRep_self_sub_pos (x h : ratRep) (hh : ratLtRep ratZeroRep h) :
+    ratLtRep (ratSubRep x h) x :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  ratLtRep_congr_snd (ratSubRep x h) (ratAddRep (ratSubRep x h) h) x
+    (ratLtRep_self_add_pos (ratSubRep x h) h hh)
+    (ratSubRep_add_self x h)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>两个正数里有较小的一个。序的全性给出两支，每支取自己那一端；它不超过另一个则由全性直接给出。</p></div><article class="decl decl-theorem" id="decl-139-11"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">exists_min_pos</code><span class="decl-where">声明 11</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem exists_min_pos (p q : ratRep) (hp : ratLtRep ratZeroRep p)
+    (hq : ratLtRep ratZeroRep q) :
+    ∃ (d : ratRep), ratLtRep ratZeroRep d ∧ ratLeRep d p ∧ ratLeRep d q :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 7 行</summary><ol class="proof-steps"><li><pre><code>  @Or.elim (ratLeRep p q) (ratLeRep q p)
+    (∃ (d : ratRep), ratLtRep ratZeroRep d ∧ ratLeRep d p ∧ ratLeRep d q)
+    (fun (h : ratLeRep p q) =&gt;
+      Exists.intro p (And.intro hp (And.intro (ratLeRep_refl p) h)))
+    (fun (h : ratLeRep q p) =&gt;
+      Exists.intro q (And.intro hq (And.intro h (ratLeRep_refl q))))
+    (ratLeRep_total p q)</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>close 的两侧收口</p></div><div class="block prose intuition-only"><p>单侧估计变成 <code>close</code>：<span class="math">L ≤ x</span> 且 <span class="math">x &lt; L + eps</span> 时，|x - L| 就是 x - L，它小于 eps。见证取 x - L 本身，绝对值那一支由非负性给出；严格界通过 <code>(L + eps) - L ~ eps</code> 搬到 eps 上。</p></div><article class="decl decl-theorem" id="decl-139-12"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">close_of_le_lt</code><span class="decl-where">声明 12</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem close_of_le_lt (x L eps : ratRep)
+    (h1 : ratLeRep L x) (h2 : ratLtRep x (ratAddRep L eps)) :
+    close x L eps :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 25 行</summary><ol class="proof-steps"><li><pre><code>  Exists.intro (ratSubRep x L)
+    (And.intro
+      (Or.inl (And.intro (le_sub_of_le L x h1)
+        (ratRel_refl (ratSubRep x L))))
+      (ratLtRep_congr_snd (ratSubRep x L)
+        (ratAddRep (ratAddRep L eps) (ratNegRep L)) eps
+        (ratLtRep_add_right x (ratAddRep L eps) (ratNegRep L) h2)
+        (ratRel_trans_gen
+          (ratAddRep (ratAddRep L eps) (ratNegRep L))
+          (ratAddRep (ratAddRep eps L) (ratNegRep L))
+          eps
+          (ratAddRep_wd_gen (ratAddRep L eps) (ratAddRep eps L)
+            (ratNegRep L) (ratAdd_comm L eps))
+          (ratRel_trans_gen
+            (ratAddRep (ratAddRep eps L) (ratNegRep L))
+            (ratAddRep eps (ratAddRep L (ratNegRep L)))
+            eps
+            (ratAdd_assoc eps L (ratNegRep L))
+            (ratRel_trans_gen
+              (ratAddRep eps (ratAddRep L (ratNegRep L)))
+              (ratAddRep eps ratZeroRep)
+              eps
+              (ratAddRep_wd_snd_gen eps (ratAddRep L (ratNegRep L))
+                ratZeroRep (ratAdd_neg_gen L))
+              (ratAdd_zero eps))))))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>两个条件合成 <code>close</code>：<span class="math">L ≤ x ≤ L + h</span> 且 h &lt; eps。先把上界放大成 <span class="math">x &lt; L + eps</span>，再交给上一条。</p></div><article class="decl decl-theorem" id="decl-139-13"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">close_of_le_ub</code><span class="decl-where">声明 13</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem close_of_le_ub (x L eps h : ratRep)
+    (h1 : ratLeRep L x) (h2 : ratLeRep x (ratAddRep L h))
+    (hh : ratLtRep h eps) : close x L eps :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 3 行</summary><ol class="proof-steps"><li><pre><code>  close_of_le_lt x L eps h1
+    (ratLtRep_of_le_lt x (ratAddRep L h) (ratAddRep L eps) h2
+      (ratLtRep_add_left h eps L hh))</code></pre></li></ol></details></div></article>
+<div class="block prose intuition-only"><p>下界那一侧同样处理，只是最后要把 <code>close</code> 的方向翻过来。</p></div><article class="decl decl-theorem" id="decl-139-14"><header class="decl-head"><span class="decl-kind kind-theorem">定理</span><code class="decl-name">close_of_le_lb</code><span class="decl-where">声明 14</span></header><div class="decl-body"><pre class="decl-statement"><code>theorem close_of_le_lb (x L eps h : ratRep)
+    (h1 : ratLeRep x L) (h2 : ratLeRep L (ratAddRep x h))
+    (hh : ratLtRep h eps) : close x L eps :=</code></pre><details class="proof-panel formal-only"><summary>证明 · 1 步 · 4 行</summary><ol class="proof-steps"><li><pre><code>  close_symm L x eps
+    (close_of_le_lt L x eps h1
+      (ratLtRep_of_le_lt L (ratAddRep x h) (ratAddRep x eps) h2
+        (ratLtRep_add_left h eps x hh)))</code></pre></li></ol></details></div></article>
+<article class="exercise" id="ex-139-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">right_bound_flat</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>右分界点</p></div><div class="block prose intuition-only"><p>右端点的值已经在阈值以下时，右端点本身就是分界点：区间里任何 <span class="math">x ≤ b</span> 都有 <span class="math">f x ≤ f b ≤ f c + h</span>。</p></div></div><pre class="exercise-statement"><code>theorem right_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfb : ratLeRep (f b) (ratAddRep (f c) h)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <span class="math">u = b</span>；对 <span class="math">x ≤ b</span> 用单调性把 f x 压到 f b 之下，再接上 <code>f b ≤ f c + h</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ u, c &lt; u ∧ u ≤ b ∧ ∀ x ∈ [a,b], c ≤ x → x ≤ u → f x ≤ f c + h</code>，取 <span class="math">u = b</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · And.intro · ratLeRep_trans · ratLeRep_refl ·</span> <code>NondecreasingOn</code> 的展开。</p></div></details></div><details class="solution-panel" id="sol-139-2"><summary>查看解答 <span class="sol-meta">定理 · 19 行</span></summary><div class="solution-body"><pre><code>theorem right_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfb : ratLeRep (f b) (ratAddRep (f c) h)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  Exists.intro b
+    (And.intro hcb
+      (And.intro (ratLeRep_refl b)
+        (fun (x : ratRep) (hIn : InClosed a b x) (_hcx : ratLeRep c x)
+            (hxb : ratLeRep x b) =&gt;
+          ratLeRep_trans (f x) (f b) (ratAddRep (f c) h)
+            (hmono x b hIn
+              (And.intro
+                (ratLtRep_le a b (ratLtRep_trans a c b hac hcb))
+                (ratLeRep_refl b))
+              hxb)
+            hfb)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">right_bound_of_lt</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>右端点的值超过阈值时，介值性在 c 与 b 之间给出一个点 u，它的值恰好是阈值。u 严格在 c 的右边（阈值严格大于 f c），也严格在 b 的左边（阈值严格小于 f b），于是 c 到 u 之间的函数值都被阈值压住。</p></div></div><pre class="exercise-statement"><code>theorem right_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (ratAddRep (f c) h) (f b)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <span class="math">x = c</span>、<span class="math">y = b</span>、<span class="math">v = f c + h</span> 交给介值性；它给出 c &lt; u &lt; b 且 f u ~ <span class="math">f c + h</span>，再对 <span class="math">x ≤ u</span> 用单调性。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>与 <code>right_bound_flat</code> 相同的存在句。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hivp · ratLtRep_self_add_pos · ratLtRep_le · ratLeRep_of_ratRel · ratLeRep_trans</span>。</p></div></details></div><details class="solution-panel" id="sol-139-3"><summary>查看解答 <span class="sol-meta">定理 · 38 行</span></summary><div class="solution-body"><pre><code>theorem right_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (ratAddRep (f c) h) (f b)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  @Exists.elim ratRep
+    (fun (v : ratRep) =&gt; ratLtRep c v ∧ ratLtRep v b ∧
+      ratRel (f v) (ratAddRep (f c) h))
+    (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h))
+    (hivp c b
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      (And.intro (ratLtRep_le a b (ratLtRep_trans a c b hac hcb))
+        (ratLeRep_refl b))
+      hcb (ratAddRep (f c) h)
+      (ratLtRep_self_add_pos (f c) h hh) hlt)
+    (fun (u : ratRep)
+        (hu : ratLtRep c u ∧ ratLtRep u b ∧
+          ratRel (f u) (ratAddRep (f c) h)) =&gt;
+      Exists.intro u
+        (And.intro (And.left hu)
+          (And.intro (ratLtRep_le u b (And.left (And.right hu)))
+            (fun (x : ratRep) (hIn : InClosed a b x) (hcx : ratLeRep c x)
+                (hxu : ratLeRep x u) =&gt;
+              ratLeRep_trans (f x) (f u) (ratAddRep (f c) h)
+                (hmono x u hIn
+                  (And.intro
+                    (ratLeRep_trans a c u (ratLtRep_le a c hac)
+                      (ratLtRep_le c u (And.left hu)))
+                    (ratLtRep_le u b (And.left (And.right hu))))
+                  hxu)
+                (ratLeRep_of_ratRel (f u) (ratAddRep (f c) h)
+                  (And.right (And.right hu)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">exists_right_bound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>两支接起来。按 f b 与 <span class="math">f c + h</span> 的序分；第二支里还要用「弱序或者相等、或者严格小」把相等的边界并入平的那一支。</p></div></div><pre class="exercise-statement"><code>theorem exists_right_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>ratLeRep (f b) (f c + h)</code> 分两支；第二支再用 <code>ratLeRep_eq_or_lt</code> 拆相等或严格小，相等交给 <code>right_bound_flat</code>，严格小交给 <code>right_bound_of_lt</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>与 <code>right_bound_flat</code> 相同的存在句。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_eq_or_lt · ratLeRep_of_ratRel · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-139-4"><summary>查看解答 <span class="sol-meta">定理 · 29 行</span></summary><div class="solution-body"><pre><code>theorem exists_right_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  @Or.elim (ratLeRep (f b) (ratAddRep (f c) h))
+    (ratLeRep (ratAddRep (f c) h) (f b))
+    (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h))
+    (fun (hle : ratLeRep (f b) (ratAddRep (f c) h)) =&gt;
+      right_bound_flat f a b c h hmono hac hcb hle)
+    (fun (hge : ratLeRep (ratAddRep (f c) h) (f b)) =&gt;
+      @Or.elim (ratRel (ratAddRep (f c) h) (f b))
+        (ratLtRep (ratAddRep (f c) h) (f b))
+        (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+          ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+            ratLeRep (f x) (ratAddRep (f c) h))
+        (fun (heq : ratRel (ratAddRep (f c) h) (f b)) =&gt;
+          right_bound_flat f a b c h hmono hac hcb
+            (ratLeRep_of_ratRel (f b) (ratAddRep (f c) h)
+              (ratRel_symm (ratAddRep (f c) h) (f b) heq)))
+        (fun (hlt : ratLtRep (ratAddRep (f c) h) (f b)) =&gt;
+          right_bound_of_lt f a b c h hmono hivp hac hcb hh hlt)
+        (ratLeRep_eq_or_lt (ratAddRep (f c) h) (f b) hge))
+    (ratLeRep_total (f b) (ratAddRep (f c) h))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">left_bound_flat</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>左分界点</p></div><div class="block prose intuition-only"><p>左端点已经在阈值以上时，取 <span class="math">l = a</span>：区间里 <span class="math">x ≥ a</span> 有 <span class="math">f x ≥ f a ≥ f c - h</span>，于是 <span class="math">f c ≤ f x + h</span>。</p></div></div><pre class="exercise-statement"><code>theorem left_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfa : ratLeRep (ratSubRep (f c) h) (f a)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <span class="math">l = a</span>；对 <span class="math">x ≥ a</span> 用单调性把 f a 抬到 f x 之下，再用 <code>le_add_of_sub_le</code> 把 <span class="math">f c - h ≤ f x</span> 换成 <span class="math">f c ≤ h + f x</span>，最后交换加数。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>∃ l, l &lt; c ∧ a ≤ l ∧ ∀ x ∈ [a,b], l ≤ x → x ≤ c → f c ≤ f x + h</code>，取 <span class="math">l = a</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · le_add_of_sub_le · ratAdd_comm · ratLeRep_congr_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-139-5"><summary>查看解答 <span class="sol-meta">定理 · 22 行</span></summary><div class="solution-body"><pre><code>theorem left_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfa : ratLeRep (ratSubRep (f c) h) (f a)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  Exists.intro a
+    (And.intro hac
+      (And.intro (ratLeRep_refl a)
+        (fun (x : ratRep) (hIn : InClosed a b x) (hax : ratLeRep a x)
+            (hxc : ratLeRep x c) =&gt;
+          ratLeRep_congr_gen (f c) (f c)
+            (ratAddRep h (f x)) (ratAddRep (f x) h)
+            (ratRel_refl (f c)) (ratAdd_comm h (f x))
+            (le_add_of_sub_le (f c) h (f x)
+              (ratLeRep_trans (ratSubRep (f c) h) (f a) (f x) hfa
+                (hmono a x
+                  (And.intro (ratLeRep_refl a)
+                    (ratLeRep_trans a c b (ratLtRep_le a c hac)
+                      (ratLtRep_le c b hcb)))
+                  hIn hax))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">left_bound_of_lt</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>左端点的值低于阈值时，介值性在 a 与 c 之间给出 l，它的值恰好是阈值。l 严格在 a 的右边、严格在 c 的左边（阈值严格小于 f c），于是 l 到 c 之间的函数值都在阈值以上。</p></div></div><pre class="exercise-statement"><code>theorem left_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (f a) (ratSubRep (f c) h)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 <span class="math">x = a</span>、<span class="math">y = c</span>、<span class="math">v = f c - h</span> 交给介值性；它给出 a &lt; l &lt; c 且 f l ~ f c - h，再对 <span class="math">x ≥ l</span> 用单调性得到 <span class="math">f l ≤ f x</span>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>与 <code>left_bound_flat</code> 相同的存在句。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">hivp · ratLtRep_self_sub_pos · ratLtRep_le · ratLeRep_of_ratRel · le_add_of_sub_le</span>。</p></div></details></div><details class="solution-panel" id="sol-139-6"><summary>查看解答 <span class="sol-meta">定理 · 42 行</span></summary><div class="solution-body"><pre><code>theorem left_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (f a) (ratSubRep (f c) h)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  @Exists.elim ratRep
+    (fun (v : ratRep) =&gt; ratLtRep a v ∧ ratLtRep v c ∧
+      ratRel (f v) (ratSubRep (f c) h))
+    (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h))
+    (hivp a c
+      (And.intro (ratLeRep_refl a)
+        (ratLtRep_le a b (ratLtRep_trans a c b hac hcb)))
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      hac (ratSubRep (f c) h) hlt (ratLtRep_self_sub_pos (f c) h hh))
+    (fun (l : ratRep)
+        (hl : ratLtRep a l ∧ ratLtRep l c ∧
+          ratRel (f l) (ratSubRep (f c) h)) =&gt;
+      Exists.intro l
+        (And.intro (And.left (And.right hl))
+          (And.intro (ratLtRep_le a l (And.left hl))
+            (fun (x : ratRep) (hIn : InClosed a b x) (hlx : ratLeRep l x)
+                (hxc : ratLeRep x c) =&gt;
+              ratLeRep_congr_gen (f c) (f c)
+                (ratAddRep h (f x)) (ratAddRep (f x) h)
+                (ratRel_refl (f c)) (ratAdd_comm h (f x))
+                (le_add_of_sub_le (f c) h (f x)
+                  (ratLeRep_trans (ratSubRep (f c) h) (f l) (f x)
+                    (ratLeRep_of_ratRel (ratSubRep (f c) h) (f l)
+                      (ratRel_symm (f l) (ratSubRep (f c) h)
+                        (And.right (And.right hl))))
+                    (hmono l x
+                      (And.intro (ratLtRep_le a l (And.left hl))
+                        (ratLeRep_trans l c b
+                          (ratLtRep_le l c (And.left (And.right hl)))
+                          (ratLtRep_le c b hcb)))
+                      hIn hlx)))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">exists_left_bound</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-7">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>与右边对称地把两支接起来。</p></div></div><pre class="exercise-statement"><code>theorem exists_left_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对 <code>ratLeRep (f c - h) (f a)</code> 分两支；第二支再用 <code>ratLeRep_eq_or_lt</code> 拆相等或严格小。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p>与 <code>left_bound_flat</code> 相同的存在句。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLeRep_total · ratLeRep_eq_or_lt · ratLeRep_of_ratRel · ratRel_symm</span>。</p></div></details></div><details class="solution-panel" id="sol-139-7"><summary>查看解答 <span class="sol-meta">定理 · 29 行</span></summary><div class="solution-body"><pre><code>theorem exists_left_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  @Or.elim (ratLeRep (ratSubRep (f c) h) (f a))
+    (ratLeRep (f a) (ratSubRep (f c) h))
+    (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h))
+    (fun (hfa : ratLeRep (ratSubRep (f c) h) (f a)) =&gt;
+      left_bound_flat f a b c h hmono hac hcb hfa)
+    (fun (haf : ratLeRep (f a) (ratSubRep (f c) h)) =&gt;
+      @Or.elim (ratRel (f a) (ratSubRep (f c) h))
+        (ratLtRep (f a) (ratSubRep (f c) h))
+        (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+          ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+            ratLeRep (f c) (ratAddRep (f x) h))
+        (fun (heq : ratRel (f a) (ratSubRep (f c) h)) =&gt;
+          left_bound_flat f a b c h hmono hac hcb
+            (ratLeRep_of_ratRel (ratSubRep (f c) h) (f a)
+              (ratRel_symm (f a) (ratSubRep (f c) h) heq)))
+        (fun (hlt : ratLtRep (f a) (ratSubRep (f c) h)) =&gt;
+          left_bound_of_lt f a b c h hmono hivp hac hcb hh hlt)
+        (ratLeRep_eq_or_lt (f a) (ratSubRep (f c) h) haf))
+    (ratLeRep_total (ratSubRep (f c) h) (f a))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">right_close_of_delta</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-8">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p><span class="math">δ</span> 邻域上的收口与主定理</p></div><div class="block prose intuition-only"><p>右半邻域上的收口：x 在 c 的右边、且 |x - c| <span class="math">&lt; δ ≤ u - c</span> 时，x 落在 [c, u] 里，于是 <span class="math">f c ≤ f x ≤ f c + h &lt; f c + eps</span>。</p></div></div><pre class="exercise-statement"><code>theorem right_close_of_delta (f : ratRep → ratRep)
+    (a b c u h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hub : ratLeRep u b)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep c x →
+      ratLeRep x u → ratLeRep (f x) (ratAddRep (f c) h))
+    (hdu : ratLeRep delta (ratSubRep u c))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hcx : ratLeRep c x) :
+    close (f x) (f c) eps :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>从 <code>close_two_bounds</code> 取出 <span class="math">x - c ≤ δ</span>，用 <code>le_add_of_sub_le</code> 得 <span class="math">x ≤ c + δ</span>，再经 <span class="math">δ ≤ u - c</span> 把右边认成 u；最后交给 <code>close_of_le_ub</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close x c δ → c ≤ x → close (f x) (f c) eps</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">close_two_bounds · le_add_of_sub_le · ratLeRep_add_left · ratSubRep_add_self · close_of_le_ub</span>。</p></div></details></div><details class="solution-panel" id="sol-139-8"><summary>查看解答 <span class="sol-meta">定理 · 57 行</span></summary><div class="solution-body"><pre><code>theorem right_close_of_delta (f : ratRep → ratRep)
+    (a b c u h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hub : ratLeRep u b)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep c x →
+      ratLeRep x u → ratLeRep (f x) (ratAddRep (f c) h))
+    (hdu : ratLeRep delta (ratSubRep u c))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hcx : ratLeRep c x) :
+    close (f x) (f c) eps :=
+  close_of_le_ub (f x) (f c) eps h
+    (hmono c x
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      (And.intro (ratLeRep_trans a c x (ratLtRep_le a c hac) hcx)
+        (ratLeRep_trans x u b
+          (ratLeRep_trans x (ratAddRep c delta) u
+            (le_add_of_sub_le x c delta
+              (And.left (close_two_bounds x c delta hx)))
+            (ratLeRep_trans (ratAddRep c delta)
+              (ratAddRep c (ratSubRep u c)) u
+              (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+              (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+                (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+                  (ratAddRep (ratSubRep u c) c) u
+                  (ratAdd_comm c (ratSubRep u c))
+                  (ratSubRep_add_self u c)))))
+          hub))
+      hcx)
+    (hbound x
+      (And.intro (ratLeRep_trans a c x (ratLtRep_le a c hac) hcx)
+        (ratLeRep_trans x u b
+          (ratLeRep_trans x (ratAddRep c delta) u
+            (le_add_of_sub_le x c delta
+              (And.left (close_two_bounds x c delta hx)))
+            (ratLeRep_trans (ratAddRep c delta)
+              (ratAddRep c (ratSubRep u c)) u
+              (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+              (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+                (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+                  (ratAddRep (ratSubRep u c) c) u
+                  (ratAdd_comm c (ratSubRep u c))
+                  (ratSubRep_add_self u c)))))
+          hub))
+      hcx
+      (ratLeRep_trans x (ratAddRep c delta) u
+        (le_add_of_sub_le x c delta
+          (And.left (close_two_bounds x c delta hx)))
+        (ratLeRep_trans (ratAddRep c delta)
+          (ratAddRep c (ratSubRep u c)) u
+          (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+          (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+            (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+              (ratAddRep (ratSubRep u c) c) u
+              (ratAdd_comm c (ratSubRep u c))
+              (ratSubRep_add_self u c))))))
+    hhe</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">left_close_of_delta</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>左半邻域上的收口：|x - c| <span class="math">&lt; δ ≤ c - l</span> 时 x 落在 [l, c] 里，于是</p></div><div class="math-display intuition-only" role="math" aria-label="f x ≤ f c ≤ f x + h &lt; f x + eps"><math display="block" class="mathml"><mrow><mi>f</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>≤</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>c</mi><mspace width="0.22em"/><mo>≤</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi>h</mi><mspace width="0.22em"/><mo>&lt;</mo><mspace width="0.22em"/><mi>f</mi><mspace width="0.22em"/><mi>x</mi><mspace width="0.22em"/><mo>+</mo><mspace width="0.22em"/><mi mathvariant="normal">eps</mi></mrow></math></div></div><pre class="exercise-statement"><code>theorem left_close_of_delta (f : ratRep → ratRep)
+    (a b c l h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hal : ratLeRep a l)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep l x →
+      ratLeRep x c → ratLeRep (f c) (ratAddRep (f x) h))
+    (hdl : ratLeRep delta (ratSubRep c l))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hxc : ratLeRep x c) :
+    close (f x) (f c) eps :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>从 <code>close_two_bounds</code> 取出 <span class="math">c - x ≤ δ</span>，与 <span class="math">δ ≤ c - l</span> 合成 <span class="math">c - x ≤ c - l</span>，用 <code>le_of_sub_right_le</code> 得 <span class="math">l ≤ x</span>；再交给 <code>close_of_le_lb</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>close x c δ → x ≤ c → close (f x) (f c) eps</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">close_two_bounds · ratLeRep_congr_gen · le_of_sub_right_le · close_of_le_lb</span>。</p></div></details></div><details class="solution-panel" id="sol-139-9"><summary>查看解答 <span class="sol-meta">定理 · 45 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">f x ≤ f c ≤ f x + h &lt; f x + eps</span>。</p><pre><code>theorem left_close_of_delta (f : ratRep → ratRep)
+    (a b c l h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hal : ratLeRep a l)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep l x →
+      ratLeRep x c → ratLeRep (f c) (ratAddRep (f x) h))
+    (hdl : ratLeRep delta (ratSubRep c l))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hxc : ratLeRep x c) :
+    close (f x) (f c) eps :=
+  close_of_le_lb (f x) (f c) eps h
+    (hmono x c
+      (And.intro
+        (ratLeRep_trans a l x hal
+          (le_of_sub_right_le c x l
+            (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+              (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+                (ratSubRep c x) delta delta
+                (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+                (And.right (close_two_bounds x c delta hx)))
+              hdl)))
+      (ratLeRep_trans x c b hxc (ratLtRep_le c b hcb)))
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      hxc)
+    (hbound x
+      (And.intro
+        (ratLeRep_trans a l x hal
+          (le_of_sub_right_le c x l
+            (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+              (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+                (ratSubRep c x) delta delta
+                (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+                (And.right (close_two_bounds x c delta hx)))
+              hdl)))
+      (ratLeRep_trans x c b hxc (ratLtRep_le c b hcb)))
+      (le_of_sub_right_le c x l
+        (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+          (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+            (ratSubRep c x) delta delta
+            (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+            (And.right (close_two_bounds x c delta hx)))
+          hdl))
+      hxc)
+    hhe</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-10" data-exercise="10"><header class="exercise-head"><span class="exercise-badge">练习 10</span><code class="exercise-name">continuousAt_of_monotone_ivp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-10">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>主定理。对每个 eps 取 <span class="math">h = eps/2</span>，左右各得一个分界点；<span class="math">δ</span> 取 u - c 与 c - l 中较小的正数，于是 c 的 <span class="math">δ</span> 邻域落在 [l, u] 里。x 在 c 的哪一边由序的全性决定，两边分别交给上面的收口。</p></div></div><pre class="exercise-statement"><code>theorem continuousAt_of_monotone_ivp (f : ratRep → ratRep) (a b c : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) :
+    ContinuousAt f c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>eps 取半；<code>exists_right_bound</code> 与 <code>exists_left_bound</code> 给出 u 与 l；<code>exists_min_pos</code> 取 <span class="math">δ</span>；对 x 用 <code>ratLeRep_total x c</code> 分左右，分别调用 <code>right_close_of_delta</code> 与 <code>left_close_of_delta</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NondecreasingOn f a b → HasIntermediateValue f a b → a &lt; c → c &lt; b → ContinuousAt f c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">ratLtRep_half · exists_right_bound · exists_left_bound · exists_min_pos · ratLeRep_total · right_close_of_delta · left_close_of_delta</span>。</p></div></details></div><details class="solution-panel" id="sol-139-10"><summary>查看解答 <span class="sol-meta">定理 · 61 行</span></summary><div class="solution-body"><pre><code>theorem continuousAt_of_monotone_ivp (f : ratRep → ratRep) (a b c : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) :
+    ContinuousAt f c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    @Exists.elim ratRep
+      (fun (u : ratRep) =&gt; ratLtRep c u ∧ ratLeRep u b ∧
+        ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+          ratLeRep (f x) (ratAddRep (f c) (ratHalf eps)))
+      (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+      (exists_right_bound f a b c (ratHalf eps) hmono hivp hac hcb
+        (ratLtRep_half eps heps))
+      (fun (u : ratRep)
+          (hu : ratLtRep c u ∧ ratLeRep u b ∧
+            ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+              ratLeRep (f x) (ratAddRep (f c) (ratHalf eps))) =&gt;
+        @Exists.elim ratRep
+          (fun (l : ratRep) =&gt; ratLtRep l c ∧ ratLeRep a l ∧
+            ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+              ratLeRep (f c) (ratAddRep (f x) (ratHalf eps)))
+          (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+          (exists_left_bound f a b c (ratHalf eps) hmono hivp hac hcb
+            (ratLtRep_half eps heps))
+          (fun (l : ratRep)
+              (hl : ratLtRep l c ∧ ratLeRep a l ∧
+                ∀ (x : ratRep), InClosed a b x → ratLeRep l x →
+                  ratLeRep x c → ratLeRep (f c) (ratAddRep (f x) (ratHalf eps))) =&gt;
+            @Exists.elim ratRep
+              (fun (delta : ratRep) =&gt; ratLtRep ratZeroRep delta ∧
+                ratLeRep delta (ratSubRep u c) ∧
+                ratLeRep delta (ratSubRep c l))
+              (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+                ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+              (exists_min_pos (ratSubRep u c) (ratSubRep c l)
+                (ratLtRep_sub_pos u c (And.left hu))
+                (ratLtRep_sub_pos c l (And.left hl)))
+              (fun (delta : ratRep)
+                  (hd : ratLtRep ratZeroRep delta ∧
+                    ratLeRep delta (ratSubRep u c) ∧
+                    ratLeRep delta (ratSubRep c l)) =&gt;
+                Exists.intro delta
+                  (And.intro (And.left hd)
+                    (fun (x : ratRep) (hx : close x c delta) =&gt;
+                      @Or.elim (ratLeRep x c) (ratLeRep c x)
+                        (close (f x) (f c) eps)
+                        (fun (hxc : ratLeRep x c) =&gt;
+                          left_close_of_delta f a b c l (ratHalf eps) eps delta
+                            hmono hac hcb (And.left (And.right hl))
+                            (And.right (And.right hl))
+                            (And.right (And.right hd))
+                            (ratHalf_lt_self eps heps) x hx hxc)
+                        (fun (hcx : ratLeRep c x) =&gt;
+                          right_close_of_delta f a b c u (ratHalf eps) eps delta
+                            hmono hac hcb (And.left (And.right hu))
+                            (And.right (And.right hu))
+                            (And.left (And.right hd))
+                            (ratHalf_lt_self eps heps) x hx hcx)
+                        (ratLeRep_total x c))))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-11" data-exercise="11"><header class="exercise-head"><span class="exercise-badge">练习 11</span><code class="exercise-name">continuousOn_open_of_monotone_ivp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-11">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>把主定理打包成「开区间上处处连续」。</p></div></div><pre class="exercise-statement"><code>theorem continuousOn_open_of_monotone_ivp (f : ratRep → ratRep) (a b : ratRep)
+    (hmono : NondecreasingOn f a b) (hivp : HasIntermediateValue f a b) :
+    ∀ (c : ratRep), ratLtRep a c → ratLtRep c b → ContinuousAt f c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 c 与两个严格不等式原样交给主定理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>NondecreasingOn f a b → HasIntermediateValue f a b → ∀ c, a &lt; c → c &lt; b → ContinuousAt f c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p>continuousAt_of_monotone_ivp。</p></div></details></div><details class="solution-panel" id="sol-139-11"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><pre><code>theorem continuousOn_open_of_monotone_ivp (f : ratRep → ratRep) (a b : ratRep)
+    (hmono : NondecreasingOn f a b) (hivp : HasIntermediateValue f a b) :
+    ∀ (c : ratRep), ratLtRep a c → ratLtRep c b → ContinuousAt f c :=
+  fun (c : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b) =&gt;
+    continuousAt_of_monotone_ivp f a b c hmono hivp hac hcb</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-12" data-exercise="12"><header class="exercise-head"><span class="exercise-badge">练习 12</span><code class="exercise-name">demo_ivp_id</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-12">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>恒等函数上的样本</p></div><div class="block prose intuition-only"><p>恒等函数有介值性：中间值 v 自己就是取到它的点。</p></div></div><pre class="exercise-statement"><code>theorem demo_ivp_id (a b : ratRep) :
+    HasIntermediateValue (fun (x : ratRep) =&gt; x) a b :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取 <span class="math">c = v</span>；两个严格界原样搬，等价用自反性。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>HasIntermediateValue (fun x =&gt; x) a b</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.intro · ratRel_refl</span>。</p></div></details></div><details class="solution-panel" id="sol-139-12"><summary>查看解答 <span class="sol-meta">定理 · 6 行</span></summary><div class="solution-body"><pre><code>theorem demo_ivp_id (a b : ratRep) :
+    HasIntermediateValue (fun (x : ratRep) =&gt; x) a b :=
+  fun (x y : ratRep) (_hx : InClosed a b x) (_hy : InClosed a b y)
+      (_hxy : ratLtRep x y) (v : ratRep) (hxv : ratLtRep x v)
+      (hvy : ratLtRep v y) =&gt;
+    Exists.intro v (And.intro hxv (And.intro hvy (ratRel_refl v)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-139-13" data-exercise="13"><header class="exercise-head"><span class="exercise-badge">练习 13</span><code class="exercise-name">demo_continuousAt_id_ivp</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-139-13">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>主定理在恒等函数上重算一遍连续性，既检查两个假设可以同时满足，也检查结论与库里已有的 <code>continuousAt_id</code> 一致。</p></div></div><pre class="exercise-statement"><code>theorem demo_continuousAt_id_ivp (a b c : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    ContinuousAt (fun (x : ratRep) =&gt; x) c :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>恒等函数在 [a,b] 上不降，<code>demo_ivp_id</code> 提供介值性；把 a &lt; c &lt; b 交给主定理。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>a &lt; c → c &lt; b → ContinuousAt (fun x =&gt; x) c</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">continuousAt_of_monotone_ivp · demo_ivp_id</span>。</p></div></details></div><details class="solution-panel" id="sol-139-13"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><pre><code>theorem demo_continuousAt_id_ivp (a b c : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    ContinuousAt (fun (x : ratRep) =&gt; x) c :=
+  continuousAt_of_monotone_ivp (fun (x : ratRep) =&gt; x) a b c
+    (fun (x y : ratRep) (_hx : InClosed a b x) (_hy : InClosed a b y)
+        (hxy : ratLeRep x y) =&gt; hxy)
+    (demo_ivp_id a b) hac hcb</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit138.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">无穷远处极限的代数与序列判据</span></a><a class="unit-nav-home" href="../chapters/iii-6.html#units">目录</a><a class="unit-nav-link" href="../units/unit140.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">导数的定义：斜率函数与它的极限</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-139"><h3><a href="#top">单调函数：介值性反过来给出连续</a></h3><p class="appendix-meta">13 道练习 · 13 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-139-1"><summary>练习 1 · strictlyIncreasing_injective <span class="sol-meta">定理</span></summary><pre><code>theorem strictlyIncreasing_injective (f : ratRep → ratRep)
+    (hf : StrictlyIncreasing f) (x y : ratRep) (h : ratRel (f x) (f y)) :
+    ratRel x y :=
+  @Or.elim (ratLeRep x y) (ratLeRep y x) (ratRel x y)
+    (fun (hxy : ratLeRep x y) =&gt;
+      @Or.elim (ratRel x y) (ratLtRep x y) (ratRel x y)
+        (fun (heq : ratRel x y) =&gt; heq)
+        (fun (hlt : ratLtRep x y) =&gt;
+          False.elim (ratLtRep_right (f x) (f y) (hf x y hlt) h))
+        (ratLeRep_eq_or_lt x y hxy))
+    (fun (hyx : ratLeRep y x) =&gt;
+      @Or.elim (ratRel y x) (ratLtRep y x) (ratRel x y)
+        (fun (heq : ratRel y x) =&gt; ratRel_symm y x heq)
+        (fun (hlt : ratLtRep y x) =&gt;
+          False.elim (ratLtRep_right (f y) (f x) (hf y x hlt)
+            (ratRel_symm (f x) (f y) h)))
+        (ratLeRep_eq_or_lt y x hyx))
+    (ratLeRep_total x y)</code></pre></details><details class="appendix-solution" id="app-sol-139-2"><summary>练习 2 · right_bound_flat <span class="sol-meta">定理</span></summary><pre><code>theorem right_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfb : ratLeRep (f b) (ratAddRep (f c) h)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  Exists.intro b
+    (And.intro hcb
+      (And.intro (ratLeRep_refl b)
+        (fun (x : ratRep) (hIn : InClosed a b x) (_hcx : ratLeRep c x)
+            (hxb : ratLeRep x b) =&gt;
+          ratLeRep_trans (f x) (f b) (ratAddRep (f c) h)
+            (hmono x b hIn
+              (And.intro
+                (ratLtRep_le a b (ratLtRep_trans a c b hac hcb))
+                (ratLeRep_refl b))
+              hxb)
+            hfb)))</code></pre></details><details class="appendix-solution" id="app-sol-139-3"><summary>练习 3 · right_bound_of_lt <span class="sol-meta">定理</span></summary><pre><code>theorem right_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (ratAddRep (f c) h) (f b)) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  @Exists.elim ratRep
+    (fun (v : ratRep) =&gt; ratLtRep c v ∧ ratLtRep v b ∧
+      ratRel (f v) (ratAddRep (f c) h))
+    (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h))
+    (hivp c b
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      (And.intro (ratLtRep_le a b (ratLtRep_trans a c b hac hcb))
+        (ratLeRep_refl b))
+      hcb (ratAddRep (f c) h)
+      (ratLtRep_self_add_pos (f c) h hh) hlt)
+    (fun (u : ratRep)
+        (hu : ratLtRep c u ∧ ratLtRep u b ∧
+          ratRel (f u) (ratAddRep (f c) h)) =&gt;
+      Exists.intro u
+        (And.intro (And.left hu)
+          (And.intro (ratLtRep_le u b (And.left (And.right hu)))
+            (fun (x : ratRep) (hIn : InClosed a b x) (hcx : ratLeRep c x)
+                (hxu : ratLeRep x u) =&gt;
+              ratLeRep_trans (f x) (f u) (ratAddRep (f c) h)
+                (hmono x u hIn
+                  (And.intro
+                    (ratLeRep_trans a c u (ratLtRep_le a c hac)
+                      (ratLtRep_le c u (And.left hu)))
+                    (ratLtRep_le u b (And.left (And.right hu))))
+                  hxu)
+                (ratLeRep_of_ratRel (f u) (ratAddRep (f c) h)
+                  (And.right (And.right hu)))))))</code></pre></details><details class="appendix-solution" id="app-sol-139-4"><summary>练习 4 · exists_right_bound <span class="sol-meta">定理</span></summary><pre><code>theorem exists_right_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h) :=
+  @Or.elim (ratLeRep (f b) (ratAddRep (f c) h))
+    (ratLeRep (ratAddRep (f c) h) (f b))
+    (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+        ratLeRep (f x) (ratAddRep (f c) h))
+    (fun (hle : ratLeRep (f b) (ratAddRep (f c) h)) =&gt;
+      right_bound_flat f a b c h hmono hac hcb hle)
+    (fun (hge : ratLeRep (ratAddRep (f c) h) (f b)) =&gt;
+      @Or.elim (ratRel (ratAddRep (f c) h) (f b))
+        (ratLtRep (ratAddRep (f c) h) (f b))
+        (∃ (u : ratRep), ratLtRep c u ∧ ratLeRep u b ∧
+          ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+            ratLeRep (f x) (ratAddRep (f c) h))
+        (fun (heq : ratRel (ratAddRep (f c) h) (f b)) =&gt;
+          right_bound_flat f a b c h hmono hac hcb
+            (ratLeRep_of_ratRel (f b) (ratAddRep (f c) h)
+              (ratRel_symm (ratAddRep (f c) h) (f b) heq)))
+        (fun (hlt : ratLtRep (ratAddRep (f c) h) (f b)) =&gt;
+          right_bound_of_lt f a b c h hmono hivp hac hcb hh hlt)
+        (ratLeRep_eq_or_lt (ratAddRep (f c) h) (f b) hge))
+    (ratLeRep_total (f b) (ratAddRep (f c) h))</code></pre></details><details class="appendix-solution" id="app-sol-139-5"><summary>练习 5 · left_bound_flat <span class="sol-meta">定理</span></summary><pre><code>theorem left_bound_flat (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hfa : ratLeRep (ratSubRep (f c) h) (f a)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  Exists.intro a
+    (And.intro hac
+      (And.intro (ratLeRep_refl a)
+        (fun (x : ratRep) (hIn : InClosed a b x) (hax : ratLeRep a x)
+            (hxc : ratLeRep x c) =&gt;
+          ratLeRep_congr_gen (f c) (f c)
+            (ratAddRep h (f x)) (ratAddRep (f x) h)
+            (ratRel_refl (f c)) (ratAdd_comm h (f x))
+            (le_add_of_sub_le (f c) h (f x)
+              (ratLeRep_trans (ratSubRep (f c) h) (f a) (f x) hfa
+                (hmono a x
+                  (And.intro (ratLeRep_refl a)
+                    (ratLeRep_trans a c b (ratLtRep_le a c hac)
+                      (ratLtRep_le c b hcb)))
+                  hIn hax))))))</code></pre></details><details class="appendix-solution" id="app-sol-139-6"><summary>练习 6 · left_bound_of_lt <span class="sol-meta">定理</span></summary><pre><code>theorem left_bound_of_lt (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h)
+    (hlt : ratLtRep (f a) (ratSubRep (f c) h)) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  @Exists.elim ratRep
+    (fun (v : ratRep) =&gt; ratLtRep a v ∧ ratLtRep v c ∧
+      ratRel (f v) (ratSubRep (f c) h))
+    (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h))
+    (hivp a c
+      (And.intro (ratLeRep_refl a)
+        (ratLtRep_le a b (ratLtRep_trans a c b hac hcb)))
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      hac (ratSubRep (f c) h) hlt (ratLtRep_self_sub_pos (f c) h hh))
+    (fun (l : ratRep)
+        (hl : ratLtRep a l ∧ ratLtRep l c ∧
+          ratRel (f l) (ratSubRep (f c) h)) =&gt;
+      Exists.intro l
+        (And.intro (And.left (And.right hl))
+          (And.intro (ratLtRep_le a l (And.left hl))
+            (fun (x : ratRep) (hIn : InClosed a b x) (hlx : ratLeRep l x)
+                (hxc : ratLeRep x c) =&gt;
+              ratLeRep_congr_gen (f c) (f c)
+                (ratAddRep h (f x)) (ratAddRep (f x) h)
+                (ratRel_refl (f c)) (ratAdd_comm h (f x))
+                (le_add_of_sub_le (f c) h (f x)
+                  (ratLeRep_trans (ratSubRep (f c) h) (f l) (f x)
+                    (ratLeRep_of_ratRel (ratSubRep (f c) h) (f l)
+                      (ratRel_symm (f l) (ratSubRep (f c) h)
+                        (And.right (And.right hl))))
+                    (hmono l x
+                      (And.intro (ratLtRep_le a l (And.left hl))
+                        (ratLeRep_trans l c b
+                          (ratLtRep_le l c (And.left (And.right hl)))
+                          (ratLtRep_le c b hcb)))
+                      hIn hlx)))))))</code></pre></details><details class="appendix-solution" id="app-sol-139-7"><summary>练习 7 · exists_left_bound <span class="sol-meta">定理</span></summary><pre><code>theorem exists_left_bound (f : ratRep → ratRep) (a b c h : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hh : ratLtRep ratZeroRep h) :
+    ∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h) :=
+  @Or.elim (ratLeRep (ratSubRep (f c) h) (f a))
+    (ratLeRep (f a) (ratSubRep (f c) h))
+    (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+      ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+        ratLeRep (f c) (ratAddRep (f x) h))
+    (fun (hfa : ratLeRep (ratSubRep (f c) h) (f a)) =&gt;
+      left_bound_flat f a b c h hmono hac hcb hfa)
+    (fun (haf : ratLeRep (f a) (ratSubRep (f c) h)) =&gt;
+      @Or.elim (ratRel (f a) (ratSubRep (f c) h))
+        (ratLtRep (f a) (ratSubRep (f c) h))
+        (∃ (l : ratRep), ratLtRep l c ∧ ratLeRep a l ∧
+          ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+            ratLeRep (f c) (ratAddRep (f x) h))
+        (fun (heq : ratRel (f a) (ratSubRep (f c) h)) =&gt;
+          left_bound_flat f a b c h hmono hac hcb
+            (ratLeRep_of_ratRel (ratSubRep (f c) h) (f a)
+              (ratRel_symm (f a) (ratSubRep (f c) h) heq)))
+        (fun (hlt : ratLtRep (f a) (ratSubRep (f c) h)) =&gt;
+          left_bound_of_lt f a b c h hmono hivp hac hcb hh hlt)
+        (ratLeRep_eq_or_lt (f a) (ratSubRep (f c) h) haf))
+    (ratLeRep_total (ratSubRep (f c) h) (f a))</code></pre></details><details class="appendix-solution" id="app-sol-139-8"><summary>练习 8 · right_close_of_delta <span class="sol-meta">定理</span></summary><pre><code>theorem right_close_of_delta (f : ratRep → ratRep)
+    (a b c u h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hub : ratLeRep u b)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep c x →
+      ratLeRep x u → ratLeRep (f x) (ratAddRep (f c) h))
+    (hdu : ratLeRep delta (ratSubRep u c))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hcx : ratLeRep c x) :
+    close (f x) (f c) eps :=
+  close_of_le_ub (f x) (f c) eps h
+    (hmono c x
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      (And.intro (ratLeRep_trans a c x (ratLtRep_le a c hac) hcx)
+        (ratLeRep_trans x u b
+          (ratLeRep_trans x (ratAddRep c delta) u
+            (le_add_of_sub_le x c delta
+              (And.left (close_two_bounds x c delta hx)))
+            (ratLeRep_trans (ratAddRep c delta)
+              (ratAddRep c (ratSubRep u c)) u
+              (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+              (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+                (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+                  (ratAddRep (ratSubRep u c) c) u
+                  (ratAdd_comm c (ratSubRep u c))
+                  (ratSubRep_add_self u c)))))
+          hub))
+      hcx)
+    (hbound x
+      (And.intro (ratLeRep_trans a c x (ratLtRep_le a c hac) hcx)
+        (ratLeRep_trans x u b
+          (ratLeRep_trans x (ratAddRep c delta) u
+            (le_add_of_sub_le x c delta
+              (And.left (close_two_bounds x c delta hx)))
+            (ratLeRep_trans (ratAddRep c delta)
+              (ratAddRep c (ratSubRep u c)) u
+              (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+              (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+                (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+                  (ratAddRep (ratSubRep u c) c) u
+                  (ratAdd_comm c (ratSubRep u c))
+                  (ratSubRep_add_self u c)))))
+          hub))
+      hcx
+      (ratLeRep_trans x (ratAddRep c delta) u
+        (le_add_of_sub_le x c delta
+          (And.left (close_two_bounds x c delta hx)))
+        (ratLeRep_trans (ratAddRep c delta)
+          (ratAddRep c (ratSubRep u c)) u
+          (ratLeRep_add_left delta (ratSubRep u c) c hdu)
+          (ratLeRep_of_ratRel (ratAddRep c (ratSubRep u c)) u
+            (ratRel_trans_gen (ratAddRep c (ratSubRep u c))
+              (ratAddRep (ratSubRep u c) c) u
+              (ratAdd_comm c (ratSubRep u c))
+              (ratSubRep_add_self u c))))))
+    hhe</code></pre></details><details class="appendix-solution" id="app-sol-139-9"><summary>练习 9 · left_close_of_delta <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">f x ≤ f c ≤ f x + h &lt; f x + eps</span>。</p><pre><code>theorem left_close_of_delta (f : ratRep → ratRep)
+    (a b c l h eps delta : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (hal : ratLeRep a l)
+    (hbound : ∀ (x : ratRep), InClosed a b x → ratLeRep l x →
+      ratLeRep x c → ratLeRep (f c) (ratAddRep (f x) h))
+    (hdl : ratLeRep delta (ratSubRep c l))
+    (hhe : ratLtRep h eps)
+    (x : ratRep) (hx : close x c delta) (hxc : ratLeRep x c) :
+    close (f x) (f c) eps :=
+  close_of_le_lb (f x) (f c) eps h
+    (hmono x c
+      (And.intro
+        (ratLeRep_trans a l x hal
+          (le_of_sub_right_le c x l
+            (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+              (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+                (ratSubRep c x) delta delta
+                (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+                (And.right (close_two_bounds x c delta hx)))
+              hdl)))
+      (ratLeRep_trans x c b hxc (ratLtRep_le c b hcb)))
+      (And.intro (ratLtRep_le a c hac) (ratLtRep_le c b hcb))
+      hxc)
+    (hbound x
+      (And.intro
+        (ratLeRep_trans a l x hal
+          (le_of_sub_right_le c x l
+            (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+              (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+                (ratSubRep c x) delta delta
+                (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+                (And.right (close_two_bounds x c delta hx)))
+              hdl)))
+      (ratLeRep_trans x c b hxc (ratLtRep_le c b hcb)))
+      (le_of_sub_right_le c x l
+        (ratLeRep_trans (ratSubRep c x) delta (ratSubRep c l)
+          (ratLeRep_congr_gen (ratAddRep (ratNegRep x) c)
+            (ratSubRep c x) delta delta
+            (ratAdd_comm (ratNegRep x) c) (ratRel_refl delta)
+            (And.right (close_two_bounds x c delta hx)))
+          hdl))
+      hxc)
+    hhe</code></pre></details><details class="appendix-solution" id="app-sol-139-10"><summary>练习 10 · continuousAt_of_monotone_ivp <span class="sol-meta">定理</span></summary><pre><code>theorem continuousAt_of_monotone_ivp (f : ratRep → ratRep) (a b c : ratRep)
+    (hmono : NondecreasingOn f a b)
+    (hivp : HasIntermediateValue f a b)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) :
+    ContinuousAt f c :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    @Exists.elim ratRep
+      (fun (u : ratRep) =&gt; ratLtRep c u ∧ ratLeRep u b ∧
+        ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+          ratLeRep (f x) (ratAddRep (f c) (ratHalf eps)))
+      (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+        ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+      (exists_right_bound f a b c (ratHalf eps) hmono hivp hac hcb
+        (ratLtRep_half eps heps))
+      (fun (u : ratRep)
+          (hu : ratLtRep c u ∧ ratLeRep u b ∧
+            ∀ (x : ratRep), InClosed a b x → ratLeRep c x → ratLeRep x u →
+              ratLeRep (f x) (ratAddRep (f c) (ratHalf eps))) =&gt;
+        @Exists.elim ratRep
+          (fun (l : ratRep) =&gt; ratLtRep l c ∧ ratLeRep a l ∧
+            ∀ (x : ratRep), InClosed a b x → ratLeRep l x → ratLeRep x c →
+              ratLeRep (f c) (ratAddRep (f x) (ratHalf eps)))
+          (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+          (exists_left_bound f a b c (ratHalf eps) hmono hivp hac hcb
+            (ratLtRep_half eps heps))
+          (fun (l : ratRep)
+              (hl : ratLtRep l c ∧ ratLeRep a l ∧
+                ∀ (x : ratRep), InClosed a b x → ratLeRep l x →
+                  ratLeRep x c → ratLeRep (f c) (ratAddRep (f x) (ratHalf eps))) =&gt;
+            @Exists.elim ratRep
+              (fun (delta : ratRep) =&gt; ratLtRep ratZeroRep delta ∧
+                ratLeRep delta (ratSubRep u c) ∧
+                ratLeRep delta (ratSubRep c l))
+              (∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+                ∀ (x : ratRep), close x c delta → close (f x) (f c) eps)
+              (exists_min_pos (ratSubRep u c) (ratSubRep c l)
+                (ratLtRep_sub_pos u c (And.left hu))
+                (ratLtRep_sub_pos c l (And.left hl)))
+              (fun (delta : ratRep)
+                  (hd : ratLtRep ratZeroRep delta ∧
+                    ratLeRep delta (ratSubRep u c) ∧
+                    ratLeRep delta (ratSubRep c l)) =&gt;
+                Exists.intro delta
+                  (And.intro (And.left hd)
+                    (fun (x : ratRep) (hx : close x c delta) =&gt;
+                      @Or.elim (ratLeRep x c) (ratLeRep c x)
+                        (close (f x) (f c) eps)
+                        (fun (hxc : ratLeRep x c) =&gt;
+                          left_close_of_delta f a b c l (ratHalf eps) eps delta
+                            hmono hac hcb (And.left (And.right hl))
+                            (And.right (And.right hl))
+                            (And.right (And.right hd))
+                            (ratHalf_lt_self eps heps) x hx hxc)
+                        (fun (hcx : ratLeRep c x) =&gt;
+                          right_close_of_delta f a b c u (ratHalf eps) eps delta
+                            hmono hac hcb (And.left (And.right hu))
+                            (And.right (And.right hu))
+                            (And.left (And.right hd))
+                            (ratHalf_lt_self eps heps) x hx hcx)
+                        (ratLeRep_total x c))))))</code></pre></details><details class="appendix-solution" id="app-sol-139-11"><summary>练习 11 · continuousOn_open_of_monotone_ivp <span class="sol-meta">定理</span></summary><pre><code>theorem continuousOn_open_of_monotone_ivp (f : ratRep → ratRep) (a b : ratRep)
+    (hmono : NondecreasingOn f a b) (hivp : HasIntermediateValue f a b) :
+    ∀ (c : ratRep), ratLtRep a c → ratLtRep c b → ContinuousAt f c :=
+  fun (c : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b) =&gt;
+    continuousAt_of_monotone_ivp f a b c hmono hivp hac hcb</code></pre></details><details class="appendix-solution" id="app-sol-139-12"><summary>练习 12 · demo_ivp_id <span class="sol-meta">定理</span></summary><pre><code>theorem demo_ivp_id (a b : ratRep) :
+    HasIntermediateValue (fun (x : ratRep) =&gt; x) a b :=
+  fun (x y : ratRep) (_hx : InClosed a b x) (_hy : InClosed a b y)
+      (_hxy : ratLtRep x y) (v : ratRep) (hxv : ratLtRep x v)
+      (hvy : ratLtRep v y) =&gt;
+    Exists.intro v (And.intro hxv (And.intro hvy (ratRel_refl v)))</code></pre></details><details class="appendix-solution" id="app-sol-139-13"><summary>练习 13 · demo_continuousAt_id_ivp <span class="sol-meta">定理</span></summary><pre><code>theorem demo_continuousAt_id_ivp (a b c : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    ContinuousAt (fun (x : ratRep) =&gt; x) c :=
+  continuousAt_of_monotone_ivp (fun (x : ratRep) =&gt; x) a b c
+    (fun (x y : ratRep) (_hx : InClosed a b x) (_hy : InClosed a b y)
+        (hxy : ratLeRep x y) =&gt; hxy)
+    (demo_ivp_id a b) hac hcb</code></pre></details></section></section>
+  </article>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit124.html" aria-current="false"><span>124</span> 函数极限：ε-δ 定义</a></li>
+<li><a href="../units/unit125.html" aria-current="false"><span>125</span> 连续：极限值就是函数值</a></li>
+<li><a href="../units/unit126.html" aria-current="false"><span>126</span> 函数极限与序列：顺序判据</a></li>
+<li><a href="../units/unit127.html" aria-current="false"><span>127</span> 函数极限的代数：和、差与取负</a></li>
+<li><a href="../units/unit128.html" aria-current="false"><span>128</span> 连续函数的代数：和、差与取负</a></li>
+<li><a href="../units/unit129.html" aria-current="false"><span>129</span> 单侧极限：只看一边</a></li>
+<li><a href="../units/unit130.html" aria-current="false"><span>130</span> 一致连续：一个 δ 管住整片定义域</a></li>
+<li><a href="../units/unit131.html" aria-current="false"><span>131</span> 一致连续与序列：Cauchy 序列的像</a></li>
+<li><a href="../units/unit132.html" aria-current="false"><span>132</span> 局部有界：极限给出的第一个盒子</a></li>
+<li><a href="../units/unit133.html" aria-current="false"><span>133</span> 局部保号：连续函数在一点附近不变号</a></li>
+<li><a href="../units/unit134.html" aria-current="false"><span>134</span> 闭区间上的最值：上确界与达到</a></li>
+<li><a href="../units/unit135.html" aria-current="false"><span>135</span> 最后一个负点：保号性把负点往右推一步</a></li>
+<li><a href="../units/unit136.html" aria-current="false"><span>136</span> 介值定理：最后一个非正点</a></li>
+<li><a href="../units/unit137.html" aria-current="false"><span>137</span> 无穷远处的极限：越过分界线之后靠近 L</a></li>
+<li><a href="../units/unit138.html" aria-current="false"><span>138</span> 无穷远处极限的代数与序列判据</a></li>
+<li class="is-current"><a href="../units/unit139.html" aria-current="page"><span>139</span> 单调函数：介值性反过来给出连续</a></li></ol>
+  </aside>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit138.html">← 138 无穷远处极限的代数与序列判据</a><a class="next" href="../units/unit140.html">140 导数的定义：斜率函数与它的极限 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

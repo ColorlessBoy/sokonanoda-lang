@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>158 上下和与可积性：两条台阶之间的宽度 · 从集合论到实分析</title>
+<meta name="description" content="单元158 上下和与可积性：两条台阶之间的宽度：导语、定义与定理、练习与解答。Unit 158 — Upper and Lower Sums: Integrability as a Small Gap">
+<link rel="canonical" href="https://example.invalid/book-v3/units/unit158.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="unit">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"><a href="../../volume-i/index.html">卷 I</a><a href="../index.html" aria-current="true">卷 II</a></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter" open><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li class="is-current"><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+<nav class="breadcrumb" aria-label="面包屑"><ol><li><a href="../index.html">首页</a></li><li><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></li><li aria-current="page">单元 158 上下和与可积性：两条台阶之间的宽度</li></ol></nav>
+<main id="main" class="page ">
+<div class="unit-layout">
+  <article class="unit-page">
+<section class="unit" id="unit-158">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-8.html">III.8</a> · 本章第 8 / 16 单元 · 全书第 158 / 171 单元</p>
+<h1><span class="unit-number">158</span> <span>上下和与可积性：两条台阶之间的宽度</span></h1>
+<p class="unit-title-en">Unit 158 — Upper and Lower Sums: Integrability as a Small Gap</p>
+<p class="unit-meta">3 个定义 · 9 个定理 · 9 道练习 · 27 条提示 · <a href="#appendix-unit-158">解答附录</a></p>
+<div class="unit-actions no-print"><button type="button" class="unit-progress-toggle" data-progress-toggle data-unit="158" aria-pressed="false"><span class="unit-progress-mark" aria-hidden="true"></span><span class="unit-progress-text">标记已读</span></button><button type="button" class="unit-copy-link" data-copy-link="unit-158" aria-label="复制单元 158 的链接">复制链接</button><span class="unit-copy-status" role="status" aria-live="polite" data-copy-status></span></div>
+<p class="unit-print-entry no-print"><a href="../print/unit158.html">打印 / PDF 本单元</a></p>
+</header>
+<section class="unit-intro" id="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>上界与下界还是函数，不能直接比较大小；把每一段的高乘上这一段的宽，再加起来，才得到两个数。上面的那摞台阶给出上和，下面的那摞给出下和。同一个分割上，每一段的下界都不超过上界，于是下和不超过上和。两条台阶贴得越近，曲线底下的面积就被夹得越窄。</p></div></div></section>
+<div class="block prose intuition-only"><p>「贴得足够近」可以写成一条 <span class="math">ε</span> 判据：任给正数 <span class="math">ε</span>，都存在一个分割，使它的上和与下和之差小于 <span class="math">ε</span>。满足这条判据的函数叫可积。常值函数是最先能验证的例子：上下两摞台阶取同一个常数，差恰好是零，而零小于任何正数。取负把两摞台阶对调，上和与下和也跟着对调，这是后面把可积性接到代数运算上的第一步。</p></div><div class="block prose intuition-only"><p>边界：只做到可积性的 <span class="math">ε</span> 判据与常值函数的验证，不证明连续或单调函数可积，也不定义积分值。函数取 <code>ratRep → ratRep</code>，停在有理代表元层。不新增公理，也不碰 kernel/front。</p></div><div class="block prose intuition-only"><p>把一摞台阶变成一块面积</p></div><div class="block prose intuition-only"><p>上和的候选值：有一摞上界 <code>u</code>，它的矩形和就是 <code>U</code>。用关系而不是函数，是因为同一个分割上的上界可以有很多摞，谁都不是唯一的那一摞。</p></div><article class="decl decl-def" id="decl-158-1"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">UpperSum</code><span class="decl-where">声明 1</span></header><div class="decl-body"><pre class="decl-statement"><code>def UpperSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (U : ratRep) : Prop :=
+  ∃ (u : Nat → ratRep), UpperStep a b p f u ∧ ratRel U (stepSum p u)</code></pre></div></article>
+<div class="block prose intuition-only"><p>下和同理：从一摞下界出发，取它的矩形和。</p></div><article class="decl decl-def" id="decl-158-2"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">LowerSum</code><span class="decl-where">声明 2</span></header><div class="decl-body"><pre class="decl-statement"><code>def LowerSum (a b : ratRep) (p : Partition) (f : ratRep → ratRep)
+    (L : ratRep) : Prop :=
+  ∃ (l : Nat → ratRep), LowerStep a b p f l ∧ ratRel L (stepSum p l)</code></pre></div></article>
+<div class="block prose intuition-only"><p>可积：每个正 <span class="math">ε</span> 都配得上一个分割，使这个分割的上和与下和之差小于 <span class="math">ε</span>。分割必须真的是区间 [a, b] 的分割，否则「差」可以靠退化的分割作假。</p></div><article class="decl decl-def" id="decl-158-3"><header class="decl-head"><span class="decl-kind kind-def">定义</span><code class="decl-name">Integrable</code><span class="decl-where">声明 3</span></header><div class="decl-body"><pre class="decl-statement"><code>def Integrable (a b : ratRep) (f : ratRep → ratRep) : Prop :=
+  ∀ (eps : ratRep), ratLtRep ratZeroRep eps →
+    ∃ (p : Partition), IsPartition a b p ∧
+      ∃ (L : ratRep), ∃ (U : ratRep),
+        LowerSum a b p f L ∧ UpperSum a b p f U ∧
+          ratLtRep (ratSubRep U L) eps</code></pre></div></article>
+<article class="exercise" id="ex-158-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">upperSum_twoPoint_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-1">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperSum_twoPoint_const (a b k : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>常值曲线的上界取同一个 k，矩形和用两切点分割的读数 <code>k · (b - a)</code>；把这两件装进存在量词。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperSum a b (twoPoint a b) (fun _ =&gt; k) (k · (b - a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_const · stepSum_twoPoint · Exists.intro · And.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-158-1"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">常值曲线的上界取同一个 k，矩形和在两切点分割上是 <code>k · (b - a)</code>；把这两
+件装进存在量词，就得到这个分割上的一个上和。</p><pre><code>theorem upperSum_twoPoint_const (a b k : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) =&gt; k)
+    (And.intro
+      (upperStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) =&gt; k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) =&gt; k))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">lowerSum_twoPoint_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-2">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerSum_twoPoint_const (a b k : ratRep) :
+    LowerSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>与上和同形，只是把下界那一摞代进去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerSum a b (twoPoint a b) (fun _ =&gt; k) (k · (b - a))</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_const · stepSum_twoPoint · Exists.intro · And.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-158-2"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note">下界那一摞也取同一个 k，矩形和的读数完全相同。</p><pre><code>theorem lowerSum_twoPoint_const (a b k : ratRep) :
+    LowerSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) =&gt; k)
+    (And.intro
+      (lowerStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) =&gt; k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) =&gt; k))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">lowerStep_le_upperStep</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>同一条曲线、同一个分割：下界不超过上界</p></div></div><pre class="exercise-statement"><code>theorem lowerStep_le_upperStep (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (u i) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两个界都在左端点取值，得到 <code>l i ≤ f (point i) ≤ u i</code>，再用传递性收成 <code>l i ≤ u i</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>l i ≤ u i</code>，前提是同一分割上的下界与上界。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_value · upperStep_value · ratLeRep_trans</span>。</p></div></details></div><details class="solution-panel" id="sol-158-3"><summary>查看解答 <span class="sol-meta">定理 · 8 行</span></summary><div class="solution-body"><p class="solution-note">两个界都在左端点取值：下界给出 <code>l i ≤ f (point i)</code>，上界给出
+<code>f (point i) ≤ u i</code>，传递性收成 <code>l i ≤ u i</code>。</p><pre><code>theorem lowerStep_le_upperStep (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (u i) :=
+  ratLeRep_trans (l i) (f (partPoint p i)) (u i)
+    (lowerStep_value a b p f l hl hp i hi)
+    (upperStep_value a b p f u hu hp i hi)</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">lowerSum_le_upperSum</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-4">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerSum_le_upperSum (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L U : ratRep) (hp : IsPartition a b p)
+    (hL : LowerSum a b p f L) (hU : UpperSum a b p f U) :
+    ratLeRep L U :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>逐段的下界不超过上界，乘上同一个正宽，再把每段的不等式加起来；两端的 <code>L</code>、<code>U</code> 沿定义里的等价关系搬过去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>L ≤ U</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">stepSum_mono · lowerStep_le_upperStep · ratLeRep_congr_gen · ratRel_symm · Exists.elim</span>。</p></div></details></div><details class="solution-panel" id="sol-158-4"><summary>查看解答 <span class="sol-meta">定理 · 21 行</span></summary><div class="solution-body"><p class="solution-note">逐段的下界不超过上界，乘上同一个正宽之后每一段的乘积也不超过；矩形和的
+保序把段数那么多条不等式收成一条。两端的 <code>L</code>、<code>U</code> 只是矩形和的等价写法，
+沿等价关系搬过去。</p><pre><code>theorem lowerSum_le_upperSum (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L U : ratRep) (hp : IsPartition a b p)
+    (hL : LowerSum a b p f L) (hU : UpperSum a b p f U) :
+    ratLeRep L U :=
+  @Exists.elim (Nat → ratRep)
+    (fun (l : Nat → ratRep) =&gt; LowerStep a b p f l ∧ ratRel L (stepSum p l))
+    (ratLeRep L U) hL
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      @Exists.elim (Nat → ratRep)
+        (fun (u : Nat → ratRep) =&gt; UpperStep a b p f u ∧ ratRel U (stepSum p u))
+        (ratLeRep L U) hU
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =&gt;
+          ratLeRep_congr_gen (stepSum p l) L (stepSum p u) U
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (ratRel_symm U (stepSum p u) (And.right hu))
+            (stepSum_mono a b p hp l u
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                lowerStep_le_upperStep a b p f l u hp
+                  (And.left hl) (And.left hu) i hi))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">upperSum_mono_fun</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-5">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>整体抬高与取负</p></div></div><pre class="exercise-statement"><code>theorem upperSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperSum a b p g U) : UpperSum a b p f U :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 g 的上界原样拿来给 f 用；逐点上 f 更低，上界仍然压得住，矩形和与 <code>U</code> 的关系不变。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperSum a b p f U</code>，前提是 <code>∀ x, f x ≤ g x</code> 与 <code>UpperSum a b p g U</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_mono · Exists.elim · Exists.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-158-5"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">g 的上界原样拿来给更低的 f 用：逐点上 f 更低，上界仍然压得住，矩形和与
+<code>U</code> 的关系不变。</p><pre><code>theorem upperSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperSum a b p g U) : UpperSum a b p f U :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p g u ∧ ratRel U (stepSum p u)) =&gt;
+      Exists.intro u
+        (And.intro
+          (upperStep_mono a b p f g u hfg (And.left hu))
+          (And.right hu)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">lowerSum_mono_fun</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-6">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerSum a b p f L) : LowerSum a b p g L :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下界对更低的 f 也仍然垫得住；把 f 的下界原样留给 g。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerSum a b p g L</code>，前提是 <code>∀ x, f x ≤ g x</code> 与 <code>LowerSum a b p f L</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_mono · Exists.elim · Exists.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-158-6"><summary>查看解答 <span class="sol-meta">定理 · 11 行</span></summary><div class="solution-body"><p class="solution-note">f 的下界原样留给更高的 g：下界仍然垫得住，矩形和也不动。</p><pre><code>theorem lowerSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerSum a b p f L) : LowerSum a b p g L :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      Exists.intro l
+        (And.intro
+          (lowerStep_mono a b p f g l hfg (And.left hl))
+          (And.right hl)))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-7" data-exercise="7"><header class="exercise-head"><span class="exercise-badge">练习 7</span><code class="exercise-name">upperSum_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-7">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem upperSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p f U) :
+    LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep U) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>取负把上界翻成下界，矩形和也该取负；先用 <code>stepSum_neg</code> 把和的负号搬到外面，再把 <code>U</code> 的等价关系送过去。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>LowerSum a b p (fun x =&gt; - f x) (- U)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">upperStep_neg · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-158-7"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><p class="solution-note">上界取负翻成下界。矩形和也取负：<code>stepSum_neg</code> 把和的负号搬到外面，得到
+<code>-(stepSum u) ~ stepSum (-u)</code>；而 <code>-U ~ -(stepSum u)</code> 只是把已知的等价
+关系送进取负。两条接起来，<code>-U</code> 就是新下和。</p><pre><code>theorem upperSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p f U) :
+    LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep U) :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (u i))
+        (And.intro
+          (upperStep_neg a b p f u (And.left hu))
+          (ratRel_trans_gen
+            (ratNegRep U)
+            (ratNegRep (stepSum p u))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+            (ratNegRep_wd U (stepSum p u) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+              (ratNegRep (stepSum p u))
+              (stepSum_neg p u)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-8" data-exercise="8"><header class="exercise-head"><span class="exercise-badge">练习 8</span><code class="exercise-name">lowerSum_neg</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-8">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem lowerSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p f L) :
+    UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep L) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>下界取负变成上界，矩形和同时取负；与上和那条同一条搬运链。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>UpperSum a b p (fun x =&gt; - f x) (- L)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">lowerStep_neg · stepSum_neg · ratNegRep_wd · ratRel_symm · ratRel_trans_gen</span>。</p></div></details></div><details class="solution-panel" id="sol-158-8"><summary>查看解答 <span class="sol-meta">定理 · 20 行</span></summary><div class="solution-body"><p class="solution-note">下界取负翻成上界，矩形和同时取负；搬运链与上和那条逐字同形。</p><pre><code>theorem lowerSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p f L) :
+    UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep L) :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (l i))
+        (And.intro
+          (lowerStep_neg a b p f l (And.left hl))
+          (ratRel_trans_gen
+            (ratNegRep L)
+            (ratNegRep (stepSum p l))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+            (ratNegRep_wd L (stepSum p l) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+              (ratNegRep (stepSum p l))
+              (stepSum_neg p l)))))</code></pre></div></details></div></article>
+<article class="exercise" id="ex-158-9" data-exercise="9"><header class="exercise-head"><span class="exercise-badge">练习 9</span><code class="exercise-name">integrable_const</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-158-9">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常值函数可积</p></div></div><pre class="exercise-statement"><code>theorem integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) =&gt; k) :=
+  sorry</code></pre><div class="hints"><details class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>分割取两切点，下和与上和都取 <code>k · (b - a)</code>；它们相减等于零，而零小于任意正 <span class="math">ε</span>，于是这条 <span class="math">ε</span> 判据对每个正 <span class="math">ε</span> 都有见证。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>Integrable a b (fun _ =&gt; k)</code>。</p></div></details><details class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">twoPoint_isPartition · upperSum_twoPoint_const · lowerSum_twoPoint_const · ratSubRep_self · ratLtRep_congr_fst · Exists.intro</span>。</p></div></details></div><details class="solution-panel" id="sol-158-9"><summary>查看解答 <span class="sol-meta">定理 · 14 行</span></summary><div class="solution-body"><p class="solution-note">分割取两切点。上界与下界都取常数 k，上和与下和都等于 <code>k · (b - a)</code>；两
+者相减，代表元相同，差等价于零。零小于任意正 <span class="math">ε</span>，于是这条 <span class="math">ε</span> 判据对每个
+正 <span class="math">ε</span> 都有见证。</p><pre><code>theorem integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) =&gt; k) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.intro (twoPoint a b)
+      (And.intro (twoPoint_isPartition a b hab)
+        (Exists.intro (ratMulRep k (ratSubRep b a))
+          (Exists.intro (ratMulRep k (ratSubRep b a))
+            (And.intro (lowerSum_twoPoint_const a b k)
+              (And.intro (upperSum_twoPoint_const a b k)
+                (ratLtRep_congr_fst
+                  (ratSubRep (ratMulRep k (ratSubRep b a))
+                    (ratMulRep k (ratSubRep b a)))
+                  ratZeroRep eps heps
+                  (ratSubRep_self (ratMulRep k (ratSubRep b a)))))))))</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit157.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</span></a><a class="unit-nav-home" href="../chapters/iii-8.html#units">目录</a><a class="unit-nav-link" href="../units/unit159.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">可积性的直接判据：把上下和搬到台阶上</span></a></nav>
+</section>
+<section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-158"><h3><a href="#top">上下和与可积性：两条台阶之间的宽度</a></h3><p class="appendix-meta">9 道练习 · 9 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-158-1"><summary>练习 1 · upperSum_twoPoint_const <span class="sol-meta">定理</span></summary><p class="solution-note">常值曲线的上界取同一个 k，矩形和在两切点分割上是 <code>k · (b - a)</code>；把这两
+件装进存在量词，就得到这个分割上的一个上和。</p><pre><code>theorem upperSum_twoPoint_const (a b k : ratRep) :
+    UpperSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) =&gt; k)
+    (And.intro
+      (upperStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) =&gt; k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) =&gt; k))))</code></pre></details><details class="appendix-solution" id="app-sol-158-2"><summary>练习 2 · lowerSum_twoPoint_const <span class="sol-meta">定理</span></summary><p class="solution-note">下界那一摞也取同一个 k，矩形和的读数完全相同。</p><pre><code>theorem lowerSum_twoPoint_const (a b k : ratRep) :
+    LowerSum a b (twoPoint a b) (fun (_ : ratRep) =&gt; k)
+      (ratMulRep k (ratSubRep b a)) :=
+  Exists.intro (fun (_ : Nat) =&gt; k)
+    (And.intro
+      (lowerStep_const a b (twoPoint a b) k)
+      (ratRel_symm (stepSum (twoPoint a b) (fun (_ : Nat) =&gt; k))
+        (ratMulRep k (ratSubRep b a))
+        (stepSum_twoPoint a b (fun (_ : Nat) =&gt; k))))</code></pre></details><details class="appendix-solution" id="app-sol-158-3"><summary>练习 3 · lowerStep_le_upperStep <span class="sol-meta">定理</span></summary><p class="solution-note">两个界都在左端点取值：下界给出 <code>l i ≤ f (point i)</code>，上界给出
+<code>f (point i) ≤ u i</code>，传递性收成 <code>l i ≤ u i</code>。</p><pre><code>theorem lowerStep_le_upperStep (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (l u : Nat → ratRep) (hp : IsPartition a b p)
+    (hl : LowerStep a b p f l) (hu : UpperStep a b p f u)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) :
+    ratLeRep (l i) (u i) :=
+  ratLeRep_trans (l i) (f (partPoint p i)) (u i)
+    (lowerStep_value a b p f l hl hp i hi)
+    (upperStep_value a b p f u hu hp i hi)</code></pre></details><details class="appendix-solution" id="app-sol-158-4"><summary>练习 4 · lowerSum_le_upperSum <span class="sol-meta">定理</span></summary><p class="solution-note">逐段的下界不超过上界，乘上同一个正宽之后每一段的乘积也不超过；矩形和的
+保序把段数那么多条不等式收成一条。两端的 <code>L</code>、<code>U</code> 只是矩形和的等价写法，
+沿等价关系搬过去。</p><pre><code>theorem lowerSum_le_upperSum (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L U : ratRep) (hp : IsPartition a b p)
+    (hL : LowerSum a b p f L) (hU : UpperSum a b p f U) :
+    ratLeRep L U :=
+  @Exists.elim (Nat → ratRep)
+    (fun (l : Nat → ratRep) =&gt; LowerStep a b p f l ∧ ratRel L (stepSum p l))
+    (ratLeRep L U) hL
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      @Exists.elim (Nat → ratRep)
+        (fun (u : Nat → ratRep) =&gt; UpperStep a b p f u ∧ ratRel U (stepSum p u))
+        (ratLeRep L U) hU
+        (fun (u : Nat → ratRep)
+            (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =&gt;
+          ratLeRep_congr_gen (stepSum p l) L (stepSum p u) U
+            (ratRel_symm L (stepSum p l) (And.right hl))
+            (ratRel_symm U (stepSum p u) (And.right hu))
+            (stepSum_mono a b p hp l u
+              (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount p)) =&gt;
+                lowerStep_le_upperStep a b p f l u hp
+                  (And.left hl) (And.left hu) i hi))))</code></pre></details><details class="appendix-solution" id="app-sol-158-5"><summary>练习 5 · upperSum_mono_fun <span class="sol-meta">定理</span></summary><p class="solution-note">g 的上界原样拿来给更低的 f 用：逐点上 f 更低，上界仍然压得住，矩形和与
+<code>U</code> 的关系不变。</p><pre><code>theorem upperSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (U : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : UpperSum a b p g U) : UpperSum a b p f U :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p g u ∧ ratRel U (stepSum p u)) =&gt;
+      Exists.intro u
+        (And.intro
+          (upperStep_mono a b p f g u hfg (And.left hu))
+          (And.right hu)))</code></pre></details><details class="appendix-solution" id="app-sol-158-6"><summary>练习 6 · lowerSum_mono_fun <span class="sol-meta">定理</span></summary><p class="solution-note">f 的下界原样留给更高的 g：下界仍然垫得住，矩形和也不动。</p><pre><code>theorem lowerSum_mono_fun (a b : ratRep) (p : Partition)
+    (f g : ratRep → ratRep) (L : ratRep)
+    (hfg : ∀ (x : ratRep), ratLeRep (f x) (g x))
+    (h : LowerSum a b p f L) : LowerSum a b p g L :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      Exists.intro l
+        (And.intro
+          (lowerStep_mono a b p f g l hfg (And.left hl))
+          (And.right hl)))</code></pre></details><details class="appendix-solution" id="app-sol-158-7"><summary>练习 7 · upperSum_neg <span class="sol-meta">定理</span></summary><p class="solution-note">上界取负翻成下界。矩形和也取负：<code>stepSum_neg</code> 把和的负号搬到外面，得到
+<code>-(stepSum u) ~ stepSum (-u)</code>；而 <code>-U ~ -(stepSum u)</code> 只是把已知的等价
+关系送进取负。两条接起来，<code>-U</code> 就是新下和。</p><pre><code>theorem upperSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (U : ratRep)
+    (h : UpperSum a b p f U) :
+    LowerSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep U) :=
+  Exists.elim h
+    (fun (u : Nat → ratRep)
+        (hu : UpperStep a b p f u ∧ ratRel U (stepSum p u)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (u i))
+        (And.intro
+          (upperStep_neg a b p f u (And.left hu))
+          (ratRel_trans_gen
+            (ratNegRep U)
+            (ratNegRep (stepSum p u))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+            (ratNegRep_wd U (stepSum p u) (And.right hu))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (u i)))
+              (ratNegRep (stepSum p u))
+              (stepSum_neg p u)))))</code></pre></details><details class="appendix-solution" id="app-sol-158-8"><summary>练习 8 · lowerSum_neg <span class="sol-meta">定理</span></summary><p class="solution-note">下界取负翻成上界，矩形和同时取负；搬运链与上和那条逐字同形。</p><pre><code>theorem lowerSum_neg (a b : ratRep) (p : Partition)
+    (f : ratRep → ratRep) (L : ratRep)
+    (h : LowerSum a b p f L) :
+    UpperSum a b p (fun (x : ratRep) =&gt; ratNegRep (f x))
+      (ratNegRep L) :=
+  Exists.elim h
+    (fun (l : Nat → ratRep)
+        (hl : LowerStep a b p f l ∧ ratRel L (stepSum p l)) =&gt;
+      Exists.intro (fun (i : Nat) =&gt; ratNegRep (l i))
+        (And.intro
+          (lowerStep_neg a b p f l (And.left hl))
+          (ratRel_trans_gen
+            (ratNegRep L)
+            (ratNegRep (stepSum p l))
+            (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+            (ratNegRep_wd L (stepSum p l) (And.right hl))
+            (ratRel_symm
+              (stepSum p (fun (i : Nat) =&gt; ratNegRep (l i)))
+              (ratNegRep (stepSum p l))
+              (stepSum_neg p l)))))</code></pre></details><details class="appendix-solution" id="app-sol-158-9"><summary>练习 9 · integrable_const <span class="sol-meta">定理</span></summary><p class="solution-note">分割取两切点。上界与下界都取常数 k，上和与下和都等于 <code>k · (b - a)</code>；两
+者相减，代表元相同，差等价于零。零小于任意正 <span class="math">ε</span>，于是这条 <span class="math">ε</span> 判据对每个
+正 <span class="math">ε</span> 都有见证。</p><pre><code>theorem integrable_const (a b k : ratRep) (hab : ratLtRep a b) :
+    Integrable a b (fun (_ : ratRep) =&gt; k) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =&gt;
+    Exists.intro (twoPoint a b)
+      (And.intro (twoPoint_isPartition a b hab)
+        (Exists.intro (ratMulRep k (ratSubRep b a))
+          (Exists.intro (ratMulRep k (ratSubRep b a))
+            (And.intro (lowerSum_twoPoint_const a b k)
+              (And.intro (upperSum_twoPoint_const a b k)
+                (ratLtRep_congr_fst
+                  (ratSubRep (ratMulRep k (ratSubRep b a))
+                    (ratMulRep k (ratSubRep b a)))
+                  ratZeroRep eps heps
+                  (ratSubRep_self (ratMulRep k (ratSubRep b a)))))))))</code></pre></details></section></section>
+  </article>
+  <aside class="page-outline no-print" aria-label="本章单元目录">
+    <h2>单元目录</h2>
+    <ol><li><a href="../units/unit151.html" aria-current="false"><span>151</span> 分割：把区间切成有限段</a></li>
+<li><a href="../units/unit152.html" aria-current="false"><span>152</span> 切点只往前走：分割上的序</a></li>
+<li><a href="../units/unit153.html" aria-current="false"><span>153</span> 阶梯函数：每一段上取常值</a></li>
+<li><a href="../units/unit154.html" aria-current="false"><span>154</span> 矩形和：把每一段的面积加起来</a></li>
+<li><a href="../units/unit155.html" aria-current="false"><span>155</span> 矩形和保持加法与取负</a></li>
+<li><a href="../units/unit156.html" aria-current="false"><span>156</span> 常值函数的面积：与分割无关</a></li>
+<li><a href="../units/unit157.html" aria-current="false"><span>157</span> 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li>
+<li class="is-current"><a href="../units/unit158.html" aria-current="page"><span>158</span> 上下和与可积性：两条台阶之间的宽度</a></li>
+<li><a href="../units/unit159.html" aria-current="false"><span>159</span> 可积性的直接判据：把上下和搬到台阶上</a></li>
+<li><a href="../units/unit160.html" aria-current="false"><span>160</span> 取负与逐点等价：可积性只看函数值</a></li>
+<li><a href="../units/unit161.html" aria-current="false"><span>161</span> 上和与下和的加法：先分开算再相加</a></li>
+<li><a href="../units/unit162.html" aria-current="false"><span>162</span> 整条曲线抬高：面积差只认起伏</a></li>
+<li><a href="../units/unit163.html" aria-current="false"><span>163</span> 阿基米德性质：反复相加总能超过</a></li>
+<li><a href="../units/unit164.html" aria-current="false"><span>164</span> 细分割上的振幅：一致连续把曲线压成窄带</a></li>
+<li><a href="../units/unit165.html" aria-current="false"><span>165</span> 等分分割：把区间切得足够细</a></li>
+<li><a href="../units/unit166.html" aria-current="false"><span>166</span> 一致连续函数可积：把误差分给段数</a></li></ol>
+  </aside>
+</div>
+<nav class="pager" aria-label="单元导航">
+  <a href="../units/unit157.html">← 157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a><a class="next" href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上 →</a>
+</nav>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>

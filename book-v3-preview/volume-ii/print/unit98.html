@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>打印 · 单元 98 上下极限与收敛</title>
+<meta name="description" content="干净打印页（A4）。">
+<link rel="canonical" href="https://example.invalid/book-v3/print/unit98.html">
+<link rel="stylesheet" href="../assets/book-components.css">
+<link rel="stylesheet" href="../assets/v3.css">
+<script defer src="../assets/v3.js"></script>
+<script type="speculationrules">
+{"prefetch":[{"where":{"href_matches":"*.html"},"eagerness":"moderate"}],
+ "prerender":[{"where":{"href_matches":"*.html"},"eagerness":"conservative"}]}
+</script>
+</head>
+<body id="top" data-view="both" data-page="print">
+<a class="skip-link" href="#main">跳过目录，直接读正文</a>
+<header class="site-head" role="banner">
+  <div class="site-head-inner">
+    <a class="brand" href="../../index.html">卷 II 数系与实数<span class="brand-sub">从集合论到实分析 · 交互读本 v3</span></a>
+    <button class="side-toggle no-print" type="button" aria-expanded="false" aria-controls="site-side" data-side-toggle>单元目录</button>
+    <button class="menu-btn no-print" type="button" aria-expanded="false" aria-controls="site-nav" data-menu>菜单</button>
+    <nav class="site-nav" id="site-nav" aria-label="站点">
+      <span class="book-switch no-print" aria-label="两卷切换"></span>
+      <form class="top-search no-print" action="../search.html" method="get" role="search">
+        <span class="search-glyph" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8.5" cy="8.5" r="5.2"></circle><path d="m12.4 12.4 4 4"></path></svg></span>
+        <label class="sr-only" for="top-q">搜索全书</label>
+        <input id="top-q" name="q" type="search" placeholder="" autocomplete="off">
+      </form>
+      <a href="../../index.html">首页</a>
+      <a href="../sitemap.html">目录</a>
+      <a class="icon-link" href="../sitemap.html#print" aria-label="打印 / PDF" title="打印 / PDF"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 9V4h10v5"></path><rect x="5" y="9" width="14" height="8" rx="1.5"></rect><path d="M7 14h10v6H7z"></path><circle cx="17" cy="11.5" r=".8" fill="currentColor" stroke="none"></circle></svg></a>
+      <span class="head-progress no-print" data-progress-count data-progress-total="171">已读 0 / 171</span>
+    </nav>
+  </div>
+</header>
+<div class="site-shell">
+<aside class="site-side no-print" id="site-side" aria-label="目录"><div class="side-head"><strong>目录</strong><button type="button" class="side-close" data-side-toggle aria-label="关闭目录">×</button></div><nav class="side-nav"><details class="side-chapter"><summary><a href="../chapters/ii-1.html">II.1 整数：从 ℕ 到 ℤ</a></summary><ol><li><a href="../units/unit01.html">01 整数与商构造</a></li><li><a href="../units/unit02.html">02 商类型与良定义性（复习）</a></li><li><a href="../units/unit03.html">03 ℕ 的算术律（复习）</a></li><li><a href="../units/unit04.html">04 整数加法 / 负 / 减的代表元公式</a></li><li><a href="../units/unit05.html">05 整数乘法的代表元公式</a></li><li><a href="../units/unit06.html">06 整数加法的良定义性</a></li><li><a href="../units/unit07.html">07 整数加法的交换律与结合律</a></li><li><a href="../units/unit08.html">08 整数加法的零元与负元</a></li><li><a href="../units/unit09.html">09 整数减法的良定义性与基本律</a></li><li><a href="../units/unit10.html">10 整数乘法的零元与单位元</a></li><li><a href="../units/unit11.html">11 整数乘法的良定义性</a></li><li><a href="../units/unit12.html">12 整数序的代表元公式</a></li><li><a href="../units/unit13.html">13 ℕ 序的传递性与单调性</a></li><li><a href="../units/unit14.html">14 ℕ 序的加法消去律</a></li><li><a href="../units/unit15.html">15 整数序的良定义性</a></li><li><a href="../units/unit16.html">16 整数序的传递性与加法单调</a></li><li><a href="../units/unit17.html">17 整数乘法的交换律（代表元层）</a></li><li><a href="../units/unit18.html">18 整数乘法的第二个因子良定义（代表元层）</a></li><li><a href="../units/unit19.html">19 把取负下降成函数（Quot.lift）</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-2.html">II.2 有理数：从 ℤ 到 ℚ</a></summary><ol><li><a href="../units/unit20.html">20 有理数与商构造</a></li><li><a href="../units/unit21.html">21 整数相等的传递性</a></li><li><a href="../units/unit22.html">22 ℕ 乘法的分配律与结合律</a></li><li><a href="../units/unit23.html">23 ℤ 乘法的结合律（代表元层）</a></li><li><a href="../units/unit24.html">24 ℕ 正因子的消去律</a></li><li><a href="../units/unit25.html">25 有理数相等的传递性</a></li><li><a href="../units/unit26.html">26 有理数加法的代表元公式与良定义性</a></li><li><a href="../units/unit27.html">27 有理数乘法的代表元公式与具体计算</a></li><li><a href="../units/unit28.html">28 有理数乘法的良定义性</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-3.html">II.3 有理数的性质：序、绝对值、幂与间隙</a></summary><ol><li><a href="../units/unit29.html">29 有理数的序：代表元公式与自反性</a></li><li><a href="../units/unit30.html">30 有理数的严格序：&lt; 与不相等</a></li><li><a href="../units/unit31.html">31 有理数的负元：代表元层定义与良定义性</a></li><li><a href="../units/unit32.html">32 有理数的减法：加法与负元的组合</a></li><li><a href="../units/unit33.html">33 有理数的绝对值：关系定义与两条引入规则</a></li><li><a href="../units/unit34.html">34 有理数的幂：定义与计算规则</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-4.html">II.4 有理 Cauchy 序列与实数的载体</a></summary><ol><li><a href="../units/unit35.html">35 有理 Cauchy 序列：close 与 Cauchy 的定义</a></li><li><a href="../units/unit36.html">36 实数的载体：Real := Quot realRel</a></li><li><a href="../units/unit37.html">37 序与正分母：乘法、消去与配对搬运</a></li><li><a href="../units/unit38.html">38 有理数的序：传递性</a></li><li><a href="../units/unit39.html">39 有理数的序与相等相容</a></li><li><a href="../units/unit40.html">40 实数的相等：自反性</a></li><li><a href="../units/unit41.html">41 取负与序：绝对值的对称性</a></li><li><a href="../units/unit42.html">42 close 的对称性：实数的相等可以换方向</a></li><li><a href="../units/unit43.html">43 有理数加法的代表元律：交换与零元</a></li><li><a href="../units/unit44.html">44 序与加法相容：x ≤ y ⇒ x + z ≤ y + z</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-5.html">II.5 ℝ 的商、代数与序</a></summary><ol><li><a href="../units/unit45.html">45 序的全性：每个有理数都有绝对值</a></li><li><a href="../units/unit46.html">46 序的反对称性：两边夹出相等</a></li><li><a href="../units/unit47.html">47 绝对值的唯一性：同一个数的两个见证相等</a></li><li><a href="../units/unit48.html">48 三角不等式：|u + v| ≤ |u| + |v|</a></li><li><a href="../units/unit49.html">49 严格序的传递与 close 对 ε 的单调性</a></li><li><a href="../units/unit50.html">50 严格序与加法相容：加法消去</a></li><li><a href="../units/unit51.html">51 严格序的传递与加法相容</a></li><li><a href="../units/unit52.html">52 ε 折半：半数的存在与加倍</a></li><li><a href="../units/unit53.html">53 半数的正性：0 &lt; ε ⇒ 0 &lt; ε/2</a></li><li><a href="../units/unit54.html">54 有理数加法的结合律：公分母的三层嵌套</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-6.html">II.6 实数的商与完备性</a></summary><ol><li><a href="../units/unit55.html">55 有理数的加法逆元：x + (-x) = 0</a></li><li><a href="../units/unit56.html">56 两次减法的相加：中间项消去</a></li><li><a href="../units/unit57.html">57 close 的传递性：两个 ε/2 的界加起来</a></li><li><a href="../units/unit58.html">58 实数的相等：传递性</a></li><li><a href="../units/unit59.html">59 实数的取负：第一次把运算下降到商上</a></li><li><a href="../units/unit60.html">60 实数的加法：下降之前的两条义务</a></li><li><a href="../units/unit61.html">61 实数的加法：三元关系（存在 + 唯一）</a></li><li><a href="../units/unit62.html">62 实数的加法：交换律与零元（三元关系版）</a></li><li><a href="../units/unit63.html">63 实数的加法：结合律（三元关系版）</a></li><li><a href="../units/unit64.html">64 实数的序：代表元关系与自反性</a></li><li><a href="../units/unit65.html">65 实数的序：传递性</a></li><li><a href="../units/unit66.html">66 实数的序：沿 realRel 下降成 Real 上的关系</a></li><li><a href="../units/unit67.html">67 实数的序：自反、传递、反对称</a></li><li><a href="../units/unit68.html">68 完备性：有理 Cauchy 序列在 ℝ 中收敛到自己的类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/ii-7.html">II.7 数系综合与读证明</a></summary><ol><li><a href="../units/unit69.html">69 数系链：从 ℕ 到 ℝ 的保序嵌入</a></li><li><a href="../units/unit70.html">70 数系链：加法在四层间的迁移</a></li><li><a href="../units/unit71.html">71 数系综合：商的代价——一座桥与两座桥</a></li><li><a href="../units/unit72.html">72 数系综合：完备性盘点——代表元层与集合层</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-1.html">III.1 序列与极限</a></summary><ol><li><a href="../units/unit73.html">73 序列与极限：ε-N 的定义形状</a></li><li><a href="../units/unit74.html">74 极限的唯一性</a></li><li><a href="../units/unit75.html">75 极限与序</a></li><li><a href="../units/unit76.html">76 极限的代数：加法、减法、取负</a></li><li><a href="../units/unit77.html">77 收敛序列有界</a></li><li><a href="../units/unit78.html">78 夹逼定理</a></li><li><a href="../units/unit79.html">79 极限的保号性</a></li><li><a href="../units/unit80.html">80 极限只看尾部：平移</a></li><li><a href="../units/unit81.html">81 尾部等价：改动有限项</a></li><li><a href="../units/unit82.html">82 单调序列的极限是上确界</a></li><li><a href="../units/unit83.html">83 收敛序列是 Cauchy 序列</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-2.html">III.2 扩展实数、上下确界与单调收敛</a></summary><ol><li><a href="../units/unit84.html">84 上界与上确界：唯一性与比较</a></li><li><a href="../units/unit85.html">85 下界与下确界：唯一性与比较</a></li><li><a href="../units/unit86.html">86 扩展实数：±∞ 与序</a></li><li><a href="../units/unit87.html">87 扩展实数上的上界与上确界</a></li><li><a href="../units/unit88.html">88 实数上确界与扩展上确界的相容</a></li><li><a href="../units/unit89.html">89 扩展实数上的下界与下确界</a></li><li><a href="../units/unit90.html">90 实数下确界与扩展下确界的相容</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-3.html">III.3 子序列、极限点与上下极限</a></summary><ol><li><a href="../units/unit91.html">91 子序列</a></li><li><a href="../units/unit92.html">92 极限点</a></li><li><a href="../units/unit93.html">93 上极限</a></li><li><a href="../units/unit94.html">94 下极限</a></li><li><a href="../units/unit95.html">95 子序列与上下极限</a></li><li><a href="../units/unit96.html">96 上下极限与常数界</a></li><li><a href="../units/unit97.html">97 上下极限只看尾部</a></li><li><a href="../units/unit98.html">98 上下极限与收敛</a></li><li><a href="../units/unit99.html">99 Cauchy 序列与极限点</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-4.html">III.4 Cauchy 序列与完备性</a></summary><ol><li><a href="../units/unit100.html">100 Cauchy 序列的尾部刻画</a></li><li><a href="../units/unit101.html">101 Cauchy 序列有界</a></li><li><a href="../units/unit102.html">102 Cauchy 性的等价写法</a></li><li><a href="../units/unit103.html">103 实数相等与差趋于零</a></li><li><a href="../units/unit104.html">104 极限类的唯一性</a></li><li><a href="../units/unit105.html">105 极限加法的估计：两个 ε/2 界相加</a></li><li><a href="../units/unit106.html">106 极限类的加法</a></li><li><a href="../units/unit107.html">107 极限类的取负</a></li><li><a href="../units/unit108.html">108 极限类的减法</a></li><li><a href="../units/unit109.html">109 完备性收口：Cauchy 序列的极限类</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-5.html">III.5 级数</a></summary><ol><li><a href="../units/unit110.html">110 有限和：递归定义与基本律</a></li><li><a href="../units/unit111.html">111 有限和的拆分与望远镜</a></li><li><a href="../units/unit112.html">112 级数：部分和与和类</a></li><li><a href="../units/unit113.html">113 收敛级数的通项趋于零</a></li><li><a href="../units/unit114.html">114 级数的尾巴与 Cauchy 判别</a></li><li><a href="../units/unit115.html">115 可和级数的加法、取负与减法</a></li><li><a href="../units/unit116.html">116 非负项的部分和不会下降</a></li><li><a href="../units/unit117.html">117 有限和的绝对值</a></li><li><a href="../units/unit118.html">118 比较判别法</a></li><li><a href="../units/unit119.html">119 绝对收敛推出收敛</a></li><li><a href="../units/unit120.html">120 望远镜级数</a></li><li><a href="../units/unit121.html">121 级数的尾块</a></li><li><a href="../units/unit122.html">122 尾块判别（反方向）</a></li><li><a href="../units/unit123.html">123 级数的重排：交换前两项</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-6.html">III.6 连续函数</a></summary><ol><li><a href="../units/unit124.html">124 函数极限：ε-δ 定义</a></li><li><a href="../units/unit125.html">125 连续：极限值就是函数值</a></li><li><a href="../units/unit126.html">126 函数极限与序列：顺序判据</a></li><li><a href="../units/unit127.html">127 函数极限的代数：和、差与取负</a></li><li><a href="../units/unit128.html">128 连续函数的代数：和、差与取负</a></li><li><a href="../units/unit129.html">129 单侧极限：只看一边</a></li><li><a href="../units/unit130.html">130 一致连续：一个 δ 管住整片定义域</a></li><li><a href="../units/unit131.html">131 一致连续与序列：Cauchy 序列的像</a></li><li><a href="../units/unit132.html">132 局部有界：极限给出的第一个盒子</a></li><li><a href="../units/unit133.html">133 局部保号：连续函数在一点附近不变号</a></li><li><a href="../units/unit134.html">134 闭区间上的最值：上确界与达到</a></li><li><a href="../units/unit135.html">135 最后一个负点：保号性把负点往右推一步</a></li><li><a href="../units/unit136.html">136 介值定理：最后一个非正点</a></li><li><a href="../units/unit137.html">137 无穷远处的极限：越过分界线之后靠近 L</a></li><li><a href="../units/unit138.html">138 无穷远处极限的代数与序列判据</a></li><li><a href="../units/unit139.html">139 单调函数：介值性反过来给出连续</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-7.html">III.7 微分</a></summary><ol><li><a href="../units/unit140.html">140 导数的定义：斜率函数与它的极限</a></li><li><a href="../units/unit141.html">141 导数的代数：垂直平移与取负</a></li><li><a href="../units/unit142.html">142 极限唯一：一条曲线不能同时逼近两个值</a></li><li><a href="../units/unit143.html">143 极限只看邻域：换掉远处的函数值</a></li><li><a href="../units/unit144.html">144 非零因子消去：导数为什么只有一个值</a></li><li><a href="../units/unit145.html">145 导数的和与差：先让乘法对加法分配</a></li><li><a href="../units/unit146.html">146 乘法的保序性：正因子不改变不等号</a></li><li><a href="../units/unit147.html">147 乘法的符号：负因子把不等号翻过来</a></li><li><a href="../units/unit148.html">148 导数的符号：曲线从切点往哪一边抬高</a></li><li><a href="../units/unit149.html">149 极值点的导数为零：曲线在最高处没有斜率</a></li><li><a href="../units/unit150.html">150 单调与导数的符号：不下降的曲线不会往下斜</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-8.html">III.8 Riemann 积分</a></summary><ol><li><a href="../units/unit151.html">151 分割：把区间切成有限段</a></li><li><a href="../units/unit152.html">152 切点只往前走：分割上的序</a></li><li><a href="../units/unit153.html">153 阶梯函数：每一段上取常值</a></li><li><a href="../units/unit154.html">154 矩形和：把每一段的面积加起来</a></li><li><a href="../units/unit155.html">155 矩形和保持加法与取负</a></li><li><a href="../units/unit156.html">156 常值函数的面积：与分割无关</a></li><li><a href="../units/unit157.html">157 上界阶梯与下界阶梯：把曲线夹在两摞台阶之间</a></li><li><a href="../units/unit158.html">158 上下和与可积性：两条台阶之间的宽度</a></li><li><a href="../units/unit159.html">159 可积性的直接判据：把上下和搬到台阶上</a></li><li><a href="../units/unit160.html">160 取负与逐点等价：可积性只看函数值</a></li><li><a href="../units/unit161.html">161 上和与下和的加法：先分开算再相加</a></li><li><a href="../units/unit162.html">162 整条曲线抬高：面积差只认起伏</a></li><li><a href="../units/unit163.html">163 阿基米德性质：反复相加总能超过</a></li><li><a href="../units/unit164.html">164 细分割上的振幅：一致连续把曲线压成窄带</a></li><li><a href="../units/unit165.html">165 等分分割：把区间切得足够细</a></li><li><a href="../units/unit166.html">166 一致连续函数可积：把误差分给段数</a></li></ol></details><details class="side-chapter"><summary><a href="../chapters/iii-9.html">III.9 综合、读证明、小项目</a></summary><ol><li><a href="../units/unit167.html">167 面积值：把上下和钉在同一个数上</a></li><li><a href="../units/unit168.html">168 面积值的取负：把曲线翻到轴下方</a></li><li><a href="../units/unit169.html">169 面积值的符号：非负曲线不会算出负面积</a></li><li><a href="../units/unit170.html">170 面积值的比较：曲线更高，面积不会更小</a></li><li><a href="../units/unit171.html">171 面积值的平移：整条曲线抬高一块矩形</a></li></ol></details></nav></aside>
+<div class="site-content">
+
+<main id="main" class="page ">
+<div class="print-toolbar no-print">
+  <p><strong>单元 98 上下极限与收敛</strong> · 干净打印页（A4）。用浏览器「打印 → 另存为 PDF」。</p>
+  <p><button type="button" data-print>打印本页</button> <a href="../units/unit98.html">返回阅读页</a> · <a href="../sitemap.html#print">打印说明</a></p>
+</div>
+<article class="print-page">
+<header class="print-head"><p class="kicker">III.3 子序列、极限点与上下极限 · 单元 98</p><h1>上下极限与收敛</h1><p class="note">Unit 98 — Limsup, Liminf, and Convergence</p></header><section class="unit" id="unit-98">
+<header class="unit-head">
+<p class="unit-kicker"><a href="../chapters/iii-3.html">III.3</a> · 本章第 8 / 9 单元 · 全书第 98 / 171 单元</p>
+<h2><span class="unit-number">98</span><span>上下极限与收敛</span></h2>
+<p class="unit-title-en">Unit 98 — Limsup, Liminf, and Convergence</p>
+<p class="unit-meta">6 个定理 · 6 道练习 · 18 条提示 · <a href="#appendix-unit-98">解答附录</a></p>
+
+
+</header>
+<section class="unit-intro" aria-label="单元导语"><div class="unit-intro-body"><div class="block prose intuition-only"><p>收敛把一条序列的极限点集合压成一个等价类。上极限是这个集合的最小上界，下极限是最大下界，所以收敛时两者都该等于极限；反过来，两个界之间只要有空隙，序列就不可能收敛。这里把这两句话写成定理，再把极限点夹在两个界之间。</p></div></div></section>
+<h3 class="unit-subhead">98.0 收敛时上下极限彼此等价。98.1 把空隙变成不收敛的判据。98.2 给出</h3><h3 class="unit-subhead">98.5 是常序列的实例。</h3><h3 class="unit-subhead">98.0 收敛时上下极限彼此等价</h3><article class="exercise" id="ex-98-1" data-exercise="1"><header class="exercise-head"><span class="exercise-badge">练习 1</span><code class="exercise-name">limsup_liminf_rel_of_converges</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-1">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>极限点的位置：下极限托住它，上极限压住它。98.3 说明上极限不超过下极限时，所有极限点落在同一个等价类。98.4 在给定一个极限点的前提下证两个界相等。</p></div><div class="block prose intuition-only"><p>边界：结论都是单向的。上下极限相等不能反推收敛：反方向要从「无穷多次偏离」里造出一条子序列，每一步都要挑新下标，需要可数选择。另外，序列的项是有理代表元，有界有理序列未必有有理极限点（截断的 √2 近似是一例），所以这里也不声称 Bolzano–Weierstrass。不新增公理。</p></div><div class="block prose intuition-only"><p>上极限与极限是同一个数（93.6），下极限也是（94.6）。把两条相等接起来，中间经过极限 L。</p></div></div><pre class="exercise-statement"><code>theorem limsup_liminf_rel_of_converges (x : Seq) (L M N : ratRep)
+    (h : Converges x L) (hM : Limsup x M) (hN : Liminf x N) : ratRel M N :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>先用 <code>limsup_unique_of_converges</code> 得 M ~ L，再用 <code>liminf_unique_of_converges</code> 得 N ~ L；把第二条翻向后用 <code>ratRel_trans_gen</code> 接上。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel M N</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">limsup_unique_of_converges · liminf_unique_of_converges · ratRel_trans_gen · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-1"><summary>查看解答 <span class="sol-meta">定理 · 5 行</span></summary><div class="solution-body"><p class="solution-note">收敛时，上极限与下极限都回到极限；两个界之间有空隙时，序列不可能收敛。
+反过来不成立：上下极限相等仍推不出收敛。
+
+下极限与上极限之间。98.3 说明上极限不超过下极限时极限点至多一个等价类；98.4 在给定一个极限点时证两个界相等。98.5 是常序列。
+
+边界：反方向要从「无穷多次偏离」造子序列，需要可数选择；有界有理序列
+也未必有有理极限点。这两点都不在本单元的定理里。不新增公理。
+
+上极限 M 与极限 L 相等，下极限 N 也与 L 相等；把 N ~ L 翻向后与 M ~ L 传递。</p><pre><code>theorem limsup_liminf_rel_of_converges (x : Seq) (L M N : ratRep)
+    (h : Converges x L) (hM : Limsup x M) (hN : Liminf x N) : ratRel M N :=
+  ratRel_trans_gen M L N
+    (limsup_unique_of_converges x L M h hM)
+    (ratRel_symm N L (liminf_unique_of_converges x L N h hN))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">98.1 上下极限之间有空隙，序列就不收敛</h3><article class="exercise" id="ex-98-2" data-exercise="2"><header class="exercise-head"><span class="exercise-badge">练习 2</span><code class="exercise-name">not_converges_of_limsup_liminf_gap</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-2">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>假设序列有一个极限 K，98.0 就会把 M 与 N 认成同一个数，与空隙矛盾。</p></div></div><pre class="exercise-statement"><code>theorem not_converges_of_limsup_liminf_gap (x : Seq) (M N : ratRep)
+    (hM : Limsup x M) (hN : Liminf x N) (hne : ¬ ratRel M N) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>对假设给的存在极限 K 用 98.0，得到 <code>ratRel M N</code>，直接与 <code>hne</code> 相撞。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>(∃ (K : ratRep), Converges x K) → False</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">Exists.elim · limsup_liminf_rel_of_converges</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-2"><summary>查看解答 <span class="sol-meta">定理 · 7 行</span></summary><div class="solution-body"><p class="solution-note">存在极限 K 时，98.0 让 M 与 N 落在同一个等价类，与空隙矛盾。</p><pre><code>theorem not_converges_of_limsup_liminf_gap (x : Seq) (M N : ratRep)
+    (hM : Limsup x M) (hN : Liminf x N) (hne : ¬ ratRel M N) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  fun (hK : ∃ (K : ratRep), Converges x K) =&gt;
+    Exists.elim hK
+      (fun (K : ratRep) (h : Converges x K) =&gt;
+        hne (limsup_liminf_rel_of_converges x K M N h hM hN))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">98.2 极限点落在两个界之间</h3><article class="exercise" id="ex-98-3" data-exercise="3"><header class="exercise-head"><span class="exercise-badge">练习 3</span><code class="exercise-name">limitPoint_between_limsup_liminf</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-3">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>下极限托住每个极限点（94.1），上极限压住每个极限点（93.1），两条并起来。</p></div></div><pre class="exercise-statement"><code>theorem limitPoint_between_limsup_liminf (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hP : LimitPoint x P) :
+    ratLeRep M P ∧ ratLeRep P L :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p><code>And.intro</code>，左支用 <code>liminf_lower</code>，右支用 <code>limsup_upper</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep M P ∧ ratLeRep P L</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">And.intro · liminf_lower · limsup_upper</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-3"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">左支是下极限的下界，右支是上极限的上界。</p><pre><code>theorem limitPoint_between_limsup_liminf (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hP : LimitPoint x P) :
+    ratLeRep M P ∧ ratLeRep P L :=
+  And.intro (liminf_lower x M hM P hP) (limsup_upper x L hL P hP)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">98.3 上极限不超过下极限时极限点至多一个等价类</h3><h3 class="unit-subhead">98.2 把两个极限点 P、Q 都放进区间 [M, L]。若还有 <span class="math">L ≤ M</span>，区间缩成一个点：</h3><article class="exercise" id="ex-98-4" data-exercise="4"><header class="exercise-head"><span class="exercise-badge">练习 4</span><code class="exercise-name">limitPoints_rel_of_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-4">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>P 与 Q 都被夹在 M 与 L 之间，因而彼此等价。</p></div></div><pre class="exercise-statement"><code>theorem limitPoints_rel_of_le (x : Seq) (L M P Q : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>两次用 98.2 得 <code>M ≤ P ≤ L</code> 与 <code>M ≤ Q ≤ L</code>；与 <code>hLM : L ≤ M</code> 传递出 <code>P ≤ Q</code> 与 <code>Q ≤ P</code>；交给 <code>ratLeRep_antisymm</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel P Q</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">limitPoint_between_limsup_liminf · ratLeRep_trans · ratLeRep_antisymm</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-4"><summary>查看解答 <span class="sol-meta">定理 · 10 行</span></summary><div class="solution-body"><p class="solution-note">P 与 Q 都在 [M, L] 里。<span class="math">P ≤ L ≤ M ≤ Q</span> 给 <span class="math">P ≤ Q</span>，反方向同理，反对称收口。</p><pre><code>theorem limitPoints_rel_of_le (x : Seq) (L M P Q : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  ratLeRep_antisymm P Q
+    (ratLeRep_trans P L Q
+      (limsup_upper x L hL P hP)
+      (ratLeRep_trans L M Q hLM (liminf_lower x M hM Q hQ)))
+    (ratLeRep_trans Q L P
+      (limsup_upper x L hL Q hQ)
+      (ratLeRep_trans L M P hLM (liminf_lower x M hM P hP)))</code></pre></div></details></div></article>
+<h3 class="unit-subhead">98.4 有极限点时两个界相等</h3><h3 class="unit-subhead">98.2 给出 <span class="math">M ≤ P ≤ L</span>，与假设 <span class="math">L ≤ M</span> 一起把 M 与 L 夹成同一个数。</h3><article class="exercise" id="ex-98-5" data-exercise="5"><header class="exercise-head"><span class="exercise-badge">练习 5</span><code class="exercise-name">limsup_liminf_rel_of_le</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-5">附录解答</a></header><div class="exercise-body"><pre class="exercise-statement"><code>theorem limsup_liminf_rel_of_le (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) : ratRel L M :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>由 98.2 取 <code>M ≤ P</code> 与 <code>P ≤ L</code>，传递得 <code>M ≤ L</code>；与 <code>hLM : L ≤ M</code> 交给 <code>ratLeRep_antisymm</code> 得 <code>ratRel M L</code>，再翻向得到目标。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratRel L M</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">limitPoint_between_limsup_liminf · ratLeRep_trans · ratLeRep_antisymm · ratRel_symm</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-5"><summary>查看解答 <span class="sol-meta">定理 · 9 行</span></summary><div class="solution-body"><p class="solution-note"><span class="math">M ≤ P ≤ L</span> 与 <span class="math">L ≤ M</span> 夹出 M ~ L，再翻向。</p><pre><code>theorem limsup_liminf_rel_of_le (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) : ratRel L M :=
+  ratRel_symm M L
+    (ratLeRep_antisymm M L
+      (ratLeRep_trans M P L
+        (liminf_lower x M hM P hP)
+        (limsup_upper x L hL P hP))
+      hLM)</code></pre></div></details></div></article>
+<h3 class="unit-subhead">98.5 常序列的实例</h3><article class="exercise" id="ex-98-6" data-exercise="6"><header class="exercise-head"><span class="exercise-badge">练习 6</span><code class="exercise-name">demo_const_between</code><span class="exercise-kind">定理</span><a class="exercise-appendix" href="#app-sol-98-6">附录解答</a></header><div class="exercise-body"><div class="exercise-prompt"><div class="block prose intuition-only"><p>常序列的上极限与下极限都是它的值，极限点也是它。98.2 在这个具体序列上给出 <code>q ≤ q ∧ q ≤ q</code>。</p></div></div><pre class="exercise-statement"><code>theorem demo_const_between (q : ratRep) :
+    ratLeRep q q ∧ ratLeRep q q :=
+  sorry</code></pre><div class="hints"><details open class="hint intuition-only"><summary><span class="hint-index">提示 1</span><span class="hint-label">思路</span></summary><div class="hint-body"><p>把 98.2 用在 <code>constSeq q</code> 上：上下极限分别由 <code>limsup_const</code>、<code>liminf_const</code> 给，极限点由 <code>limitPoint_const</code> 给。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 2</span><span class="hint-label">目标形态</span></summary><div class="hint-body"><p><code>ratLeRep q q ∧ ratLeRep q q</code>。</p></div></details><details open class="hint intuition-only"><summary><span class="hint-index">提示 3</span><span class="hint-label">关键件</span></summary><div class="hint-body"><p><span class="math">limitPoint_between_limsup_liminf · limsup_const · liminf_const · limitPoint_const</span>。</p></div></details></div><details open class="solution-panel" id="sol-98-6"><summary>查看解答 <span class="sol-meta">定理 · 4 行</span></summary><div class="solution-body"><p class="solution-note">常序列的上极限、下极限与极限点都取 q。</p><pre><code>theorem demo_const_between (q : ratRep) :
+    ratLeRep q q ∧ ratLeRep q q :=
+  limitPoint_between_limsup_liminf (constSeq q) q q q
+    (limsup_const q) (liminf_const q) (limitPoint_const q)</code></pre></div></details></div></article>
+<nav class="unit-nav no-print" aria-label="单元导航"><a class="unit-nav-link" href="../units/unit97.html" rel="prev"><span class="unit-nav-label">← 上一单元</span><span class="unit-nav-title">上下极限只看尾部</span></a><a class="unit-nav-home" href="../chapters/iii-3.html#units">目录</a><a class="unit-nav-link" href="../units/unit99.html" rel="next"><span class="unit-nav-label">→ 下一单元</span><span class="unit-nav-title">Cauchy 序列与极限点</span></a></nav>
+</section><section class="appendix-unit" id="appendix-unit-98"><h3><a href="#top">上下极限与收敛</a></h3><p class="appendix-meta">6 道练习 · 6 份按名匹配的解答</p><details open class="appendix-solution" id="app-sol-98-1"><summary>练习 1 · limsup_liminf_rel_of_converges <span class="sol-meta">定理</span></summary><p class="solution-note">收敛时，上极限与下极限都回到极限；两个界之间有空隙时，序列不可能收敛。
+反过来不成立：上下极限相等仍推不出收敛。
+
+下极限与上极限之间。98.3 说明上极限不超过下极限时极限点至多一个等价类；98.4 在给定一个极限点时证两个界相等。98.5 是常序列。
+
+边界：反方向要从「无穷多次偏离」造子序列，需要可数选择；有界有理序列
+也未必有有理极限点。这两点都不在本单元的定理里。不新增公理。
+
+上极限 M 与极限 L 相等，下极限 N 也与 L 相等；把 N ~ L 翻向后与 M ~ L 传递。</p><pre><code>theorem limsup_liminf_rel_of_converges (x : Seq) (L M N : ratRep)
+    (h : Converges x L) (hM : Limsup x M) (hN : Liminf x N) : ratRel M N :=
+  ratRel_trans_gen M L N
+    (limsup_unique_of_converges x L M h hM)
+    (ratRel_symm N L (liminf_unique_of_converges x L N h hN))</code></pre></details><details open class="appendix-solution" id="app-sol-98-2"><summary>练习 2 · not_converges_of_limsup_liminf_gap <span class="sol-meta">定理</span></summary><p class="solution-note">存在极限 K 时，98.0 让 M 与 N 落在同一个等价类，与空隙矛盾。</p><pre><code>theorem not_converges_of_limsup_liminf_gap (x : Seq) (M N : ratRep)
+    (hM : Limsup x M) (hN : Liminf x N) (hne : ¬ ratRel M N) :
+    (∃ (K : ratRep), Converges x K) → False :=
+  fun (hK : ∃ (K : ratRep), Converges x K) =&gt;
+    Exists.elim hK
+      (fun (K : ratRep) (h : Converges x K) =&gt;
+        hne (limsup_liminf_rel_of_converges x K M N h hM hN))</code></pre></details><details open class="appendix-solution" id="app-sol-98-3"><summary>练习 3 · limitPoint_between_limsup_liminf <span class="sol-meta">定理</span></summary><p class="solution-note">左支是下极限的下界，右支是上极限的上界。</p><pre><code>theorem limitPoint_between_limsup_liminf (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hP : LimitPoint x P) :
+    ratLeRep M P ∧ ratLeRep P L :=
+  And.intro (liminf_lower x M hM P hP) (limsup_upper x L hL P hP)</code></pre></details><details open class="appendix-solution" id="app-sol-98-4"><summary>练习 4 · limitPoints_rel_of_le <span class="sol-meta">定理</span></summary><p class="solution-note">P 与 Q 都在 [M, L] 里。<span class="math">P ≤ L ≤ M ≤ Q</span> 给 <span class="math">P ≤ Q</span>，反方向同理，反对称收口。</p><pre><code>theorem limitPoints_rel_of_le (x : Seq) (L M P Q : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) (hQ : LimitPoint x Q) : ratRel P Q :=
+  ratLeRep_antisymm P Q
+    (ratLeRep_trans P L Q
+      (limsup_upper x L hL P hP)
+      (ratLeRep_trans L M Q hLM (liminf_lower x M hM Q hQ)))
+    (ratLeRep_trans Q L P
+      (limsup_upper x L hL Q hQ)
+      (ratLeRep_trans L M P hLM (liminf_lower x M hM P hP)))</code></pre></details><details open class="appendix-solution" id="app-sol-98-5"><summary>练习 5 · limsup_liminf_rel_of_le <span class="sol-meta">定理</span></summary><p class="solution-note"><span class="math">M ≤ P ≤ L</span> 与 <span class="math">L ≤ M</span> 夹出 M ~ L，再翻向。</p><pre><code>theorem limsup_liminf_rel_of_le (x : Seq) (L M P : ratRep)
+    (hL : Limsup x L) (hM : Liminf x M) (hLM : ratLeRep L M)
+    (hP : LimitPoint x P) : ratRel L M :=
+  ratRel_symm M L
+    (ratLeRep_antisymm M L
+      (ratLeRep_trans M P L
+        (liminf_lower x M hM P hP)
+        (limsup_upper x L hL P hP))
+      hLM)</code></pre></details><details open class="appendix-solution" id="app-sol-98-6"><summary>练习 6 · demo_const_between <span class="sol-meta">定理</span></summary><p class="solution-note">常序列的上极限、下极限与极限点都取 q。</p><pre><code>theorem demo_const_between (q : ratRep) :
+    ratLeRep q q ∧ ratLeRep q q :=
+  limitPoint_between_limsup_liminf (constSeq q) q q q
+    (limsup_const q) (liminf_const q) (limitPoint_const q)</code></pre></details></section>
+</article>
+
+</main>
+<footer class="site-foot">
+  <p>从集合论到实分析 · 卷 II · v3 多页原型 · 内容取自 <code>agent/book-prototype</code> @ <code>c19346da</code> · 171 单元 / 16 章 · 无外部请求</p>
+  <p><a href="../sitemap.html">站点地图</a> · <a href="../index.html">返回封面</a></p>
+</footer>
+</div>
+</div>
+</body>
+</html>
