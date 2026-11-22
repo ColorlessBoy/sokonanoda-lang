@@ -155,7 +155,7 @@
         (fun (A : Set α) (hA : (fun (A' : Set α) =&gt; False) A ∧ x ∈ A) =&gt;
           @False.elim (x ∈ ∅)  -- soko:notation-ok: G-73 形状 ②：`False.elim` 的隐式 `C` 补不出来，必须写全
             (And.left hA))) hx</code></pre></div></details></div></article>
-<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ 本单元的记法是 <code>⋃₀</code> / <code>⋂₀</code>（Mathlib 同款）。它与单元③ 的<strong>二元</strong> <code>∪</code> / <code>∩</code> 是两回事：二元版吃<strong>两个集合</strong>，广义版吃<strong>一个集合族</strong>（<code>Set (Set α)</code>）✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 三样</strong>：<code>lib.SUnion</code>（广义并交）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元③（二元并交）与单元⑧（像与原像）—— 本单元把它们抬到"族"这一层。</p></div></div></details>
+
 
 </section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-21"><h3><a href="#top">集族与广义并交</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-21-1"><summary>练习 1 · subset_sUnion_apply <span class="sol-meta">定理</span></summary><pre><code>theorem subset_sUnion_apply (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F)
     (x : α) (hx : x ∈ A) : x ∈ (⋃₀ F) :=
@@ -343,7 +343,7 @@
                         (Set.mem_sInter_elim α F x (∀ (A' : Set α), A' ∈ F → x ∈ A') hx
                           (fun (h : x ∈ (⋂₀ F)) =&gt; h)))
                       (@Eq.refl.{1} β (f x)))))))</code></pre></div></details></div></article>
-<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（3 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p>⚠ 本单元的定理都写成<strong>两个 <code>⊆</code></strong> 而不是一条 <code>=</code>：这是本语言里"等式"那条路（<code>Set.ext</code>）在<strong>深层嵌套</strong>下不稳（实测：同一批证明用 <code>=</code> 写全部判红，拆成两个方向全部判绿）<span class="math">⇒</span> 结论写成两半既是<strong>数学上更清楚</strong>的讲法，也绕开了那条边界 ✓</p></div><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 四样</strong>：<code>lib.SUnion</code> <span class="math">·</span> <code>lib.Image</code> <span class="math">·</span> <code>lib.Set</code> <span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉑（集族与广义并交）与单元⑧（像与原像）—— 本单元把它们合起来用。</p></div></div></details>
+
 
 </section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-22"><h3><a href="#top">像、原像与广义并交</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-22-1"><summary>练习 1 · mem_image_apply <span class="sol-meta">定理</span></summary><pre><code>theorem mem_image_apply (α β : Type) (f : α → β) (A : Set α) (y : β) :
     y ∈ (f '' A) ↔ ∃ (x : α), x ∈ A ∧ f x = y :=
@@ -545,7 +545,7 @@
         (Set.mem_pi_intro ι α A f
           (fun (i : ι) =&gt;
             (fun (hi : f i ∈ @Set.univ α ∧ f i ∈ A i) =&gt; And.right hi) (hf i (Set.mem_univ i)))))</code></pre></div></details></div></article>
-<details class="unit-notes"><summary>编写注记 · 教材对照与课程边界（2 条）</summary><div class="unit-notes-body"><div class="block prose intuition-only"><p><strong>本单元只允许用</strong>：<code>intro</code> / <code>exact</code> / <code>apply</code> / <code>constructor</code> / <code>cases</code> / <code>have</code>，加 <code>import</code> 进来的库引理。<strong>解答一律项风格</strong>。<strong>本单元 <code>import</code> 五样</strong>：<code>lib.SUnion</code>（积）<span class="math">·</span> <code>lib.Choice</code>（最后一题要用）<span class="math">·</span> <code>lib.Set</code> <span class="math">·</span><code>lib.Prod</code>（柯里化）<span class="math">·</span> <code>lib.Rel</code>。</p></div><div class="block prose intuition-only"><p>依赖：单元㉑（集族）与单元⑤（序对与积）—— 本单元把"二元积"抬到"任意多个因子"。</p></div></div></details>
+
 
 </section><section class="unit-appendix" aria-label="练习与解答"><section class="appendix-unit" id="appendix-unit-23"><h3><a href="#top">广义积与柯里化</a></h3><p class="appendix-meta">10 道练习 · 10 份按名匹配的解答</p><details class="appendix-solution" id="app-sol-23-1"><summary>练习 1 · pi_apply <span class="sol-meta">定理</span></summary><pre><code>theorem pi_apply (ι α : Type) (A : ι → Set α) (f : ι → α) (i : ι)
     (hf : f ∈ (Set.pi ι α A)) : f i ∈ A i :=
