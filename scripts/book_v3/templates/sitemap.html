@@ -1,0 +1,24 @@
+<header class="page-head">
+  <p class="kicker">站点地图</p>
+  <h1>全部页面</h1>
+  <p class="lede">1 个封面 + 7 个章页 + 72 个单元页 + 搜索 + 打印页。每个单元一个稳定 URL：<code>/units/unitNN.html</code>。</p>
+</header>
+<nav class="sitemap-nav" aria-label="地图分区">
+  <a href="#cover">封面</a><a href="#chapters">章</a><a href="#units">单元</a><a href="#print">打印 / PDF</a><a href="#legacy">旧链接</a>
+</nav>
+<section id="cover"><h2>封面</h2><ul><li><a href="index.html">首页 / 学习路径</a></li><li><a href="search.html">全书搜索</a></li><li><a href="sitemap.html">站点地图（本页）</a></li></ul></section>
+<section id="chapters"><h2>章（7）</h2><ul>
+{{CHAPTER_LINKS}}
+</ul></section>
+<section id="units"><h2>单元（72）</h2>
+{{UNIT_LINKS}}
+</section>
+<section id="print"><h2>打印 / PDF</h2>
+<ul>
+{{PRINT_LINKS}}
+</ul>
+<p class="note">每个单元页右上角有「打印 / PDF」；本页列出干净打印页。整本 PDF 的生成方式见 <code>proposals/book-v3/README.md</code>。</p>
+</section>
+<section id="legacy"><h2>旧单页链接</h2>
+<p>旧版所有单元挤在 <code>index.html#unit-N</code>。v3 的封面脚本会把 <code>#unit-N / #chapter-ii-N / #appendix-unit-N / #app-sol-N-M</code> 自动跳到对应页面锚点；旧书签不需要改。</p>
+</section>

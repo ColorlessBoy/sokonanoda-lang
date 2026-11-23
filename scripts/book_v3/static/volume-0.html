@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷 0 形式逻辑 · 从集合论到实分析</title>
+<link rel="stylesheet" href="assets/book-components.css">
+<link rel="stylesheet" href="assets/v3.css">
+<style>
+.v0-head{max-width:68ch;margin:0 auto;padding:2rem 1rem 1rem}
+.v0-head .kicker{color:var(--accent);font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.v0-head h1{font-size:clamp(1.8rem,5vw,2.8rem);line-height:1.25;margin:.3rem 0 .6rem}
+.v0-head .lede{color:var(--muted);line-height:1.85}
+.v0-body{max-width:68ch;margin:0 auto;padding:0 1rem 3rem;line-height:1.9}
+.v0-body h2{font-size:1.25rem;margin:2rem 0 .5rem;border-top:1px solid var(--line);padding-top:1.1rem}
+.v0-body p{margin:.7rem 0}
+.v0-body pre{background:var(--code-bg);border-left:2px solid var(--line);padding:.6rem .8rem;overflow-x:auto;font-size:.82rem;line-height:1.6}
+.v0-body code{font-family:var(--font-code)}
+.v0-body .math{font-family:var(--font-math);font-size:1.03em;margin:0 .08em}
+.v0-back{position:fixed;left:1rem;bottom:1rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.4rem .75rem;color:var(--ink);text-decoration:none;font-size:.84rem}
+@media (max-width:520px){.v0-head,.v0-body{padding-left:1rem;padding-right:1rem}}
+</style>
+</head>
+<body>
+<header class="v0-head">
+  <p class="kicker">卷 0 · 形式逻辑 · 试写导论</p>
+  <h1>先有“证明是一个项”</h1>
+  <p class="lede">这一卷不讲集合论，也不讲实数；只回答一个更基础的问题：在形式化证明里，命题、类型、函数和集合到底是什么关系。读完这一卷，卷 I 的第一句话才不会像是凭空出现的。</p>
+</header>
+<main class="v0-body">
+  <h2>1. 命题是类型</h2>
+  <p>在 Lean 里，命题不是一段中文说明，而是类型世界里的一个对象。所有命题都住在 <span class="math">Prop</span> 里；<span class="math">Prop</span> 自己又是 <span class="math">Sort 0</span>。写下一句断言，本质上是在写一个类型。</p>
+  <pre><code>axiom True : Prop
+axiom True.intro : True
+axiom False : Prop
+axiom False.rec : (P : Prop) → False → P</code></pre>
+  <p>这里 <span class="math">True</span> 是一个命题；<span class="math">True.intro</span> 是一个类型为 <span class="math">True</span> 的项。所谓“证明一个命题”，就是构造一个类型等于该命题的项。</p>
+
+  <h2>2. 证明是项</h2>
+  <p>证明不是一段“因为所以”的文字，而是一个值：如果 <span class="math">P : Prop</span>，那么 <span class="math">h : P</span> 就是 <span class="math">P</span> 的一个证明。两个证明可以用函数组合起来；一条蕴含 <span class="math">P → Q</span> 本身就是一个“吃 <span class="math">P</span> 的证明、吐出 <span class="math">Q</span> 的证明”的函数。</p>
+  <pre><code>theorem and_swap (a b : Prop) (h : a ∧ b) : b ∧ a :=
+  And.intro (And.right h) (And.left h)</code></pre>
+  <p>这段代码对应的自然语言是：假设 <span class="math">a</span> 与 <span class="math">b</span> 都成立，那么把它们交换顺序后仍然都成立。代码里没有“因为所以”，但每一层 <code>fun</code>、每一个构造子，都在做同一件事。</p>
+
+  <h2>3. 类型也是项，函数是箭头</h2>
+  <p><span class="math">Nat : Type</span>；<span class="math">Nat → Nat</span> 也是一个类型，它住在 <span class="math">Type 0 = Sort 1</span>。类型和值不是两个世界：类型是更大的类型里的项，箭头是函数类型的写法。</p>
+  <p>“集合”在这个语言里不是另起一套原始对象。一个集合 <span class="math">A</span> 是某个类型 <span class="math">α</span> 上的谓词：给每个 <span class="math">x : α</span>，回答它是否属于 <span class="math">A</span>。也就是说：</p>
+  <pre><code>def Set (α : Type) : Type := α → Prop
+
+-- x ∈ A 就是 A x
+#check (fun (α : Type) (A : Set α) (x : α) => A x)</code></pre>
+  <p>所以卷 I 开头说的“集合是谓词”，不是比喻：<span class="math">Set α</span> 展开后就是 <span class="math">α → Prop</span>。形式化证明里，<span class="math">x ∈ A</span> 最终要落到“<span class="math">A x</span> 这个命题有一个证明”上。</p>
+
+  <h2>4. 这一卷接下来要补什么</h2>
+  <p>这篇只是导论。后面按顺序补：命题联结词与证明项、等式与替换、函数与箭头、量词、归纳与递归、关系与商。补完这些，再进入卷 I 的集合语言，读者就不会只看到一串代码。</p>
+  <p>另外，正文会遵守一条规矩：<strong>先用自然语言说清“在说什么、为什么下一步可以这样走”，紧跟着给对应代码；代码不是正文的替代品，而是它的形式化对照。</strong></p>
+</main>
+<a class="v0-back" href="../index.html">← 两卷入口</a>
+</body>
+</html>
