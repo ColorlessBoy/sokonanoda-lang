@@ -1462,7 +1462,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.unfold_value_go(depth, v, self.tc_cache.probe_depth == 0)
     }
 
-    fn unfold_value_go(&mut self, depth: u32, v: V<'t>, force: bool) -> V<'t> {
+    pub(crate) fn unfold_value_go(&mut self, depth: u32, v: V<'t>, force: bool) -> V<'t> {
         if let Value::Unfold { head, spine, head_value, forced , ..} = v {
             if let Some(f) = forced.get() {
                 return f;
@@ -1476,14 +1476,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                     if !force && self.nat_red_defer(depth, head.name, &args) {
                         return v;
                     }
-                    // A shift wider than a machine word has no value to compute
-                    // here. Unfolding the constant body instead would re-enter
-                    // the recursive definition with the same huge major premise
-                    // (observed as `whnf_head`/`iota_value` recursing forever),
-                    // so keep the term stuck exactly like Lean's primitive Nat
-                    // reduction does. `0 << n` and `n >> huge` are still reduced
-                    // by `do_nat_red` above whenever the base is available.
-                    if self.nat_red_unrepresentable_shift(depth, head.name, &args) {
+                    if self.nat_red_wide_shift_stuck(depth, head.name.as_ref().nat_red(), &args) {
                         return v;
                     }
                 }
@@ -1875,20 +1868,6 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 
 
-    /// `Nat.shiftLeft` / `Nat.shiftRight` with a shift count that does not fit
-    /// in a machine word: there is no `BigUint` width to shift by, so the term
-    /// must stay stuck (see the call site in `unfold_value_go`).
-    fn nat_red_unrepresentable_shift(&mut self, depth: u32, name: NamePtr<'t>, args: &[V<'t>]) -> bool {
-        use crate::name::NatRed;
-        if !matches!(name.as_ref().nat_red(), Some(NatRed::Shl | NatRed::Shr)) || args.len() != 2 {
-            return false;
-        }
-        match self.value_to_bignum_at(depth, args[1], true) {
-            Some(y) => crate::util::shift_amount(&y).is_none(),
-            None => false,
-        }
-    }
-
     fn do_nat_red_at(
         &mut self,
         depth: u32,
@@ -1946,23 +1925,8 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
             };
             return self.do_nat_bin_val(xn, yn, op);
         }
-        // **LKA `bugs/nat-shift-huge`**：位移量比机器字还宽时，`BigUint` 侧没有
-        // 可用的宽度。先把**被移位的那个实参** delta 展开一层再试一次 ——
-        // 语料里的 `const42 n` / `const0 n` 展开后就是字面量，于是
-        // `n >> 2^64 = 0`、`0 << 2^64 = 0` 仍然是可算的；展开不出字面量就
-        // 交回上层保持 stuck（绝不展开 `Nat.shiftLeft` 自己的体，那会以同一个
-        // 巨大的主前提重新进入递归定义）。
-        if matches!(kind, NatRed::Shl | NatRed::Shr) {
-            if let Some(yn) = self.value_to_bignum_at(depth, args[1], deep) {
-                if crate::util::shift_amount(&yn).is_none() {
-                    let base = self.unfold_value_go(depth, args[0], true);
-                    if let Some(xn) = self.value_to_bignum_at(depth, base, deep) {
-                        let op = if matches!(kind, NatRed::Shl) { NatBinOp::Shl } else { NatBinOp::Shr };
-                        return self.do_nat_bin_val(xn, yn, op);
-                    }
-                    return None;
-                }
-            }
+        if let Some(v) = self.nat_red_wide_shift(depth, kind, args) {
+            return Some(v);
         }
         self.nat_red_recursive_equation(depth, name, levels, kind, args, spine, head_value, deep)
     }
@@ -2117,32 +2081,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    fn do_nat_bin_val(&mut self, x: BigUint, y: BigUint, op: NatBinOp) -> Option<V<'t>> {
-        use NatBinOp::*;
-        match op {
-            Add => self.mk_natlit_val(x + y),
-            Sub => self.mk_natlit_val(nat_sub(x, y)),
-            Mul => self.mk_natlit_val(x * y),
-            Pow => self.mk_natlit_val(x.pow(y)),
-            Div => self.mk_natlit_val(nat_div(x, y)),
-            Mod => self.mk_natlit_val(nat_mod(x, y)),
-            Gcd => self.mk_natlit_val(nat_gcd(&x, &y)),
-            LAnd => self.mk_natlit_val(nat_land(x, y)),
-            LOr => self.mk_natlit_val(nat_lor(x, y)),
-            XOr => self.mk_natlit_val(nat_xor(&x, &y)),
-            Shl => self.mk_natlit_val(nat_shl(x, y)),
-            Shr => self.mk_natlit_val(nat_shr(x, y)),
-            Beq => self.bool_val(x == y),
-            Ble => self.bool_val(x <= y),
-        }
-    }
-
-    fn mk_natlit_val(&mut self, n: BigUint) -> Option<V<'t>> {
+    pub(crate) fn mk_natlit_val(&mut self, n: BigUint) -> Option<V<'t>> {
         let p = self.ctx.alloc_bignum(n)?;
         Some(value::mk_natlit(self.arena, p))
     }
 
-    fn bool_val(&mut self, b: bool) -> Option<V<'t>> {
+    pub(crate) fn bool_val(&mut self, b: bool) -> Option<V<'t>> {
         let cache = self.ctx.export_file.name_cache;
         let n = if b { cache.bool_true? } else { cache.bool_false? };
         let levels = self.ctx.alloc_levels_slice(&[]);
@@ -2187,7 +2131,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     pub(crate) fn value_to_bignum(&mut self, depth: u32, v: V<'t>) -> Option<BigUint> { self.value_to_bignum_at(depth, v, true) }
 
-    fn value_to_bignum_at(&mut self, depth: u32, v: V<'t>, deep: bool) -> Option<BigUint> {
+    pub(crate) fn value_to_bignum_at(&mut self, depth: u32, v: V<'t>, deep: bool) -> Option<BigUint> {
         let mut succs: u64 = 0;
         let mut cur = self.force_thunk(depth, v);
         loop {
