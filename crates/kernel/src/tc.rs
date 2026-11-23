@@ -80,6 +80,13 @@ pub struct TypeChecker<'x, 't, 'p> {
     /// 放在 `TypeChecker` 而不是 `TcCtx`：`with_tc` 每次新建一个 checker
     /// （拒一条声明就整体丢弃 ✓），栈不会跨声明残留 ✓。
     pub(crate) binder_names: Vec<NamePtr<'t>>,
+    /// **LKA `rec-rule-proof-irrel`**：`true` ⇒ conversion must **not** take the
+    /// proof-irrelevance shortcut. Used only while comparing an **admitted**
+    /// recursor rule with the one this kernel reconstructs: proof irrelevance is
+    /// sound for *terms*, but it is exactly the loophole that lets a lying rule
+    /// differ from the reconstructed one in a proof argument and still compare
+    /// equal. Everything else keeps the shortcut.
+    pub(crate) suppress_proof_irrel: bool,
 }
 
 impl<'p> ExportFile<'p> {
@@ -281,7 +288,7 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
         tc_cache: &'x mut TcCache<'t, 't>,
     ) -> Self {
         let nat_extension = dag.export_file.config.nat_extension;
-        Self { ctx: dag, env, tc_cache, arena, declar_info, nat_extension, binder_names: Vec::new() }
+        Self { ctx: dag, env, tc_cache, arena, declar_info, nat_extension, binder_names: Vec::new(), suppress_proof_irrel: false }
     }
 
     #[inline]

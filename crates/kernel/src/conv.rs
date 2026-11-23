@@ -557,6 +557,11 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
     }
 
     pub(crate) fn try_proof_irrel_at(&mut self, depth: u32, x: V<'t>, y: V<'t>) -> bool {
+        // Suppressed while checking an admitted recursor rule against the
+        // reconstructed one (see `TypeChecker::suppress_proof_irrel`).
+        if self.suppress_proof_irrel {
+            return false;
+        }
         if matches!(x, Value::Lam { .. }) || matches!(y, Value::Lam { .. }) {
             return self.try_proof_irrel_lam(depth, x, y);
         }

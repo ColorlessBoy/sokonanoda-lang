@@ -10,3 +10,12 @@
 # 一起跑时会越线（0.98.4 的发版门禁实跑即超时）⇒ 按 perf-only 压力用例登记。
 perf/magma-list-pair-n21
 perf/magma-list-deep-n36
+
+# 2026-11-23：`good/perf/ite-taken-branch`（LKA corpus master@9867c5929）在
+# 120s 默认线内跑不完，但**判定正确**（accept）；这是 `perf/` 前缀的性能压力
+# 用例，不是 correctness skip —— 跑完时仍按 accept/reject 检查。
+#
+# 先查的是归约路径：`ite` 在 taken 分支上仍要先把两个分支都 whnf 一遍，
+# 深层嵌套让工作量随深度平方增长。优化前先按 perf-only 登记，让发版门禁
+# 能反映「正确性全绿、这一条只是慢」。
+perf/ite-taken-branch

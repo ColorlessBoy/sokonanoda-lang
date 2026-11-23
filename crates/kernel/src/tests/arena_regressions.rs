@@ -1,7 +1,8 @@
 //! Regressions from the external Lean Kernel Arena corpus.
 //!
 //! The fixtures live in `test_resources/{NestedRecRuleNFields,UnsafeDef,
-//! InductiveUndeclaredUniverse,NestedNameCapture,UnitRecRule,ClosureLevelSubst}`
+//! InductiveUndeclaredUniverse,NestedNameCapture,UnitRecRule,ClosureLevelSubst,
+//! RecRuleProofIrrel,RecRuleProofIrrelNested}`
 //! and come from `leanprover/lean-kernel-arena` (Apache-2.0, revision
 //! `d4f15adc61e131de91b11a7bfa827045df86d193` for the first two,
 //! `d7f74a9e67459e2c251d608f524dc5efc6dc223c` for the others); see each
@@ -165,4 +166,37 @@ fn empty_environments_with_different_universe_substitutions_are_not_equal() {
         msg.contains("Family.[0]") && msg.contains("Family.[1]"),
         "expected the `Family.{{0}}` / `Family.{{1}}` mismatch, got {msg:?}"
     );
+}
+
+/// `bad/bugs/rec-rule-proof-irrel` (LKA): the exported `J.rec` rule for `J.j1`
+/// returns `id (motive j1) (mk true)` instead of the minor premise. The two
+/// sides are equal under **proof irrelevance** but are not the same term, so a
+/// rule comparison that takes the shortcut accepts a rule the block never
+/// admitted, and the export then proves `False`.
+///
+/// `assert_imported_expr_matches` therefore runs with
+/// `TypeChecker::suppress_proof_irrel` set. This test fails before that change
+/// and passes after it.
+#[test]
+fn rec_rule_may_not_differ_from_the_reconstructed_one_in_a_proof_argument() {
+    let cfg = Config::try_from(Path::new("test_resources/RecRuleProofIrrel/config.json"))
+        .expect("fixture config");
+    let arena = Arena::new();
+    let (ef, _) = cfg.to_export_file(arena.as_arena_ref()).expect("parse export");
+    let payload = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()))
+        .expect_err("a rule that only differs in a proof argument must still be rejected");
+    assert_eq!(panic_message(payload), "imported recursor rule does not match the reconstructed rule");
+}
+
+/// `bad/bugs/rec-rule-proof-irrel-nested`: the nested-inductive variant of
+/// [`rec_rule_may_not_differ_from_the_reconstructed_one_in_a_proof_argument`].
+#[test]
+fn nested_rec_rule_may_not_differ_from_the_reconstructed_one_in_a_proof_argument() {
+    let cfg = Config::try_from(Path::new("test_resources/RecRuleProofIrrelNested/config.json"))
+        .expect("fixture config");
+    let arena = Arena::new();
+    let (ef, _) = cfg.to_export_file(arena.as_arena_ref()).expect("parse export");
+    let payload = panic::catch_unwind(AssertUnwindSafe(|| ef.check_all_declars()))
+        .expect_err("a nested rule that only differs in a proof argument must still be rejected");
+    assert_eq!(panic_message(payload), "imported recursor rule does not match the reconstructed rule");
 }

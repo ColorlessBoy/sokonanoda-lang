@@ -737,11 +737,27 @@ pub(crate) fn nat_xor(x: &BigUint, y: &BigUint) -> BigUint {
     x ^ y
 }
 
-fn shift_amount(y: &BigUint) -> Option<u64> { u64::try_from(y).ok() }
+pub(crate) fn shift_amount(y: &BigUint) -> Option<u64> { u64::try_from(y).ok() }
 
+/// `Nat.shiftLeft`, as far as the kernel can materialise it.
+///
+/// A shift count wider than a machine word cannot be turned into a `BigUint`
+/// (Lean has the same wall in `mpz_mul_2exp`), so the term stays **stuck**
+/// rather than panicking. `0 << n = 0` is still decidable and the arena corpus
+/// relies on it: `Nat.shiftLeft 0 (2^64)` must reduce to `0`.
 pub(crate) fn nat_shl(x: BigUint, y: BigUint) -> BigUint {
-    let sh = shift_amount(&y).expect("Nat.shiftLeft: shift does not fit in a machine word");
-    x << sh
+    match shift_amount(&y) {
+        Some(sh) => x << sh,
+        // `0 << n = 0` for every `n`, however wide; the arena corpus pins it
+        // (`Nat.shiftLeft 0 (2^64)` must reduce). A non-zero base with an
+        // unrepresentable shift cannot be materialised at all (Lean hits the
+        // same wall in `mpz_mul_2exp`) — reporting it is better than leaving a
+        // stuck term that later unfolds the recursive body 2^64 times.
+        None => {
+            assert!(x.is_zero(), "Nat.shiftLeft: shift does not fit in a machine word");
+            BigUint::zero()
+        }
+    }
 }
 
 pub(crate) fn nat_shr(x: BigUint, y: BigUint) -> BigUint {
