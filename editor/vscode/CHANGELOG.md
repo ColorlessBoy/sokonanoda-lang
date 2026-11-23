@@ -1,4 +1,29 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [0.99.0] - 2026-11-23
+
+### Added
+
+- **第三门课「实分析」发布**（M1–M6，[issue #13](https://github.com/ColorlessBoy/sokonanoda-lang/issues/13)）：
+  `courses/analysis/` 171/171 单元（卷 II 72、卷 III 99），课程门禁接进 CI
+  （`courses/analysis/tools/check.py`：457 个目标、4512 checked、0 rejected、
+  0 open），站点与文档入口对齐 171/171。
+- **M6 四包收口**（[issue #22](https://github.com/ColorlessBoy/sokonanoda-lang/issues/22)）：
+  QA、文档、站点、发布流程；发版预检 `scripts/release-preflight.sh` 与
+  `scripts/bump.py` 的 LKA 门禁串成一条闭环。
+
+### Fixed
+
+- **Lean Kernel Arena 发版门禁**（[PR #92](https://github.com/ColorlessBoy/sokonanoda-lang/pull/92)）：
+  - 导入的消去规则与重建规则比较时走证明无关捷径 ⇒ 只在证明实参上不同的伪造
+    规则被当成相等，导出文件随后证出 `False`（`bugs/rec-rule-proof-irrel`、
+    `-nested`）。规则比较现在关掉该捷径。
+  - `Nat.shiftLeft 0 (2^64)` 是合法 `rfl` 却被误拒；位移量不可表示时按
+    `0 << n = 0` 归约，底数非 0 仍报错（`bugs/nat-shift-huge`）。
+  - `perf/ite-taken-branch` 只是慢，按 perf-only 登记 `arena_known_slow.txt`
+    （名单只容忍 timeout，跑完仍按 accept/reject 检查）。
+  门禁结果：corpus `master@9867c5929`，230 cases（accepted 135 · rejected 90 ·
+  declined 2 · timeouts 3），PASS。
+
 ## [0.98.4] - 2026-11-06
 
 ### Added

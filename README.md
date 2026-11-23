@@ -45,7 +45,7 @@ Every version bump runs the frozen kernel against the latest arena corpus
 it downloads prebuilt NDJSON, never the official Lean toolchain.
 
 <!-- arena-summary:begin -->
-**Latest gate:** Lean Kernel Arena `master@dcea3aa5a` (run `42183244025`, 2026-11-06) — **126/127** accept (1 performance-only timeout), **78/80** reject (2 known unsupported declined).
+**Latest gate:** Lean Kernel Arena `master@9867c5929` (run `45072628159`, 2026-11-22) — **135/138** accept (3 performance-only timeouts), **90/92** reject (2 known unsupported declined).
 Reproduce `python3 scripts/arena-gate.py`; public artifact = scored tests ≤10MB (big cases need `LEAN_KERNEL_ARENA`); no official Lean toolchain.
 <!-- arena-summary:end -->
 
