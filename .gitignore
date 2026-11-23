@@ -64,3 +64,4 @@ dsh-ci-time-*.md
 # ⚠ 用 `/.owner`（**锚在 `.gitignore` 所在目录** = 每个工作树自己的根 ✓）：不带 `/` 会连
 #   仓库里任何一层的 `.owner` 一起忽略 ✗（那可能是真文件）。
 /.owner
+dist/book/

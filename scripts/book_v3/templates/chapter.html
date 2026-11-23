@@ -1,0 +1,35 @@
+<header class="page-head">
+  <p class="kicker">{{VOLUME_TITLE}} · 第 {{CHAPTER_INDEX}} 章</p>
+  <h1><span class="chapter-id">{{CHAPTER_ID}}</span> {{CHAPTER_TITLE}}</h1>
+  <p class="meta">{{CHAPTER_META}}</p>
+  <p class="lede">{{CHAPTER_LEDE}}</p>
+</header>
+<div class="chapter-layout">
+<div class="chapter-main">
+<section class="chapter-progress" aria-label="本章进度">
+  <div class="progress-row">
+    <span class="progress-label">本章进度</span>
+    <strong data-progress-count data-progress-total="{{CHAPTER_UNITS}}">已读 0 / {{CHAPTER_UNITS}}</strong>
+  </div>
+  <span class="progress-track" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="{{CHAPTER_UNITS}}" aria-valuenow="0" data-progressbar><span class="progress-fill" data-progress-fill></span></span>
+</section>
+<nav id="units" class="chapter-units" aria-label="本章单元">
+  <h2>本章单元（{{CHAPTER_UNITS}}）</h2>
+  <ol class="unit-jump-list">
+{{UNIT_CARDS}}
+  </ol>
+</nav>
+<div class="chapter-body">
+{{CHAPTER_BODY}}
+</div>
+<nav class="pager" aria-label="章间导航">
+  {{PAGER}}
+</nav>
+</div>
+<aside class="page-outline no-print" aria-label="本章单元目录">
+  <h2>本章目录</h2>
+  <ol>
+{{OUTLINE_ITEMS}}
+  </ol>
+</aside>
+</div>

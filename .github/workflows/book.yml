@@ -1,0 +1,83 @@
+name: book
+
+# Book gate: build the multi-page book from the source tree and validate it.
+#
+# The book is a build artifact, not committed pages: `dist/book/` is ignored, and
+# CI produces the pages a reader can download from the run artifact. Python 3
+# standard library only — no browser, no LaTeX, no npm, no Lean toolchain.
+#
+# Two layers (see scripts/build_book_v3.py):
+#   1. scripts/build_book_proto.py  → one self-contained HTML page per course (v2)
+#   2. scripts/book_v3/build_site.py → one page per unit/chapter/volume (v3)
+#
+# Local equivalent (the source of truth; CI runs exactly this chain):
+#   python3 scripts/build_book_proto.py --out dist/book/book-v2
+#   python3 scripts/build_book_proto.py --selftest        (needs scripts/content_style/)
+#   python3 scripts/build_book_v3.py
+#   python3 scripts/build_book_v3.py --check
+
+on:
+  pull_request:
+    paths:
+      - "scripts/book/**"
+      - "scripts/book_v3/**"
+      - "scripts/build_book_proto.py"
+      - "scripts/build_book_v3.py"
+      - "courses/analysis/**"
+      - "scripts/notation-lint.py"
+      - ".github/workflows/book.yml"
+  push:
+    paths:
+      - "scripts/book/**"
+      - "scripts/book_v3/**"
+      - "scripts/build_book_proto.py"
+      - "scripts/build_book_v3.py"
+      - "courses/analysis/**"
+      - "scripts/notation-lint.py"
+      - ".github/workflows/book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  book:
+    name: book（build v2 + v3 / check / selftest / notation-lint）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build v2 single-page book
+        run: python3 scripts/build_book_proto.py --out dist/book/book-v2
+
+      # `--check` also runs the prose style linter from `scripts/content_style/`
+      # (not shipped here); that layer reports 257 findings in already-released
+      # course prose, so it is a review tool, not a merge gate. The gates that do
+      # hold are the build contract below plus the v3 link/count verification.
+
+      - name: Build v3 multi-page book（volumes + units + chapters + print）
+        run: python3 scripts/build_book_v3.py
+
+      - name: Verify v3（每个相对链接都能解析 + 单元/章页数 ⇄ course.json）
+        run: python3 scripts/build_book_v3.py --check
+
+      - name: notation-lint（课程记法）
+        run: python3 scripts/notation-lint.py --root courses/analysis
+
+      - name: Upload book pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-v3-html
+          path: dist/book/book-v3
+          if-no-files-found: error
+          retention-days: 14

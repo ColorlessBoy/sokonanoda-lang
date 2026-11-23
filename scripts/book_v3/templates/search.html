@@ -1,0 +1,14 @@
+<header class="page-head">
+  <p class="kicker">全书搜索</p>
+  <h1>搜索</h1>
+  <p class="lede">索引包含 {{SEARCH_COUNT}} 条：7 章、72 单元、声明、练习、正文小标题、解答附录。结果直达对应页面的锚点。</p>
+</header>
+<form class="search-form" role="search" onsubmit="return false">
+  <label for="q">关键词</label>
+  <input id="q" name="q" type="search" placeholder="例：Cauchy、反对称、unit72、intRel" autocomplete="off" autofocus>
+  <button type="button" id="clear">清空</button>
+</form>
+<p class="search-status" role="status" aria-live="polite" id="status"></p>
+<ol class="search-results" id="results"></ol>
+<noscript><p>搜索需要 JavaScript；也可以从 <a href="sitemap.html">站点地图</a> 按章浏览。</p></noscript>
+<script type="application/json" id="v3-search-index">{{SEARCH_INDEX_JSON}}</script>
