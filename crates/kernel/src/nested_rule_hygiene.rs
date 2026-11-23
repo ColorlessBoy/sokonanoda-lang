@@ -47,9 +47,14 @@ impl<'x, 't: 'x, 'p: 't> TypeChecker<'x, 't, 'p> {
     pub(crate) fn assert_imported_expr_matches(&mut self, imported: ExprPtr<'t>, reconstructed: ExprPtr<'t>) {
         self.assert_imported_rule_has_no_block_local_names(imported);
         self.tc_cache.clear();
-        assert!(
-            self.def_eq_core(imported, reconstructed),
-            "imported recursor rule does not match the reconstructed rule"
-        );
+        // Break the proof-irrelevance shortcut for this one comparison. A lying
+        // rule may differ from the reconstructed one only in a proof argument;
+        // proof irrelevance would call the two equal, and the export would get a
+        // recursion rule that computes something the block never admitted.
+        let saved = self.suppress_proof_irrel;
+        self.suppress_proof_irrel = true;
+        let equal = self.def_eq_core(imported, reconstructed);
+        self.suppress_proof_irrel = saved;
+        assert!(equal, "imported recursor rule does not match the reconstructed rule");
     }
 }

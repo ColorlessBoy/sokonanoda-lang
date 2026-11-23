@@ -737,19 +737,10 @@ pub(crate) fn nat_xor(x: &BigUint, y: &BigUint) -> BigUint {
     x ^ y
 }
 
-fn shift_amount(y: &BigUint) -> Option<u64> { u64::try_from(y).ok() }
-
-pub(crate) fn nat_shl(x: BigUint, y: BigUint) -> BigUint {
-    let sh = shift_amount(&y).expect("Nat.shiftLeft: shift does not fit in a machine word");
-    x << sh
-}
-
-pub(crate) fn nat_shr(x: BigUint, y: BigUint) -> BigUint {
-    match shift_amount(&y) {
-        Some(sh) => x >> sh,
-        None => BigUint::zero(),
-    }
-}
+/// `Nat.shiftLeft`, as far as the kernel can materialise it. `0 << n = 0` holds
+/// for every `n`; a non-zero base with an unrepresentable shift cannot be
+/// materialised at all (Lean stops at `mpz_mul_2exp` too) and is reported.
+pub(crate) use crate::nat_shift::{nat_shl, nat_shr, shift_amount};
 
 pub(crate) fn nat_land(x: BigUint, y: BigUint) -> BigUint {
     x & y

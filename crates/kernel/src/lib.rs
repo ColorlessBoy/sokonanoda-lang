@@ -24,6 +24,7 @@ pub mod inductive;
 pub mod infer;
 pub mod level;
 pub(crate) mod mvar;
+pub(crate) mod nat_shift;
 pub mod mvar_inst;
 pub(crate) mod mvar_level;
 pub(crate) mod mvar_miller;

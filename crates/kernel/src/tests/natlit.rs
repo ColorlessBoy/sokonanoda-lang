@@ -89,6 +89,12 @@ fn nat_shl_eq() {
     // def shiftLeft : @& Nat → @& Nat → Nat
     //   | n, 0 => n
     //   | n, succ m => shiftLeft (2*n) m
+    // Arena `bugs/nat-shift-huge`: a shift count of 2^64 is unrepresentable,
+    // but `0 << n = 0` is still decidable and must reduce.
+    let huge = BigUint::from(2u8).pow(64u32);
+    assert_eq!(nat_shl(BigUint::zero(), huge.clone()), BigUint::zero());
+    assert_eq!(nat_shl(BigUint::one(), BigUint::from(64u8)), BigUint::from(2u8).pow(64u32));
+    let _ = huge;
     // a <<< b = a * 2 ^ b
     fn nat_shl_eq_f(x: BigUint, y: BigUint) -> BigUint {
         if y.is_zero() {

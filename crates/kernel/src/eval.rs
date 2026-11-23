@@ -1462,7 +1462,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.unfold_value_go(depth, v, self.tc_cache.probe_depth == 0)
     }
 
-    fn unfold_value_go(&mut self, depth: u32, v: V<'t>, force: bool) -> V<'t> {
+    pub(crate) fn unfold_value_go(&mut self, depth: u32, v: V<'t>, force: bool) -> V<'t> {
         if let Value::Unfold { head, spine, head_value, forced , ..} = v {
             if let Some(f) = forced.get() {
                 return f;
@@ -1474,6 +1474,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                         return r;
                     }
                     if !force && self.nat_red_defer(depth, head.name, &args) {
+                        return v;
+                    }
+                    if self.nat_red_wide_shift_stuck(depth, head.name.as_ref().nat_red(), &args) {
                         return v;
                     }
                 }
@@ -1864,6 +1867,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         self.do_nat_red_at(depth, name, levels, args, spine, head_value, false)
     }
 
+
     fn do_nat_red_at(
         &mut self,
         depth: u32,
@@ -1920,6 +1924,9 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
                 NatRed::Succ | NatRed::DivGo | NatRed::ModCoreGo => unreachable!(),
             };
             return self.do_nat_bin_val(xn, yn, op);
+        }
+        if let Some(v) = self.nat_red_wide_shift(depth, kind, args) {
+            return Some(v);
         }
         self.nat_red_recursive_equation(depth, name, levels, kind, args, spine, head_value, deep)
     }
@@ -2074,32 +2081,12 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
         }
     }
 
-    fn do_nat_bin_val(&mut self, x: BigUint, y: BigUint, op: NatBinOp) -> Option<V<'t>> {
-        use NatBinOp::*;
-        match op {
-            Add => self.mk_natlit_val(x + y),
-            Sub => self.mk_natlit_val(nat_sub(x, y)),
-            Mul => self.mk_natlit_val(x * y),
-            Pow => self.mk_natlit_val(x.pow(y)),
-            Div => self.mk_natlit_val(nat_div(x, y)),
-            Mod => self.mk_natlit_val(nat_mod(x, y)),
-            Gcd => self.mk_natlit_val(nat_gcd(&x, &y)),
-            LAnd => self.mk_natlit_val(nat_land(x, y)),
-            LOr => self.mk_natlit_val(nat_lor(x, y)),
-            XOr => self.mk_natlit_val(nat_xor(&x, &y)),
-            Shl => self.mk_natlit_val(nat_shl(x, y)),
-            Shr => self.mk_natlit_val(nat_shr(x, y)),
-            Beq => self.bool_val(x == y),
-            Ble => self.bool_val(x <= y),
-        }
-    }
-
-    fn mk_natlit_val(&mut self, n: BigUint) -> Option<V<'t>> {
+    pub(crate) fn mk_natlit_val(&mut self, n: BigUint) -> Option<V<'t>> {
         let p = self.ctx.alloc_bignum(n)?;
         Some(value::mk_natlit(self.arena, p))
     }
 
-    fn bool_val(&mut self, b: bool) -> Option<V<'t>> {
+    pub(crate) fn bool_val(&mut self, b: bool) -> Option<V<'t>> {
         let cache = self.ctx.export_file.name_cache;
         let n = if b { cache.bool_true? } else { cache.bool_false? };
         let levels = self.ctx.alloc_levels_slice(&[]);
@@ -2144,7 +2131,7 @@ impl<'x, 't, 'p> TypeChecker<'x, 't, 'p> {
 
     pub(crate) fn value_to_bignum(&mut self, depth: u32, v: V<'t>) -> Option<BigUint> { self.value_to_bignum_at(depth, v, true) }
 
-    fn value_to_bignum_at(&mut self, depth: u32, v: V<'t>, deep: bool) -> Option<BigUint> {
+    pub(crate) fn value_to_bignum_at(&mut self, depth: u32, v: V<'t>, deep: bool) -> Option<BigUint> {
         let mut succs: u64 = 0;
         let mut cur = self.force_thunk(depth, v);
         loop {
