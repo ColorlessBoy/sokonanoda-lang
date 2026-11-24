@@ -1107,6 +1107,12 @@ def position_of(data: dict, question: dict) -> dict:
     }
 
 
+# Tags too generic to identify a knowledge card: a question tagged only
+# `logic` must not inherit the Or.elim card, and a question tagged only
+# `function` must not inherit the injective card (2026-11-24).
+GENERIC_CARD_TAGS = {"function", "logic", "types", "glossary"}
+
+
 def explain_for(state: dict, data: dict, qid: str) -> dict:
     """给定题目，返回最匹配的知识卡；没有匹配卡时退化为该题的知识摘要。"""
     question = data["by_id"].get(qid)
@@ -1115,14 +1121,21 @@ def explain_for(state: dict, data: dict, qid: str) -> dict:
     tags = tags_of(question)
     best_card = None
     best_score = -1
+    best_matched = set()
     for card in data["cards"]:
-        score = len(set(card.get("tags") or []) & set(tags))
+        matched = set(card.get("tags") or []) & set(tags)
+        score = len(matched)
         if score > best_score:
             best_score = score
             best_card = card
-    if best_card is not None and best_score > 0:
+            best_matched = matched
+    # 一个通用标签命中（如 logic / function）不足以说明这张卡讲的就是这道题：
+    # I.2.logic-3（swap_exists_forall）曾因此被匹配到 or-elim。要求至少两个标签，
+    # 或至少一个非通用标签；否则退化为这道题自己的 why/正确选项。
+    specific = any(tag not in GENERIC_CARD_TAGS for tag in best_matched)
+    if best_card is not None and (best_score >= 2 or specific):
         return {"ok": True, "kind": "knowledge-card", "card": best_card,
-                "reason": "matched-tags", "matched": sorted(set(best_card.get("tags") or []) & set(tags))}
+                "reason": "matched-tags", "matched": sorted(best_matched)}
     texts = " ".join([question.get("prompt", ""), " ".join(question.get("options") or []), question.get("why", "")])
     terms = []
     for entry in data.get("glossary", []):
@@ -1592,6 +1605,17 @@ def cmd_selftest(data: dict) -> int:
         definitional = [q for q in data["questions"]
                         if "A \\ B = A ∩ Bᶜ" in (q.get("prompt") or "") and q.get("kind") == "choice"]
         check("definitional-equality-question-present", len(definitional) <= 1, str(len(definitional)))
+
+        # 15g) explain 不能用单个通用 tag 硬配知识卡
+        swap = explain_for(new_state(), data, "I.2.logic-3")
+        swap_card = swap.get("card") or {}
+        check("explain-no-generic-tag-card",
+              swap.get("kind") != "knowledge-card" or swap_card.get("id") != "or-elim",
+              str((swap.get("kind"), swap_card.get("id"))))
+        rel = explain_for(new_state(), data, "I.2.rel-1")
+        check("explain-keeps-specific-card",
+              rel.get("kind") == "knowledge-card" and (rel.get("card") or {}).get("id") == "rel",
+              str((rel.get("kind"), (rel.get("card") or {}).get("id"))))
 
         # 15f) 离线评测必须容忍开放题（short/explain 没有 answer 字段）
         open_only = dict(data)

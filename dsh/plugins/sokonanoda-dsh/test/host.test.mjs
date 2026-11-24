@@ -204,6 +204,41 @@ test('in-process quiz service + fence reply + letter grading', async () => {
   }
 })
 
+test('classifyFast: 我不知道 is a local explain request, not an answer', () => {
+  const fast = core.classifyFast('quiz-auto', '我不知道')
+  assert.equal(fast.type, 'explain')
+  const withPrefix = core.classifyFast('quiz-auto', '我不知道这题怎么做')
+  assert.equal(withPrefix, null, 'longer sentences must stay with the model')
+})
+
+test('composeReplyText: card sources gain sidebar file coordinates', () => {
+  const reply = composeReplyText({
+    choices: [{
+      message: {
+        content: '',
+        tool_calls: [{
+          type: 'function',
+          function: {
+            name: 'learn_card',
+            arguments: JSON.stringify({
+              kind: 'knowledge',
+              payload: { title: '量词换序', source: 'units/I.2/unit07-functions.sokonanoda:194' },
+            }),
+          },
+        }],
+      },
+    }],
+  })
+  const match = reply.match(/```learn-card\n([\s\S]*?)\n```/)
+  assert.ok(match !== null, 'composeReplyText must emit a learn-card fence')
+  const card = JSON.parse(match[1])
+  const link = card.payload.sourceLink
+  assert.ok(link !== null && typeof link === 'object', 'sourceLink missing')
+  assert.equal(link.line, 194)
+  assert.equal(link.relativePath, 'courses/set-theory/units/I.2/unit07-functions.sokonanoda')
+  assert.ok(link.path.endsWith('/courses/set-theory/units/I.2/unit07-functions.sokonanoda'))
+})
+
 test('decideFast: a freeform message is forwarded only while an open question card is on screen', () => {
   const openCard = '```learn-card\n' + JSON.stringify({
     kind: 'question',
@@ -363,7 +398,7 @@ test('card mode: an open question card retries with missed points, then grades a
     fs.writeFileSync(stateFile, JSON.stringify(seeded))
 
     const before = readState()
-    const retryReply = await ask(['不知道'])
+    const retryReply = await ask(['这是随便写的一句'])
     assert.match(retryReply, /还没答全/, 'incomplete open answer must ask for a retry')
     assert.ok(!retryReply.includes('参考：'), 'retry must not reveal the reference answer yet')
     const retryCard = fenceOf(retryReply)
@@ -374,7 +409,7 @@ test('card mode: an open question card retries with missed points, then grades a
     assert.equal(afterRetry.issued_qid, 'I.1.open-1', 'open retry must not advance the question')
     assert.equal(afterRetry.history.length, before.history.length, 'open retry must not record history')
 
-    const secondReply = await ask(['不知道'])
+    const secondReply = await ask(['这是随便写的一句'])
     assert.ok(!secondReply.includes('还没答全'), 'second incomplete attempt must grade normally')
     assert.match(secondReply, /参考：/, 'second attempt should reveal the reference answer')
     assert.ok(fenceOf(secondReply) !== null, 'graded open answer should come with the next card')

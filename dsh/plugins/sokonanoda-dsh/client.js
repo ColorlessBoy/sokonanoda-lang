@@ -72,6 +72,10 @@ window.__ModuleLoader__.load({
       }
       : null
 
+    let sidebarRight = null
+    let sourcePreviewReady = false
+    const SOURCE_PREVIEW_ID = 'sokonanoda-dsh/source'
+
     const NS = 'dshLearnCard'
     const KINDS = ['question', 'knowledge', 'lesson', 'progress']
     const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -89,8 +93,11 @@ window.__ModuleLoader__.load({
       '.dslc-stem{margin:0;font-size:15px;line-height:1.55;font-weight:600;overflow-wrap:anywhere}',
       '.dslc-plain{margin:0;font-size:13px;line-height:1.55;color:var(--dsw-alias-label-secondary,#4b5563);overflow-wrap:anywhere}',
       '.dslc-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;padding:1px 4px;border-radius:5px;background:var(--dsw-alias-markdown-code-block,#f2f3f5);overflow-wrap:anywhere}',
+      '.dslc-bold{font-weight:700}',
       '.dslc-options{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;min-width:0}',
       '.dslc-opt{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:start;column-gap:10px;width:100%;max-width:100%;min-width:0;min-height:48px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:10px;background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:inherit;overflow-wrap:anywhere}',
+      '.dslc-opt-skip{border-style:dashed;background:transparent}',
+      '.dslc-skip-options{margin-top:-4px}',
       '.dslc-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:50%;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;font-weight:700;line-height:1}',
       '.dslc-opttext{min-width:0;font-size:14px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}',
       '.dslc-heading{margin:0;font-size:15px;line-height:1.5;font-weight:700;overflow-wrap:anywhere}',
@@ -205,6 +212,7 @@ window.__ModuleLoader__.load({
       progressLevel4: '很熟',
       fastBadge: '快思考',
       openAnswerHint: '直接在输入框写下你的回答，不用选字母。',
+      dontKnowLabel: '我不知道',
     }
 
     const en = {
@@ -233,6 +241,7 @@ window.__ModuleLoader__.load({
       progressLevel4: 'strong',
       fastBadge: 'fast path',
       openAnswerHint: 'Type your answer in the composer — no letter needed.',
+      dontKnowLabel: "I don't know",
     }
 
     /* -------------------------------------------------------------- helpers */
@@ -320,13 +329,69 @@ window.__ModuleLoader__.load({
       return []
     }
 
-    function sourceOf(raw) {
-      if (typeof raw === 'string' && raw.trim() !== '') return { label: raw.trim(), url: '' }
+    /** Encode a path for a dsh-resource://file/... address. */
+    function encodeResourcePath(value) {
+      return String(value || '').replace(/\\/g, '/').replace(/^\/+/, '')
+        .split('/').filter((segment) => segment !== '').map(encodeURIComponent).join('/')
+    }
+
+    /** Build the sidebar address for one source link, preferring the session scope. */
+    function sourceAddress(link) {
+      if (link === null || typeof link !== 'object') return ''
+      let sessionId = ''
+      try {
+        if (sidebarRight !== null && sidebarRight.mounted !== undefined && typeof sidebarRight.mounted.getSnapshot === 'function') {
+          sessionId = sidebarRight.mounted.getSnapshot() || ''
+        }
+      } catch (error) { sessionId = '' }
+      if (sessionId !== '' && typeof link.relativePath === 'string' && link.relativePath !== '') {
+        return 'dsh-resource://file/session/' + encodeURIComponent(sessionId) + '/' + encodeResourcePath(link.relativePath)
+      }
+      if (typeof link.path === 'string' && link.path !== '') {
+        return 'dsh-resource://file/absolute/' + encodeResourcePath(link.path)
+      }
+      return ''
+    }
+
+    /** Open a card source in the right-sidebar file viewer at its line. */
+    function openSourceLink(link) {
+      if (link === null || typeof link !== 'object') return
+      const address = sourceAddress(link)
+      if (address === '') return
+      try {
+        if (sidebarRight !== null && typeof sidebarRight.openResource === 'function') {
+          /* The file resource params are `{ line }` (SidebarRightResourceParamsMap
+           * `file: WorkspaceFileParams`); a nested `{ file: { line } }` is ignored. */
+          const line = Number(link.line)
+          const params = Number.isFinite(line) && line > 0 ? { line } : undefined
+          if (sourcePreviewReady) {
+            try {
+              sidebarRight.openResource(address, { kind: SOURCE_PREVIEW_ID, params })
+              return
+            } catch (error) { /* fall back to the stock preview type */ }
+          }
+          sidebarRight.openResource(address, params === undefined ? {} : { params })
+          return
+        }
+      } catch (error) {
+        report('source-open-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 200)))
+      }
+      report('source-open-missing', 'key=' + encodeURIComponent(address.slice(0, 120)))
+    }
+
+        function sourceOf(raw, link) {
+      const sourceLink = link !== null && typeof link === 'object' && typeof link.path === 'string' ? link : null
+      const address = sourceLink === null ? '' : sourceAddress(sourceLink)
+      if (typeof raw === 'string' && raw.trim() !== '') {
+        return { label: raw.trim(), url: address, link: sourceLink }
+      }
       if (isRecord(raw)) {
         const label = textOf(raw.label) !== '' ? textOf(raw.label) : (textOf(raw.text) !== '' ? textOf(raw.text) : textOf(raw.title))
-        const url = /^https?:\/\//i.test(textOf(raw.url)) ? textOf(raw.url) : ''
-        if (label !== '' || url !== '') return { label: label !== '' ? label : url, url }
+        const rawUrl = /^https?:\/\//i.test(textOf(raw.url)) ? textOf(raw.url) : ''
+        const url = rawUrl !== '' ? rawUrl : address
+        if (label !== '' || url !== '') return { label: label !== '' ? label : url, url, link: sourceLink }
       }
+      if (sourceLink !== null && address !== '') return { label: textOf(sourceLink.path), url: address, link: sourceLink }
       return null
     }
 
@@ -334,17 +399,28 @@ window.__ModuleLoader__.load({
     function inlineNodes(text) {
       const value = typeof text === 'string' ? text : ''
       if (value === '') return []
-      const parts = value.split(/(`[^`]*`)/g)
+      /* Card data (questions/cards/lessons) uses inline markdown: `code` and
+       * **bold**. Parse both here; a bare `**` pair must become <strong>, not
+       * leak literal asterisks into the card. */
+      const pattern = /(`[^`]*`|\*\*[\s\S]*?\*\*)/g
       const nodes = []
-      for (let index = 0; index < parts.length; index++) {
-        const part = parts[index]
-        if (part === '') continue
-        if (part.length >= 2 && part.startsWith('`') && part.endsWith('`')) {
-          nodes.push(h('code', { className: 'dslc-code', key: 'code-' + index, style: S.code }, part.slice(1, -1)))
+      let last = 0
+      let index = 0
+      let match = pattern.exec(value)
+      while (match !== null) {
+        if (match.index > last) nodes.push(value.slice(last, match.index))
+        const token = match[0]
+        if (token.length >= 2 && token.startsWith('`') && token.endsWith('`')) {
+          nodes.push(h('code', { className: 'dslc-code', key: 'code-' + index, style: S.code }, token.slice(1, -1)))
         } else {
-          nodes.push(part)
+          const inner = token.slice(2, -2)
+          nodes.push(h('strong', { className: 'dslc-bold', key: 'bold-' + index, style: S.bold }, inlineNodes(inner)))
         }
+        index += 1
+        last = match.index + token.length
+        match = pattern.exec(value)
       }
+      if (last < value.length) nodes.push(value.slice(last))
       return nodes
     }
 
@@ -364,8 +440,11 @@ window.__ModuleLoader__.load({
       stem: { margin: 0, fontSize: '15px', lineHeight: 1.55, fontWeight: 600, overflowWrap: 'anywhere' },
       plain: { margin: 0, fontSize: '13px', lineHeight: 1.55, color: 'var(--dsw-alias-label-secondary,#4b5563)', overflowWrap: 'anywhere' },
       code: { fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '0.92em', padding: '1px 4px', borderRadius: '5px', background: 'rgba(127,127,127,0.10)', overflowWrap: 'anywhere' },
+      bold: { fontWeight: 700 },
       list: { display: 'flex', flexDirection: 'column', gap: '6px', margin: 0, padding: 0, listStyle: 'none' },
       option: { display: 'grid', gridTemplateColumns: '26px minmax(0,1fr)', alignItems: 'start', columnGap: '10px', width: '100%', maxWidth: '100%', minWidth: 0, minHeight: '48px', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid rgba(127,127,127,0.28)', borderRadius: '10px', background: 'rgba(127,127,127,0.08)', overflowWrap: 'anywhere' },
+      optionSkip: { borderStyle: 'dashed', background: 'transparent' },
+      optionSkipMuted: { opacity: 0.55 },
       letter: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', boxSizing: 'border-box', border: '1px solid rgba(127,127,127,0.32)', borderRadius: '50%', background: 'rgba(127,127,127,0.12)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', fontWeight: 700, lineHeight: 1 },
       opttext: { minWidth: 0, fontSize: '14px', lineHeight: 1.5, overflowWrap: 'anywhere', wordBreak: 'break-word' },
       heading: { margin: 0, fontSize: '15px', lineHeight: 1.5, fontWeight: 700, overflowWrap: 'anywhere' },
@@ -379,6 +458,13 @@ window.__ModuleLoader__.load({
       fence: { display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', padding: '14px 16px', border: '1px solid var(--dsw-alias-border-l1,#e6e8ec)', borderRadius: '14px', background: 'var(--dsw-alias-bg-layer-2,#f7f8fa)', color: 'var(--dsw-alias-label-primary,#15171a)', overflowWrap: 'anywhere' },
       leanWrap: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', border: '1px solid var(--dsw-alias-border-l1,#e6e8ec)', borderRadius: '12px', background: 'var(--dsw-alias-markdown-code-block,#f2f3f5)', overflow: 'hidden' },
       lean: { margin: 0, padding: '10px 12px', overflowX: 'auto', font: '12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace', whiteSpace: 'pre', color: 'var(--dsw-alias-label-primary,#15171a)' },
+      sourceRoot: { display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: 0, background: 'var(--dsw-alias-bg-base,#fff)', color: 'var(--dsw-alias-label-primary,#15171a)' },
+      sourceScroll: { flex: 1, minHeight: 0, overflowY: 'auto', font: '12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace' },
+      sourceLines: { display: 'flex', flexDirection: 'column', minWidth: 'max-content', padding: '8px 0' },
+      sourceLine: { display: 'flex', alignItems: 'flex-start', minHeight: '1.7em' },
+      sourceLineFlash: { background: 'rgba(255,206,84,0.25)' },
+      sourceNo: { flex: '0 0 auto', boxSizing: 'border-box', padding: '0 12px 0 10px', textAlign: 'right', color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#9aa0a6))', userSelect: 'none' },
+      sourceText: { flex: '1 1 auto', minWidth: 0, paddingRight: '12px', whiteSpace: 'inherit' },
       hlKw: { color: 'var(--dsw-alias-state-business-primary,#0b57d0)', fontWeight: 600 },
       hlTactic: { color: 'var(--dsw-alias-state-warn-primary,#9a5b00)' },
       hlType: { color: 'var(--dsw-alias-label-primary,#15171a)', fontWeight: 600 },
@@ -439,7 +525,7 @@ window.__ModuleLoader__.load({
 
     /* ------------------------------------------------------------- renderers */
 
-    function questionCard(payload, onPick, picked, t) {
+    function questionCard(payload, onPick, picked, t, onSkip) {
       const stem = textOf(payload.stem) !== '' ? textOf(payload.stem) : textOf(payload.prompt)
       const plain = textOf(payload.plain)
       const options = normalizeOptions(payload.options)
@@ -481,6 +567,32 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dslc-opttext', style: S.opttext }, inlineNodes(option.text)))
           }))
           : null,
+        options.length > 0 && typeof onSkip === 'function'
+          ? h('ul', { className: 'dslc-options dslc-skip-options', key: 'skip', style: S.list }, [
+            h('li', {
+              className: 'dslc-opt dslc-opt-skip',
+              key: 'skip-row',
+              'data-letter': '?',
+              'data-pickable': picked === null ? '1' : undefined,
+              role: picked === null ? 'button' : undefined,
+              tabIndex: picked === null ? 0 : undefined,
+              'aria-label': '我不知道，显示知识卡',
+              style: picked === null
+                ? Object.assign({}, S.option, S.optionSkip)
+                : Object.assign({}, S.option, S.optionSkip, S.optionSkipMuted),
+              onClick: picked === null ? () => onSkip() : undefined,
+              onKeyDown: picked === null ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSkip()
+                }
+              } : undefined,
+            },
+            h('span', { className: 'dslc-letter', style: S.letter }, '?'),
+            h('span', { className: 'dslc-opttext', style: S.opttext },
+              t !== undefined && typeof t === 'function' ? t('dontKnowLabel', '我不知道') : '我不知道')),
+          ])
+          : null,
       ])
     }
 
@@ -492,7 +604,7 @@ window.__ModuleLoader__.load({
         : (isRecord(payload.definition) ? textOf(payload.definition.code) : '')
       const rawPoints = normalizePoints(payload.points)
       const points = (rawPoints.length > 0 ? rawPoints : pointsFromSections(payload.sections)).slice(0, 2)
-      const source = sourceOf(payload.source)
+      const source = sourceOf(payload.source, payload.sourceLink)
       return cardShell('knowledge', [
         title !== '' ? h('p', { className: 'dslc-heading', key: 'title', style: S.heading }, inlineNodes(title)) : null,
         summary !== '' ? h('p', { className: 'dslc-summary', key: 'summary', style: S.body }, inlineNodes(summary)) : null,
@@ -508,7 +620,19 @@ window.__ModuleLoader__.load({
           ? h('p', { className: 'dslc-source', key: 'source', style: S.source },
             t('sourceLabel', '出处') + '：',
             source.url !== ''
-              ? h('a', { className: 'dslc-link', href: source.url }, source.label)
+              ? (source.link !== null && source.link !== undefined
+                ? h('a', {
+                  className: 'dslc-link',
+                  href: source.url,
+                  title: source.link.line !== undefined
+                    ? '在右侧栏打开并定位到第 ' + source.link.line + ' 行'
+                    : '在右侧栏打开',
+                  onClick: (event) => {
+                    if (typeof event.preventDefault === 'function') event.preventDefault()
+                    openSourceLink(source.link)
+                  },
+                }, source.label)
+                : h('a', { className: 'dslc-link', href: source.url }, source.label))
               : source.label)
           : null,
       ])
@@ -751,9 +875,19 @@ window.__ModuleLoader__.load({
           }
         }
         : null
+      /* "我不知道" is a support exit, not an answer: send the phrase so the
+       * fast path returns a knowledge card; do not mark any letter as picked. */
+      const onSkip = canSend
+        ? () => {
+          try {
+            inputActions.setDraft('我不知道')
+            inputActions.submit()
+          } catch (error) { /* composer unavailable: stay display-only */ }
+        }
+        : null
       let body
       try {
-        body = card.kind === 'question' ? questionCard(card.payload, onPick, picked)
+        body = card.kind === 'question' ? questionCard(card.payload, onPick, picked, t, onSkip)
           : card.kind === 'knowledge' ? knowledgeCard(t, card.payload)
             : card.kind === 'lesson' ? lessonCard(t, card.payload)
               : card.kind === 'progress' ? progressCard(t, card.payload)
@@ -800,9 +934,118 @@ window.__ModuleLoader__.load({
         h('pre', { className: 'dslc-lean', style: S.lean }, h('code', {}, highlightLean(code))))
     }
 
-    const CLIENT_BUILD = '2026-11-24T1115'
+    /* ------------------------------------------------- right-sidebar source body
+     * `.sokonanoda` is not in DSH's built-in code-highlight extension list, so the
+     * stock preview falls back to plain text (no gutter, no Lean highlighting).
+     * This document-preview body gives the extension a real code view: line
+     * numbers, the fence highlighter, wrapping, and source-line navigation. */
+    function SokonanodaSourceBody(props) {
+      const input = isRecord(props) ? props : {}
+      const tabInfo = typeof input.useTabInfo === 'function' ? input.useTabInfo() : null
+      const navigation = tabInfo !== null && tabInfo.tab !== undefined ? tabInfo.tab.navigation : null
+      const params = navigation !== null && navigation !== undefined ? navigation.params : null
+      const targetLine = params !== null && params !== undefined && Number.isFinite(Number(params.line))
+        ? Number(params.line)
+        : 0
+      const content = input.content
+      const text = isRecord(content) && content.kind === 'text' && typeof content.text === 'string'
+        ? content.text
+        : ''
+      const bodyRef = React.useRef(null)
+      const [flashLine, setFlashLine] = React.useState(0)
+      const attach = function (node) {
+        bodyRef.current = node
+        if (typeof input.scrollportRef === 'function') input.scrollportRef(node)
+      }
+      React.useEffect(function () {
+        if (targetLine <= 0 || bodyRef.current === null) return undefined
+        const row = bodyRef.current.querySelector('[data-source-line="' + targetLine + '"]')
+        if (row === null) return undefined
+        bodyRef.current.scrollTop = Math.max(0, Number(row.offsetTop) - 32)
+        setFlashLine(targetLine)
+        const timer = setTimeout(function () { setFlashLine(0) }, 2000)
+        return function () { clearTimeout(timer) }
+      }, [targetLine, text])
+      if (!isRecord(content) || content.kind !== 'text') return null
+      const lines = text === '' ? ['' ] : text.split('\n')
+      const gutter = String(lines.length).length
+      const wrapped = input.wrap === true
+      return h('div', { className: 'dsls-source', style: S.sourceRoot },
+        h('div', {
+          className: 'dsls-source-scroll',
+          ref: attach,
+          style: Object.assign({}, S.sourceScroll, {
+            whiteSpace: wrapped ? 'pre-wrap' : 'pre',
+            overflowX: wrapped ? 'hidden' : 'auto',
+          }),
+        },
+        h('div', { className: 'dsls-source-lines', style: S.sourceLines },
+          lines.map(function (line, index) {
+            const number = index + 1
+            return h('div', {
+              className: 'dsls-source-line',
+              key: 'source-line-' + number,
+              'data-source-line': number,
+              style: number === flashLine ? Object.assign({}, S.sourceLine, S.sourceLineFlash) : S.sourceLine,
+            },
+            h('span', { className: 'dsls-source-no', style: Object.assign({}, S.sourceNo, { width: gutter + 'ch' }) }, String(number)),
+            h('span', { className: 'dsls-source-text', style: S.sourceText },
+              line === '' ? ' ' : highlightLean(line))
+            )
+          })
+        ))
+      )
+    }
+
+        const CLIENT_BUILD = '2026-11-24T1445'
 
     function apply(ctx) {
+      try {
+        if (ctx.sidebarRight !== undefined && ctx.sidebarRight !== null) sidebarRight = ctx.sidebarRight
+      } catch (error) { /* service not injected in this host */ }
+      if (sidebarRight === null) {
+        try {
+          const service = ctx.get('sidebarRight')
+          if (service !== undefined && service !== null) sidebarRight = service
+        } catch (error) { /* service not available */ }
+      }
+      report('sidebar-right', 'key=' + (sidebarRight === null ? 'missing' : 'ok'))
+      let documentPreviews = null
+      try {
+        if (ctx.documentPreviews !== undefined && ctx.documentPreviews !== null) documentPreviews = ctx.documentPreviews
+      } catch (error) { /* service not injected */ }
+      if (documentPreviews === null) {
+        try {
+          const service = typeof ctx.get === 'function' ? ctx.get('documentPreviews') : undefined
+          if (service !== undefined && service !== null) documentPreviews = service
+        } catch (error) { /* service not available */ }
+      }
+      report('document-preview', 'key=' + (documentPreviews === null ? 'missing' : 'ok'))
+      if (documentPreviews !== null) {
+        const previewId = 'sokonanoda-dsh/source'
+        try {
+          ctx.effect(function () {
+            return documentPreviews.register({
+              id: previewId,
+              extensions: ['sokonanoda'],
+              priority: 'extension',
+              title: function () { return 'Sokonanoda' },
+              loading: 'text-pages',
+              wrap: true,
+              sourceLines: true,
+            })
+          }, 'sokonanoda-dsh: .sokonanoda code preview')
+          ctx.effect(function () {
+            return ctx.slots.inject('sidebar.right.tab.document', function () {
+              return ctx.slots.register({ name: 'sidebar.right.tab.document', key: previewId }, SokonanodaSourceBody)
+            })
+          }, 'sokonanoda-dsh: .sokonanoda code body')
+          sourcePreviewReady = true
+          report('document-preview-body', 'key=registered')
+        } catch (error) {
+          report('document-preview-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
+        }
+      }
       /* A client update can land in an already-open page through the HMR carrier,
        * but markdown nodes mounted by the previous module instance keep their old
        * component. Bump CLIENT_BUILD when a release needs the page to reconcile;
@@ -868,6 +1111,7 @@ window.__ModuleLoader__.load({
         highlightLean: highlightLean,
         fenceCardOf: fenceCardOf,
         progressCard: progressCard,
+        SokonanodaSourceBody: SokonanodaSourceBody,
         cardCss: CARD_CSS.join(''),
         zh: zh,
         en: en,
