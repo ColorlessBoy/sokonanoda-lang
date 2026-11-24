@@ -1,0 +1,54 @@
+-- 单元173 解答：微积分基本定理（第一部分）
+--
+-- 引擎在 `lib/IntegralFTC`；本解答把差界、极限与导数三件接到单元里，
+-- 最后用常值曲线做一个可算读数。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.Uniform
+import lib.Deriv
+import lib.Integral
+import lib.IntegralValue
+import lib.IntegralSlope
+import lib.IntegralFTC
+
+-- 无除法的差界。
+theorem u173_difference_bound (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x c delta → ¬ ratRel x c →
+        ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+          ∃ (dN : ratRep),
+            ratAbsRel
+              (ratSubRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep x c))) dN ∧
+            ratLeRep dN (ratMulRep eps dx) :=
+  integral_difference_bound a c b f F hac hcb huc hF eps heps
+
+-- 斜率函数的极限。
+theorem u173_tendsTo (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    TendsToAt (integralSlope F c) c (f c) :=
+  integral_tendsTo a c b f F hac hcb huc hF
+
+-- 面积函数的导数。
+theorem u173_hasDerivAt (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    HasDerivAt F c (f c) :=
+  integral_hasDerivAt a c b f F hac hcb huc hF
+
+-- 常值曲线的面积函数：F x = k·(x−a)，导数在 c 处是 k。
+theorem demo_hasDerivAt_const (a c b k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k :=
+  integral_hasDerivAt a c b (fun (_ : ratRep) => k)
+    (fun (x : ratRep) => ratMulRep k (ratSubRep x a))
+    hac hcb (uniformlyContinuous_const k)
+    (fun (x : ratRep) (hx : ratLtRep a x) (hxb : ratLtRep x b) =>
+      hasIntegral_const a x k hx)

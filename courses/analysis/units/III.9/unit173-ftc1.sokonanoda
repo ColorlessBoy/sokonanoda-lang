@@ -1,0 +1,86 @@
+-- 单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度
+--
+-- 设 `a < c < b`，`f` 一致连续，`F x` 是 `f` 在 `[a,x]` 上的面积值
+-- （`HasIntegral a x f (F x)`）。本单元要读的是：`F` 在 `c` 处可导，且
+-- 导数是 `f c`——「曲线在 c 的高度」就是「面积函数在 c 的斜率」。
+--
+-- 通用原函数版的 Newton–Leibniz 在有理代表元层不成立：在 √2 两侧取 0/1 的
+-- `F`，每个有理点都有 `F′=0`，但 `F(b)−F(a)=1` 而 `∫f=0`。所以这里做的是
+-- 诚实的那一半：**面积函数**（由 `HasIntegral` 给出）的导数。完整引擎在
+-- `lib/IntegralFTC`（52 条 checked）：先用区间拼接 `catPartition` 把
+-- `[a,c]` 与 `[c,x]` 接起来，拿细网格上的常数台阶 `f c ± η` 把
+-- `F x − F c` 夹住，得到无除法的差界
+-- `|(F x−F c) − f c·(x−c)| ≤ eps·|x−c|`；再把差界除以 `x−c`（总商
+-- `ratQuotTotal`）得到斜率函数的极限，最后组装 `HasDerivAt`。
+--
+-- 函数取 ratRep → ratRep；不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.Uniform
+import lib.Deriv
+import lib.Integral
+import lib.IntegralValue
+import lib.IntegralSlope
+import lib.IntegralFTC
+
+-- ─────────────────────────────────────────────────────────────
+-- 一、无除法的差界
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：直接引库里的 `integral_difference_bound`；它把界写成绝对值的**关系** `ratAbsRel`（本课程没有 ratAbs 函数），并允许调用方先给一个 |x−c| 的见证 `dx`。
+-- soko:hint 目标形态：`∃ delta>0, ∀ x 靠近 c, x≠c, ∀ dx, |x−c|~dx → ∃ dN, |(F x−F c)−f c·(x−c)|~dN ∧ dN ≤ eps·dx`。
+-- soko:hint 关键件：integral_difference_bound。
+theorem u173_difference_bound (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x c delta → ¬ ratRel x c →
+        ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+          ∃ (dN : ratRep),
+            ratAbsRel
+              (ratSubRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep x c))) dN ∧
+            ratLeRep dN (ratMulRep eps dx) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 二、斜率函数的极限
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：差界除以非零的 `x−c`（总商 `integralSlope`）就得到斜率函数在 c 的极限；直接引 `integral_tendsTo`。
+-- soko:hint 目标形态：`TendsToAt (integralSlope F c) c (f c)`。
+-- soko:hint 关键件：integral_tendsTo。
+theorem u173_tendsTo (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    TendsToAt (integralSlope F c) c (f c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三、微积分基本定理（第一部分）
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：`HasDerivAt` 要求「一个全斜率函数 + 点式方程 + 极限」；`integral_hasDerivAt` 已经把三件都装好了。
+-- soko:hint 目标形态：`HasDerivAt F c (f c)`。
+-- soko:hint 关键件：integral_hasDerivAt。
+theorem u173_hasDerivAt (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    HasDerivAt F c (f c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 四、一个可算读数：常值曲线的面积函数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值 k 在 `[a,x]` 上的面积值是 `k·(x−a)`（`hasIntegral_const`），常值函数一致连续（`uniformlyContinuous_const`）；把它们喂给 `u173_hasDerivAt`，得到「面积函数的导数是 k」。
+-- soko:hint 目标形态：`HasDerivAt (fun x => k·(x−a)) c k`。
+-- soko:hint 关键件：integral_hasDerivAt · hasIntegral_const · uniformlyContinuous_const。
+theorem demo_hasDerivAt_const (a c b k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) :
+    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k :=
+  sorry

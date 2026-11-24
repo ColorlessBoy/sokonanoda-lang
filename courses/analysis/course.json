@@ -1306,6 +1306,12 @@
               "title": "单元172 分割拼接：把两块面积接到同一个分割上",
               "title_en": "Unit 172 — Gluing Partitions: Joining Two Blocks of Area",
               "unit": 172
+            },
+            {
+              "file": "units/III.9/unit173-ftc1.sokonanoda",
+              "title": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+              "title_en": "Unit 173 — FTC, Part 1: The Derivative of the Area Function Is the Curve's Height",
+              "unit": 173
             }
           ]
         }
