@@ -277,7 +277,7 @@ notation 更直观**」+「**不许新建大 plan 文件**；用 `scripts/plan.p
 用户原话：「metavar要做，要做好设计，先设计方案再执行」。**要求**：metavar 要做（含 #16）；**先把设计做好**（`docs/design/metavar-pattern.md`：HO1–HO4、判据、反向、开关）；**设计验收后才改判定代码**。背景：`apply Eq.subst (Eq.symm h)` 原理上合法、Lean 4 接受（留 `¬ (x ∈ ∅)`），今天的判红是表面匹配 + 无 pattern 合一。
 
 ### 9.39 2026-10-31 `{∅} = @Set.univ (Set Nat)` 两档都修（用户：「loose档一起修了吧」）⇒ 左边类型只能由 `=`/`≠` 右边定时（P2-C m5），main 上两档都拒（Sort(0)/Sort(1)），交换两边就过；Lean `binrel%`（`Elab/Extra.lean:256`）先 elaborate 两边再统一。**要求**：两档都接受（strict 走内核路径 P2-11c，loose 修旧路径）。**对「loose 逐字节不变」的有意例外**：loose 语料只许在含此形状的文件上变、只许拒绝→接受、逐行列出。
-
 ### 9.40 2026-11-01 **strict 彻底上线：过渡闸门已删 + 默认档已翻**（用户：「我们的计划是 strict 模式彻底推上线」）
 **方向**（用户拍板）= strict 成唯一判定路径；**已做到** = ① 两道过渡闸门环境变量从代码里删除（strict 只由方言来源决定）；② **默认档已翻**（S7）：`Dialect::default()` = `Strict`、五档来源全空 ⇒ strict，VS Code 设置项 `default` 同轮改 `true`（两处同一个值）。**退路 = `--dialect loose`**（或设置项关 / 文件指令 / 清单 / `SOKO_STRICT_AT=0`）—— 翻的只是默认值，两档判定逻辑**一字未改**（实测语料 714 行：默认档 ≡ 旧 strict 半、`--dialect loose` ≡ 旧 loose 半，逐字节相同）。
 **有意差异**：① 判负报错印**可照抄**的 `@f <隐式位> <显式实参>`；② **例外表 6 类**（`input_contains_a_meta` / `shape` / `ho_motive` / `prefix_meta` / `argmismatch_text` / `deferred`）**仍回落老路** —— Lean 会拒、老路接受，删了会拒掉现在能过的课程。**已知代价**：原 strict 下被拒的 2 个 orphan 解答（`unit12-solution` / `unit19-solution`）已分别由「出口规则 1 收窄」与改写 `(@Set.empty Nat)` 转绿 ⇒ 整门课两档 **258 目标 · 2191 checked · 0 判负**；工作量 `strict ≤ loose` 348/355（calls 1.023×，7 个例外回落）。
+### 9.41 2026-11-24 **C9：课程题目集数据集（大计划 + P0 代码题）**（用户原话：「你结合课程教材，制定一个大计划issue，构建对应的题目集数据集，用于这个 sokonanoda 语言服务插件」）⇒ 大计划 = issue #96（P0 代码题 / P1 覆盖与 CI / P2 选择题 / P3 插件接线 / P4 调度复盘）；P0 落 `courses/exercise-dataset/`：三门课 1995 道代码练习（294 单元、解答 100%、4949 条 hint）从课程源确定性抽取，判据 `build.py --check` + `check.py` + `--selftest`，`compose.py` 组装后走真内核判卷；不改课程源与 kernel 判定。

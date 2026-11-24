@@ -1,0 +1,2714 @@
+{
+  "schema": "soko.exercise-dataset/1",
+  "course": "quick-start",
+  "title": "入门课",
+  "generated_by": "courses/exercise-dataset/build.py",
+  "source_fingerprint": "sha256:3c2f75a9567e0edb6ba4953e93c33a0fa34ad1a42b91f81f3163a5bf809a53b5",
+  "counts": {
+    "units": 11,
+    "units_with_exercises": 11,
+    "exercises": 66,
+    "hints": 198,
+    "solutions": 66,
+    "prompt": 66
+  },
+  "units": [
+    {
+      "id": "quick-start/unit1-propositions-proofs",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 1,
+      "title": "单元① 命题与证明项",
+      "title_en": "Unit 1 — Propositions & Proof Terms",
+      "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 2,
+      "title": "单元② 等式与 rfl",
+      "title_en": "Unit 2 — Equality & rfl",
+      "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+      "exercises": 5,
+      "hints": 15
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 3,
+      "title": "单元③ 函数与箭头",
+      "title_en": "Unit 3 — Functions & Arrows",
+      "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit4-by-tactics",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 4,
+      "title": "单元④ by 写法：tactic 证明",
+      "title_en": "Unit 4 — Proving with `by` (tactic blocks)",
+      "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit5-universes-sort",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 5,
+      "title": "单元⑤ 宇宙：函数类型的类型",
+      "title_en": "Unit 5 — Universes: the Type of a Function Type",
+      "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 6,
+      "title": "单元⑥ 归纳与递归 Ⅰ",
+      "title_en": "Unit 6 — Induction & Recursion I",
+      "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit7-induction-recursion-2",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 7,
+      "title": "单元⑦ 归纳与递归 Ⅱ",
+      "title_en": "Unit 7 — Induction & Recursion II",
+      "file": "courses/quick-start/unit7-induction-recursion-2.sokonanoda",
+      "exercises": 4,
+      "hints": 12
+    },
+    {
+      "id": "quick-start/unit8-quantifiers",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 8,
+      "title": "单元⑧ 量词：forall 与 exists",
+      "title_en": "Unit 8 — Quantifiers: forall & exists",
+      "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+      "exercises": 7,
+      "hints": 21
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 9,
+      "title": "单元⑨ 关系与联结词",
+      "title_en": "Unit 9 — Relations & Connectives",
+      "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+      "exercises": 8,
+      "hints": 24
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 10,
+      "title": "单元⑩ 读证明与综合",
+      "title_en": "Unit 10 — Reading Proofs & Synthesis",
+      "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    },
+    {
+      "id": "quick-start/unit11-modules-projects",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": 11,
+      "title": "单元⑪ 模块与项目",
+      "title_en": "Unit 11 — Modules & Projects",
+      "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+      "exercises": 6,
+      "hints": 18
+    }
+  ],
+  "exercises": [
+    {
+      "id": "quick-start/unit1-propositions-proofs/true_is_true",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "true_is_true",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "True 的证明项已经存在，把它叫出来即可。",
+      "prompt": "练习 1（第一个“证明”）：True 的证明项已经存在，把它叫出来即可。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "证明就是一个项——类型为 True 的项，就是 True 的证明。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标 True 没有箭头可拆，直接问自己：环境里谁能造出 True？"
+        },
+        {
+          "label": "关键件",
+          "body": "True.intro——True 的构造子，不需要任何参数。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem true_is_true : True := by sorry",
+      "solution": "theorem true_is_true : True := by\n  exact True.intro",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 42
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 13
+      }
+    },
+    {
+      "id": "quick-start/unit1-propositions-proofs/and_intro_rule",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "and_intro_rule",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "练习 2：假设 a、b 都成立，就能得到 a ∧ b。 提示：四层箭头就是四层 fun；目标是 And 形状，最后一步选对应的构造子。",
+      "prompt": "练习 2：假设 a、b 都成立，就能得到 a ∧ b。 提示：四层箭头就是四层 fun；目标是 And 形状，最后一步选对应的构造子。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "类型里的箭头对应值里的 fun——写证明就是一串 fun 加最后一步构造。"
+        },
+        {
+          "label": "目标形态",
+          "body": "最外层是四个箭头：先写 fun (a : Prop) =>，每写一层就看剩余目标。"
+        },
+        {
+          "label": "关键件",
+          "body": "当剩余目标形如 a ∧ b 时，用 And.intro 这个构造子——它需要 a、b 与两份证明，四样都在上下文里。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_intro_rule : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry",
+      "solution": "theorem and_intro_rule : (a : Prop) → (b : Prop) → a → b → a ∧ b := by\n  intro a b ha hb\n  exact And.intro ha hb",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 49
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 16
+      }
+    },
+    {
+      "id": "quick-start/unit1-propositions-proofs/and_swap",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "and_swap",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。",
+      "prompt": "练习 3：先用 And.left/And.right 把 h 拆开，再用 And.intro 装回去（换序）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "先把拿到的 a ∧ b 拆开，再按新顺序装回去——先消去，再构造。"
+        },
+        {
+          "label": "目标形态",
+          "body": "三层箭头：fun (a : Prop) => fun (b : Prop) => fun (h : a ∧ b) => …，最后要造出 b ∧ a。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标形如 b ∧ a、上下文有 h : a ∧ b：用 And.left / And.right 取出两半，再用 And.intro 按相反顺序装回。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_swap : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by sorry",
+      "solution": "theorem and_swap : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by\n  intro a b h\n  exact And.intro (And.right h) (And.left h)",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 55
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 20
+      }
+    },
+    {
+      "id": "quick-start/unit1-propositions-proofs/ex_falso",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "ex_falso",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。",
+      "prompt": "练习 4：False 没有证明（没有构造子），但可以“用”它：从矛盾推出任何 P。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "False 证不出来（没有构造子），但可以“被使用”——从矛盾推出任何命题。"
+        },
+        {
+          "label": "目标形态",
+          "body": "两层箭头：先 fun (P : Prop) =>，再吃掉 h : False，剩余目标是任意的 P。"
+        },
+        {
+          "label": "关键件",
+          "body": "False.rec——它吃一个目标命题和一份 False 的证明，吐出那个命题的证明。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem ex_falso : (P : Prop) → False → P := by sorry",
+      "solution": "theorem ex_falso : (P : Prop) → False → P := by\n  intro P h\n  exact False.rec P h",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 61
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 24
+      }
+    },
+    {
+      "id": "quick-start/unit1-propositions-proofs/and_not_absurd",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "and_not_absurd",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "a ∧ (¬ a) 是自相矛盾的组合——拆开它，从矛盾得到 False。",
+      "prompt": "练习 5（挑战 ★）：a ∧ (¬ a) 是自相矛盾的组合——拆开它，从矛盾得到 False。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "And 把 a 和 ¬ a 打包在一起；¬ a 展开后是 a → False——一个“吃 a”的函数。"
+        },
+        {
+          "label": "目标形态",
+          "body": "两层 fun 拿到 a 和 h : a ∧ (¬ a) 之后，目标就是 False 本身。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标形如 False、上下文有 h : a ∧ (¬ a)：用 And.right 取 ¬ a、And.left 取 a，再把前者当函数作用到后者上。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by sorry",
+      "solution": "theorem and_not_absurd : (a : Prop) → a ∧ ¬ a → False := by\n  intro a h\n  exact @And.right a (¬ a) h (And.left h) -- soko:notation-ok: And.right 后面还跟着对结果的继续应用（参数个数超出签名显式层数），隐式插入不适用（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 67
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "quick-start/unit1-propositions-proofs/and_intro_rule2",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元① 命题与证明项",
+      "unit_index": 1,
+      "kind": "theorem",
+      "name": "and_intro_rule2",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "练习 6：用声明级 binder 再证一遍 and_intro_rule（这一次不用写 fun）。",
+      "prompt": "练习 6：用声明级 binder 再证一遍 and_intro_rule（这一次不用写 fun）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "四样东西 a、b、ha、hb 都已经在上下文里；直接装出 a ∧ b。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标就是 a ∧ b，没有箭头要拆——不要再写 fun。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标就是 a ∧ b，而 a、b、ha、hb 四样都已在上下文里：用 And.intro 构造子一步装出。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : a ∧ b := by sorry",
+      "solution": "theorem and_intro_rule2 (a : Prop) (b : Prop) (ha : a) (hb : b) : a ∧ b := by\n  exact And.intro ha hb",
+      "source": {
+        "file": "courses/quick-start/unit1-propositions-proofs.sokonanoda",
+        "line": 88
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit1-propositions-proofs-solution.sokonanoda",
+        "line": 35
+      }
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl/two",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元② 等式与 rfl",
+      "unit_index": 2,
+      "kind": "def",
+      "name": "two",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。",
+      "prompt": "练习 1（热身）：定义 two : Nat。提示：写字面量 2，或写 1 + 1 都可以。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "这个洞里放的不是证明，是一个类型为 Nat 的普通表达式。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标就是 Nat 本身，没有箭头也没有假设——直接给值。"
+        },
+        {
+          "label": "关键件",
+          "body": "数字字面量就是合法项；开头 #reduce 刚算过一个熟悉的数。填好后放开 two_def 让内核回判。"
+        }
+      ],
+      "imports": [],
+      "template": "def two : Nat := by sorry",
+      "solution": "def two : Nat := 2",
+      "source": {
+        "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+        "line": 62
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit2-equality-rfl-solution.sokonanoda",
+        "line": 15
+      }
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl/one_plus_one_eq_two",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元② 等式与 rfl",
+      "unit_index": 2,
+      "kind": "theorem",
+      "name": "one_plus_one_eq_two",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "证明 1 + 1 = 2。提示：Eq.refl.{1} 的第一个参数给 Nat，第二个参数给等号左边；内核会把左边算出来，发现就是 2。",
+      "prompt": "练习 2（rfl 会计算）：证明 1 + 1 = 2。提示：Eq.refl.{1} 的第一个参数给 Nat，第二个参数给等号左边；内核会把左边算出来，发现就是 2。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "rfl 不是咒语而是函数：Eq.refl 能证任何“两边本来就是同一个值”的等式。"
+        },
+        {
+          "label": "目标形态",
+          "body": "内核会把 1 + 1 算成 2，所以这个等式两边本来就相等——refl 一步到位。"
+        },
+        {
+          "label": "关键件",
+          "body": "Eq.refl.{1}——第一个参数给类型 Nat，第二个参数给等号一边的表达式。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem one_plus_one_eq_two : (1 + 1) = 2 := by sorry",
+      "solution": "theorem one_plus_one_eq_two : (1 + 1) = 2 := by\n  exact @Eq.refl.{1} Nat (1 + 1)",
+      "source": {
+        "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+        "line": 69
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit2-equality-rfl-solution.sokonanoda",
+        "line": 17
+      }
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl/eq_symm_nat",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元② 等式与 rfl",
+      "unit_index": 2,
+      "kind": "theorem",
+      "name": "eq_symm_nat",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "从 a = b 推出 b = a。 关键一步：subst 需要你**自己设计**谓词 p。取 p := fun (x : Nat) => x = a 于是 p a = “a = a”（用 Eq.refl 证），而 p b 恰好是目标“b =",
+      "prompt": "练习 3（自己造“对称”）：从 a = b 推出 b = a。 关键一步：subst 需要你**自己设计**谓词 p。取 p := fun (x : Nat) => x = a 于是 p a = “a = a”（用 Eq.refl 证），而 p b 恰好是目标“b = a”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "本题练的是 Eq.subst 的谓词设计：自己设计一个 p，交给 subst 沿 h 替换。（prelude 的 Eq.symm 是它的现成版——上方 eq_symm_demo 就是；两种都写一遍对照。）"
+        },
+        {
+          "label": "目标形态",
+          "body": "三层 fun 拿到 a、b、h 之后，目标是 b = a；选一个 p，让 p b 恰好是它、p a 又容易证。"
+        },
+        {
+          "label": "关键件",
+          "body": "Eq.subst.{1} 按签名给全参数；p 的配方就是上方讲解里“x = a”的形状。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem eq_symm_nat : (a : Nat) → (b : Nat) → a = b → b = a := by sorry",
+      "solution": "theorem eq_symm_nat : (a : Nat) → (b : Nat) → a = b → b = a := by\n  intro a b h\n  exact @Eq.subst.{1} Nat (fun (x : Nat) => x = a) a b h (@Eq.refl.{1} Nat a)",
+      "source": {
+        "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+        "line": 78
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit2-equality-rfl-solution.sokonanoda",
+        "line": 20
+      }
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl/eq_trans_nat",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元② 等式与 rfl",
+      "unit_index": 2,
+      "kind": "theorem",
+      "name": "eq_trans_nat",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "从 a = b 和 b = c 推出 a = c。 配方同练习 3，但这次取 p := fun (x : Nat) => a = x： 对 h2 : b = c 用 subst，p b = “a = b”（你的 h1 直接顶上），得到 p ",
+      "prompt": "练习 4（自己造“传递”）：从 a = b 和 b = c 推出 a = c。 配方同练习 3，但这次取 p := fun (x : Nat) => a = x： 对 h2 : b = c 用 subst，p b = “a = b”（你的 h1 直接顶上），得到 p c = “a = c”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "配方与“对称”完全一样，只是这次要串起两个等式——沿哪条 h 替换，决定 p 的形状。（prelude 的 Eq.trans 是现成版，两种都写一遍对照。）"
+        },
+        {
+          "label": "目标形态",
+          "body": "五层 fun 拿到 a、b、c、h1、h2 之后，目标是 a = c；选一个 p，让 p c 恰好是它、而 p b 正好是 h1 能证的。"
+        },
+        {
+          "label": "关键件",
+          "body": "还是 Eq.subst.{1}——对 h2 : b = c 用 subst，谓词里 x 的位置填 a；p a 那头留给 h1。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem eq_trans_nat : (a : Nat) → (b : Nat) → (c : Nat)\n  → a = b → b = c → a = c := by sorry",
+      "solution": "theorem eq_trans_nat : (a : Nat) → (b : Nat) → (c : Nat)\n  → a = b → b = c → a = c := by\n  intro a b c h1 h2\n  exact @Eq.subst.{1} Nat (fun (x : Nat) => a = x) b c h2 h1",
+      "source": {
+        "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+        "line": 86
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit2-equality-rfl-solution.sokonanoda",
+        "line": 24
+      }
+    },
+    {
+      "id": "quick-start/unit2-equality-rfl/eq_refl_prop",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元② 等式与 rfl",
+      "unit_index": 2,
+      "kind": "theorem",
+      "name": "eq_refl_prop",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "等式对任何类型都成立，命题也一样。 这里的 binder 是隐式的 {a : Prop}（写在类型里），值一侧对应 fun {a : Prop} => ...。 提示：类型位的 `a = a` 里，那个 α 就是 Prop 本身。",
+      "prompt": "练习 5（Prop 层热身）：等式对任何类型都成立，命题也一样。 这里的 binder 是隐式的 {a : Prop}（写在类型里），值一侧对应 fun {a : Prop} => ...。 提示：类型位的 `a = a` 里，那个 α 就是 Prop 本身。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "等式对任何类型都成立，命题世界也一样——这次是给“任意命题 a”证 a = a。"
+        },
+        {
+          "label": "目标形态",
+          "body": "binder 是隐式的 {a : Prop}：值一侧先写 fun {a : Prop} =>，之后没有别的假设，直接收尾。"
+        },
+        {
+          "label": "关键件",
+          "body": "Eq.refl.{1}——这里的 α 是 Prop 本身，等号一边给 a。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem eq_refl_prop : {a : Prop} → a = a := by sorry",
+      "solution": "theorem eq_refl_prop : {a : Prop} → a = a := by\n  intro a\n  exact @Eq.refl.{1} Prop a",
+      "source": {
+        "file": "courses/quick-start/unit2-equality-rfl.sokonanoda",
+        "line": 95
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit2-equality-rfl-solution.sokonanoda",
+        "line": 29
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/double",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "double",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "练习 1：补全 double。洞在 lambda 里：剩余目标是 Nat（外层已确定 n : Nat）。",
+      "prompt": "练习 1：补全 double。洞在 lambda 里：剩余目标是 Nat（外层已确定 n : Nat）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "洞在 lambda 体内——外层已经确定了 n : Nat，程序可以分步写完。"
+        },
+        {
+          "label": "目标形态",
+          "body": "剩余目标是 Nat：用 n 凑出一个翻倍的表达式。"
+        },
+        {
+          "label": "关键件",
+          "body": "+ 是真正的加法——把 n 和 n 组合起来。"
+        }
+      ],
+      "imports": [],
+      "template": "def double : Nat → Nat := fun (n : Nat) => sorry",
+      "solution": "def double : Nat → Nat := fun (n : Nat) => n + n",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 33
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 6
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/twice",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "twice",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "twice 接收一个函数 f，返回“把 f 用两次”的函数。 注意类型 (Nat → Nat) → Nat → Nat：括号是分组不是应用。 提示：外层先剥掉函数箭头，返回的仍是一个函数——要再剥一层。",
+      "prompt": "练习 2（高阶函数）：twice 接收一个函数 f，返回“把 f 用两次”的函数。 注意类型 (Nat → Nat) → Nat → Nat：括号是分组不是应用。 提示：外层先剥掉函数箭头，返回的仍是一个函数——要再剥一层。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "函数是一等公民——f 像普通值一样，可以被使用任意多次。"
+        },
+        {
+          "label": "目标形态",
+          "body": "两层箭头：先 fun (f : Nat → Nat) =>，再 fun (x : Nat) =>，最后返回一个 Nat。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标形如 Nat、上下文有 f : Nat → Nat 与 x : Nat：f 可直接应用——对 x 用一次，再对结果用一次；外层括号只是分组。"
+        }
+      ],
+      "imports": [],
+      "template": "def twice : (Nat → Nat) → Nat → Nat := by sorry",
+      "solution": "def twice : (Nat → Nat) → Nat → Nat :=\n  fun (f : Nat → Nat) => fun (x : Nat) => f (f x)",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 41
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 8
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/three_args",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "three_args",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "练习 3：三个参数的函数。Nat → Nat → Nat → Nat 一次吃三个 Nat，返回**第一个**参数 a。 提示：三层 fun，一层一层写；洞永远放在最后一层。",
+      "prompt": "练习 3：三个参数的函数。Nat → Nat → Nat → Nat 一次吃三个 Nat，返回**第一个**参数 a。 提示：三层 fun，一层一层写；洞永远放在最后一层。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "三个箭头就是三层 fun——一次吃三个 Nat，再交出一个 Nat。"
+        },
+        {
+          "label": "目标形态",
+          "body": "一层一层写：fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => …，洞放在最后一层。"
+        },
+        {
+          "label": "关键件",
+          "body": "最后一层的目标是 Nat；本题要交回的是第一个参数 a（已在上下文里）——返回别的 Nat 虽也过内核，但不是本题要求。"
+        }
+      ],
+      "imports": [],
+      "template": "def three_args : Nat → Nat → Nat → Nat := by sorry",
+      "solution": "def three_args : Nat → Nat → Nat → Nat :=\n  fun (a : Nat) => fun (b : Nat) => fun (c : Nat) => a",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 48
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 11
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/apply_twice",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "apply_twice",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "练习 4：apply_twice 的输入本身是“一个函数”，输出也是“一个函数”。 因为箭头右结合，整体函数类型必须用括号括住：(Nat → Nat) → (Nat → Nat)。 提示：返回类型本身还是箭头——外层 fun 写完还要再剥一",
+      "prompt": "练习 4：apply_twice 的输入本身是“一个函数”，输出也是“一个函数”。 因为箭头右结合，整体函数类型必须用括号括住：(Nat → Nat) → (Nat → Nat)。 提示：返回类型本身还是箭头——外层 fun 写完还要再剥一层。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "这次输入是函数、输出也是函数——注意返回类型 Nat → Nat 本身还是个箭头。"
+        },
+        {
+          "label": "目标形态",
+          "body": "两层 fun：第一层拿函数 f，写完发现剩余目标还是 Nat → Nat——所以再写一层 fun 拿 n。"
+        },
+        {
+          "label": "关键件",
+          "body": "剩余目标 Nat → Nat 时继续 fun 拿 n；到目标 Nat 时，f 可连续应用两次——先对 n，再对结果。"
+        }
+      ],
+      "imports": [],
+      "template": "def apply_twice : (Nat → Nat) → (Nat → Nat) := by sorry",
+      "solution": "def apply_twice : (Nat → Nat) → (Nat → Nat) :=\n  fun (f : Nat → Nat) => fun (n : Nat) => f (f n)",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 56
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 14
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/double_let",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "double_let",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "练习 5：用 let 给中间结果起名。洞在值位：把 n + n 绑定成 m。",
+      "prompt": "练习 5：用 let 给中间结果起名。洞在值位：把 n + n 绑定成 m。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "let 先算右边、再进 body——先给 m 想好值和类型。"
+        },
+        {
+          "label": "目标形态",
+          "body": "洞的期望类型就是绑定注解 Nat：用 n 凑出翻倍的值。"
+        },
+        {
+          "label": "关键件",
+          "body": "+ 是真正的加法——把 n 和 n 加起来。"
+        }
+      ],
+      "imports": [],
+      "template": "def double_let : Nat → Nat := fun (n : Nat) => let m : Nat := sorry; m",
+      "solution": "def double_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + n; m",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 77
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 21
+      }
+    },
+    {
+      "id": "quick-start/unit3-functions-arrows/body_uses_let",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元③ 函数与箭头",
+      "unit_index": 3,
+      "kind": "def",
+      "name": "body_uses_let",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "练习 6：let 绑定之后，body 里就能直接用这个名字。 洞在 let 的 body：本题要求把绑定出来的 m 原样交回（它是现成的 Nat）。",
+      "prompt": "练习 6：let 绑定之后，body 里就能直接用这个名字。 洞在 let 的 body：本题要求把绑定出来的 m 原样交回（它是现成的 Nat）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "let 把 m 放进了作用域——body 里 m 就是一个普通的 Nat。"
+        },
+        {
+          "label": "目标形态",
+          "body": "剩余目标还是 Nat；m 已经在局部上下文里。"
+        },
+        {
+          "label": "关键件",
+          "body": "body 的目标类型是 Nat，而 m 已在上下文里；把 let 绑定出来的 m 交出去（别的 Nat 虽也过内核，但不是本题要求）。"
+        }
+      ],
+      "imports": [],
+      "template": "def body_uses_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 5; sorry",
+      "solution": "def body_uses_let : Nat → Nat := fun (n : Nat) => let m : Nat := n + 5; m",
+      "source": {
+        "file": "courses/quick-start/unit3-functions-arrows.sokonanoda",
+        "line": 84
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit3-functions-arrows-solution.sokonanoda",
+        "line": 23
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex1",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex1",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "练习 1：用 by 写「a → a」——先 intro 再 assumption。 起点：`:= by` 后面什么都没有（练习从零开始）。",
+      "prompt": "练习 1：用 by 写「a → a」——先 intro 再 assumption。 起点：`:= by` 后面什么都没有（练习从零开始）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "assumption 是「在上下文里找目标」的捷径；先 intro 把箭头拆开。"
+        },
+        {
+          "label": "目标形态",
+          "body": "先 intro a，再 intro h（目标变成 a），最后 assumption。"
+        },
+        {
+          "label": "关键件",
+          "body": "assumption 会自动找到类型为 a 的假设 h。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex1 : (a : Prop) → a → a := by sorry",
+      "solution": "theorem by_ex1 : (a : Prop) → a → a := by\n  intro a\n  intro h\n  assumption",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 114
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 44
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex2",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex2",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "练习 2：用 by 写「a 且 b 推出 a」。",
+      "prompt": "练习 2：用 by 写「a 且 b 推出 a」。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "intro 拆箭头拿到 h : a ∧ b，再用 And.left 拆出 a 那一半。"
+        },
+        {
+          "label": "目标形态",
+          "body": "intro a; intro b; intro h 之后，目标就是 a。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 a、上下文有 h : a ∧ b：用 And.left 拆出左边（exact 交项，或 apply 后再 assumption）。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex2 : (a : Prop) → (b : Prop) → a ∧ b → a := by sorry",
+      "solution": "theorem by_ex2 : (a : Prop) → (b : Prop) → a ∧ b → a := by\n  intro a\n  intro b\n  intro h\n  exact And.left h",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 120
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 49
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex3",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex3",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "目标是 a 或 b 时，apply Or.inl / Or.inr 选一边。",
+      "prompt": "练习 3（apply 拆目标）：目标是 a 或 b 时，apply Or.inl / Or.inr 选一边。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "Or 是「二选一」——apply Or.inl 就只剩下证明左边。"
+        },
+        {
+          "label": "目标形态",
+          "body": "先 intro 拿到 ha : a，再 apply Or.inl，最后 exact ha。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标形如 a ∨ b：apply Or.inl 或 Or.inr 先选一边，选完的子目标用上下文里的证明收尾。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex3 : (a : Prop) → (b : Prop) → a → a ∨ b := by sorry",
+      "solution": "theorem by_ex3 : (a : Prop) → (b : Prop) → a → a ∨ b := by\n  intro a\n  intro b\n  intro ha\n  apply Or.inl\n  exact ha",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 126
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 55
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex4",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex4",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "And 需要左右两个证明都给出。",
+      "prompt": "练习 4（apply And.intro 两个子目标）：And 需要左右两个证明都给出。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "And.intro 要两份证明——apply 之后会出两个子目标，逐个 exact。"
+        },
+        {
+          "label": "目标形态",
+          "body": "先 intro 拿到 ha : a、hb : b，apply And.intro 出两个子目标 a 和 b。"
+        },
+        {
+          "label": "关键件",
+          "body": "apply And.intro 会拆出两个子目标（左右各一），按顺序分别用上下文里 a、b 的证明收尾。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by sorry",
+      "solution": "theorem by_ex4 : (a : Prop) → (b : Prop) → a → b → a ∧ b := by\n  intro a\n  intro b\n  intro ha\n  intro hb\n  apply And.intro\n  exact ha\n  exact hb",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 132
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 62
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex5",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex5",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "`have` 把一步的结果取个名字，后面反复用。 这里 `b` 的证明来自把 f 用到 ha 上——先记成 hb，再拿它去构造目标。",
+      "prompt": "练习 5（have 记中间结论）：`have` 把一步的结果取个名字，后面反复用。 这里 `b` 的证明来自把 f 用到 ha 上——先记成 hb，再拿它去构造目标。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "目标要 `b ∧ a`，而 b 的证明藏在 `f : a → b` 里；先算出来存成名字。"
+        },
+        {
+          "label": "目标形态",
+          "body": "intro a; intro b; intro f; intro ha 之后，目标是 b ∧ a。"
+        },
+        {
+          "label": "关键件",
+          "body": "`have hb : b := f ha` 记下 b 的证明，再把它和 ha 按 b、a 的顺序交给 And.intro（注意 b 在前）。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by sorry",
+      "solution": "theorem by_ex5 : (a : Prop) → (b : Prop) → (a → b) → a → b ∧ a := by\n  intro a\n  intro b\n  intro f\n  intro ha\n  have hb : b := f ha\n  exact And.intro hb ha",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 139
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 71
+      }
+    },
+    {
+      "id": "quick-start/unit4-by-tactics/by_ex6",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元④ by 写法：tactic 证明",
+      "unit_index": 4,
+      "kind": "theorem",
+      "name": "by_ex6",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "把 by 的几个 tactic 串起来——intro 拆三层，exact 一次性收尾。",
+      "prompt": "练习 6（综合）：把 by 的几个 tactic 串起来——intro 拆三层，exact 一次性收尾。\n\n多步证明几乎总要先拆 binder：`intro a; intro b; intro x` 逐层把箭头变成 假设，目标随之缩小到 `b ∧ a`；最后用 exact 交出完整证明项。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "先用 intro 把 a、b、x 逐一引入，目标变成 b ∧ a；再用 And.intro 构造。"
+        },
+        {
+          "label": "目标形态",
+          "body": "intro a; intro b; intro x 之后目标 b ∧ a，上下文有 x : a ∧ b。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 b ∧ a、上下文有 x : a ∧ b：用 And.intro 构造，两半分别由 And.right、And.left 从 x 取出——注意装回时 b 在前。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem by_ex6 : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by sorry",
+      "solution": "theorem by_ex6 : (a : Prop) → (b : Prop) → a ∧ b → b ∧ a := by\n  intro a\n  intro b\n  intro h\n  exact And.intro (And.right h) (And.left h)",
+      "source": {
+        "file": "courses/quick-start/unit4-by-tactics.sokonanoda",
+        "line": 150
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit4-by-tactics-solution.sokonanoda",
+        "line": 79
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/function_type_universe",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "def",
+      "name": "function_type_universe",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "从 `#check (Nat → Nat)` 的输出读出函数类型住在哪一层。",
+      "prompt": "练习 1（读输出）：从 `#check (Nat → Nat)` 的输出读出函数类型住在哪一层。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "读上面 `#check (Nat → Nat)` 那一行——`:` 右边写着 Type 0，而 Type 0 就是 Sort 1。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 Sort 1：要交出一个类型名，它的类型正好是 Sort 1。"
+        },
+        {
+          "label": "关键件",
+          "body": "每个数据的类型都住在 Sort 1——挑一个刚被 #check 过、你能直接写出的函数类型。"
+        }
+      ],
+      "imports": [],
+      "template": "def function_type_universe : Sort 1 := by sorry",
+      "solution": "def function_type_universe : Sort 1 := Nat → Nat",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 53
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 8
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/type0_universe",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "def",
+      "name": "type0_universe",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "从 `#check (Type 0)` 的输出读出 Type 0 自己住在哪一层。",
+      "prompt": "练习 2（读输出）：从 `#check (Type 0)` 的输出读出 Type 0 自己住在哪一层。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "读 `#check (Type 0)` 的输出——`:` 右边是 Type 1，而 Type 1 就是 Sort 2。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 Sort 2：这次要交出的不是数据，也不是数据类，而是“宇宙本身”。"
+        },
+        {
+          "label": "关键件",
+          "body": "把 #check 输出里 `:` 右边那层再当成一个项——上一行检查过的 Type 0 就住在 Type 1。"
+        }
+      ],
+      "imports": [],
+      "template": "def type0_universe : Sort 2 := by sorry",
+      "solution": "def type0_universe : Sort 2 := Type 0",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 59
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 10
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/example-1",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "example",
+      "name": "example-1",
+      "anonymous": true,
+      "exercise_no": 3,
+      "title": "补一个“住在 Sort 1 里的东西”。 提示：想想你在单元②、③里反复见过的类型名字。",
+      "prompt": "练习 3（热身）：补一个“住在 Sort 1 里的东西”。 提示：想想你在单元②、③里反复见过的类型名字。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "给“住在 Sort 1 里的东西”报出一个名字——想想你反复在用的那个数据类型。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 Sort 1 本身（也叫 Type），所以答案是一个类型名，不是一个值。"
+        },
+        {
+          "label": "关键件",
+          "body": "读 #check 输出里类型为 Type 0 的项——刚才那两行里就有现成的例子。"
+        }
+      ],
+      "imports": [],
+      "template": "example : Sort 1 := by sorry",
+      "solution": "example : Sort 1 := Nat",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 66
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 12
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/example-2",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "example",
+      "name": "example-2",
+      "anonymous": true,
+      "exercise_no": 4,
+      "title": "Prop = Sort 0。补一个“住在 Sort 0 里的东西”。",
+      "prompt": "练习 4（阶梯的起点）：Prop = Sort 0。补一个“住在 Sort 0 里的东西”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "Sort 0 就是 Prop——单元①里你一直在证明的那些东西的世界；这次要交出一个“命题”。"
+        },
+        {
+          "label": "目标形态",
+          "body": "答案是一个 Prop 层的项：不是值，也不是类型名，而是一句可以用证明填的断言。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 Sort 0、需要一句命题：用等式（`a = b`，数字上落在层级 .{1}）造一个命题——两边给内核算出来相等的表达式。"
+        }
+      ],
+      "imports": [],
+      "template": "example : Sort 0 := by sorry",
+      "solution": "example : Sort 0 := (1 + 1) = 2",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 72
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 14
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/Eq.symm",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "theorem",
+      "name": "Eq.symm",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "把单元②练习 3 的“对称”推广到任意宇宙层级。 照抄那份配方：把 Nat 换成 α、把 .{1} 换成 .{u}。 注意第一个 binder 是隐式的 {α : Sort u}，值一侧要写成 fun {α : Sort u} => ...",
+      "prompt": "练习 5（毕业 ★）：把单元②练习 3 的“对称”推广到任意宇宙层级。 照抄那份配方：把 Nat 换成 α、把 .{1} 换成 .{u}。 注意第一个 binder 是隐式的 {α : Sort u}，值一侧要写成 fun {α : Sort u} => ...。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "把单元②的“对称”配方推广到任意宇宙——完全同构，只是 Nat 换成 α、.{1} 换成 .{u}。"
+        },
+        {
+          "label": "目标形态",
+          "body": "第一个 binder 是隐式的 {α : Sort u}：值一侧先写 fun {α : Sort u} =>，后面照旧四层 fun 拿 a、b、h。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标形如 b = a、上下文有 h : a = b：用 Eq.subst.{u} 沿 h 替换，谓词按“x = a”的形状在 α 上设计（配方见单元②练习 3）。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → @Eq.{u} α a b → @Eq.{u} α b a := by sorry -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）",
+      "solution": "theorem Eq.symm {u} : {α : Sort u} → (a : α) → (b : α) → @Eq.{u} α a b → @Eq.{u} α b a := by -- soko:notation-ok: α : Sort u 是多态类型，`=` 记法补不出宇宙层级 u（引擎边界）\n  intro α a b h\n  exact @Eq.subst.{u} α (fun (x : α) => @Eq.{u} α x a) a b h (@Eq.refl.{u} α a) -- soko:notation-ok: 同上（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 80
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 16
+      }
+    },
+    {
+      "id": "quick-start/unit5-universes-sort/predict_then_prove",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑤ 宇宙：函数类型的类型",
+      "unit_index": 5,
+      "kind": "def",
+      "name": "predict_then_prove",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "先预测 #reduce 会打印什么，再填出这个等式。",
+      "prompt": "练习 6（先预测再证）：先预测 #reduce 会打印什么，再填出这个等式。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "先在脑子里把 (fun (x : Nat) => x + 1) 应用到 41，得到一个数；这是一个计算式等式。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 `… = 42`；rfl 在两边算出同一个值时成立。"
+        },
+        {
+          "label": "关键件",
+          "body": "用 Eq.refl.{1}——类型给 Nat，等号一边给你预测出的那个数；先自己预测，再对照下面的 #reduce。"
+        }
+      ],
+      "imports": [],
+      "template": "def predict_then_prove : ((fun (x : Nat) => x + 1) 41) = 42 := by sorry",
+      "solution": "def predict_then_prove : ((fun (x : Nat) => x + 1) 41) = 42 := by\n  exact @Eq.refl.{1} Nat 42",
+      "source": {
+        "file": "courses/quick-start/unit5-universes-sort.sokonanoda",
+        "line": 90
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit5-universes-sort-solution.sokonanoda",
+        "line": 20
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/four",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "four",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "练习 1：定义 four : Nat。提示：three 已经有了，再叠一个 succ。",
+      "prompt": "练习 1：定义 four : Nat。提示：three 已经有了，再叠一个 succ。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "数字不再有字面量的魔法——现在用构造子一层层叠出来；环境里已经有 three。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标就是 Nat：在 three 的基础上再叠一层。"
+        },
+        {
+          "label": "关键件",
+          "body": "succ——吃一个 Nat、返回“下一个” Nat 的构造子。"
+        }
+      ],
+      "imports": [],
+      "template": "def four : Nat := by sorry",
+      "solution": "def four : Nat := succ three",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 58
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 37
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/double",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "double",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "对 zero 返回 zero；对 succ k， 由归纳结果 ih 得到 succ k 的翻倍。motive 全程是常函数 (fun (x : Nat) => Nat)。 提示：照抄 Nat.rec 的形状：motive → mz → ms",
+      "prompt": "练习 2（递归定义 double）：对 zero 返回 zero；对 succ k， 由归纳结果 ih 得到 succ k 的翻倍。motive 全程是常函数 (fun (x : Nat) => Nat)。 提示：照抄 Nat.rec 的形状：motive → mz → ms → n。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "递归定义 = 选好 Nat.rec 的三样东西：motive、zero 处的值 mz、步进函数 ms，最后喂 n。"
+        },
+        {
+          "label": "目标形态",
+          "body": "外层 fun (n : Nat) => Nat.rec … n；motive 全程是常函数 fun (x : Nat) => Nat，zero 处返回 zero。"
+        },
+        {
+          "label": "关键件",
+          "body": "Nat.rec.{1} 按 motive → mz → ms → n 给全；ms 吃 k 和归纳结果 ih——想想 succ k 的翻倍该比 ih 多叠几个 succ。"
+        }
+      ],
+      "imports": [],
+      "template": "def double : Nat → Nat := by sorry",
+      "solution": "def double : Nat → Nat :=\n  fun (n : Nat) =>\n    Nat.rec.{1} (fun (x : Nat) => Nat) zero\n      (fun (k : Nat) => fun (ih : Nat) => succ (succ ih)) n",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 66
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 40
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/add",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "add",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "add m n 从 m 出发做归纳：zero 处返回 n（“数 zero 次”）； succ k 处把 ih 再叠一层 succ（“多叠一层”）。 提示：注意归纳变量是 m：Nat.rec 的第一个显式参数放 n，最后一个放 m。",
+      "prompt": "练习 3（加法）：add m n 从 m 出发做归纳：zero 处返回 n（“数 zero 次”）； succ k 处把 ih 再叠一层 succ（“多叠一层”）。 提示：注意归纳变量是 m：Nat.rec 的第一个显式参数放 n，最后一个放 m。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "还是那三样东西，但归纳变量换成 m：“数 zero 次”就是 n 本身，“多叠一层”就是 succ ih。"
+        },
+        {
+          "label": "目标形态",
+          "body": "fun (m : Nat) => fun (n : Nat) => Nat.rec … m——注意最后喂的是 m（归纳变量），n 是起点值。"
+        },
+        {
+          "label": "关键件",
+          "body": "Nat.rec.{1}，motive 仍是常函数；mz 处放 n（zero 次的结果），ms 吃 k 和 ih、只叠一层 succ。"
+        }
+      ],
+      "imports": [],
+      "template": "def add : Nat → Nat → Nat := by sorry",
+      "solution": "def add : Nat → Nat → Nat :=\n  fun (m : Nat) => fun (n : Nat) =>\n    Nat.rec.{1} (fun (x : Nat) => Nat) n\n      (fun (k : Nat) => fun (ih : Nat) => succ ih) m",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 74
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 46
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/relabel",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "relabel",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "练习 4：relabel 把 red 映到 red、green 映到 green（原样返回）。",
+      "prompt": "练习 4：relabel 把 red 映到 red、green 映到 green（原样返回）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "match 一次列全 red 与 green 两个构造子，每个分支给一个 Color。"
+        },
+        {
+          "label": "目标形态",
+          "body": "fun (c : Color) => match c with …；分支顺序随意，前端按声明序重排。"
+        },
+        {
+          "label": "关键件",
+          "body": "match 要覆盖 red 与 green，每个分支的目标类型都是 Color；恒等映射就是把每个构造子原样交回。"
+        }
+      ],
+      "imports": [],
+      "template": "def relabel (c : Color) : Color := by sorry",
+      "solution": "def relabel (c : Color) : Color := match c with\n| red => red\n| green => green",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 116
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 90
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/swapOpen",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "swapOpen",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "练习 5：在 match 的一个分支里留 sorry —— 只需补上 green 这一支。",
+      "prompt": "练习 5：在 match 的一个分支里留 sorry —— 只需补上 green 这一支。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "red 分支已经给出 green；green 分支待填，目标类型是 Color。"
+        },
+        {
+          "label": "目标形态",
+          "body": "match c with | red => green | green => <你的答案>。"
+        },
+        {
+          "label": "关键件",
+          "body": "green 分支的目标是 Color；要得到 swap（red 与 green 对调），这一支该交出另一个构造子。"
+        }
+      ],
+      "imports": [],
+      "template": "def swapOpen (c : Color) : Color := match c with\n| red => green\n| green => sorry",
+      "solution": "def swapOpen (c : Color) : Color := match c with\n| red => green\n| green => red",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 122
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 95
+      }
+    },
+    {
+      "id": "quick-start/unit6-induction-recursion-1/recDouble",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑥ 归纳与递归 Ⅰ",
+      "unit_index": 6,
+      "kind": "def",
+      "name": "recDouble",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "练习 6：recDouble 对 n 归纳：zero 处返回 zero；succ 处用归纳假设 ih 造出 succ (succ ih)。只需补 succ 分支。",
+      "prompt": "练习 6：recDouble 对 n 归纳：zero 处返回 zero；succ 处用归纳假设 ih 造出 succ (succ ih)。只需补 succ 分支。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "递归字段 m 之后会自动多出一个归纳假设 ih（类型就是结果类型 Nat），succ 分支里直接用它拼结果。"
+        },
+        {
+          "label": "目标形态",
+          "body": "match n with | zero => zero | succ m => <succ 分支>；两个分支的结果都必须是 Nat。"
+        },
+        {
+          "label": "关键件",
+          "body": "succ 分支的目标是 Nat，手里有自动插入的归纳假设 ih；翻倍就是比 ih 再高两层 succ。"
+        }
+      ],
+      "imports": [],
+      "template": "def recDouble (n : Nat) : Nat := match n with\n| zero => zero\n| succ m => sorry",
+      "solution": "def recDouble (n : Nat) : Nat := match n with\n| zero => zero\n| succ m => succ (succ ih)",
+      "source": {
+        "file": "courses/quick-start/unit6-induction-recursion-1.sokonanoda",
+        "line": 147
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit6-induction-recursion-1-solution.sokonanoda",
+        "line": 116
+      }
+    },
+    {
+      "id": "quick-start/unit7-induction-recursion-2/valueOrZero",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑦ 归纳与递归 Ⅱ",
+      "unit_index": 7,
+      "kind": "def",
+      "name": "valueOrZero",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "练习 1：valueOrZero 把「可能没有」的值取出来：some a 给 a，none 给 zero。",
+      "prompt": "练习 1：valueOrZero 把「可能没有」的值取出来：some a 给 a，none 给 zero。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "match 一次列全 none 与 some 两个构造子，分支结果都必须是 Nat。"
+        },
+        {
+          "label": "目标形态",
+          "body": "fun (x : Option Nat) => match x with | none => zero | some a => <some 分支>；参数 Nat 从 x 的书写类型代入。"
+        },
+        {
+          "label": "关键件",
+          "body": "some 分支的 a 类型就是参数 A 代入后的 Nat，直接把它作为 Nat 交出去。"
+        }
+      ],
+      "imports": [],
+      "template": "def valueOrZero (x : Option Nat) : Nat := match x with\n| none => zero\n| some a => sorry",
+      "solution": "def valueOrZero (x : Option Nat) : Nat := match x with\n| none => zero\n| some a => a",
+      "source": {
+        "file": "courses/quick-start/unit7-induction-recursion-2.sokonanoda",
+        "line": 60
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit7-induction-recursion-2-solution.sokonanoda",
+        "line": 46
+      }
+    },
+    {
+      "id": "quick-start/unit7-induction-recursion-2/nat_induction_open",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑦ 归纳与递归 Ⅱ",
+      "unit_index": 7,
+      "kind": "theorem",
+      "name": "nat_induction_open",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "练习 2：同样的归纳法，递推那步自己写——succ 支里 ih : P k。",
+      "prompt": "练习 2：同样的归纳法，递推那步自己写——succ 支里 ih : P k。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "match n 分 zero/succ 两支：zero 交基础 hz，succ 交递推。"
+        },
+        {
+          "label": "目标形态",
+          "body": "succ 支的目标是 P (succ k)，上下文有 k : Nat 与 ih : P k。"
+        },
+        {
+          "label": "关键件",
+          "body": "hs 吃 k 和一份 P k 的证明——把 ih 交给它就行。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem nat_induction_open (P : Nat → Prop) (hz : P zero)\n    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n :=\n  match n with\n  | zero => hz\n  | succ k => sorry",
+      "solution": "theorem nat_induction_open (P : Nat → Prop) (hz : P zero)\n    (hs : (k : Nat) → P k → P (succ k)) (n : Nat) : P n := by\n  exact match n with\n  | zero => hz\n  | succ k => hs k ih",
+      "source": {
+        "file": "courses/quick-start/unit7-induction-recursion-2.sokonanoda",
+        "line": 82
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit7-induction-recursion-2-solution.sokonanoda",
+        "line": 65
+      }
+    },
+    {
+      "id": "quick-start/unit7-induction-recursion-2/predOpt",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑦ 归纳与递归 Ⅱ",
+      "unit_index": 7,
+      "kind": "def",
+      "name": "predOpt",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "练习 3：predOpt 取出「里面那个数的前驱」：some (succ k) 给 k， some zero 与 none 都给 zero——用嵌套模式把 succ 的字段 k 绑出来。",
+      "prompt": "练习 3：predOpt 取出「里面那个数的前驱」：some (succ k) 给 k， some zero 与 none 都给 zero——用嵌套模式把 succ 的字段 k 绑出来。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "some 要分两种：里面是 zero 还是 succ k。"
+        },
+        {
+          "label": "目标形态",
+          "body": "match x with | some zero => … | some (succ k) => … | none => …。"
+        },
+        {
+          "label": "关键件",
+          "body": "succ 那一支把字段 k 绑出来了，直接把它作为 Nat 交出去。"
+        }
+      ],
+      "imports": [],
+      "template": "def predOpt (x : Option Nat) : Nat := match x with\n| some zero => zero\n| some (succ k) => sorry\n| none => zero",
+      "solution": "def predOpt (x : Option Nat) : Nat := match x with\n| some zero => zero\n| some (succ k) => k\n| none => zero",
+      "source": {
+        "file": "courses/quick-start/unit7-induction-recursion-2.sokonanoda",
+        "line": 109
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit7-induction-recursion-2-solution.sokonanoda",
+        "line": 81
+      }
+    },
+    {
+      "id": "quick-start/unit7-induction-recursion-2/vhead",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑦ 归纳与递归 Ⅱ",
+      "unit_index": 7,
+      "kind": "def",
+      "name": "vhead",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "练习 4：vhead 取出第一个元素；空表返回默认值 d。",
+      "prompt": "练习 4：vhead 取出第一个元素；空表返回默认值 d。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "match v 分 vnil / vcons a m w 两支。"
+        },
+        {
+          "label": "目标形态",
+          "body": "vnil 支返回 d；vcons 支的结果类型是 A。"
+        },
+        {
+          "label": "关键件",
+          "body": "vcons 把头部绑成 a——直接把 a 交出去。"
+        }
+      ],
+      "imports": [],
+      "template": "def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with\n| vnil => d\n| vcons a m w => sorry",
+      "solution": "def vhead (A : Type) (d : A) (n : Nat) (v : Vec A n) : A := match v with\n| vnil => d\n| vcons a m w => a",
+      "source": {
+        "file": "courses/quick-start/unit7-induction-recursion-2.sokonanoda",
+        "line": 138
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit7-induction-recursion-2-solution.sokonanoda",
+        "line": 104
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/forall_elim",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "forall_elim",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "每个人都会……，所以这个人也会……。",
+      "prompt": "练习 1（热身）：每个人都会……，所以这个人也会……。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "∀ 的证明是函数，消去它就是应用——把 h 用到 w 上。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标 P w 没有箭头要拆；h 已经是对每个人的证明。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 P w、上下文有 h : ∀ (x : Person), P x：∀ 的消去就是应用——把 h 用到 w 上。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem forall_elim (P : Person → Prop) (w : Person) (h : ∀ (x : Person), P x) : P w := by\n  sorry",
+      "solution": "theorem forall_elim (P : Person → Prop) (w : Person) (h : ∀ (x : Person), P x) : P w := by\n  exact h w",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 63
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 16
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/forall_and",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "forall_and",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "练习 2：把“每个人同时满足 P 和 Q”分成两个“每个人”。",
+      "prompt": "练习 2：把“每个人同时满足 P 和 Q”分成两个“每个人”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "先对任意 x 从 h 取出一对证明，再分别组装两个 ∀。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论是 And，左右两半都是 ∀；每半各写一层 fun (x : Person)。"
+        },
+        {
+          "label": "关键件",
+          "body": "左右两半各是 ∀，先 fun (x : Person)；再把 h 用到 x 上得到一对证明，用 And.left / And.right 各取一半，最后由 And.intro 组装。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem forall_and (P : Person → Prop) (Q : Person → Prop) (h : ∀ (x : Person), P x ∧ Q x) : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x) := by\n  sorry",
+      "solution": "theorem forall_and (P : Person → Prop) (Q : Person → Prop)\n    (h : ∀ (x : Person), P x ∧ Q x) :\n    (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x) := by\n  apply And.intro\n  intro x\n  exact And.left (h x)\n  intro x\n  exact And.right (h x)",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 70
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 19
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/and_forall",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "and_forall",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "练习 3：反过来：两个“每个人”合起来，得到“每个人同时满足”。",
+      "prompt": "练习 3：反过来：两个“每个人”合起来，得到“每个人同时满足”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "把 h 分成两半，各自用到同一个人 x 上，再用 And.intro 合起来。"
+        },
+        {
+          "label": "目标形态",
+          "body": "最外层是 ∀，先写 fun (x : Person)，剩余目标是 (P x) ∧ (Q x)。"
+        },
+        {
+          "label": "关键件",
+          "body": "h : (∀ …) ∧ (∀ …)：用 And.left / And.right 取出两个 ∀，再分别作用到 x 上。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_forall (P : Person → Prop) (Q : Person → Prop) (h : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x)) : ∀ (x : Person), P x ∧ Q x := by\n  sorry",
+      "solution": "theorem and_forall (P : Person → Prop) (Q : Person → Prop)\n    (h : (∀ (x : Person), P x) ∧ (∀ (x : Person), Q x)) :\n    ∀ (x : Person), P x ∧ Q x := by\n  intro x\n  have hP : P x := And.left h x -- soko:notation-ok: And.left 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）\n  have hQ : Q x := And.right h x -- soko:notation-ok: And.right 的结果还要收到 x 上（参数个数超出签名显式层数），隐式插入不适用（引擎边界）\n  exact And.intro hP hQ",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 77
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/exists_intro_rule",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "exists_intro_rule",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "交出证人 w 和证明 hw，装出存在命题。",
+      "prompt": "练习 4（热身）：交出证人 w 和证明 hw，装出存在命题。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "存在命题的证明要交两样东西：证人，以及性质对证人成立的证明。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标 ∃ (x : Person), P x 没有箭头要拆，直接用构造规则。"
+        },
+        {
+          "label": "关键件",
+          "body": "Exists.intro 吃四样：论域 Person、性质 P、证人 w、证明 hw。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem exists_intro_rule (P : Person → Prop) (w : Person) (hw : P w) : ∃ (x : Person), P x := by\n  sorry",
+      "solution": "theorem exists_intro_rule (P : Person → Prop) (w : Person) (hw : P w) : ∃ (x : Person), P x := by\n  exact Exists.intro Person P w hw -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 118
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 49
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/exists_elim_rule",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "exists_elim_rule",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "练习 5：把 h 交给 f，让 f 处理里面的证人和证据。",
+      "prompt": "练习 5：把 h 交给 f，让 f 处理里面的证人和证据。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "用 Exists.elim 使用 h；交给它的函数接收证人 w 和证据 hw，产出 Q。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论 Q 不提证人，正好满足使用规则；f 就是现成的“对每个人，P x → Q”。"
+        },
+        {
+          "label": "关键件",
+          "body": "Exists.elim 吃五样：Person、P、Q、h、f。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem exists_elim_rule (P : Person → Prop) (Q : Prop) (h : ∃ (x : Person), P x) (f : ∀ (x : Person), P x → Q) : Q := by\n  sorry",
+      "solution": "theorem exists_elim_rule (P : Person → Prop) (Q : Prop) (h : ∃ (x : Person), P x)\n    (f : ∀ (x : Person), P x → Q) : Q := by\n  exact Exists.elim Person P Q h f -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 125
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 52
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/forall_exists",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "forall_exists",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "每个人都会……，所以存在一个会……的人；someone 就是证人。",
+      "prompt": "练习 6（★）：每个人都会……，所以存在一个会……的人；someone 就是证人。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "消去 h 得到 someone 满足 P，再把它当证人装成 Exists。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论是 ∃ (x : Person), P x；证人不在参数里，得用 someone。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 ∃ (x : Person), P x、证人用 someone：把 h 作用到 someone 上得到 P someone 的证明，再交给 Exists.intro 的证明位。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem forall_exists (P : Person → Prop) (h : ∀ (x : Person), P x) : ∃ (x : Person), P x := by\n  sorry",
+      "solution": "theorem forall_exists (P : Person → Prop) (h : ∀ (x : Person), P x) : ∃ (x : Person), P x := by\n  exact Exists.intro Person P someone (h someone) -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 132
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 56
+      }
+    },
+    {
+      "id": "quick-start/unit8-quantifiers/exists_mono",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑧ 量词：forall 与 exists",
+      "unit_index": 8,
+      "kind": "theorem",
+      "name": "exists_mono",
+      "anonymous": false,
+      "exercise_no": 7,
+      "title": "P 推出 Q，那么“存在满足 P 的人”推出“存在满足 Q 的人”。",
+      "prompt": "练习 7（★★）：P 推出 Q，那么“存在满足 P 的人”推出“存在满足 Q 的人”。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "用 Exists.elim 使用 h，拿到某个 w 和 P w 的证明，再用 f w 得到 Q w，装回一个 Exists。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论是 ∃ (x : Person), Q x；函数体里先 fun (w : Person)，再 fun (hw : P w)。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标是 ∃ (x : Person), Q x、上下文有 h : ∃ (x : Person), P x 与 f：用 Exists.elim 拿到证人 w 与 P w 的证明，再经 f 得到 Q w，交给 Exists.intro。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem exists_mono (P : Person → Prop) (Q : Person → Prop) (f : ∀ (x : Person), P x → Q x) (h : ∃ (x : Person), P x) : ∃ (x : Person), Q x := by\n  sorry",
+      "solution": "theorem exists_mono (P : Person → Prop) (Q : Person → Prop)\n    (f : ∀ (x : Person), P x → Q x) (h : ∃ (x : Person), P x) :\n    ∃ (x : Person), Q x := by\n  exact Exists.elim Person P (∃ (x : Person), Q x) h -- soko:notation-ok: 本课自建 Exists 是 axiom（前导参数 A/p 显式），隐式插入不适用（引擎边界）\n    (fun (w : Person) => fun (hw : P w) => Exists.intro Person Q w (f w hw)) -- soko:notation-ok: 同上（引擎边界）",
+      "source": {
+        "file": "courses/quick-start/unit8-quantifiers.sokonanoda",
+        "line": 139
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit8-quantifiers-solution.sokonanoda",
+        "line": 59
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/or_comm",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "or_comm",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "练习 1：交换 Or 的两边。",
+      "prompt": "练习 1：交换 Or 的两边。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "match h 一次列全 inl / inr 两个构造子，每支把里面的证据装到另一边的构造子里。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 B ∨ A；inl 支手里是 a : A，inr 支手里是 b : B。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标是拆开重装：inl 支用 Or.inr 的构造子，inr 支用 Or.inl 的构造子，两个构造子都要把 A、B 两个参数补全。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_comm (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by\n  sorry",
+      "solution": "theorem or_comm (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by\n  cases h with\n  | inl a =>\n      right\n      exact a\n  | inr b =>\n      left\n      exact b",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 40
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 8
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/or_elim",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "or_elim",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "练习 2：显式使用消去子 Or.rec，把「两个方向都通向 C」合成「A ∨ B 通向 C」。",
+      "prompt": "练习 2：显式使用消去子 Or.rec，把「两个方向都通向 C」合成「A ∨ B 通向 C」。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "目标是 C、手里是 h : A ∨ B——消去子 Or.rec 正是「从 Or 得到任意命题」的工具。"
+        },
+        {
+          "label": "目标形态",
+          "body": "Or.rec 的 motive 是常函数 fun (x : A ∨ B) => C；两个分支分别交出 f 与 g。"
+        },
+        {
+          "label": "关键件",
+          "body": "Or.rec 吃五样：命题 A、命题 B、motive、吃 A 证明的左分支、吃 B 证明的右分支，最后喂 h；f、g 正好是两个分支。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : A ∨ B) (f : A → C) (g : B → C) : C := by\n  sorry",
+      "solution": "theorem or_elim (A : Prop) (B : Prop) (C : Prop) (h : A ∨ B) (f : A → C) (g : B → C) : C := by\n  cases h with\n  | inl a =>\n      exact f a\n  | inr b =>\n      exact g b",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 47
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 17
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/or_id",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "or_id",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "下面这份 or_id 的证明被内核拒绝了，错在哪？",
+      "prompt": "练习 3（读/评阅 R）：下面这份 or_id 的证明被内核拒绝了，错在哪？\n\ntheorem or_id_wrong (A : Prop) (h : A ∨ A) : A := match h with | inl a => a\n\n提示：一个 match 要覆盖**全部**构造子；Or 有两个。 请写出改正后、内核可判定的版本。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "A ∨ A 拆开后两支都是 A 的证明；把缺掉的另一支补齐即可。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 A；match 的每一支都必须是 A 的一个证明。"
+        },
+        {
+          "label": "关键件",
+          "body": "上下文 h : A ∨ A：inl 与 inr 两个构造子各带一份 A 的证明，两份都能直接交出去。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_id (A : Prop) (h : A ∨ A) : A := by\n  sorry",
+      "solution": "theorem or_id (A : Prop) (h : A ∨ A) : A := by\n  cases h with\n  | inl a =>\n      exact a\n  | inr a =>\n      exact a",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 61
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 24
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/iff_mp",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "iff_mp",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "练习 4：取出 Iff 的正向。",
+      "prompt": "练习 4：取出 Iff 的正向。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "A ↔ B 是定义，展开后是一个 And；正向就在它的左边。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是一个箭头 A → B；h 展开后是 (A → B) ∧ (B → A)。"
+        },
+        {
+          "label": "关键件",
+          "body": "h : A ↔ B（内核会展开定义）：用 And.left 取出左半，它就是 A → B。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem iff_mp (A : Prop) (B : Prop) (h : A ↔ B) : A → B := by\n  sorry",
+      "solution": "theorem iff_mp (A : Prop) (B : Prop) (h : A ↔ B) : A → B := by\n  exact And.left h",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 86
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 34
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/iff_mpr",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "iff_mpr",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "练习 5：取出 Iff 的反向。",
+      "prompt": "练习 5：取出 Iff 的反向。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "与上一题对称——反向是展开后那个 And 的右边。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是箭头 B → A；h 展开后仍是 (A → B) ∧ (B → A)。"
+        },
+        {
+          "label": "关键件",
+          "body": "h : A ↔ B：用 And.right 取出右半，它就是 B → A。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem iff_mpr (A : Prop) (B : Prop) (h : A ↔ B) : B → A := by\n  sorry",
+      "solution": "theorem iff_mpr (A : Prop) (B : Prop) (h : A ↔ B) : B → A := by\n  exact And.right h",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 93
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 37
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/le_zero",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "le_zero",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "零小于等于任何自然数——对 n 做归纳。",
+      "prompt": "练习 6（自证 L）：零小于等于任何自然数——对 n 做归纳。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "对 n 做 match：zero 支用自反性；succ 支把归纳假设 ih : Le Nat.zero k 经 le_succ 抬一层。"
+        },
+        {
+          "label": "目标形态",
+          "body": "match n with | Nat.zero => … | Nat.succ k => …，两支的目标是 Le Nat.zero Nat.zero 与 Le Nat.zero (Nat.succ k)。"
+        },
+        {
+          "label": "关键件",
+          "body": "zero 支用 le_refl；succ 支有 ih : Le Nat.zero k，用 le_succ 把它抬到 Le Nat.zero (Nat.succ k)。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem le_zero (n : Nat) : Le Nat.zero n := by\n  sorry",
+      "solution": "theorem le_zero (n : Nat) : Le Nat.zero n := by\n  exact match n with\n    | Nat.zero => le_refl Nat.zero\n    | Nat.succ k => le_succ Nat.zero k ih",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 125
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 48
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/le_trans",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "le_trans",
+      "anonymous": false,
+      "exercise_no": 7,
+      "title": "下面这句非形式命题，请写成上面的 Le 版本并给出内核可判定的证明：",
+      "prompt": "练习 7（翻译 X）：下面这句非形式命题，请写成上面的 Le 版本并给出内核可判定的证明：\n\n「对任意自然数 m、n、k：若 m ≤ n 且 n ≤ k，则 m ≤ k。」（≤ 的传递性）\n\n(注意：这里说的「≤」就是本单元定义的 Le，自变量顺序是 Le 左小右大。)",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "要证 Le m k，对第二个证据 h2 : Le n k 用消去子 Le.rec 归纳，motive 取「Le m a → Le m b」。"
+        },
+        {
+          "label": "目标形态",
+          "body": "Le.rec 需要三样：motive、le_refl 处的分支、le_succ 处的分支（比前者多一个归纳假设 ih）。"
+        },
+        {
+          "label": "关键件",
+          "body": "目标 Le m k：le_refl 支直接交 h1；le_succ 支对 hx : Le m a 先用 ih 得 Le m b、再用 le_succ 抬一层；对 (n, k, h2) 归纳后把 h1 应用上去。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k := by\n  sorry",
+      "solution": "theorem le_trans (m : Nat) (n : Nat) (k : Nat) (h1 : Le m n) (h2 : Le n k) : Le m k := by\n  exact (Le.rec\n    (fun (a : Nat) (b : Nat) (h : Le a b) => Le m a → Le m b)\n    (fun (b : Nat) => fun (hx : Le m b) => hx)\n    (fun (a : Nat) (b : Nat) (h : Le a b) (ih : Le m a → Le m b) =>\n       fun (hx : Le m a) => le_succ m b (ih hx))\n    n k h2) h1",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 136
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 53
+      }
+    },
+    {
+      "id": "quick-start/unit9-relations-connectives/even_four",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑨ 关系与联结词",
+      "unit_index": 9,
+      "kind": "theorem",
+      "name": "even_four",
+      "anonymous": false,
+      "exercise_no": 8,
+      "title": "练习 8：搭出「4 是偶数」——在 even_two 的基础上再叠一次 even_succ。",
+      "prompt": "练习 8：搭出「4 是偶数」——在 even_two 的基础上再叠一次 even_succ。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "even_succ 把「n 是偶数」变成「n+2 是偶数」；把 n 取成 2，前提就是上面证好的 even_two。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 Even 4（写成构造子链是 succ (succ (succ (succ zero)))）。"
+        },
+        {
+          "label": "关键件",
+          "body": "even_succ——它吃一个 Nat 和一份 Even Nat，交出 Even (Nat.succ (Nat.succ Nat))；前提用 even_two。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) := by\n  sorry",
+      "solution": "theorem even_four : Even (Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))) := by\n  exact even_succ (Nat.succ (Nat.succ Nat.zero)) even_two",
+      "source": {
+        "file": "courses/quick-start/unit9-relations-connectives.sokonanoda",
+        "line": 169
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit9-relations-connectives-solution.sokonanoda",
+        "line": 76
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/or_intro_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "or_intro_x",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "把下面这句话翻成形式声明并证明：",
+      "prompt": "练习 1（翻译 X）：把下面这句话翻成形式声明并证明：\n\n「如果一个命题 A 成立，那么 A 或 B 成立。」",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "非形式句有「如果……那么」，对应一个箭头；结论是「A 或 B」。"
+        },
+        {
+          "label": "目标形态",
+          "body": "声明形如 (a : A) → A ∨ B；建议写成 (A : Prop) → (B : Prop) → (a : A) → A ∨ B。"
+        },
+        {
+          "label": "关键件",
+          "body": "结论是 A ∨ B 且手里有 A 的证明：用 Or 的哪个构造子？把 A、B 两个参数补全。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_intro_x (A : Prop) (B : Prop) (a : A) : A ∨ B := by\n  sorry",
+      "solution": "theorem or_intro_x (A : Prop) (B : Prop) (a : A) : A ∨ B := by\n  left\n  exact a",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 59
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 8
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/iff_intro_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "iff_intro_x",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "把下面这句话翻成形式声明并证明：",
+      "prompt": "练习 2（翻译 X）：把下面这句话翻成形式声明并证明：\n\n「如果 A 推出 B、B 又推出 A，那么 A 与 B 等价（当且仅当）。」\n\n提示：「等价」就是本文件用 And 定义的 Iff。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "两个方向是两条假设（两个箭头），结论把这对函数打包成 Iff。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论形如 A ↔ B，而 Iff 展开就是 (A → B) ∧ (B → A)。"
+        },
+        {
+          "label": "关键件",
+          "body": "结论是 A ↔ B、上下文有 mp : A → B 与 mpr : B → A：用 And.intro（内核会自动展开 Iff 定义），把两个方向放进两个证明位。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem iff_intro_x (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by\n  sorry",
+      "solution": "theorem iff_intro_x (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by\n  exact And.intro mp mpr",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 70
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 12
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/nat_eq_self_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "nat_eq_self_x",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "把下面这句话翻成形式声明并证明：",
+      "prompt": "练习 3（翻译 X）：把下面这句话翻成形式声明并证明：\n\n「每个自然数都等于它自己。」",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "「每个自然数」是一个 ∀（或命名箭头），结论是一条等式。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论形如 n = n；数字的等式要落在宇宙层级 .{1}（见单元⑤）。"
+        },
+        {
+          "label": "关键件",
+          "body": "等号两边是内核能算出同一个值的同一个项：用 Eq.refl 这条公理，把类型 Nat 和那个项喂给它。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem nat_eq_self_x (n : Nat) : n = n := by\n  sorry",
+      "solution": "theorem nat_eq_self_x (n : Nat) : n = n := by\n  rfl",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 80
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 15
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/or_comm_fixed",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "or_comm_fixed",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "下面这份 or_comm 被内核拒绝了，错在哪？",
+      "prompt": "练习 4（评阅 R）：下面这份 or_comm 被内核拒绝了，错在哪？\n\ntheorem or_comm_wrong (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := match h with | inl a => Or.inr B A a\n\n提示：match 必须覆盖**全部**构造子；Or 有两个。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "第一条分支已经把 A 一侧的证据装成 B ∨ A；缺的是 B 一侧。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 B ∨ A；match 的另一支手里是 b : B。"
+        },
+        {
+          "label": "关键件",
+          "body": "上下文 h : A ∨ B：另一支用 Or.inl 的构造子（这次 A、B 的顺序与结论一致，写成 Or.inl B A b），把 b 交给它。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_comm_fixed (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by\n  sorry",
+      "solution": "theorem or_comm_fixed (A : Prop) (B : Prop) (h : A ∨ B) : B ∨ A := by\n  cases h with\n  | inl a =>\n      right\n      exact a\n  | inr b =>\n      left\n      exact b",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 101
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 18
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/or_right_fixed",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "or_right_fixed",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "下面这份 or_right 被内核拒绝了，错在哪？",
+      "prompt": "练习 5（评阅 R）：下面这份 or_right 被内核拒绝了，错在哪？\n\ntheorem or_right_wrong (A : Prop) (B : Prop) (b : B) : A ∨ B := Or.inl A B b\n\n提示：Or.inl 接受的是 A 的证明，而 b 是 B 的证明。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "结论是 A ∨ B，右半这一侧的证据要用「右」的构造子。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 A ∨ B；手里是 b : B。"
+        },
+        {
+          "label": "关键件",
+          "body": "Or 的两个构造子分别吃 A 的证明（Or.inl）与 B 的证明（Or.inr）：b 该交给哪一个？A、B 两个参数照旧补全。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : A ∨ B := by\n  sorry",
+      "solution": "theorem or_right_fixed (A : Prop) (B : Prop) (b : B) : A ∨ B := by\n  right\n  exact b",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 113
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 27
+      }
+    },
+    {
+      "id": "quick-start/unit10-reading-proofs/and_or_imp",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑩ 读证明与综合",
+      "unit_index": 10,
+      "kind": "theorem",
+      "name": "and_or_imp",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "分配律的一个方向——「A 且（B 或 C）」推出 「（A 且 B）或（A 且 C）」。",
+      "prompt": "练习 6（综合 ★★）：分配律的一个方向——「A 且（B 或 C）」推出 「（A 且 B）或（A 且 C）」。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "用 let 把 h 的右半（B ∨ C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。"
+        },
+        {
+          "label": "目标形态",
+          "body": "外层 fun (h : A ∧ (B ∨ C))；let bc : B ∨ C := And.right A (B ∨ C) h; 然后 match bc。"
+        },
+        {
+          "label": "关键件",
+          "body": "从 h 用 And.left 取 A、And.right 取分支证据；inl b 支用 And.intro A B 打包再交给 Or.inl，inr c 支用 And.intro A C 打包再交给 Or.inr。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_or_imp (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by\n  sorry",
+      "solution": "theorem and_or_imp (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by\n  intro h\n  have bc : B ∨ C := And.right h\n  cases bc with\n  | inl b =>\n      left\n      exact And.intro (And.left h) b\n  | inr c =>\n      right\n      exact And.intro (And.left h) c",
+      "source": {
+        "file": "courses/quick-start/unit10-reading-proofs.sokonanoda",
+        "line": 129
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit10-reading-proofs-solution.sokonanoda",
+        "line": 31
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/and_comm_imp_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "theorem",
+      "name": "and_comm_imp_x",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "给出演示的同型版本，但把假设写成箭头：",
+      "prompt": "练习 1（导出 X）：给出演示的同型版本，但把假设写成箭头：\n\n「A ∧ B 推出 B ∧ A。」",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "结论是 `A ∧ B → B ∧ A`，最外层是一个箭头——先写 fun (h : A ∧ B) 把假设拿进来。"
+        },
+        {
+          "label": "目标形态",
+          "body": "fun 之后目标变成 B ∧ A；用 And.intro B A 把两个证明位补齐。"
+        },
+        {
+          "label": "关键件",
+          "body": "两份证据都来自 h：And.right A B h 是 B 的证明，And.left A B h 是 A 的证明。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by\n  sorry",
+      "solution": "theorem and_comm_imp_x (A : Prop) (B : Prop) : A ∧ B → B ∧ A := by\n  intro h\n  exact And.intro (And.right h) (And.left h)",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 129
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 8
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/and_left_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "def",
+      "name": "and_left_x",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "库不只有 theorem，也有 `def`：把 And 的左消去固定成一条 库导出（它的类型是 A，值是一份证明）。",
+      "prompt": "练习 2（导出 X）：库不只有 theorem，也有 `def`：把 And 的左消去固定成一条 库导出（它的类型是 A，值是一份证明）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "声明形式是 def … (h : A ∧ B) : A；h 已经是参数，不需要再写 fun。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标是 A，手里是 h : A ∧ B。"
+        },
+        {
+          "label": "关键件",
+          "body": "And.left 吃三个显式参数：A、B 与 h。"
+        }
+      ],
+      "imports": [],
+      "template": "def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by\n  sorry",
+      "solution": "def and_left_x (A : Prop) (B : Prop) (h : A ∧ B) : A := by\n  exact And.left h",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 137
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 12
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/or_comm_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "theorem",
+      "name": "or_comm_x",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "库也要导出用到连接符的定理：交换 Or 的两半。",
+      "prompt": "练习 3（导出 X）：库也要导出用到连接符的定理：交换 Or 的两半。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "h : A ∨ B 包着两条分支的信息，用 match 分情况。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论是 B ∨ A；inl 支拿到 a : A，inr 支拿到 b : B。"
+        },
+        {
+          "label": "关键件",
+          "body": "结论的参数顺序是先 B 后 A：a 要走「右边」的构造子（Or.inr B A a），b 要走「左边」的构造子（Or.inl B A b）。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by\n  sorry",
+      "solution": "theorem or_comm_x (A : Prop) (B : Prop) : A ∨ B → B ∨ A := by\n  intro h\n  cases h with\n  | inl a =>\n      right\n      exact a\n  | inr b =>\n      left\n      exact b",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 144
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 15
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/example-1",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "example",
+      "name": "example-1",
+      "anonymous": true,
+      "exercise_no": 4,
+      "title": "这一条故意写成匿名 `example`（单元⑤ 用过这种形式）：库里 也可以不命名地检查一条命题。",
+      "prompt": "练习 4（导出 X）：这一条故意写成匿名 `example`（单元⑤ 用过这种形式）：库里 也可以不命名地检查一条命题。\n\n「A 推出 B、B 又推出 A，则 A 与 B 等价。」",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "两个方向是两条假设（两个箭头），结论把这对函数打包成 Iff。"
+        },
+        {
+          "label": "目标形态",
+          "body": "结论形如 A ↔ B，而 Iff 展开就是 (A → B) ∧ (B → A)。"
+        },
+        {
+          "label": "关键件",
+          "body": "用 And.intro，参数写 (A → B)、(B → A)，把 mp 与 mpr 放进两个证明位。"
+        }
+      ],
+      "imports": [],
+      "template": "example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by\n  sorry",
+      "solution": "example (A : Prop) (B : Prop) (mp : A → B) (mpr : B → A) : A ↔ B := by\n  exact And.intro mp mpr",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 155
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 25
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/and_comm_via_lib_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "theorem",
+      "name": "and_comm_via_lib_x",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "本文件就是「第一个模块」：and_comm 已经声明在这里。请写一条 新导出，把活交给共享的那条 and_comm（这就是上面那份模块的正确写法）。",
+      "prompt": "练习 5（评阅 R）：本文件就是「第一个模块」：and_comm 已经声明在这里。请写一条 新导出，把活交给共享的那条 and_comm（这就是上面那份模块的正确写法）。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "不要重抄证明；本文件已有 and_comm，直接调用它。"
+        },
+        {
+          "label": "目标形态",
+          "body": "目标 B ∧ A；把 A、B、h 三个参数显式喂给 and_comm。"
+        },
+        {
+          "label": "关键件",
+          "body": "函数应用写成 `and_comm A B h`（把和演示里一样的三个参数按顺序补全）。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by\n  sorry",
+      "solution": "theorem and_comm_via_lib_x (A : Prop) (B : Prop) (h : A ∧ B) : B ∧ A := by\n  exact and_comm A B h",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 177
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "quick-start/unit11-modules-projects/and_or_imp_x",
+      "course": "quick-start",
+      "chapter": null,
+      "chapter_title": "入门课",
+      "unit": "单元⑪ 模块与项目",
+      "unit_index": 11,
+      "kind": "theorem",
+      "name": "and_or_imp_x",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "分配律的一个方向——「A 且（B 或 C）」推出 「（A 且 B）或（A 且 C）」。",
+      "prompt": "练习 6（综合 ★★）：分配律的一个方向——「A 且（B 或 C）」推出 「（A 且 B）或（A 且 C）」。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "用 let 把 h 的右半（B ∨ C）单独命名，再对它 match 分情况；两种情况下都要把 A 与对应的那一半重新打包。"
+        },
+        {
+          "label": "目标形态",
+          "body": "外层 fun (h : A ∧ (B ∨ C))；let bc : B ∨ C := And.right A (B ∨ C) h; 然后 match bc。"
+        },
+        {
+          "label": "关键件",
+          "body": "从 h 用 And.left 取 A、And.right 取分支证据；inl b 支用 And.intro A B 打包再交给 Or.inl，inr c 支用 And.intro A C 打包再交给 Or.inr。"
+        }
+      ],
+      "imports": [],
+      "template": "theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by\n  sorry",
+      "solution": "theorem and_or_imp_x (A : Prop) (B : Prop) (C : Prop) : A ∧ (B ∨ C) → (A ∧ B) ∨ (A ∧ C) := by\n  intro h\n  have bc : B ∨ C := And.right h\n  cases bc with\n  | inl b =>\n      left\n      exact And.intro (And.left h) b\n  | inr c =>\n      right\n      exact And.intro (And.left h) c",
+      "source": {
+        "file": "courses/quick-start/unit11-modules-projects.sokonanoda",
+        "line": 193
+      },
+      "solution_source": {
+        "file": "courses/quick-start/solutions/unit11-modules-projects-solution.sokonanoda",
+        "line": 31
+      }
+    }
+  ]
+}
