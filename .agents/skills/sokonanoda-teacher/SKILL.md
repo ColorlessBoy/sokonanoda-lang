@@ -1,6 +1,6 @@
 ---
 name: sokonanoda-teacher
-description: Operate the sokonanoda teaching loop as the tutor on the shared playground.sokonanoda canvas - read and write exercises, grade them with the real kernel through --json events, and choose the next teaching step. Load this when the user wants to learn Lean-style proving, asks to be taught with sokonanoda, wants an exercise graded, or needs the current graded state of a .sokonanoda file. The full manual and its reference files live at skills/sokonanoda-teacher/SKILL.md from the repository root.
+description: Operate the sokonanoda teaching loop as the tutor on the shared playground.sokonanoda canvas - read and write exercises, grade them with the real kernel through --json events, and choose the next teaching step. On DeepSeek Harness the teaching loop runs through the local card fast path (/sokonanoda-fast-think on, then 开始做题); the canvas mode is suspended there pending a redesign. Load this when the user wants to learn Lean-style proving, asks to be taught with sokonanoda, wants an exercise graded, or needs the current graded state of a .sokonanoda file. The full manual and its reference files live at skills/sokonanoda-teacher/SKILL.md from the repository root.
 ---
 
 # sokonanoda-teacher (DeepSeek Harness entry)
@@ -17,7 +17,16 @@ truth for:
 - the grading loop (`scripts/soko grade playground.sokonanoda` → JSON events);
 - the decision table over `decl.checked` / `exercise.open` / `expr.typed` /
   `expr.reduced` / `warning` / `diagnostic`;
-- the exercise-writing rules and the Chinese style constraints.
+- the exercise-writing rules and the Chinese style constraints;
+- the **DeepSeek Harness local card teaching channel** (source §2.5): the learner
+  the agent enables the current session on skill load with `sokonanoda_fast_think`
+  action `enable` (the learner can also run `/sokonanoda-fast-think on` or ask for
+  `disable`), then the learner says 「开始做题」; the local engine issues question /
+  knowledge / progress cards and the agent acts as coach, not as the grader. Other
+  sessions stay off. The tool also exposes read-only `status` / `progress` /
+  `explain` / `log`.
+  Canvas teaching is suspended in DSH for now; do not switch a DSH teaching session
+  back to `playground.sokonanoda` exercises.
 
 Its reference files sit next to it and must also be resolved against the
 repository root:
@@ -37,6 +46,12 @@ Inviolable rules (restated here so a mis-load is still safe):
    request or after the learner has been stuck for ≥3 rounds.
 5. Adapt the concrete lesson to this learner; `courses/quick-start/` is your material
    library, not a fixed script.
+6. In DeepSeek Harness the fast-path switch is per session: loading this skill is
+   the learner's explicit teaching intent, so enable the CURRENT session via the
+   `sokonanoda_fast_think` tool and say so; other sessions stay off. The learner
+   can disable it at any time. It only intercepts quiz turns — kernel grading
+   remains the only judge. In DSH the canvas mode is suspended (2026-11-24,
+   awaiting a better design).
 
 > On DeepSeek Harness the language server is reachable for hover and
 > go-to-definition only: server diagnostics are not delivered to the agent. All

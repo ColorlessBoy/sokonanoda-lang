@@ -1,6 +1,6 @@
 ---
 name: sokonanoda-teacher
-description: Operate the sokonanoda teaching loop - act as the teacher on the playground.sokonanoda canvas, write definitions and sorry exercises, grade with the real kernel via --json events, and decide the next teaching step. Use when the user wants to learn Lean-style proving, work on the canvas, or needs the graded state of a .sokonanoda file.
+description: Operate the sokonanoda teaching loop - act as the teacher on the playground.sokonanoda canvas, write definitions and sorry exercises, grade with the real kernel via --json events, and decide the next teaching step. On DeepSeek Harness the teaching loop runs through the local card fast path (/sokonanoda-fast-think on, then 开始做题); the canvas mode is suspended there pending a redesign. Use when the user wants to learn Lean-style proving, work on the canvas, or needs the graded state of a .sokonanoda file.
 ---
 
 # sokonanoda-teacher：在画布上教 Lean 式证明
@@ -14,7 +14,14 @@ description: Operate the sokonanoda teaching loop - act as the teacher on the pl
 
 第一件事（被加载/被 `/sokonanoda-teacher` 唤起后）：
 
-1. 先按 §1 确认环境（`scripts/soko doctor --json`；未就绪就 `setup`）；
+0. **DSH 会话（工具列表里有 `sokonanoda_fast_think`）先走卡片通道**：调用
+   `status` 看本会话开关；**未开启就直接调用工具的 `enable` 打开当前会话**
+   （加载本技能 = 学习者显式进入教学模式），并说一句「已开启本地快思考，
+   不想用就 /off 或让我关」。然后请学习者说「开始做题」。本会话按 §2.5 的
+   教练流程走，**不要**先跑画布判卷、也不要主动往 `playground.sokonanoda`
+   写练习。画布模式在 DSH 先停用（2026-11-24），替代设计待定。
+1. （非 DSH，或学习者明确要判画布时）先按 §1 确认环境
+   （`scripts/soko doctor --json`；未就绪就 `setup`）；
 2. 跑一次判卷拿当前状态（`scripts/soko grade playground.sokonanoda --json`）；
 3. 再按 `docs/teaching-session.md` 与 `references/` 的判卷事件表推进。
 
@@ -254,6 +261,49 @@ $SOKO grade --no-project <文件>                                 # 忽略 sokon
 一个练习红不影响其他练习（逐声明容错：**open 练习按同签名 axiom 进环境**，
 对齐 Lean 4 的 `sorry`，后续声明可以正常引用它并得到 `uses-open-exercise`
 warning；**failed** 声明才不进环境。后续声明仍会被检查并得到自己的诊断）。
+
+## 2.5 DeepSeek Harness：本地做题/教学通道（2026-11-24）
+
+仓库自带 DSH 插件 `sokonanoda-dsh`（`dsh/plugins/sokonanoda-dsh/`）时，DSH 会话
+的教学走**本地课程引擎通道**：引擎直接出题、判卷、出卡，不经过模型调用；题目以
+question 卡渲染，判卷反馈与下一题也以卡片/文本返回。
+
+- **默认关闭、按会话开启**：加载本技能进入教学会话时，你调用
+  `sokonanoda_fast_think` 的 `enable` 打开**当前会话**；学习者自己也可以输入
+  `/sokonanoda-fast-think on`（`off` 关闭、`status` 查看），或让你 `disable`。
+  **其他会话绝不主动开启**；工具没有会话上下文时会报错，不要猜 session id。
+  两条路径共用同一个开关。
+- 开启后：学习者说「开始做题 / 练几题 / 出题」→ 本地引擎出题卡；回字母或
+  **点选项**作答 → 判卷 + 下一张卡；「不懂 / 讲解」→ 知识卡；「进度」→
+  进展热点卡。**首次答错只给 💡 提示并重发同一题卡，不公布答案、不推进**；
+  第二次才判卷公布答案并换题——看到「再想一次」时不要替学习者报答案。
+  **问答题**卡没有选项，学习者直接在输入框写回答（本地 rubric 判分）；第一次
+  没答全时引擎只列出还差的要点并重发同一张卡，不要替他补答案。说「不懂 / 讲讲」
+  会出**知识讲解卡**（不判卷、不推进）。普通聊天、追问、代码请求仍由你（模型）
+  回答，快路径不接管。
+- **你的角色变成教练**：卡片由引擎生成后，你读卡片内容做鼓励、解释、追问；
+  **不要**自己再出同一道题，也不要重复判卷。需要看引擎状态/进展时调用
+  `sokonanoda_fast_think` 工具（`status` / `progress` / `explain` / `log`）——
+  它只读，不改变做题状态。
+- **画布模式先停用**（2026-11-24 用户拍板：先去掉，后面再设计）：在 DSH 会话里
+  **不要**主动用 `playground.sokonanoda` 出题、判卷、让学习者改画布；DSH 只走
+  卡片通道。学习者明确要手写 `.sokonanoda` 文件时，按普通代码请求处理（需要判卷
+  时用 §1 的 `scripts/soko grade`），但不要把它当成默认教学流程。
+- 卡片右上角的 `⚡ 快思考` 小标记表示这张卡来自本地引擎（即开关已开启、快路径
+  正在作答）；没有这个标记的普通回复来自模型。
+- 快路径的做题记录在 `~/.dsh/state/sokonanoda-dsh/`（不在仓库）。
+- 引擎判定仍是唯一裁判，卡片只是渲染。卡片内容有疑问时以 `scripts/soko grade`
+  的事件为准，不要靠文本猜测。
+
+**开场话术（DSH，第一次进入教学会话）**：若 `sokonanoda_fast_think status` 显示
+本会话未开启，先调用工具的 `enable`，再说一句（不要长篇解释插件）：
+
+> 已开启本地快思考。说「开始做题」我就用卡片带你练；不想用随时 `/sokonanoda-fast-think off` 或让我关。
+
+开启后「开始做题」由本地引擎接走，你就按上面的教练角色接话，不要再自己出
+同一道题。若学习者说「进度」但没出卡：先 `status` 看开关，没开就 `enable`，
+再请对方重发一次；不要用模型编一份进度假装是卡片。学习者说想改画布文件时，
+按「画布模式先停用」处理。
 
 ## 3. 事件决策表（判卷后怎么动作）
 
@@ -536,6 +586,10 @@ warning；**failed** 声明才不进环境。后续声明仍会被检查并得�
    `stats.kernel_checks`（front API）可验证重查范围。
 5. 收尾义务：改动落盘前更新 `STATUS.md`；涉及产品行为的新要求记入
    `REQUIREMENTS.md`。
+6. DSH 快思考开关按会话：加载本技能 = 学习者进入教学模式，agent 应
+   `enable` **当前**会话并告知；其他会话绝不主动开启。学习者要求或下课就
+   `disable`（或他输入 `/sokonanoda-fast-think off`）。开关只影响做题消息，
+   判定真相始终是 kernel。
 
 ## 8. 收尾
 
