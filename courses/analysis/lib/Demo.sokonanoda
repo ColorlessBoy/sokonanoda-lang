@@ -2,6 +2,7 @@
 import lib.Logic
 import lib.Exists
 import lib.Choice
+import lib.RatInv
 import lib.Set
 import lib.Prod
 import lib.Rel
