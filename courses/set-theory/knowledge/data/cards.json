@@ -1,0 +1,738 @@
+{
+  "schema": "soko.knowledge-cards/1",
+  "title": "卷 I 集合论 · 知识卡片库",
+  "version": 6,
+  "updated": "2026-11-22",
+  "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
+  "cards": [
+    {
+      "id": "is-strict-order",
+      "kicker": "卷 I · I.2 关系",
+      "title": "严格序 · IsStrictOrder",
+      "oneLiner": "严格序 = 自己和自己不可比 + 传递；样板是 `<`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Irreflexive (α : Type) (r : α → α → Prop) : Prop :=\n  ∀ (a : α), ¬ (r a a)\n\ndef Transitive (α : Type) (r : α → α → Prop) : Prop :=\n  ∀ (a b c : α), r a b → r b c → r a c\n\ndef IsStrictOrder (α : Type) (r : α → α → Prop) : Prop :=\n  Irreflexive α r ∧ Transitive α r"
+      },
+      "sections": [
+        {
+          "heading": "人话拆解",
+          "kind": "table",
+          "columns": [
+            "条件",
+            "人话",
+            "`<` 的例子"
+          ],
+          "rows": [
+            [
+              "非自反",
+              "`a < a` 永远不成立",
+              "3 < 3 是假的"
+            ],
+            [
+              "传递",
+              "`a < b`、`b < c` ⇒ `a < c`",
+              "1<2、2<3 ⇒ 1<3"
+            ]
+          ]
+        },
+        {
+          "heading": "例子",
+          "kind": "table",
+          "columns": [
+            "关系",
+            "严格序？",
+            "为什么"
+          ],
+          "rows": [
+            [
+              "`<`（自然数/实数）",
+              "✅",
+              "无 `a < a`；可传递"
+            ],
+            [
+              "`≤`",
+              "❌ 是偏序",
+              "`a ≤ a` 恒成立，违反非自反"
+            ],
+            [
+              "真包含 `⊂`（A ⊆ B 且 A ≠ B）",
+              "✅",
+              "`A ⊄ A`；传递"
+            ],
+            [
+              "空关系",
+              "✅（空真）",
+              "没有 `a r a` 可违反"
+            ]
+          ]
+        },
+        {
+          "heading": "常见误区",
+          "kind": "list",
+          "items": [
+            "以为严格序要「反对称」——不需要：非自反 + 传递已排除 `a < b` 且 `b < a`（否则传递得 `a < a`，矛盾）。",
+            "把「非自反」理解成「元素之间不可比」——错，它只排除自己与自己。",
+            "把 `≤` 当严格序——它自反，是偏序；严格序是 `<`。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "证 `IsStrictOrder r`：`constructor` 拆两半 → ① `intro a h` 从 `h : r a a` 找矛盾；② `intro a b c hab hbc` 证 `r a c`。",
+            "用 `h : IsStrictOrder r`：`And.left h : Irreflexive r`，`And.right h : Transitive r`。"
+          ]
+        }
+      ],
+      "source": "lib/Order.sokonanoda:53 / :65 / :80",
+      "tags": [
+        "order",
+        "strict-order"
+      ],
+      "prereq": [
+        "partial-order"
+      ]
+    },
+    {
+      "id": "rel",
+      "kicker": "卷 I · I.2 关系",
+      "title": "关系 · Rel",
+      "oneLiner": "关系 = 二元谓词：`Rel α β` 与 `α → β → Prop` 是同一个东西。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Rel (A B : Type) : Type := A → B → Prop"
+      },
+      "sections": [
+        {
+          "heading": "三层拆解",
+          "kind": "table",
+          "columns": [
+            "表达式",
+            "它是什么",
+            "读法"
+          ],
+          "rows": [
+            [
+              "`Rel A B`",
+              "一个类型",
+              "「从 A 到 B 的关系」这个类型"
+            ],
+            [
+              "`r : Rel A B`",
+              "一个函数 `A → B → Prop`",
+              "吃 a : A、再吃 b : B，吐命题"
+            ],
+            [
+              "`r a b`",
+              "一个命题 Prop",
+              "「a 与 b 有关系 r」"
+            ],
+            [
+              "`r a`",
+              "`B → Prop`",
+              "就是 B 的一个子集"
+            ]
+          ]
+        },
+        {
+          "heading": "例子",
+          "kind": "list",
+          "items": [
+            "`=` 是 `Rel α α` 的一个值：`a = b` 是命题。",
+            "`⊆` 是 `Rel (Set α) (Set α)` 的一个值：`A ⊆ B` 是命题。"
+          ]
+        },
+        {
+          "heading": "一句话记住",
+          "kind": "list",
+          "items": [
+            "集合 = 一元谓词（`Set α := α → Prop`）；关系 = 二元谓词（`Rel α β := α → β → Prop`）——同一句话的两阶版本。"
+          ]
+        }
+      ],
+      "source": "lib/Rel.sokonanoda:43",
+      "tags": [
+        "rel"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "injective",
+      "kicker": "卷 I · I.2 函数",
+      "title": "单射 · Injective",
+      "oneLiner": "单射 = 不同输入不会撞到同一个输出。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Function.Injective (α β : Type) (f : α → β) : Prop :=\n  ∀ (x : α), ∀ (y : α), f x = f y → x = y"
+      },
+      "sections": [
+        {
+          "heading": "人话",
+          "kind": "list",
+          "items": [
+            "输出相同 ⇒ 输入本来相同；等价地：不同输入一定给出不同输出（不撞车）。",
+            "反例：整数上 `n ↦ n²` 不是单射——2 和 −2 都撞到 4。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "把等式从输出层拉回输入层：有 `inj : Injective f`、`h : f a = f b`，则 `inj a b h : a = b`。"
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "table",
+          "columns": [
+            "名称",
+            "一句话"
+          ],
+          "rows": [
+            [
+              "单射 Injective",
+              "不同输入不同输出（不撞车）"
+            ],
+            [
+              "满射 Surjective",
+              "每个输出都有原像（不漏）"
+            ],
+            [
+              "双射 Bijective",
+              "单射 ∧ 满射（一一对应）"
+            ]
+          ]
+        }
+      ],
+      "source": "lib/Fun.sokonanoda:78",
+      "tags": [
+        "function",
+        "injective"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "set-ext",
+      "kicker": "卷 I · I.1 集合",
+      "title": "集合相等 · Set.ext",
+      "oneLiner": "集合相等靠外延性：逐点给出 `↔`（互相包含）。",
+      "definition": {
+        "lang": "lean",
+        "code": "axiom ext : {α : Type} → (A B : Set α) →\n  (∀ (x : α), A x ↔ B x) → A = B"
+      },
+      "sections": [
+        {
+          "heading": "标准套路",
+          "kind": "list",
+          "items": [
+            "`apply Set.ext` → `intro x` → `constructor` 拆成两个方向 → 每个方向用已有的包含假设。"
+          ]
+        },
+        {
+          "heading": "为什么两个方向、而 ⊆ 只要一个",
+          "kind": "list",
+          "items": [
+            "`Set.ext` 要求逐点 `↔`（两个方向都要）；`A ⊆ B` 展开只是一条箭头 `∀ x, x ∈ A → x ∈ B`（单方向）。",
+            "`refl` 是自反（`A = A`、`A ⊆ A`），不能用来证两个集合相等——常见错误。"
+          ]
+        }
+      ],
+      "source": "lib/Set.sokonanoda:108 / :159",
+      "tags": [
+        "extensionality"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "or-elim",
+      "kicker": "卷 I · I.1 逻辑",
+      "title": "析取消去 · Or.elim",
+      "oneLiner": "`A ∨ B` 要证 `C`：两个来源各证一次 `C`，然后交给 `Or.elim`。",
+      "definition": {
+        "lang": "lean",
+        "code": "Or.elim : {a b c : Prop} → (a → c) → (b → c) → Or a b → c"
+      },
+      "sections": [
+        {
+          "heading": "用法",
+          "kind": "list",
+          "items": [
+            "`Or.elim (fun ha => …) (fun hb => …) h`：第一个函数处理「来自 A」的情形，第二个处理「来自 B」的情形。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "参数顺序：先两个函数、后 `Or` 证据（写成 `Or.elim h f g` 会类型不符）。",
+            "两个分支的目标必须是同一个 `C`——不能在两个分支证不同命题。"
+          ]
+        }
+      ],
+      "source": "prelude Or.elim（单元⑥ 起用）；实测签名见 lib/Logic 注释",
+      "tags": [
+        "logic",
+        "or"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "antisymmetric",
+      "kicker": "卷 I · I.2 关系",
+      "title": "反对称 · Antisymmetric",
+      "oneLiner": "两个方向都排得上 ⇒ 只能是同一个元素；这是「序」与「等价关系」的分水岭。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Antisymmetric (α : Type) (r : α → α → Prop) : Prop :=\n  ∀ (a b : α), r a b → r b a → a = b\n\ndef Irreflexive (α : Type) (r : α → α → Prop) : Prop :=\n  ∀ (a : α), ¬ (r a a)"
+      },
+      "tags": [
+        "antisymmetric",
+        "order",
+        "rel"
+      ],
+      "prereq": [
+        "rel"
+      ],
+      "sections": [
+        {
+          "heading": "人话",
+          "kind": "list",
+          "items": [
+            "反对称说的是「两个方向都成立时，两个元素只能相等」，不是「不能比较」；",
+            "非自反说的是「自己和自己没有关系」（`a < a` 永远假）——两者完全不同。"
+          ]
+        },
+        {
+          "heading": "例子",
+          "kind": "table",
+          "columns": [
+            "关系",
+            "反对称？",
+            "为什么"
+          ],
+          "rows": [
+            [
+              "`≤`",
+              "✅",
+              "a≤b 且 b≤a ⇒ a=b"
+            ],
+            [
+              "`⊆`",
+              "✅",
+              "互相包含 ⇒ 相等"
+            ],
+            [
+              "`≡ (mod 2)`",
+              "❌",
+              "2≡4 且 4≡2，但 2≠4"
+            ],
+            [
+              "`<`",
+              "✅（空真）",
+              "不会有 a<b 且 b<a"
+            ]
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "要证 `Antisymmetric r`：`intro a b hab hba`，目标变成 `a = b`；",
+            "拿到 `h : Antisymmetric r`：`h a b hab hba : a = b`。"
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "list",
+          "items": [
+            "把非自反 `∀ a, ¬ r a a` 当成反对称；",
+            "偏序 = 自反 + 反对称 + 传递；严格序 = 非自反 + 传递（不需要反对称）。"
+          ]
+        }
+      ],
+      "source": "lib/Order.sokonanoda:61（反对称）/ :53（非自反）"
+    },
+    {
+      "id": "partial-order",
+      "kicker": "卷 I · I.2 关系",
+      "title": "偏序 · IsPartialOrder",
+      "oneLiner": "自反 + 反对称 + 传递；样板是 `⊆`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def IsPartialOrder (α : Type) (r : α → α → Prop) : Prop :=\n  Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r"
+      },
+      "tags": [
+        "partial-order",
+        "order",
+        "rel"
+      ],
+      "prereq": [
+        "antisymmetric"
+      ],
+      "sections": [
+        {
+          "heading": "三条件",
+          "kind": "table",
+          "columns": [
+            "条件",
+            "定义",
+            "`⊆` 的例子"
+          ],
+          "rows": [
+            [
+              "自反",
+              "`∀ a, r a a`",
+              "A ⊆ A"
+            ],
+            [
+              "反对称",
+              "`∀ a b, r a b → r b a → a = b`",
+              "A⊆B 且 B⊆A ⇒ A=B"
+            ],
+            [
+              "传递",
+              "`∀ a b c, r a b → r b c → r a c`",
+              "A⊆B⊆C ⇒ A⊆C"
+            ]
+          ]
+        },
+        {
+          "heading": "对照",
+          "kind": "table",
+          "columns": [
+            "关系类",
+            "组成",
+            "样板"
+          ],
+          "rows": [
+            [
+              "等价关系",
+              "自反 + 对称 + 传递",
+              "`=`、同余"
+            ],
+            [
+              "偏序",
+              "自反 + 反对称 + 传递",
+              "`⊆`、`≤`"
+            ],
+            [
+              "严格序",
+              "非自反 + 传递",
+              "`<`、真包含"
+            ]
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "`h : IsPartialOrder r` → `h.1 : Reflexive r`、`h.2.1 : Antisymmetric r`、`h.2.2 : Transitive r`；",
+            "证的时候用 `constructor` 拆成三个子目标，逐个证。"
+          ]
+        }
+      ],
+      "source": "lib/Order.sokonanoda:76"
+    },
+    {
+      "id": "types-101",
+      "kicker": "卷 I · 类型总览",
+      "title": "核心类型一览（Type / Prop / Set / Rel / Prod / 函数）",
+      "oneLiner": "先认清「类型」和「命题」：类型住着值，命题住着证明。",
+      "definition": {
+        "lang": "lean",
+        "code": "Prop          -- 命题的类型（a = b、A ⊆ B、Injective f）\nType          -- 类型的宇宙（α、β 是任意类型的占位符）\nSet α         -- 一元谓词：α → Prop\nRel α β       -- 二元谓词：α → β → Prop\nProd α β      -- 有序对：Prod.fst / Prod.snd\nα → β         -- 函数类型：吃 α 吐 β\nType.Equiv α β -- 等势：∃ 一对互逆函数\nCardinal      -- 基数（Type 1）：Cardinal.mk α"
+      },
+      "tags": [
+        "types",
+        "glossary"
+      ],
+      "prereq": [],
+      "sections": [
+        {
+          "heading": "怎么读",
+          "kind": "table",
+          "columns": [
+            "表达式",
+            "读法",
+            "例子"
+          ],
+          "rows": [
+            [
+              "`α : Type`",
+              "α 是一个类型",
+              "`Nat`、`Set Nat`、`Prop`"
+            ],
+            [
+              "`x : α`",
+              "x 是 α 的值",
+              "`a : Nat`"
+            ],
+            [
+              "`p : Prop`",
+              "p 是一个命题",
+              "`a = b`、`A ⊆ B`"
+            ],
+            [
+              "`f : α → β`",
+              "f 是函数",
+              "`fun x => x`"
+            ]
+          ]
+        },
+        {
+          "heading": "三类常见类型",
+          "kind": "list",
+          "items": [
+            "**集合**：`Set α := α → Prop`，`a ∈ A` 就是 `A a`（所以集合是谓词，不是列表）；",
+            "**关系**：`Rel α β := α → β → Prop`，`r a b` 是命题；",
+            "**函数**：`α → β` 是语言原语，`f x : β`；复合 `g ∘ f` 先 f 后 g。"
+          ]
+        },
+        {
+          "heading": "命题与证明",
+          "kind": "list",
+          "items": [
+            "命题不是“真/假标签”，而是**类型**；它的值叫证明。",
+            "`True` 有平凡证明 `True.intro`；`False` 没有证明，`False.elim h` 从矛盾推出任何命题。"
+          ]
+        }
+      ],
+      "source": "lib/Set.sokonanoda:56 · lib/Rel.sokonanoda:43 · lib/Prod.sokonanoda:51 · lib/Cardinal.sokonanoda:39 · lib/Logic"
+    },
+    {
+      "id": "inverse",
+      "kicker": "卷 I · I.2 函数",
+      "title": "逆函数 · LeftInverse / RightInverse / Inverse",
+      "oneLiner": "右逆 = 先 g 再 f 回到 y（f ∘ g = id）；左逆 = 先 f 再 g 回到 x（g ∘ f = id）。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Function.LeftInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=\n  ∀ (x : α), g (f x) = x\n\ndef Function.RightInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=\n  ∀ (y : β), f (g y) = y\n\ndef Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=\n  LeftInverse α β g f ∧ RightInverse α β g f"
+      },
+      "tags": [
+        "function",
+        "injective",
+        "surjective",
+        "inverse",
+        "right-inverse"
+      ],
+      "prereq": [
+        "injective"
+      ],
+      "sections": [
+        {
+          "heading": "人话：方向与顺序",
+          "kind": "table",
+          "columns": [
+            "定义",
+            "展开",
+            "读法（f : α → β，g : β → α）"
+          ],
+          "rows": [
+            [
+              "`LeftInverse g f`",
+              "`∀ x, g (f x) = x`",
+              "先作用 f，再用 g 拉回 x（g 是 f 的左逆）"
+            ],
+            [
+              "`RightInverse g f`",
+              "`∀ y, f (g y) = y`",
+              "先作用 g，再用 f 拉回 y（g 是 f 的右逆）"
+            ],
+            [
+              "`Inverse f g`",
+              "左逆 ∧ 右逆",
+              "两边都能拉回（数据版双射）"
+            ]
+          ]
+        },
+        {
+          "heading": "参数顺序（最容易忘的点）",
+          "kind": "list",
+          "items": [
+            "两个定义都是 **逆函数 g 在前、原函数 f 在后**（`LeftInverse g f` / `RightInverse g f`）——Mathlib 同款；",
+            "`Inverse f g` 相反：按「谁是谁的逆」自然语序，f 在前 g 在后。"
+          ]
+        },
+        {
+          "heading": "与单射/满射的关系（数据版）",
+          "kind": "table",
+          "columns": [
+            "已知",
+            "能得到",
+            "为什么"
+          ],
+          "rows": [
+            [
+              "`h : LeftInverse g f`",
+              "`Injective f`",
+              "f x = f y ⇒ g(f x) = g(f y) ⇒ x = y"
+            ],
+            [
+              "`h : RightInverse g f`",
+              "`Surjective f`",
+              "任给 y，取 x := g y，则 f x = y（证人现成）"
+            ],
+            [
+              "`h : Inverse f g`",
+              "双射（单射 ∧ 满射）",
+              "两边都有逆律"
+            ]
+          ]
+        },
+        {
+          "heading": "例子",
+          "kind": "list",
+          "items": [
+            "恒等函数 `id` 是自己的左逆、右逆、双边逆；",
+            "嵌入 `inl : α → α ⊕ β` 有左逆（投影），但没有右逆；",
+            "抽象地说：左逆 ⇒ 不丢信息；右逆 ⇒ 不漏输出。"
+          ]
+        },
+        {
+          "heading": "课程边界（选择公理）",
+          "kind": "list",
+          "items": [
+            "「满射可裂」`Surjective f → ∃ g, RightInverse g f`（**存在版**）等价于选择公理，本语言证不出来；",
+            "课程只立**数据版**：g 由调用者交出来，我们验证逆律——这是 I.2 单元⑦ 的第 6 题形状。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "拿到 `h : RightInverse g f` 和 `y : β`：`h y : f (g y) = y`——直接给出「y 的原像就是 g y」；",
+            "要证 `Surjective f`：`intro y; exact Exists.intro (g y) (h y)`。"
+          ]
+        }
+      ],
+      "source": "lib/Fun.sokonanoda:92（LeftInverse）/ :96（RightInverse）/ :102（Inverse）"
+    },
+    {
+      "id": "equiv",
+      "kicker": "卷 I · I.3 等势",
+      "title": "等势 · Type.Equiv 与三条定律",
+      "oneLiner": "两个类型等势 = 存在一对互逆函数；三条定律：refl（自己）、symm（对调）、trans（串联）。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Type.Equiv (α β : Type) : Prop :=\n  ∃ (f : α → β), ∃ (g : β → α),\n    (∀ (a : α), g (f a) = a) ∧ (∀ (b : β), f (g b) = b)\n\ntheorem Type.Equiv.refl (α : Type) : Type.Equiv α α\ntheorem Type.Equiv.symm (α β : Type) (h : Type.Equiv α β) : Type.Equiv β α\ntheorem Type.Equiv.trans (α β γ : Type) (h₁ : Type.Equiv α β) (h₂ : Type.Equiv β γ) : Type.Equiv α γ"
+      },
+      "tags": [
+        "equipotent",
+        "cardinal",
+        "types"
+      ],
+      "prereq": [
+        "inverse"
+      ],
+      "sections": [
+        {
+          "heading": "怎么读",
+          "kind": "list",
+          "items": [
+            "`Type.Equiv α β` 是一个**命题**：存在 f : α→β 与 g : β→α，两条逆律都成立；",
+            "数据版：f 与 g 由证明者**交出来**（不是「存在一个函数」那种选择公理式陈述）。"
+          ]
+        },
+        {
+          "heading": "三条定律（等价关系的三性）",
+          "kind": "table",
+          "columns": [
+            "定律",
+            "类型",
+            "证明思路"
+          ],
+          "rows": [
+            [
+              "`Type.Equiv.refl`",
+              "`Type.Equiv α α`",
+              "取 f = g = id，逆律都是 rfl"
+            ],
+            [
+              "`Type.Equiv.symm`",
+              "`Type.Equiv α β → Type.Equiv β α`",
+              "把 f 与 g **对调**；两条逆律也交换位置"
+            ],
+            [
+              "`Type.Equiv.trans`",
+              "`Equiv α β → Equiv β γ → Equiv α γ`",
+              "复合两个函数对：f₂ ∘ f₁ 与 g₁ ∘ g₂"
+            ]
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "list",
+          "items": [
+            "`Type.Equiv.symm α β h` 的类型是 `Type.Equiv β α`——方向是**反过来**（α、β 顺序对调）；",
+            "它属于 I.3 单元⑨（等势），不是 I.2 的 `Inverse`：`Inverse f g` 是数据版双边逆，`Equiv` 是它的**存在包装**。",
+            "与集合层的 `Set.Equiv`（lib/Equiv）区分：后者还带 `A ⊆ α`、`B ⊆ β` 的子集限制。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "证 `Type.Equiv β α`：`exact Type.Equiv.symm α β h`；",
+            "拆开用：`Type.Equiv.iff` 把等势换成 `∃ f g, …` 的显式形式。"
+          ]
+        }
+      ],
+      "source": "lib/Cardinal.sokonanoda:39/118/161/168 · lib/Equiv.sokonanoda:118"
+    },
+    {
+      "id": "choice-axiom",
+      "kicker": "选择公理",
+      "title": "选择公理：什么时候能用，什么时候不能用",
+      "oneLiner": "「存在某种选择」这件事，本身不给你可计算的函数；要用它，就必须把公理明确请进来（本课在 I.7 才请），否则可以当它不存在。",
+      "definition": {
+        "lang": "lean",
+        "code": "axiom choice : (α β : Type) → (A : Set α) → (B : Set β) → (P : α → β → Prop) →\n  (∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) →\n  ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)"
+      },
+      "sections": [
+        {
+          "heading": "先分清「有」和「拿得到」",
+          "kind": "paragraph",
+          "text": "∃ 是一个命题（有证据就成立），它只说「有这么个东西」，并不把那个东西交给你。所以你一旦要用「那个东西」，就必须另外拿到它——要么有人把它作为参数交进来，要么用一条公理保证它存在。"
+        },
+        {
+          "heading": "本课的两条纪律",
+          "kind": "list",
+          "items": [
+            "没有请选择公理之前：任何「存在 ⇒ 取出一个具体对象」的推理都不许做，相关定理只能写成「你交进来」的数据版（例如 Inverse f g：g 由调用者给出）。",
+            "用了 axiom choice 之后：可以从逐点存在里一次选出整条函数（I.7 才引入），从那以后这类推理才合法。"
+          ]
+        },
+        {
+          "heading": "为什么会「一会能用一会不能用」",
+          "kind": "paragraph",
+          "text": "不是规则变了，而是前提变了：前 6 章没有选择公理，所以「双射 ⇒ 存在逆函数」这种写成 ∃ 的版本证不出来；I.7 引入公理之后同样的命题就能证。题目里出现「要选择公理」= 该命题的 ∃ 版本超出当前公理；出现「数据版」= 把存在改成参数，绕开公理。"
+        },
+        {
+          "heading": "怎么一眼判断",
+          "kind": "list",
+          "items": [
+            "定理结论是 ∃ g, … 且要由「每个 y 都有原像」挑出 g ⇒ 需要选择公理；",
+            "定理把 g 和证据作为参数（如 bijective_iff_inverse 的 g、hg）⇒ 不需要；",
+            "结论里有「存在一个函数」且要求对无限族同时选 ⇒ 需要。"
+          ]
+        }
+      ],
+      "source": "lib/Choice.sokonanoda:38 axiom choice；units/I.7/unit112*",
+      "types": [
+        {
+          "term": "选择公理",
+          "oneLiner": "允许把「逐点存在」打包成「存在一条函数」的公理",
+          "source": "lib/Choice.sokonanoda:38"
+        }
+      ],
+      "tags": [
+        "classical",
+        "choice",
+        "order",
+        "fun"
+      ],
+      "prereq": []
+    }
+  ]
+}

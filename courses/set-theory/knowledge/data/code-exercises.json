@@ -1,0 +1,106 @@
+{
+  "schema": "soko.code-exercises/1",
+  "version": 1,
+  "updated": "2026-11-22",
+  "note": "代码练习库：template 含 sorry（内核判 exercise.open）；solution 为参考解答（项/tactic 均可）；由 scripts/soko 内核判卷。",
+  "exercises": [
+    {
+      "id": "code.i1.subset-trans",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "title": "子集传递",
+      "prompt": "证明：若 A ⊆ B 且 B ⊆ C，则 A ⊆ C。",
+      "kps": [
+        "kp.i1.subset.apply"
+      ],
+      "hints": [
+        "先 `intro x hx` 拿到「任意 x 且 x ∈ A」",
+        "h1 x hx : x ∈ B；再用 h2 走一步"
+      ],
+      "template": "import lib.Set\n\ntheorem subset_trans (α : Type) (A B C : Set α)\n    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C := by\n  sorry\n",
+      "solution": "import lib.Set\n\ntheorem subset_trans (α : Type) (A B C : Set α)\n    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C := by\n  intro x hx\n  exact h2 x (h1 x hx)\n"
+    },
+    {
+      "id": "code.i1.inter-subset",
+      "chapter": "I.1",
+      "unit": "③ 并、交、差与幂集",
+      "title": "交集是子集",
+      "prompt": "证明：A ∩ B ⊆ A（交集的第一分量）。",
+      "kps": [
+        "kp.i1.inter"
+      ],
+      "hints": [
+        "`x ∈ A ∩ B` 展开就是 `A x ∧ B x`",
+        "合取消去用 `And.left`"
+      ],
+      "template": "import lib.Set\n\ntheorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by\n  sorry\n",
+      "solution": "import lib.Set\n\ntheorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A := by\n  intro x hx\n  exact And.left hx\n"
+    },
+    {
+      "id": "code.i1.union-subset",
+      "chapter": "I.1",
+      "unit": "③ 并、交、差与幂集",
+      "title": "并集消去",
+      "prompt": "证明：若 A ⊆ C 且 B ⊆ C，则 A ∪ B ⊆ C。",
+      "kps": [
+        "kp.i1.union",
+        "kp.i1.subset.apply"
+      ],
+      "hints": [
+        "`x ∈ A ∪ B` 是 `A x ∨ B x`，要拆成两个来源",
+        "`Or.elim (hA x) (hB x) hx`：两个分支各证 C x"
+      ],
+      "template": "import lib.Set\n\ntheorem union_subset (α : Type) (A B C : Set α)\n    (hA : A ⊆ C) (hB : B ⊆ C) : A ∪ B ⊆ C := by\n  sorry\n",
+      "solution": "import lib.Set\n\ntheorem union_subset (α : Type) (A B C : Set α)\n    (hA : A ⊆ C) (hB : B ⊆ C) : A ∪ B ⊆ C := by\n  intro x hx\n  exact Or.elim (hA x) (hB x) hx\n"
+    },
+    {
+      "id": "code.i2.rel-comp-unfold",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "title": "关系复合展开",
+      "prompt": "证明：`(r • s) a c` 等价于 `∃ b, r a b ∧ s b c`（定义展开）。",
+      "kps": [
+        "kp.i2.rel.comp"
+      ],
+      "hints": [
+        "`r • s` 是 `Rel.comp` 的定义简写，展开后就是 `∃ b, …`",
+        "两个方向都是「原样交出去」"
+      ],
+      "template": "import lib.Rel\n\ntheorem rel_comp_unfold (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :\n    (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c := by\n  sorry\n",
+      "solution": "import lib.Rel\n\ntheorem rel_comp_unfold (α β γ : Type) (r : Rel α β) (s : Rel β γ) (a : α) (c : γ) :\n    (r • s) a c ↔ ∃ (b : β), r a b ∧ s b c := by\n  constructor\n  intro h\n  exact h\n  intro h\n  exact h\n"
+    },
+    {
+      "id": "code.i2.inj-use",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "title": "单射怎么用",
+      "prompt": "已知 `Function.Injective α β f` 与 `h : f a = f b`，证明 `a = b`。",
+      "kps": [
+        "kp.i2.fun.inj"
+      ],
+      "hints": [
+        "单射是「输出层等式 → 输入层等式」的机器（本课写作 `Function.Injective α β f`）",
+        "`inj a b h` 正好吃一份 `f a = f b`"
+      ],
+      "template": "import lib.Fun\n\ntheorem inj_use (α β : Type) (f : α → β) (inj : Function.Injective α β f)\n    (a b : α) (h : f a = f b) : a = b := by\n  sorry\n",
+      "solution": "import lib.Fun\n\ntheorem inj_use (α β : Type) (f : α → β) (inj : Function.Injective α β f)\n    (a b : α) (h : f a = f b) : a = b := by\n  exact inj a b h\n"
+    },
+    {
+      "id": "code.i3.image-preimage",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "title": "像落进 B ⇒ A 进原像",
+      "prompt": "已知 `f '' A ⊆ B`，证明 `A ⊆ f ⁻¹' B`（image_subset_iff 的一边）。",
+      "kps": [
+        "kp.i3.image",
+        "kp.i3.preimage"
+      ],
+      "hints": [
+        "目标展开后是 `f x ∈ B`",
+        "用 `Set.mem_image_intro` 造出 `f x ∈ f '' A`：证人 x + 等式 rfl"
+      ],
+      "template": "import lib.Set\nimport lib.Image\n\ntheorem image_subset_into_preimage (α β : Type) (f : α → β) (A : Set α) (B : Set β)\n    (h : f '' A ⊆ B) : A ⊆ f ⁻¹' B := by\n  sorry\n",
+      "solution": "import lib.Set\nimport lib.Image\n\ntheorem image_subset_into_preimage (α β : Type) (f : α → β) (A : Set α) (B : Set β)\n    (h : f '' A ⊆ B) : A ⊆ f ⁻¹' B := by\n  intro x hx\n  exact h (f x) (Set.mem_image_intro f A (f x) x hx (Eq.refl (f x)))\n"
+    }
+  ]
+}

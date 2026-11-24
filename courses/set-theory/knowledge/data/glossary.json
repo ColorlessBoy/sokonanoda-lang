@@ -1,0 +1,255 @@
+{
+  "schema": "soko.glossary/1",
+  "version": 6,
+  "updated": "2026-11-22",
+  "entries": [
+    {
+      "id": "type",
+      "term": "Type",
+      "kind": "type",
+      "oneLiner": "「类型」的宇宙；α、β 这类小写希腊字母是任意类型的占位符。",
+      "code": "-- 例：α : Type，f : α → β",
+      "source": "prelude / Lean 4 记法"
+    },
+    {
+      "id": "prop",
+      "term": "Prop",
+      "kind": "type",
+      "oneLiner": "命题的类型：`a = b`、`A ⊆ B`、`Injective f` 都是 Prop；Prop 的值是「证明」。",
+      "code": "-- 例：a = b : Prop",
+      "source": "lib/Logic"
+    },
+    {
+      "id": "function-type",
+      "term": "α → β",
+      "kind": "type",
+      "oneLiner": "函数类型：吃一个 α，吐一个 β。`f : α → β` 表示 f 是这种函数，`f x : β`。",
+      "code": "-- f : α → β, x : α ⟹ f x : β",
+      "source": "prelude"
+    },
+    {
+      "id": "set",
+      "term": "Set",
+      "kind": "type",
+      "oneLiner": "集合 = 一元谓词：`Set α := α → Prop`；所以 `a ∈ A` 就是 `A a`。",
+      "code": "-- Set α = α → Prop",
+      "source": "lib/Set.sokonanoda:56"
+    },
+    {
+      "id": "rel",
+      "term": "Rel",
+      "kind": "type",
+      "oneLiner": "关系 = 二元谓词：`Rel α β := α → β → Prop`；`r a b : Prop`。",
+      "code": "-- Rel α β = α → β → Prop",
+      "source": "lib/Rel.sokonanoda:43"
+    },
+    {
+      "id": "prod",
+      "term": "Prod",
+      "kind": "type",
+      "oneLiner": "有序对：`Prod α β` 的居民是 `(a, b)`；`Prod.fst`/`Prod.snd` 取坐标。",
+      "code": "-- p : Prod α β ⟹ Prod.fst p : α",
+      "source": "lib/Prod.sokonanoda:51"
+    },
+    {
+      "id": "equiv",
+      "term": "Type.Equiv",
+      "kind": "type",
+      "oneLiner": "等势：存在一对互逆函数（数据版双射）。",
+      "code": "-- Type.Equiv α β := ∃ f g, (∀a, g(f a)=a) ∧ (∀b, f(g b)=b)",
+      "source": "lib/Cardinal.sokonanoda:39"
+    },
+    {
+      "id": "cardinal",
+      "term": "Cardinal",
+      "kind": "type",
+      "oneLiner": "基数类型（Type 1）：`Cardinal.mk α` 把类型映成一个势；`Cardinal.sound` 由等势得相等。",
+      "code": "-- Cardinal.mk : Type → Cardinal",
+      "source": "lib/Cardinal.sokonanoda:73"
+    },
+    {
+      "id": "nat",
+      "term": "Nat",
+      "kind": "type",
+      "oneLiner": "自然数（prelude 内建）：0、1、2… 字面量可用；本课不展开算术。",
+      "code": "-- 0 : Nat",
+      "source": "prelude"
+    },
+    {
+      "id": "true-false",
+      "term": "True / False",
+      "kind": "type",
+      "oneLiner": "True 有平凡证明；False 没有证明，`False.elim h` 能从它推出任何命题。",
+      "code": "-- True.intro : True",
+      "source": "lib/Logic"
+    },
+    {
+      "id": "injective",
+      "term": "Injective",
+      "kind": "definition",
+      "oneLiner": "单射：不同输入不会撞到同一输出（输出等式能拉回输入）。",
+      "code": "-- Injective f := ∀ x y, f x = f y → x = y",
+      "source": "lib/Fun.sokonanoda:78"
+    },
+    {
+      "id": "surjective",
+      "term": "Surjective",
+      "kind": "definition",
+      "oneLiner": "满射：每个输出都有原像（交证人 x 与 f x = y）。",
+      "code": "-- Surjective f := ∀ y, ∃ x, f x = y",
+      "source": "lib/Fun.sokonanoda:83"
+    },
+    {
+      "id": "isordinal",
+      "term": "IsOrdinal",
+      "kind": "definition",
+      "oneLiner": "序数（谓词版）：传递集 + 元素皆传递 + 良基；I.6 正式使用。",
+      "code": "-- IsOrdinal E x := 传递 ∧ 元素传递 ∧ IsWellFounded E",
+      "source": "lib/Ordinal.sokonanoda:50"
+    },
+    {
+      "id": "issuccof",
+      "term": "IsSuccOf",
+      "kind": "definition",
+      "oneLiner": "x 是 y 的后继序数：x 是序数，且 x 的元素 = y 的元素 + y 自己（即 x = y ∪ {y}）。",
+      "code": "-- IsSuccOf E x y := IsOrdinal E x ∧ ∀ z, E z x ↔ (E z y ∨ z = y)",
+      "source": "lib/Ordinal.sokonanoda:55"
+    },
+    {
+      "id": "emptyset",
+      "term": "∅",
+      "kind": "type",
+      "oneLiner": "空集：恒假谓词；`a ∈ ∅` ↔ False，故可用 `Set.notMem_empty a : ¬ (a ∈ ∅)` 找矛盾。",
+      "code": "-- Set.empty = fun _ => False",
+      "source": "lib/Set.sokonanoda:67"
+    },
+    {
+      "id": "witness",
+      "term": "证人（witness）",
+      "kind": "concept",
+      "oneLiner": "要证 `∃ x, P x` 时**具体给出的那个 x** 就是证人；整份证明 = 证人 + P x 的证据。",
+      "code": "-- ∃ x, f x = y：证人 = g y，证据 = h y : f (g y) = y",
+      "source": "lib/Logic（Exists.intro/elim）"
+    },
+    {
+      "id": "type-equiv-symm",
+      "term": "Type.Equiv.symm",
+      "kind": "lemma",
+      "oneLiner": "等势的对称律：`Type.Equiv α β → Type.Equiv β α`（把 f 与 g 对调）。",
+      "code": "-- theorem Type.Equiv.symm (α β) (h : Type.Equiv α β) : Type.Equiv β α",
+      "source": "lib/Cardinal.sokonanoda:161"
+    },
+    {
+      "id": "notation-f-",
+      "term": "`f '' A`",
+      "kind": "notation",
+      "oneLiner": "像：`f '' A = { y | ∃ x, x ∈ A ∧ f x = y }`（把 A 里的点都送过去，收集落点）。",
+      "code": "",
+      "source": "lib/Image.sokonanoda:32"
+    },
+    {
+      "id": "notation-f-",
+      "term": "`f ⁻¹' B`",
+      "kind": "notation",
+      "oneLiner": "原像：`f ⁻¹' B = { x | f x ∈ B }`（谁被送到 B 里）。",
+      "code": "",
+      "source": "lib/Image.sokonanoda:37"
+    },
+    {
+      "id": "notation-g-f",
+      "term": "`g ∘ f`",
+      "kind": "notation",
+      "oneLiner": "函数复合：`(g ∘ f) x = g (f x)`，先 f 后 g。",
+      "code": "",
+      "source": "lib/Fun.sokonanoda:64"
+    },
+    {
+      "id": "notation-r-s",
+      "term": "`r • s`",
+      "kind": "notation",
+      "oneLiner": "关系复合：`(r • s) a c ↔ ∃ b, r a b ∧ s b c`，先 r 后 s。",
+      "code": "",
+      "source": "lib/Rel.sokonanoda:58"
+    },
+    {
+      "id": "notation-s-t",
+      "term": "`s ×ˢ t`",
+      "kind": "notation",
+      "oneLiner": "笛卡尔积：`p ∈ s ×ˢ t ↔ fst p ∈ s ∧ snd p ∈ t`。",
+      "code": "",
+      "source": "lib/Prod.sokonanoda:74"
+    },
+    {
+      "id": "notation--",
+      "term": "`A ⊆ B`",
+      "kind": "notation",
+      "oneLiner": "子集：`∀ x, x ∈ A → x ∈ B`（一条箭头）。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:159"
+    },
+    {
+      "id": "notation-a-",
+      "term": "`a ∈ A`",
+      "kind": "notation",
+      "oneLiner": "隶属：`A a`（集合是一元谓词）。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:60"
+    },
+    {
+      "id": "notation--",
+      "term": "`A \\ B`",
+      "kind": "notation",
+      "oneLiner": "差集：`x ∈ A \\ B ↔ A x ∧ ¬ (B x)`。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:95"
+    },
+    {
+      "id": "notation--",
+      "term": "`Aᶜ`",
+      "kind": "notation",
+      "oneLiner": "补集：`x ∈ Aᶜ ↔ ¬ (A x)`。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:97"
+    },
+    {
+      "id": "notation--",
+      "term": "`𝒫 A`",
+      "kind": "notation",
+      "oneLiner": "幂集：`B ∈ 𝒫 A ↔ B ⊆ A`。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:99"
+    },
+    {
+      "id": "notation--",
+      "term": "`∅`",
+      "kind": "notation",
+      "oneLiner": "空集：`x ∈ ∅ ↔ False`。",
+      "code": "",
+      "source": "lib/Set.sokonanoda:67"
+    },
+    {
+      "id": "notation--",
+      "term": "`∀` / `∃`",
+      "kind": "notation",
+      "oneLiner": "全称/存在量词；证 ∃ 要交「证人 + 证据」，证 ∀ 用 intro。",
+      "code": "",
+      "source": "lib/Exists.sokonanoda:88"
+    },
+    {
+      "id": "choice-axiom",
+      "term": "选择公理（Axiom of Choice）",
+      "kind": "concept",
+      "oneLiner": "若有 ∀x∈A, ∃y∈B, P x y，则存在一条函数 f 为每个 x 选出一个 y——这条「打包」本身需要公理；本课 I.7 才引入，之前只能写数据版。",
+      "code": "axiom choice : (∀ x ∈ A, ∃ y ∈ B, P x y) → ∃ f, ∀ x ∈ A, P x (f x)",
+      "source": "lib/Choice.sokonanoda:38"
+    },
+    {
+      "id": "le-on",
+      "term": "LeOn（势比较 · 点名前缀）",
+      "kind": "concept",
+      "oneLiner": "`LeOn α β A B` 与库里的 `A ≼ B`（即 `Set.Le`）是**同一个定义**：存在一个在 `A` 上单射、并把 `A` 送进 `B` 的函数；单元里用点名前缀写明 `α β`，库里用 `≼` 记法。",
+      "code": "def LeOn (α β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B",
+      "source": "units/I.3/unit97-equiv-le.sokonanoda:28 = lib/Equiv.sokonanoda:169 Set.Le"
+    }
+  ]
+}

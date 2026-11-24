@@ -1,0 +1,47 @@
+{
+  "schema": "soko.learn-params/1",
+  "version": 5,
+  "updated": "2026-11-21",
+  "eta": 0.3,
+  "theta_init": 0.0,
+  "theta_bounds": [
+    -3.0,
+    3.0
+  ],
+  "mastered_threshold": 0.85,
+  "wrong_card_threshold": 2,
+  "recent_window": 20,
+  "weights": {
+    "gap": 0.45,
+    "challenge": 0.35,
+    "novelty": 0.1,
+    "coverage": 0.1
+  },
+  "review": {
+    "mastery_below": 0.75,
+    "interval_days_base": 1.0,
+    "interval_days_slope": 2.0
+  },
+  "coverage_target_per_chapter": 3,
+  "variant_bonus": 0.2,
+  "same_tag_streak_penalty": 0.15,
+  "flow": {
+    "codeEvery": 0,
+    "primerCards": false,
+    "primerNote": "每题前的 primer 知识卡默认关闭（用户要求「下一题/开始做题」直接出题）；「不懂」仍会出知识卡。"
+  },
+  "selection": {
+    "exclude": [
+      "I.1.classical-2",
+      "I.1.compl-2",
+      "I.1.mem-1",
+      "I.1.mem-2",
+      "I.1.mem-3",
+      "I.2.fun-2",
+      "I.2.partial-3",
+      "I.3.both-3",
+      "I.3.cb-3"
+    ],
+    "excludeNote": "纯背名字/演示名、以及只讲课程进度（之前/之后/本课）不讲知识点的题目；由 2026-11-22 用户反馈加入。 2026-11-23：I.1.mem-* 由有序序列 I.1.mem-s1..s5 取代。"
+  }
+}
