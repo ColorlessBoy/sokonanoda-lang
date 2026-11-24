@@ -1,0 +1,50 @@
+{
+  "schema": "soko.exercise-dataset-manifest/1",
+  "generated_by": "courses/exercise-dataset/build.py",
+  "courses": [
+    {
+      "id": "quick-start",
+      "title": "入门课",
+      "file": "data/quick-start.json",
+      "source_fingerprint": "sha256:3c2f75a9567e0edb6ba4953e93c33a0fa34ad1a42b91f81f3163a5bf809a53b5",
+      "units": 11,
+      "units_with_exercises": 11,
+      "exercises": 66,
+      "hints": 198,
+      "solutions": 66,
+      "prompt": 66
+    },
+    {
+      "id": "set-theory",
+      "title": "卷 I《集合论》",
+      "file": "data/set-theory.json",
+      "source_fingerprint": "sha256:d4fa7723027c362d9aad349879e6473df63ea97d73bf2c2c4c6c5b50c7d30dd9",
+      "units": 112,
+      "units_with_exercises": 112,
+      "exercises": 910,
+      "hints": 1751,
+      "solutions": 910,
+      "prompt": 888
+    },
+    {
+      "id": "analysis",
+      "title": "从集合论到实分析",
+      "file": "data/analysis.json",
+      "source_fingerprint": "sha256:0560767014205e5725e2d1162dfcf8910f8383851e83513033a134af5763e515",
+      "units": 171,
+      "units_with_exercises": 171,
+      "exercises": 1019,
+      "hints": 3000,
+      "solutions": 1019,
+      "prompt": 769
+    }
+  ],
+  "totals": {
+    "units": 294,
+    "units_with_exercises": 294,
+    "exercises": 1995,
+    "hints": 4949,
+    "solutions": 1995,
+    "prompt": 1723
+  }
+}

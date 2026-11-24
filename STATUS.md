@@ -1,5 +1,13 @@
+## 当前快照（2026-11-24 · C9 P0）
+C9 题目集数据集 P0 落盘：`courses/exercise-dataset/` 从三门课程教材抽出 **1995 道代码练习**（294 单元、解答 1995/1995、4949 条 `soko:hint`，JSON 4.59 MB，生成物进 git 但由 `build.py` 唯一生成）；大计划 issue **#96**。判据：`build.py --check` 判源文件漂移，`check.py` 判结构/来源映射/解答，`check.py --selftest` 对 6 类坏数据必须判红；抽样 `compose.py` → 真内核判卷（模板有 `exercise.open`、解答 0 open、0 diagnostic）。
+
+## C9 题目集数据集 P0（2026-11-24 · issue #96）
+- 结构：`model.py` 唯一解析器（课程清单 v1/v2、画布、解答）；`build.py` / `check.py` / `compose.py` 共用。记录带稳定 ID `<course>/[<chapter>/]<unit-stem>/<name>`、`prompt`/`hints`/`template`/`solution`/`source` 映射；匿名 `example` 用 `example-N`。
+- 读数：quick-start 66 / 11 单元；set-theory 910 / 112；analysis 1019 / 171；190 道旧练习无 hint 照实记录；`build.py --json` 给出每门课计数与字节数。
+- 边界：不改课程源与 kernel/front 判定；选择题层（P2）与插件接线（P3）未做，见 #96 阶段表。
+
 ## M6：QA / 文档 / 站点 / 发布（2026-11-21 · issue #22）
-M1–M5 已全部完成，M5 的 21 个单元在 2026-11-19 落盘，分析课 171/171 单元（卷 II 72、卷 III 99），M6 只做 QA、文档、站点与发布，不新增单元。全量课程门禁 `python3 courses/analysis/tools/check.py --json` rc=0：457 个目标、4512 checked、0 rejected、0 solutions_open、0 lib_open；`python3 scripts/notation-lint.py --root courses/analysis` rc=0，扫 470 个文件、15 处显式豁免。文档与站点入口已对齐 171/171，站点 `check-site.py` 10/10、加 `--browser` 12/12；零 cargo 学习者路径实测通过（`setup` → `doctor` → `grade` → `query hints` → 解答），分析课整门进度 `course --json` 报 171 单元、0 failed；`docs-lint`、`status-lint`、`docs-expiry-check --check` 均 rc=0。发版节点曾被 Lean Kernel Arena 门禁挡住（`b60796a9`：两条递归规则伪造被接受 + `perf/ite-taken-branch` 超时）；2026-11-23 内核修复 PR #92 合入后，`arena-gate.py` 在 `8d4167f5` 上 PASS（230 cases：accepted 135 · rejected 90 · declined 2 · timeouts 3，known slow 3），发版预检全过。书页媒介与双语范围待用户拍板，尚未开工。
+M1–M5 完成、分析课 171/171 单元；全量课程门禁 457 目标 / 4512 checked / 0 rejected；站点 `check-site.py` 10/10（`--browser` 12/12）；Arena 门禁经 PR #92 修复后在 `8d4167f5` PASS。书页 v3 与双语范围待用户拍板。
 
 ## 发版 0.99.0（2026-11-23 · M6 收口）
-`python3 scripts/bump.py 0.99.0` 写四处版本 + 3 个课程清单的 `requires` + `site/data`（写版本前强制跑 arena 门禁，PASS 后才落字）。发版内容 = M1–M6：分析课 171/171 单元（卷 II 72、卷 III 99）发布、QA/文档/站点/发布四包，加上本轮的 LKA 门禁修复（消去规则的证明无关捷径被关掉、`0 << 2^64` 归约修好、`perf/ite-taken-branch` 按 perf-only 登记 known-slow）。书页 v3（多页）与双语仍未合入 `main`，留在 issue #22 后续。
+`scripts/bump.py 0.99.0` 写四处版本 + 3 个课程清单 + 站点数据；发布内容 = M1–M6 加 LKA 门禁修复；书页 v3/双语仍留 #22 后续。
