@@ -5,7 +5,7 @@
 
 ## 状态
 
-课程共 172 个单元（卷 II 72、卷 III 100；单元172 是 2026-11-24 补的 FTC 前置），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 的 QA、文档与站点入口已收口：全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；发版节点仍被 Lean Kernel Arena 门禁挡住（两条递归规则伪造被接受、一条性能用例超时），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。
+课程共 173 个单元（卷 II 72、卷 III 101；单元172/173 是 2026-11-24 补的 FTC 前置与 FTC-1），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 的 QA、文档与站点入口已收口：全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；发版节点仍被 Lean Kernel Arena 门禁挡住（两条递归规则伪造被接受、一条性能用例超时），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。
 
 - **单元173（2026-11-24，FTC 第一部分）**：**面积函数的导数**。设 `a<c<b`，`f` 一致连续，`F x` 是 `f` 在 `[a,x]` 上的面积值；则 `F` 在 `c` 处可导，导数是 `f c`。证明先给无除法的差界 `|(F x−F c)−f c·(x−c)| ≤ eps·|x−c|`：把 `[a,c]` 与 `[c,x]` 用 `catPartition` 接起来，后半用细网格上的常数台阶 `f c ± η` 夹住（`strip_upper_sum`/`strip_lower_sum`），前半的缝隙按 `eps/2·|x−c|` 取（可积性随 `|x−c|` 收缩，不是固定常数），两半缝隙相加后由 `abs_of_two_sided` 收成关系式；再用总商 `ratQuotTotal` 把差界除以 `x−c`，得到 `TendsToAt (integralSlope F c) c (f c)`，组装成 `HasDerivAt F c (f c)`（`integral_hasDerivAt`）。常值曲线 k 的读数是 `HasDerivAt (fun x => k·(x−a)) c k`。正文 3 题 + 1 读数，0 rejected；解答 4 checked、0 open。**引擎进库**：`lib/IntegralFTC`（52 条 checked，含差界、极限、导数）。边界：通用原函数版 Newton–Leibniz 在 `ratRep` 层不成立（√2 两侧 0/1 反例），本单元只做面积函数这一半；不新增公理。
 
