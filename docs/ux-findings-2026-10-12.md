@@ -103,9 +103,6 @@
   真问题是**画布内容**：unit01 第 37 行挑了 `#check Iff.refl` 这条看不见效果的演示。
 * **编辑器「补全弹窗打不开」= 探针自纠，撤回**：`offsetParent !== null` 对 **fixed** 定位的 `.suggest-widget`
   恒为 null；行为判据（打 `exa` + Enter ⇒ 变 `exact`）证明弹窗工作。真问题是**候选内容**（F5）。
-* **M-01 `grade --root` 被静默丢掉**：`30030b7a` 已修（`query check --root` ⇒ exit 0 / `decl_checked: 1`）。
-* **r06 的「唯一变量 = 有没有 `∈`」对照不成立**（`r06-nomem` 第一条错是 `/\`，不是 `·` 子弹）；
-  真判别量 = 单文件预解析是否先撞 `notation-unknown-symbol`。**现象本身仍是真 bug**（code 归因 + hint）。
 * **LSP 侧不报的边界**：声明名位置 F12 = `null`（G-53 已知诚实行为）· `Nat.add`/`Nat.zero` F12 = `null`
   （内核按名字安装 ⇒ 如实没有落点，不许编位置）· `textDocument/diagnostic`（pull）= `-32601`
   （能力表未声明 `diagnosticProvider` ⇒ 只推不拉是合法形态）· `·` 焦点点不支持属**语言**缺口（另计 r07）。
@@ -116,15 +113,9 @@
   `elab-unknown-identifier` 的 span 精确度 · `sorry`/开放练习状态清楚 · hover 签名（编辑器 F7）·
   Build/Clean 的反馈（F14）· 撤销/重做与保存（F15）· 编辑器 F1 的因果对照 `notation-clean-control`。
 
-## 6. 🔄 复跑现状与仍未收口项（2026-10-12 15:5x 主会话复跑，**干净缓存**）
+## 6. 🔄 复跑现状（已修好项见 git 历史）
 
-**已修好（明细见 git 历史）**：`r04`（apply 结论校验）·
-`r05`/`r08`/`r09`（隐式第二候选）· `r12` · `A1`（tactic 位洞）· `D1`+`r06`（入口 parse 归因）·
-`r01`+`r15`（内核拒绝源级渲染）· `C1`–`C5`（补全）· `m07`（prelude 摘要进缓存键）。
-
-**⚠ vim 探针的期望已陈旧（探针侧，不是缺口）**：`diag-caret-shift` 的 `)` 是编辑器自动补全
-；`vim-nm-*` 以规范判据 `scripts/vscode-input-vim-e2e.mjs` 为准；
-`ctl-enter-indent` 是无 vim 对照臂。明细见 git 历史。
+**已修好**：`r04`/`r05`/`r08`/`r09`/`r12`/`A1`/`D1`+`r06`/`r01`+`r15`/`C1`–`C5`/`m07`；vim 探针期望以 `scripts/vscode-input-vim-e2e.mjs` 为准。
 
 ## 7. 🔁 复核方法
 
