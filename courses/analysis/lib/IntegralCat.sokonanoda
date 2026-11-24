@@ -208,3 +208,25 @@ theorem leNat_add_cancel_left (a b k : Nat)
 
 theorem ratRel_of_eq (x y : ratRep) (h : x = y) : ratRel x y :=
   @Eq.subst.{1} ratRep (fun (z : ratRep) => ratRel x z) x y h (ratRel_refl x)
+
+-- 后继下标从接缝起：`catFun (succ m)` 的后继项就是 `catFun m` 在平移后的
+-- 左半上取值。`catHead_succ` 给出这一步。
+theorem catFun_at_succ (m : Nat) (f1 f2 : Nat → ratRep) (j : Nat) :
+    catFun (Nat.succ m) f1 f2 (Nat.succ j) =
+      catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j :=
+  @Eq.trans.{1} ratRep
+    (catFun (Nat.succ m) f1 f2 (Nat.succ j))
+    (catHead f1 f2 (catFun m) (Nat.succ j))
+    (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+    (catFun_succ m f1 f2 (Nat.succ j))
+    (catHead_succ f1 f2 (catFun m) j)
+
+-- 第 0 项：`catFun (succ m)` 的第 0 项就是左半的第 0 项。
+theorem catFun_at_zero (m : Nat) (f1 f2 : Nat → ratRep) :
+    catFun (Nat.succ m) f1 f2 Nat.zero = f1 Nat.zero :=
+  @Eq.trans.{1} ratRep
+    (catFun (Nat.succ m) f1 f2 Nat.zero)
+    (catHead f1 f2 (catFun m) Nat.zero)
+    (f1 Nat.zero)
+    (catFun_succ m f1 f2 Nat.zero)
+    (catHead_zero f1 f2 (catFun m))

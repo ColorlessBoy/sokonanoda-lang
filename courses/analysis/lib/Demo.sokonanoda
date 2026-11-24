@@ -5,6 +5,8 @@ import lib.Choice
 import lib.RatInv
 import lib.RatDivExist
 import lib.IntegralSlope
+import lib.IntegralCatPart
+import lib.IntegralCat
 import lib.RatEqBool
 import lib.Set
 import lib.Prod

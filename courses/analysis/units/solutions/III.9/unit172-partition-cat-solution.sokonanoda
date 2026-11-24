@@ -1,0 +1,91 @@
+-- 单元172 解答：分割拼接的四个读数
+--
+-- 引擎在 `lib/IntegralCatPart`；本解答只把它的读数接到单元里。
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.Integral
+import lib.IntegralSum
+import lib.IntegralCatPart
+
+-- 左半第 k 个切点：`catFun_left` 给出。
+theorem u172_cat_point_left (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (k : Nat) (hk : LeNat (Nat.succ k) (Nat.succ n1)) :
+    partPoint (catPartition n1 p1 p2) k = partPoint p1 k :=
+  catFun_left (partPoint p1) (partPoint p2) (Nat.succ n1) k hk
+
+-- 从接缝起第 j 个切点：`catFun_at` 给出。
+theorem u172_cat_point_at (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (j : Nat) :
+    partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) j) =
+      partPoint p2 j :=
+  catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) j
+
+-- 第 0 个点：先化到左半的第 0 个点，再用 `IsPartition` 的左端点。
+theorem u172_cat_point_zero (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp1 : IsPartition a c p1) :
+    partPoint (catPartition n1 p1 p2) Nat.zero = a :=
+  @Eq.trans.{1} ratRep
+    (partPoint (catPartition n1 p1 p2) Nat.zero)
+    (partPoint p1 Nat.zero)
+    a
+    (catFun_at_zero n1 (partPoint p1) (partPoint p2))
+    (isPartition_left a c p1 hp1)
+
+-- 最后一个点：先化到右半的第 n2 个点，再用 `IsPartition` 的右端点。
+theorem u172_cat_last (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp2 : IsPartition c b p2) :
+    partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)) = b :=
+  @Eq.trans.{1} ratRep
+    (partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)))
+    (partPoint p2 (partCount p2))
+    b
+    (catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) (partCount p2))
+    (isPartition_right c b p2 hp2)
+
+-- 拼接仍是分割：直接引库里的 `catPartition_isPartition`。
+theorem u172_cat_isPartition (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1) :
+    IsPartition a b (catPartition n1 p1 p2) :=
+  catPartition_isPartition a b c p1 p2 n1 hp1 hp2 hjoin hn1
+
+-- 下和相加。
+theorem u172_cat_lowerSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (L1 L2 : ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hL1 : LowerSum a c p1 f L1) (hL2 : LowerSum c b p2 f L2) :
+    LowerSum a b (catPartition n1 p1 p2) f (ratAddRep L1 L2) :=
+  catPartition_lowerSum a b c p1 p2 n1 f L1 L2 hp1 hp2 hjoin hn1 hL1 hL2
+
+-- 上和相加。
+theorem u172_cat_upperSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (U1 U2 : ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hU1 : UpperSum a c p1 f U1) (hU2 : UpperSum c b p2 f U2) :
+    UpperSum a b (catPartition n1 p1 p2) f (ratAddRep U1 U2) :=
+  catPartition_upperSum a b c p1 p2 n1 f U1 U2 hp1 hp2 hjoin hn1 hU1 hU2
+
+-- 矩形和相加。
+theorem u172_cat_stepSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (l1 l2 : Nat → ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1) :
+    ratRel (stepSum (catPartition n1 p1 p2) (catFun (Nat.succ n1) l1 l2))
+      (ratAddRep (stepSum p1 l1) (stepSum p2 l2)) :=
+  catPartition_stepSum a b c p1 p2 n1 l1 l2 hp1 hp2 hjoin hn1
+
+-- 段数读数：定义性相等。
+theorem demo_catPartition_count (p1 p2 : Partition) (n1 : Nat) :
+    partCount (catPartition n1 p1 p2) =
+      Nat.add (Nat.succ n1) (partCount p2) :=
+  @Eq.refl.{1} Nat (Nat.add (Nat.succ n1) (partCount p2))

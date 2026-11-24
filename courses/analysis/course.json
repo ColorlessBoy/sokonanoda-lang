@@ -1300,6 +1300,12 @@
               "title": "单元171 面积值的平移：整条曲线抬高一块矩形",
               "title_en": "Unit 171 — Shifting the Integral Value: Lifting the Whole Curve by a Rectangle",
               "unit": 171
+            },
+            {
+              "file": "units/III.9/unit172-partition-cat.sokonanoda",
+              "title": "单元172 分割拼接：把两块面积接到同一个分割上",
+              "title_en": "Unit 172 — Gluing Partitions: Joining Two Blocks of Area",
+              "unit": 172
             }
           ]
         }
