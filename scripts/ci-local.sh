@@ -232,6 +232,11 @@ if [ "$FAST" = 0 ]; then
   # 否则分析课的 457 个目标只在远端才被判（本地全绿 ≠ CI 全绿 ✗）。
   run "gates：课程门禁（卷 I 集合论）" "gates" python3 courses/set-theory/tools/check.py
   run "gates：课程门禁（卷 II/III 实分析）" "gates" python3 courses/analysis/tools/check.py
+  # C9.0（#98）：数据集是课程源的派生物；与 CI 的 `gates-course` 同一条判据。
+  run "gates：课程题目集数据集（构建/校验/自检）" "gates" bash -c '
+python3 courses/exercise-dataset/build.py --check || exit 1
+python3 courses/exercise-dataset/check.py || exit 1
+python3 courses/exercise-dataset/check.py --selftest || exit 1'
 else
   printf '\n▶ gates：课程门禁（两门课）  —— **--fast 跳过** ✓（**本轮未验证** ✗；远端 CI 的 `gates` job 会跑 ✓）\n'
 fi

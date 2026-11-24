@@ -99,6 +99,7 @@ scripts/soko grade --root courses/set-theory /tmp/solution.sokonanoda --json  # 
 ## 维护约定
 
 - 改任何课程源文件后：`build.py` → `check.py`；提交里同时包含源文件与重建后的 `data/`。
+- CI：`gates-course` job（`courses/**` 改动时）跑 `build.py --check` / `check.py` / `--selftest`；本地 `scripts/ci-local.sh` 的 gates 组跑同一条判据。
 - 新增课程：在 `model.py` 的 `COURSE_ROOTS` / `COURSE_ORDER` 登记，**不需要**改解析逻辑；课程清单格式 v1（扁平数组）与 v2（volumes → chapters）都支持。
 - 生成物不手改（`check.py` 会判出来）；`--selftest` 保证校验器不是空转。
 - 本目录 `README.md` / `data/` 不进 `docs-lint` 的文档预算（它在 `courses/` 下，不是 `docs/`）。

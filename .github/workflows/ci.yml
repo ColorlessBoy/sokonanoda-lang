@@ -1143,6 +1143,15 @@ jobs:
         with:
           node-version: 22
 
+      - name: 课程题目集数据集（构建 + 校验 + 自检）
+        # C9.0（#98）：数据集是课程源的派生物 —— `--check` 判源文件漂移，`check.py`
+        # 判结构/来源映射/解答，`--selftest` 注入坏数据必须判红。纯 python3、秒级，
+        # 放在重活（release build / 课程门禁）之前先失败。
+        run: |
+          python3 "$GITHUB_WORKSPACE/courses/exercise-dataset/build.py" --check
+          python3 "$GITHUB_WORKSPACE/courses/exercise-dataset/check.py"
+          python3 "$GITHUB_WORKSPACE/courses/exercise-dataset/check.py" --selftest
+
       # 课程门禁（卷 I《集合论》）：判据 G1–G5，**与规模无关**（不锁计数——课程还在长）。
       # 唯一真相是课程自己的 check.py（硬规则 6：课程线零 cargo），它内部只认
       # `grade` 的退出码（G-10）、一律绝对路径（G-12）、失败时给不依赖 span 的
