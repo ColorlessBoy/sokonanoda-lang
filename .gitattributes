@@ -1,0 +1,3 @@
+# 课程题目集数据集是生成物（由 courses/exercise-dataset/build.py 唯一生成，
+# check.py 判漂移）——标记为 generated，避免 GitHub 把它当手写代码统计/逐行展开。
+courses/exercise-dataset/data/*.json linguist-generated=true
