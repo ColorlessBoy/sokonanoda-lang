@@ -115,6 +115,48 @@ $DSH_HOME/cordis.patch.yml                  # 影响所有 profile
 3. 自查是否生效：`dsh --profile web --dump-config` 会打印每行由哪个文件提供、
    被哪些 overlay 改过。
 
+## sokonanoda 语言服务插件（`dsh/plugins/sokonanoda-dsh`）
+
+`dsh/plugins/` 下是**仓库自带、需要显式安装**的 DSH 插件。目前只有一个统一插件
+`sokonanoda-dsh`：它把「自动快思考」和「卡片渲染 / Lean 高亮」收在一个包里，
+**不再**需要 `learn-card`、`fast-think`、`quiz-keeper` 这类分散插件，也不需要
+`local-quiz/quiz-auto` model provider 或独立的 `quiz-proxy` 进程。
+
+```bash
+# 在 DSH 会话里安装（需要批准；无 build scripts）
+plugin_manager({ action: "install_bundle", target: "<仓库>/dsh/plugins/sokonanoda-dsh" })
+cd dsh/plugins/sokonanoda-dsh && node test/run.mjs
+```
+
+它做什么：
+
+- **快思考**：在 `llm/stream` waterfall 里拦截 agent-loop 的做题消息（字母 / 开始 /
+  继续 / 不懂 / 地图…），交给**进程内**的本地课程引擎作答；不换模型、不新增
+  provider、不改变普通消息的走向。命中失败、超时、服务没起来都回落 `next()`。
+- **卡片**：快路径回复里的 ```learn-card 围栏被客户端渲染成 question / knowledge /
+  lesson / **progress（进展热点）** 卡片；```lean / ```sokonanoda 渲染成高亮代码。
+  题目卡含选择题与问答题（问答题直接打字判分）；「不懂」出知识讲解卡；进展热点卡含连对/正确率/覆盖/章节进度/单元掌握热力与建议关注；快路径卡片右上角有 `⚡ 快思考` 小标记。
+- **显式开关**：快思考**默认关闭**，只在学习会话里执行 `/sokonanoda-fast-think on` 后才接管
+  （`/sokonanoda-fast-think off` 关闭，`status` 查看）。开关按 session 持久化在
+  `~/.dsh/state/sokonanoda-dsh/sessions.json`，普通会话不会触发。
+- **题目卡可点击**：点选项 → 发一条**普通字母消息**（与打字同一 composer 提交路径）；
+  知识卡 / 课卡 / 进展卡仍然纯展示。
+- **感知/开关**：注册 `sokonanoda_fast_think` 工具（status / explain / progress / log / enable / disable），
+  模型可查看快路径状态与决策历史、对一段话做 dry-run 分类；学习者明确要求时可切换当前会话开关。
+
+**运行时数据不在仓库里**（仓库会公开分享）：
+
+```
+~/.dsh/state/sokonanoda-dsh/     # SOKO_DSH_DATA 可覆盖
+├── config.json                  # 可选；bundle 行 config 覆盖它
+├── quiz/                        # 做题进度（旧 quiz-proxy/state/ 迁入）
+├── history/decisions.jsonl      # 快/回落决策与 sokonanoda_fast_think 记录
+└── logs/quiz-proxy/             # 进程内 quiz service 日志
+```
+
+设计/调研：`dsh/plugins/sokonanoda-dsh/README.md`；插件 `docs/` 目录下的
+`research.md` 与 `cards-research.md`。
+
 ## 技能入口形态（`.agents/skills/`）
 
 DSH 扫的根只有 `<repo>/.dsh/skills` 与 `<repo>/.agents/skills`（不递归），

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "sokonanoda language service (DSH)",
+    "description": "One plugin: quiz turns are answered by the local course engine inside llm/stream (no model switch, no extra process); learn-card / Lean fences render as cards and highlighted code in the client, display-only, with typing as the interaction. Config, quiz progress and history live in ~/.dsh/state/sokonanoda-dsh/, never in the repository."
+  }
+}
