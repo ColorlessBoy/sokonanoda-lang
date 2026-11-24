@@ -3,14 +3,14 @@
   "course": "analysis",
   "title": "从集合论到实分析",
   "generated_by": "courses/exercise-dataset/build.py",
-  "source_fingerprint": "sha256:0560767014205e5725e2d1162dfcf8910f8383851e83513033a134af5763e515",
+  "source_fingerprint": "sha256:5e4d2de64f5ffe51e3f3a337e6bc45098982eb2c9cf51bffc3a6e88280ee5037",
   "counts": {
-    "units": 171,
-    "units_with_exercises": 171,
-    "exercises": 1019,
-    "hints": 3000,
-    "solutions": 1019,
-    "prompt": 769
+    "units": 173,
+    "units_with_exercises": 173,
+    "exercises": 1032,
+    "hints": 3039,
+    "solutions": 1032,
+    "prompt": 778
   },
   "units": [
     {
@@ -1893,6 +1893,28 @@
       "file": "courses/analysis/units/III.9/unit171-integral-shift.sokonanoda",
       "exercises": 8,
       "hints": 24
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": 172,
+      "title": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "title_en": "Unit 172 — Gluing Partitions: Joining Two Blocks of Area",
+      "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+      "exercises": 9,
+      "hints": 27
+    },
+    {
+      "id": "analysis/III.9/unit173-ftc1",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": 173,
+      "title": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "title_en": "Unit 173 — FTC, Part 1: The Derivative of the Area Function Is the Curve's Height",
+      "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
+      "exercises": 4,
+      "hints": 12
     }
   ],
   "exercises": [
@@ -49213,6 +49235,629 @@
       "solution_source": {
         "file": "courses/analysis/units/solutions/III.9/unit171-integral-shift-solution.sokonanoda",
         "line": 240
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_point_left",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_point_left",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "prompt": "单元172 分割拼接：把两块面积接到同一个分割上\n\n面积值 `HasIntegral a c f I` 与 `HasIntegral c b f J` 要合成 `HasIntegral a b f (I+J)`，第一件事是把 `[a,c]` 与 `[c,b]` 的两个分割 接成一个 `[a,b]` 的分割。切点序列的拼法只有一种：左半的 `p1(0..n1-1)`， 接缝取 `c`（它同时是 `p1(n1)` 与 `p2(0)`），再接 `p2(1..n2)`。\n\n这个「拼接」在库里已经落成 `lib/IntegralCatPart` 的 `catPartition`： 段数是 `(n1+1)+n2`，点函数是 `catFun (n1+1)`。本单元不重证引擎，只把 引擎的四个读数接到课程里：接缝处左/右的取值、拼接后的 `IsPartition`、 下和/上和相加、矩形和相加。\n\n函数取 ratRep → ratRep，停在有理代表元层；不新增公理。\n\n拼接的取值",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "`catPartition` 的点函数就是 `catFun (n1+1)`，左半第 k 个点由 `catFun_left` 给出。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partPoint (catPartition n1 p1 p2) k = partPoint p1 k`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catFun_left。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_point_left (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (k : Nat) (hk : LeNat (Nat.succ k) (Nat.succ n1)) :\n    partPoint (catPartition n1 p1 p2) k = partPoint p1 k :=\n  sorry",
+      "solution": "theorem u172_cat_point_left (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (k : Nat) (hk : LeNat (Nat.succ k) (Nat.succ n1)) :\n    partPoint (catPartition n1 p1 p2) k = partPoint p1 k :=\n  catFun_left (partPoint p1) (partPoint p2) (Nat.succ n1) k hk",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 30
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 15
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_point_at",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_point_at",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "u172_cat_point_at",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "从接缝 `n1+1` 起走 j 步，点函数由 `catFun_at` 给出。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partPoint (catPartition n1 p1 p2) ((n1+1)+j) = partPoint p2 j`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catFun_at。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_point_at (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (j : Nat) :\n    partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) j) =\n      partPoint p2 j :=\n  sorry",
+      "solution": "theorem u172_cat_point_at (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (j : Nat) :\n    partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) j) =\n      partPoint p2 j :=\n  catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) j",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 38
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 21
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_point_zero",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_point_zero",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "u172_cat_point_zero",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "第 0 个点是 `catFun` 的第 0 个点，也就是左半的第 0 个点；再用 `IsPartition` 的左端点。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partPoint (catPartition n1 p1 p2) 0 = a`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catFun_at_zero · isPartition_left。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_point_zero (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp1 : IsPartition a c p1) :\n    partPoint (catPartition n1 p1 p2) Nat.zero = a :=\n  sorry",
+      "solution": "theorem u172_cat_point_zero (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp1 : IsPartition a c p1) :\n    partPoint (catPartition n1 p1 p2) Nat.zero = a :=\n  @Eq.trans.{1} ratRep\n    (partPoint (catPartition n1 p1 p2) Nat.zero)\n    (partPoint p1 Nat.zero)\n    a\n    (catFun_at_zero n1 (partPoint p1) (partPoint p2))\n    (isPartition_left a c p1 hp1)",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 47
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_last",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_last",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "u172_cat_last",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "最后一个是 `(n1+1)+n2`，`catFun_at` 给右半的第 n2 个点；再用 `IsPartition` 的右端点。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partPoint (catPartition n1 p1 p2) (partCount …) = b`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catFun_at · isPartition_right。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_last (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp2 : IsPartition c b p2) :\n    partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)) = b :=\n  sorry",
+      "solution": "theorem u172_cat_last (a c b : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp2 : IsPartition c b p2) :\n    partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)) = b :=\n  @Eq.trans.{1} ratRep\n    (partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)))\n    (partPoint p2 (partCount p2))\n    b\n    (catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) (partCount p2))\n    (isPartition_right c b p2 hp2)",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 55
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 39
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_isPartition",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_isPartition",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "拼接仍是分割",
+      "prompt": "拼接仍是分割",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "把左/右两半的 `IsPartition`、接缝 `p1 的末点 = c`、以及左半段数是后继 `n1+1` 一起交给库里的 `catPartition_isPartition`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`IsPartition a b (catPartition n1 p1 p2)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catPartition_isPartition。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_isPartition (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1) :\n    IsPartition a b (catPartition n1 p1 p2) :=\n  sorry",
+      "solution": "theorem u172_cat_isPartition (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1) :\n    IsPartition a b (catPartition n1 p1 p2) :=\n  catPartition_isPartition a b c p1 p2 n1 hp1 hp2 hjoin hn1",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 67
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 50
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_lowerSum",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_lowerSum",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "下和与上和相加",
+      "prompt": "下和与上和相加",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "库里的 `catPartition_lowerSum` 把两半的下和见证拼成拼接分割的下界，直接套。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`LowerSum a b (catPartition n1 p1 p2) f (L1+L2)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catPartition_lowerSum。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_lowerSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (f : ratRep → ratRep) (L1 L2 : ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1)\n    (hL1 : LowerSum a c p1 f L1) (hL2 : LowerSum c b p2 f L2) :\n    LowerSum a b (catPartition n1 p1 p2) f (ratAddRep L1 L2) :=\n  sorry",
+      "solution": "theorem u172_cat_lowerSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (f : ratRep → ratRep) (L1 L2 : ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1)\n    (hL1 : LowerSum a c p1 f L1) (hL2 : LowerSum c b p2 f L2) :\n    LowerSum a b (catPartition n1 p1 p2) f (ratAddRep L1 L2) :=\n  catPartition_lowerSum a b c p1 p2 n1 f L1 L2 hp1 hp2 hjoin hn1 hL1 hL2",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 81
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 58
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_upperSum",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_upperSum",
+      "anonymous": false,
+      "exercise_no": 7,
+      "title": "u172_cat_upperSum",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "同上，换成 `catPartition_upperSum`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`UpperSum a b (catPartition n1 p1 p2) f (U1+U2)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catPartition_upperSum。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_upperSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (f : ratRep → ratRep) (U1 U2 : ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1)\n    (hU1 : UpperSum a c p1 f U1) (hU2 : UpperSum c b p2 f U2) :\n    UpperSum a b (catPartition n1 p1 p2) f (ratAddRep U1 U2) :=\n  sorry",
+      "solution": "theorem u172_cat_upperSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (f : ratRep → ratRep) (U1 U2 : ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1)\n    (hU1 : UpperSum a c p1 f U1) (hU2 : UpperSum c b p2 f U2) :\n    UpperSum a b (catPartition n1 p1 p2) f (ratAddRep U1 U2) :=\n  catPartition_upperSum a b c p1 p2 n1 f U1 U2 hp1 hp2 hjoin hn1 hU1 hU2",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 93
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 68
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/u172_cat_stepSum",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "u172_cat_stepSum",
+      "anonymous": false,
+      "exercise_no": 8,
+      "title": "矩形和相加",
+      "prompt": "矩形和相加",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "拼接分割上的矩形和按接缝拆成两段，`catPartition_stepSum` 直接给出。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`stepSum (catPartition n1 p1 p2) (catFun (n1+1) l1 l2) ~ stepSum p1 l1 + stepSum p2 l2`。"
+        },
+        {
+          "label": "关键件",
+          "body": "catPartition_stepSum。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem u172_cat_stepSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (l1 l2 : Nat → ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1) :\n    ratRel (stepSum (catPartition n1 p1 p2) (catFun (Nat.succ n1) l1 l2))\n      (ratAddRep (stepSum p1 l1) (stepSum p2 l2)) :=\n  sorry",
+      "solution": "theorem u172_cat_stepSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)\n    (l1 l2 : Nat → ratRep)\n    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)\n    (hjoin : ratRel (partPoint p1 (partCount p1)) c)\n    (hn1 : partCount p1 = Nat.succ n1) :\n    ratRel (stepSum (catPartition n1 p1 p2) (catFun (Nat.succ n1) l1 l2))\n      (ratAddRep (stepSum p1 l1) (stepSum p2 l2)) :=\n  catPartition_stepSum a b c p1 p2 n1 l1 l2 hp1 hp2 hjoin hn1",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 109
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 78
+      }
+    },
+    {
+      "id": "analysis/III.9/unit172-partition-cat/demo_catPartition_count",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元172 分割拼接：把两块面积接到同一个分割上",
+      "unit_index": 172,
+      "kind": "theorem",
+      "name": "demo_catPartition_count",
+      "anonymous": false,
+      "exercise_no": 9,
+      "title": "一个可算读数：拼接后的段数就是两半段数之和。",
+      "prompt": "一个可算读数：拼接后的段数就是两半段数之和。",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "`catPartition` 的段数字段就是 `(n1+1)+partCount p2`，定义性相等。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partCount (catPartition n1 p1 p2) = (n1+1)+partCount p2`。"
+        },
+        {
+          "label": "关键件",
+          "body": "Eq.refl（定义性归约）。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Integral",
+        "import lib.IntegralSum",
+        "import lib.IntegralCatPart"
+      ],
+      "template": "theorem demo_catPartition_count (p1 p2 : Partition) (n1 : Nat) :\n    partCount (catPartition n1 p1 p2) =\n      Nat.add (Nat.succ n1) (partCount p2) :=\n  sorry",
+      "solution": "theorem demo_catPartition_count (p1 p2 : Partition) (n1 : Nat) :\n    partCount (catPartition n1 p1 p2) =\n      Nat.add (Nat.succ n1) (partCount p2) :=\n  @Eq.refl.{1} Nat (Nat.add (Nat.succ n1) (partCount p2))",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit172-partition-cat.sokonanoda",
+        "line": 124
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit172-partition-cat-solution.sokonanoda",
+        "line": 88
+      }
+    },
+    {
+      "id": "analysis/III.9/unit173-ftc1/u173_difference_bound",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "unit_index": 173,
+      "kind": "theorem",
+      "name": "u173_difference_bound",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "prompt": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度\n\n设 `a < c < b`，`f` 一致连续，`F x` 是 `f` 在 `[a,x]` 上的面积值 （`HasIntegral a x f (F x)`）。本单元要读的是：`F` 在 `c` 处可导，且 导数是 `f c`——「曲线在 c 的高度」就是「面积函数在 c 的斜率」。\n\n通用原函数版的 Newton–Leibniz 在有理代表元层不成立：在 √2 两侧取 0/1 的 `F`，每个有理点都有 `F′=0`，但 `F(b)−F(a)=1` 而 `∫f=0`。所以这里做的是 诚实的那一半：**面积函数**（由 `HasIntegral` 给出）的导数。完整引擎在 `lib/IntegralFTC`（52 条 checked）：先用区间拼接 `catPartition` 把 `[a,c]` 与 `[c,x]` 接起来，拿细网格上的常数台阶 `f c ± η` 把 `F x − F c` 夹住，得到无除法的差界 `|(F x−F c) − f c·(x−c)| ≤ eps·|x−c|`；再把差界除以 `x−c`（总商 `ratQuotTotal`）得到斜率函数的极限，最后组装 `HasDerivAt`。\n\n函数取 ratRep → ratRep；不新增公理。\n\n一、无除法的差界",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "直接引库里的 `integral_difference_bound`；它把界写成绝对值的**关系** `ratAbsRel`（本课程没有 ratAbs 函数），并允许调用方先给一个 |x−c| 的见证 `dx`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`∃ delta>0, ∀ x 靠近 c, x≠c, ∀ dx, |x−c|~dx → ∃ dN, |(F x−F c)−f c·(x−c)|~dN ∧ dN ≤ eps·dx`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_difference_bound。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC"
+      ],
+      "template": "theorem u173_difference_bound (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))\n    (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :\n    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧\n      ∀ (x : ratRep), close x c delta → ¬ ratRel x c →\n        ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →\n          ∃ (dN : ratRep),\n            ratAbsRel\n              (ratSubRep (ratSubRep (F x) (F c))\n                (ratMulRep (f c) (ratSubRep x c))) dN ∧\n            ratLeRep dN (ratMulRep eps dx) :=\n  sorry",
+      "solution": "theorem u173_difference_bound (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))\n    (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :\n    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧\n      ∀ (x : ratRep), close x c delta → ¬ ratRel x c →\n        ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →\n          ∃ (dN : ratRep),\n            ratAbsRel\n              (ratSubRep (ratSubRep (F x) (F c))\n                (ratMulRep (f c) (ratSubRep x c))) dN ∧\n            ratLeRep dN (ratMulRep eps dx) :=\n  integral_difference_bound a c b f F hac hcb huc hF eps heps",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
+        "line": 36
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit173-ftc1-solution.sokonanoda",
+        "line": 18
+      }
+    },
+    {
+      "id": "analysis/III.9/unit173-ftc1/u173_tendsTo",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "unit_index": 173,
+      "kind": "theorem",
+      "name": "u173_tendsTo",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "二、斜率函数的极限",
+      "prompt": "二、斜率函数的极限",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "差界除以非零的 `x−c`（总商 `integralSlope`）就得到斜率函数在 c 的极限；直接引 `integral_tendsTo`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`TendsToAt (integralSlope F c) c (f c)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_tendsTo。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC"
+      ],
+      "template": "theorem u173_tendsTo (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :\n    TendsToAt (integralSlope F c) c (f c) :=\n  sorry",
+      "solution": "theorem u173_tendsTo (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :\n    TendsToAt (integralSlope F c) c (f c) :=\n  integral_tendsTo a c b f F hac hcb huc hF",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
+        "line": 57
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit173-ftc1-solution.sokonanoda",
+        "line": 33
+      }
+    },
+    {
+      "id": "analysis/III.9/unit173-ftc1/u173_hasDerivAt",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "unit_index": 173,
+      "kind": "theorem",
+      "name": "u173_hasDerivAt",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "三、微积分基本定理（第一部分）",
+      "prompt": "三、微积分基本定理（第一部分）",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "`HasDerivAt` 要求「一个全斜率函数 + 点式方程 + 极限」；`integral_hasDerivAt` 已经把三件都装好了。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`HasDerivAt F c (f c)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_hasDerivAt。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC"
+      ],
+      "template": "theorem u173_hasDerivAt (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :\n    HasDerivAt F c (f c) :=\n  sorry",
+      "solution": "theorem u173_hasDerivAt (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :\n    HasDerivAt F c (f c) :=\n  integral_hasDerivAt a c b f F hac hcb huc hF",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
+        "line": 70
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit173-ftc1-solution.sokonanoda",
+        "line": 40
+      }
+    },
+    {
+      "id": "analysis/III.9/unit173-ftc1/demo_hasDerivAt_const",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
+      "unit_index": 173,
+      "kind": "theorem",
+      "name": "demo_hasDerivAt_const",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "四、一个可算读数：常值曲线的面积函数",
+      "prompt": "四、一个可算读数：常值曲线的面积函数",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "常值 k 在 `[a,x]` 上的面积值是 `k·(x−a)`（`hasIntegral_const`），常值函数一致连续（`uniformlyContinuous_const`）；把它们喂给 `u173_hasDerivAt`，得到「面积函数的导数是 k」。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`HasDerivAt (fun x => k·(x−a)) c k`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_hasDerivAt · hasIntegral_const · uniformlyContinuous_const。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC"
+      ],
+      "template": "theorem demo_hasDerivAt_const (a c b k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) :\n    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k :=\n  sorry",
+      "solution": "theorem demo_hasDerivAt_const (a c b k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) :\n    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k :=\n  integral_hasDerivAt a c b (fun (_ : ratRep) => k)\n    (fun (x : ratRep) => ratMulRep k (ratSubRep x a))\n    hac hcb (uniformlyContinuous_const k)\n    (fun (x : ratRep) (hx : ratLtRep a x) (hxb : ratLtRep x b) =>\n      hasIntegral_const a x k hx)",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
+        "line": 83
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit173-ftc1-solution.sokonanoda",
+        "line": 47
       }
     }
   ]

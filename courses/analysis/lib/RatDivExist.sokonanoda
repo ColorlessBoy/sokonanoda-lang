@@ -1,0 +1,982 @@
+-- RatDivExist.sokonanoda —— 有理数的除法（存在性 + 选择包装）
+--
+-- A0 的差商 `(F x - F c)/(x - c)` 需要「用任意非零有理数去除」。本文件交付：
+--
+--   · `ratMul_assoc` —— 代表元层乘法结合律（课程库原先只有整数层的
+--     `mulRep_assoc`，有理层缺这一条；差商的代数要用它）；
+--   · `ratMul_one_rep` —— 乘一个「1 的代表元」不变（`qrep A B M` 且
+--     `A = B + (M+1)` 时就是 1）；
+--   · `ratDiv_exists` —— 主定理 `¬ d ~ 0 ⇒ ∃ q, q·d ~ n`；
+-- ⚠ 命名：本文件的 `ratQuot` / `ratQuot_mul` 是「任意分子的商」；`lib/IntegralMesh`
+-- 已有 `ratDiv`（按 Nat 分母）与 `ratDiv_mul`（同名不同签名）⇒ 这里不叫 `ratDiv`，
+-- 免得同时 import 两者时被内核判重名。
+--
+--   · `ratInv` / `ratInv_mul` 与 `ratQuot` / `ratQuot_mul` ——
+--     `Exists.choose` 的包装（选择公理在 `lib/Choice`，本文件不新增公理）。
+--
+-- 主定理的证法与 `RatInv.sokonanoda` 的 `ratInv_exists` 同一条路线：把
+-- `d = qrep c f e` 写成 `(c-f)/(e+1)`，`¬ d ~ 0` 给出 `c ≠ f`，再用
+-- `leNat_total` 分成 `c ≤ f`（`f = c+(k+1)`）与 `f ≤ c`（`c = f+(k+1)`）两支。
+-- 每一支取 `q = n · q0`，其中 `q0` 是该支里 `d` 的逆（`qrep 0 (e+1) k` 或
+-- `qrep (e+1) 0 k`）。结合律把 `(n·q0)·d` 搬成 `n·(q0·d)`，而 `q0·d` 的
+-- 代表元正好是 `qrep A B M` 且 `A = B + (M+1)`，于是 `ratMul_one_rep` 收口。
+--
+-- 边界：本文件只做「存在 + 取见证」，不构造商层运算；不动 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Bounded
+import lib.Choice
+import lib.RatInv
+
+-- ─────────────────────────────────────────────────────────────
+-- 1. 两条 ℕ 加法重排（四项）
+-- ─────────────────────────────────────────────────────────────
+
+-- `(p+q)+(r+s) = (p+r)+(s+q)`（中间两项与末项换位）。
+
+theorem add4_mid_swap (p q r s : Nat) :
+    Nat.add (Nat.add p q) (Nat.add r s) =
+    Nat.add (Nat.add p r) (Nat.add s q) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add p q) (Nat.add r s))
+    (Nat.add p (Nat.add q (Nat.add r s)))
+    (Nat.add (Nat.add p r) (Nat.add s q))
+    (add_assoc p q (Nat.add r s))
+    (@Eq.trans.{1} Nat
+      (Nat.add p (Nat.add q (Nat.add r s)))
+      (Nat.add p (Nat.add (Nat.add q r) s))
+      (Nat.add (Nat.add p r) (Nat.add s q))
+      (congrArg.{1} (fun (x : Nat) => Nat.add p x)
+        (@Eq.symm.{1} Nat
+          (Nat.add (Nat.add q r) s)
+          (Nat.add q (Nat.add r s))
+          (add_assoc q r s)))
+      (@Eq.trans.{1} Nat
+        (Nat.add p (Nat.add (Nat.add q r) s))
+        (Nat.add p (Nat.add (Nat.add r q) s))
+        (Nat.add (Nat.add p r) (Nat.add s q))
+        (congrArg.{1} (fun (x : Nat) => Nat.add p (Nat.add x s))
+          (add_comm q r))
+        (@Eq.trans.{1} Nat
+          (Nat.add p (Nat.add (Nat.add r q) s))
+          (Nat.add p (Nat.add r (Nat.add q s)))
+          (Nat.add (Nat.add p r) (Nat.add s q))
+          (congrArg.{1} (fun (x : Nat) => Nat.add p x)
+            (add_assoc r q s))
+          (@Eq.trans.{1} Nat
+            (Nat.add p (Nat.add r (Nat.add q s)))
+            (Nat.add (Nat.add p r) (Nat.add q s))
+            (Nat.add (Nat.add p r) (Nat.add s q))
+            (@Eq.symm.{1} Nat
+              (Nat.add (Nat.add p r) (Nat.add q s))
+              (Nat.add p (Nat.add r (Nat.add q s)))
+              (add_assoc p r (Nat.add q s)))
+            (congrArg.{1} (fun (x : Nat) => Nat.add (Nat.add p r) x)
+              (add_comm q s))))))
+
+-- `((p+q)+r)+s = q+((r+s)+p)`（把首项搬到末尾）。
+
+theorem add4_rot (p q r s : Nat) :
+    Nat.add (Nat.add (Nat.add p q) r) s =
+    Nat.add q (Nat.add (Nat.add r s) p) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (Nat.add p q) r) s)
+    (Nat.add (Nat.add p q) (Nat.add r s))
+    (Nat.add q (Nat.add (Nat.add r s) p))
+    (add_assoc (Nat.add p q) r s)
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add p q) (Nat.add r s))
+      (Nat.add (Nat.add q p) (Nat.add r s))
+      (Nat.add q (Nat.add (Nat.add r s) p))
+      (congrArg.{1} (fun (x : Nat) => Nat.add x (Nat.add r s))
+        (add_comm p q))
+      (@Eq.trans.{1} Nat
+        (Nat.add (Nat.add q p) (Nat.add r s))
+        (Nat.add q (Nat.add p (Nat.add r s)))
+        (Nat.add q (Nat.add (Nat.add r s) p))
+        (add_assoc q p (Nat.add r s))
+        (congrArg.{1} (fun (x : Nat) => Nat.add q x)
+          (add_comm p (Nat.add r s)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 2. 乘法结合律：乘积两个坐标的形状
+-- ─────────────────────────────────────────────────────────────
+
+-- `x = qrep a b m`、`y = qrep c d n`、`z = qrep e f k` 时，
+-- `(x·y)·z` 的两个坐标是 `assocP` / `assocQ`，`x·(y·z)` 的是 `assocR` / `assocS`。
+
+def assocP (a b c d e f : Nat) : Nat :=
+  Nat.add
+    (myMul (Nat.add (myMul a c) (myMul b d)) e)
+    (myMul (Nat.add (myMul a d) (myMul b c)) f)
+
+def assocQ (a b c d e f : Nat) : Nat :=
+  Nat.add
+    (myMul (Nat.add (myMul a c) (myMul b d)) f)
+    (myMul (Nat.add (myMul a d) (myMul b c)) e)
+
+def assocR (a b c d e f : Nat) : Nat :=
+  Nat.add
+    (myMul a (Nat.add (myMul c e) (myMul d f)))
+    (myMul b (Nat.add (myMul c f) (myMul d e)))
+
+def assocS (a b c d e f : Nat) : Nat :=
+  Nat.add
+    (myMul a (Nat.add (myMul c f) (myMul d e)))
+    (myMul b (Nat.add (myMul c e) (myMul d f)))
+
+-- 公分母：`(m+1)(n+1)(k+1)`，两个嵌套的 `ratDenRep` 都归到它。
+
+def assocD (m n k : Nat) : Nat :=
+  myMul (Nat.succ m) (myMul (Nat.succ n) (Nat.succ k))
+
+-- `assocP` 展开成四个单项式（右分配律，逐项）。
+
+theorem assocP_expand (a b c d e f : Nat) :
+    assocP a b c d e f =
+    Nat.add
+      (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
+      (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)) :=
+  add_congr
+    (mul_add_right (myMul a c) (myMul b d) e)
+    (mul_add_right (myMul a d) (myMul b c) f)
+
+-- `assocR` 展开成同一批四个单项式（左分配律，再逐项换成「前两个因子先乘」）。
+
+theorem assocR_expand (a b c d e f : Nat) :
+    assocR a b c d e f =
+    Nat.add
+      (Nat.add (myMul (myMul a c) e) (myMul (myMul a d) f))
+      (Nat.add (myMul (myMul b c) f) (myMul (myMul b d) e)) :=
+  add_congr
+    (@Eq.trans.{1} Nat
+      (myMul a (Nat.add (myMul c e) (myMul d f)))
+      (Nat.add (myMul a (myMul c e)) (myMul a (myMul d f)))
+      (Nat.add (myMul (myMul a c) e) (myMul (myMul a d) f))
+      (mul_add a (myMul c e) (myMul d f))
+      (add_congr
+        (@Eq.symm.{1} Nat (myMul (myMul a c) e) (myMul a (myMul c e))
+          (myMul_assoc a c e))
+        (@Eq.symm.{1} Nat (myMul (myMul a d) f) (myMul a (myMul d f))
+          (myMul_assoc a d f))))
+    (@Eq.trans.{1} Nat
+      (myMul b (Nat.add (myMul c f) (myMul d e)))
+      (Nat.add (myMul b (myMul c f)) (myMul b (myMul d e)))
+      (Nat.add (myMul (myMul b c) f) (myMul (myMul b d) e))
+      (mul_add b (myMul c f) (myMul d e))
+      (add_congr
+        (@Eq.symm.{1} Nat (myMul (myMul b c) f) (myMul b (myMul c f))
+          (myMul_assoc b c f))
+        (@Eq.symm.{1} Nat (myMul (myMul b d) e) (myMul b (myMul d e))
+          (myMul_assoc b d e))))
+
+-- `assocQ` 展开。
+
+theorem assocQ_expand (a b c d e f : Nat) :
+    assocQ a b c d e f =
+    Nat.add
+      (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+      (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)) :=
+  add_congr
+    (mul_add_right (myMul a c) (myMul b d) f)
+    (mul_add_right (myMul a d) (myMul b c) e)
+
+-- `assocS` 展开。
+
+theorem assocS_expand (a b c d e f : Nat) :
+    assocS a b c d e f =
+    Nat.add
+      (Nat.add (myMul (myMul a c) f) (myMul (myMul a d) e))
+      (Nat.add (myMul (myMul b c) e) (myMul (myMul b d) f)) :=
+  add_congr
+    (@Eq.trans.{1} Nat
+      (myMul a (Nat.add (myMul c f) (myMul d e)))
+      (Nat.add (myMul a (myMul c f)) (myMul a (myMul d e)))
+      (Nat.add (myMul (myMul a c) f) (myMul (myMul a d) e))
+      (mul_add a (myMul c f) (myMul d e))
+      (add_congr
+        (@Eq.symm.{1} Nat (myMul (myMul a c) f) (myMul a (myMul c f))
+          (myMul_assoc a c f))
+        (@Eq.symm.{1} Nat (myMul (myMul a d) e) (myMul a (myMul d e))
+          (myMul_assoc a d e))))
+    (@Eq.trans.{1} Nat
+      (myMul b (Nat.add (myMul c e) (myMul d f)))
+      (Nat.add (myMul b (myMul c e)) (myMul b (myMul d f)))
+      (Nat.add (myMul (myMul b c) e) (myMul (myMul b d) f))
+      (mul_add b (myMul c e) (myMul d f))
+      (add_congr
+        (@Eq.symm.{1} Nat (myMul (myMul b c) e) (myMul b (myMul c e))
+          (myMul_assoc b c e))
+        (@Eq.symm.{1} Nat (myMul (myMul b d) f) (myMul b (myMul d f))
+          (myMul_assoc b d f))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 3. 两个嵌套分母都归到 `assocD`
+-- ─────────────────────────────────────────────────────────────
+
+theorem assocDenL (m n k : Nat) :
+    Nat.succ (ratDenRep (ratDenRep m n) k) = assocD m n k :=
+  @Eq.trans.{1} Nat
+    (Nat.succ (ratDenRep (ratDenRep m n) k))
+    (myMul (Nat.succ (ratDenRep m n)) (Nat.succ k))
+    (assocD m n k)
+    (ratDenRep_succ (ratDenRep m n) k)
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ (ratDenRep m n)) (Nat.succ k))
+      (myMul (myMul (Nat.succ m) (Nat.succ n)) (Nat.succ k))
+      (assocD m n k)
+      (congrArg.{1} (fun (x : Nat) => myMul x (Nat.succ k))
+        (ratDenRep_succ m n))
+      (myMul_assoc (Nat.succ m) (Nat.succ n) (Nat.succ k)))
+
+theorem assocDenR (m n k : Nat) :
+    Nat.succ (ratDenRep m (ratDenRep n k)) = assocD m n k :=
+  @Eq.trans.{1} Nat
+    (Nat.succ (ratDenRep m (ratDenRep n k)))
+    (myMul (Nat.succ m) (Nat.succ (ratDenRep n k)))
+    (assocD m n k)
+    (ratDenRep_succ m (ratDenRep n k))
+    (congrArg.{1} (fun (x : Nat) => myMul (Nat.succ m) x)
+      (ratDenRep_succ n k))
+
+-- ─────────────────────────────────────────────────────────────
+-- 4. 坐标间的四项重排：`assocP` 与 `assocR` 同值，`assocS` 与 `assocQ` 同值
+-- ─────────────────────────────────────────────────────────────
+
+theorem assocP_eq_R (a b c d e f : Nat) :
+    assocP a b c d e f = assocR a b c d e f :=
+  @Eq.trans.{1} Nat
+    (assocP a b c d e f)
+    (Nat.add
+      (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
+      (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)))
+    (assocR a b c d e f)
+    (assocP_expand a b c d e f)
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add (myMul (myMul a c) e) (myMul (myMul b d) e))
+        (Nat.add (myMul (myMul a d) f) (myMul (myMul b c) f)))
+      (Nat.add
+        (Nat.add (myMul (myMul a c) e) (myMul (myMul a d) f))
+        (Nat.add (myMul (myMul b c) f) (myMul (myMul b d) e)))
+      (assocR a b c d e f)
+      (add4_mid_swap
+        (myMul (myMul a c) e)
+        (myMul (myMul b d) e)
+        (myMul (myMul a d) f)
+        (myMul (myMul b c) f))
+      (@Eq.symm.{1} Nat
+        (assocR a b c d e f)
+        (Nat.add
+          (Nat.add (myMul (myMul a c) e) (myMul (myMul a d) f))
+          (Nat.add (myMul (myMul b c) f) (myMul (myMul b d) e)))
+        (assocR_expand a b c d e f)))
+
+theorem assocS_eq_Q (a b c d e f : Nat) :
+    assocS a b c d e f = assocQ a b c d e f :=
+  @Eq.trans.{1} Nat
+    (assocS a b c d e f)
+    (Nat.add
+      (Nat.add (myMul (myMul a c) f) (myMul (myMul a d) e))
+      (Nat.add (myMul (myMul b c) e) (myMul (myMul b d) f)))
+    (assocQ a b c d e f)
+    (assocS_expand a b c d e f)
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (Nat.add (myMul (myMul a c) f) (myMul (myMul a d) e))
+        (Nat.add (myMul (myMul b c) e) (myMul (myMul b d) f)))
+      (Nat.add
+        (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+        (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)))
+      (assocQ a b c d e f)
+      (@Eq.symm.{1} Nat
+        (Nat.add
+          (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+          (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)))
+        (Nat.add
+          (Nat.add (myMul (myMul a c) f) (myMul (myMul a d) e))
+          (Nat.add (myMul (myMul b c) e) (myMul (myMul b d) f)))
+        (add4_mid_swap
+          (myMul (myMul a c) f)
+          (myMul (myMul b d) f)
+          (myMul (myMul a d) e)
+          (myMul (myMul b c) e)))
+      (@Eq.symm.{1} Nat
+        (assocQ a b c d e f)
+        (Nat.add
+          (Nat.add (myMul (myMul a c) f) (myMul (myMul b d) f))
+          (Nat.add (myMul (myMul a d) e) (myMul (myMul b c) e)))
+        (assocQ_expand a b c d e f)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 5. 乘法结合律（代表元层）
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratMul_assoc_qrep (a b m c d n e f k : Nat) :
+    ratRel (ratMulRep (ratMulRep (qrep a b m) (qrep c d n)) (qrep e f k))
+           (ratMulRep (qrep a b m) (ratMulRep (qrep c d n) (qrep e f k))) :=
+  ratRel_qrep_of_eq
+    (assocP a b c d e f) (assocQ a b c d e f)
+    (assocR a b c d e f) (assocS a b c d e f)
+    (ratDenRep (ratDenRep m n) k) (ratDenRep m (ratDenRep n k))
+    (@Eq.trans.{1} Nat
+      (Nat.add
+        (myMul (assocP a b c d e f) (Nat.succ (ratDenRep m (ratDenRep n k))))
+        (myMul (assocS a b c d e f) (Nat.succ (ratDenRep (ratDenRep m n) k))))
+      (Nat.add
+        (myMul (assocP a b c d e f) (assocD m n k))
+        (myMul (assocS a b c d e f) (assocD m n k)))
+      (Nat.add
+        (myMul (assocR a b c d e f) (Nat.succ (ratDenRep (ratDenRep m n) k)))
+        (myMul (assocQ a b c d e f) (Nat.succ (ratDenRep m (ratDenRep n k)))))
+      (add_congr
+        (congrArg.{1} (fun (x : Nat) => myMul (assocP a b c d e f) x)
+          (assocDenR m n k))
+        (congrArg.{1} (fun (x : Nat) => myMul (assocS a b c d e f) x)
+          (assocDenL m n k)))
+      (@Eq.trans.{1} Nat
+        (Nat.add
+          (myMul (assocP a b c d e f) (assocD m n k))
+          (myMul (assocS a b c d e f) (assocD m n k)))
+        (Nat.add
+          (myMul (assocR a b c d e f) (assocD m n k))
+          (myMul (assocQ a b c d e f) (assocD m n k)))
+        (Nat.add
+          (myMul (assocR a b c d e f) (Nat.succ (ratDenRep (ratDenRep m n) k)))
+          (myMul (assocQ a b c d e f) (Nat.succ (ratDenRep m (ratDenRep n k)))))
+        (@Eq.trans.{1} Nat
+          (Nat.add
+            (myMul (assocP a b c d e f) (assocD m n k))
+            (myMul (assocS a b c d e f) (assocD m n k)))
+          (myMul (Nat.add (assocP a b c d e f) (assocS a b c d e f))
+                 (assocD m n k))
+          (Nat.add
+            (myMul (assocR a b c d e f) (assocD m n k))
+            (myMul (assocQ a b c d e f) (assocD m n k)))
+          (@Eq.symm.{1} Nat
+            (myMul (Nat.add (assocP a b c d e f) (assocS a b c d e f))
+                   (assocD m n k))
+            (Nat.add
+              (myMul (assocP a b c d e f) (assocD m n k))
+              (myMul (assocS a b c d e f) (assocD m n k)))
+            (mul_add_right (assocP a b c d e f) (assocS a b c d e f)
+              (assocD m n k)))
+          (@Eq.trans.{1} Nat
+            (myMul (Nat.add (assocP a b c d e f) (assocS a b c d e f))
+                   (assocD m n k))
+            (myMul (Nat.add (assocR a b c d e f) (assocQ a b c d e f))
+                   (assocD m n k))
+            (Nat.add
+              (myMul (assocR a b c d e f) (assocD m n k))
+              (myMul (assocQ a b c d e f) (assocD m n k)))
+            (congrArg.{1} (fun (x : Nat) => myMul x (assocD m n k))
+              (add_congr
+                (assocP_eq_R a b c d e f)
+                (assocS_eq_Q a b c d e f)))
+            (mul_add_right (assocR a b c d e f) (assocQ a b c d e f)
+              (assocD m n k))))
+        (@Eq.symm.{1} Nat
+          (Nat.add
+            (myMul (assocR a b c d e f) (Nat.succ (ratDenRep (ratDenRep m n) k)))
+            (myMul (assocQ a b c d e f) (Nat.succ (ratDenRep m (ratDenRep n k)))))
+          (Nat.add
+            (myMul (assocR a b c d e f) (assocD m n k))
+            (myMul (assocQ a b c d e f) (assocD m n k)))
+          (add_congr
+            (congrArg.{1} (fun (x : Nat) => myMul (assocR a b c d e f) x)
+              (assocDenL m n k))
+            (congrArg.{1} (fun (x : Nat) => myMul (assocQ a b c d e f) x)
+              (assocDenR m n k))))))
+
+theorem ratMul_assoc_aux (x y z : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep (ratMulRep x y) z) (ratMulRep x (ratMulRep y z)) :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    match y with
+    | prod_mk (prod_mk c d) n =>
+      match z with
+      | prod_mk (prod_mk e f) k =>
+        ratMul_assoc_qrep a b m c d n e f k
+
+-- 乘法结合律（任意代表元）。差商的代数要靠它把 `(n·q0)·d` 搬成 `n·(q0·d)`。
+
+theorem ratMul_assoc (x y z : ratRep) :
+    ratRel (ratMulRep (ratMulRep x y) z) (ratMulRep x (ratMulRep y z)) :=
+  ratMul_assoc_aux x y z
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. 乘一个「1 的代表元」
+-- ─────────────────────────────────────────────────────────────
+
+-- `qrep A B M` 与 1 等价当且仅当 `A = B + (M+1)`（分子差正好是分母）。
+-- 乘上这样一个代表元不该改变 `x`：交叉乘积里多出来的 `(M+1)` 正好被
+-- `aA + bB` 里多出来的那份消掉。
+--
+-- 证明把两边的交叉乘积完全展开成四项和：左边是 `((X+Y)+Z)+W`，
+-- 右边是 `Y+((Z+W)+X)`，`add4_rot` 把首项搬到末尾即得。下面先把七个
+-- 中间形状立成定义，再逐步搬运，免得一整个大项难读。
+
+def oneY (a m M : Nat) : Nat :=
+  myMul a (myMul (Nat.succ m) (Nat.succ M))
+
+def oneW (b m M : Nat) : Nat :=
+  myMul b (myMul (Nat.succ m) (Nat.succ M))
+
+def oneL0 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul (Nat.add (myMul a A) (myMul b B)) (Nat.succ m))
+    (myMul b (Nat.succ (ratDenRep m M)))
+
+def oneL1 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul (Nat.add (Nat.add (myMul a B) (myMul a (Nat.succ M)))
+                   (myMul b B))
+           (Nat.succ m))
+    (myMul b (Nat.succ (ratDenRep m M)))
+
+def oneL2 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul (Nat.add (Nat.add (myMul a B) (myMul a (Nat.succ M)))
+                   (myMul b B))
+           (Nat.succ m))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+
+def oneL3 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (Nat.add
+      (myMul (Nat.add (myMul a B) (myMul a (Nat.succ M))) (Nat.succ m))
+      (myMul (myMul b B) (Nat.succ m)))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+
+def oneL4 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (Nat.add
+      (Nat.add (myMul (myMul a B) (Nat.succ m))
+               (myMul (myMul a (Nat.succ M)) (Nat.succ m)))
+      (myMul (myMul b B) (Nat.succ m)))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+
+def oneL5 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (Nat.add
+      (Nat.add (myMul (myMul a B) (Nat.succ m))
+               (myMul a (myMul (Nat.succ m) (Nat.succ M))))
+      (myMul (myMul b B) (Nat.succ m)))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+
+def oneR0 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (Nat.succ (ratDenRep m M)))
+    (myMul (Nat.add (myMul b A) (myMul a B)) (Nat.succ m))
+
+def oneR1 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (myMul (Nat.add (myMul b A) (myMul a B)) (Nat.succ m))
+
+def oneR2 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (myMul (Nat.add (Nat.add (myMul b B) (myMul b (Nat.succ M)))
+                   (myMul a B))
+           (Nat.succ m))
+
+def oneR3 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (Nat.add
+      (myMul (Nat.add (myMul b B) (myMul b (Nat.succ M))) (Nat.succ m))
+      (myMul (myMul a B) (Nat.succ m)))
+
+def oneR4 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (Nat.add
+      (Nat.add (myMul (myMul b B) (Nat.succ m))
+               (myMul (myMul b (Nat.succ M)) (Nat.succ m)))
+      (myMul (myMul a B) (Nat.succ m)))
+
+def oneR5 (a b m A B M : Nat) : Nat :=
+  Nat.add
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (Nat.add
+      (Nat.add (myMul (myMul b B) (Nat.succ m))
+               (myMul b (myMul (Nat.succ m) (Nat.succ M))))
+      (myMul (myMul a B) (Nat.succ m)))
+
+-- `a·A` 与 `b·A` 按 `A = B + (M+1)` 分配开。
+
+theorem oneRep_expand_a (a A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    myMul a A = Nat.add (myMul a B) (myMul a (Nat.succ M)) :=
+  @Eq.trans.{1} Nat
+    (myMul a A)
+    (myMul a (Nat.add B (Nat.succ M)))
+    (Nat.add (myMul a B) (myMul a (Nat.succ M)))
+    (congrArg.{1} (fun (x : Nat) => myMul a x) h)
+    (mul_add a B (Nat.succ M))
+
+theorem oneRep_expand_b (b A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    myMul b A = Nat.add (myMul b B) (myMul b (Nat.succ M)) :=
+  @Eq.trans.{1} Nat
+    (myMul b A)
+    (myMul b (Nat.add B (Nat.succ M)))
+    (Nat.add (myMul b B) (myMul b (Nat.succ M)))
+    (congrArg.{1} (fun (x : Nat) => myMul b x) h)
+    (mul_add b B (Nat.succ M))
+
+-- `(a·(M+1))·(m+1)` 与 `a·((m+1)(M+1))` 同值（另一个因子同理）。
+
+theorem oneRep_shift_a (a M m : Nat) :
+    myMul (myMul a (Nat.succ M)) (Nat.succ m) =
+    myMul a (myMul (Nat.succ m) (Nat.succ M)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul a (Nat.succ M)) (Nat.succ m))
+    (myMul a (myMul (Nat.succ M) (Nat.succ m)))
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (myMul_assoc a (Nat.succ M) (Nat.succ m))
+    (congrArg.{1} (fun (x : Nat) => myMul a x)
+      (myMul_comm (Nat.succ M) (Nat.succ m)))
+
+theorem oneRep_shift_b (b M m : Nat) :
+    myMul (myMul b (Nat.succ M)) (Nat.succ m) =
+    myMul b (myMul (Nat.succ m) (Nat.succ M)) :=
+  @Eq.trans.{1} Nat
+    (myMul (myMul b (Nat.succ M)) (Nat.succ m))
+    (myMul b (myMul (Nat.succ M) (Nat.succ m)))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+    (myMul_assoc b (Nat.succ M) (Nat.succ m))
+    (congrArg.{1} (fun (x : Nat) => myMul b x)
+      (myMul_comm (Nat.succ M) (Nat.succ m)))
+
+-- 左边的五步搬运。
+
+theorem oneL0_step (a b m A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    oneL0 a b m A B M = oneL1 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add (myMul (Nat.add x (myMul b B)) (Nat.succ m))
+              (myMul b (Nat.succ (ratDenRep m M))))
+    (oneRep_expand_a a A B M h)
+
+theorem oneL1_step (a b m A B M : Nat) :
+    oneL1 a b m A B M = oneL2 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add
+        (myMul (Nat.add (Nat.add (myMul a B) (myMul a (Nat.succ M)))
+                       (myMul b B))
+               (Nat.succ m))
+        (myMul b x))
+    (ratDenRep_succ m M)
+
+theorem oneL2_step (a b m A B M : Nat) :
+    oneL2 a b m A B M = oneL3 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) => Nat.add x (myMul b (myMul (Nat.succ m) (Nat.succ M))))
+    (mul_add_right (Nat.add (myMul a B) (myMul a (Nat.succ M)))
+      (myMul b B) (Nat.succ m))
+
+theorem oneL3_step (a b m A B M : Nat) :
+    oneL3 a b m A B M = oneL4 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add (Nat.add x (myMul (myMul b B) (Nat.succ m)))
+              (myMul b (myMul (Nat.succ m) (Nat.succ M))))
+    (mul_add_right (myMul a B) (myMul a (Nat.succ M)) (Nat.succ m))
+
+theorem oneL4_step (a b m A B M : Nat) :
+    oneL4 a b m A B M = oneL5 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add
+        (Nat.add (Nat.add (myMul (myMul a B) (Nat.succ m)) x)
+                 (myMul (myMul b B) (Nat.succ m)))
+        (myMul b (myMul (Nat.succ m) (Nat.succ M))))
+    (oneRep_shift_a a M m)
+
+-- 右边的五步搬运。
+
+theorem oneR0_step (a b m A B M : Nat) :
+    oneR0 a b m A B M = oneR1 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add (myMul a x)
+              (myMul (Nat.add (myMul b A) (myMul a B)) (Nat.succ m)))
+    (ratDenRep_succ m M)
+
+theorem oneR1_step (a b m A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    oneR1 a b m A B M = oneR2 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+              (myMul (Nat.add x (myMul a B)) (Nat.succ m)))
+    (oneRep_expand_b b A B M h)
+
+theorem oneR2_step (a b m A B M : Nat) :
+    oneR2 a b m A B M = oneR3 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) => Nat.add (myMul a (myMul (Nat.succ m) (Nat.succ M))) x)
+    (mul_add_right
+      (Nat.add (myMul b B) (myMul b (Nat.succ M)))
+      (myMul a B) (Nat.succ m))
+
+theorem oneR3_step (a b m A B M : Nat) :
+    oneR3 a b m A B M = oneR4 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+              (Nat.add x (myMul (myMul a B) (Nat.succ m))))
+    (mul_add_right (myMul b B) (myMul b (Nat.succ M)) (Nat.succ m))
+
+theorem oneR4_step (a b m A B M : Nat) :
+    oneR4 a b m A B M = oneR5 a b m A B M :=
+  congrArg.{1}
+    (fun (x : Nat) =>
+      Nat.add
+        (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+        (Nat.add (Nat.add (myMul (myMul b B) (Nat.succ m)) x)
+                 (myMul (myMul a B) (Nat.succ m))))
+    (oneRep_shift_b b M m)
+
+-- 两支会合：四项旋转。
+
+theorem oneMid (a b m A B M : Nat) :
+    oneL5 a b m A B M = oneR5 a b m A B M :=
+  add4_rot
+    (myMul (myMul a B) (Nat.succ m))
+    (myMul a (myMul (Nat.succ m) (Nat.succ M)))
+    (myMul (myMul b B) (Nat.succ m))
+    (myMul b (myMul (Nat.succ m) (Nat.succ M)))
+
+-- 主等式：`(aA + bB)(m+1) + b(M+1)(m+1) = a(M+1)(m+1) + (bA + aB)(m+1)`。
+
+theorem oneRep_main (a b m A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    oneL0 a b m A B M = oneR0 a b m A B M :=
+  @Eq.trans.{1} Nat
+    (oneL0 a b m A B M)
+    (oneL5 a b m A B M)
+    (oneR0 a b m A B M)
+    (@Eq.trans.{1} Nat
+      (oneL0 a b m A B M)
+      (oneL1 a b m A B M)
+      (oneL5 a b m A B M)
+      (oneL0_step a b m A B M h)
+      (@Eq.trans.{1} Nat
+        (oneL1 a b m A B M)
+        (oneL2 a b m A B M)
+        (oneL5 a b m A B M)
+        (oneL1_step a b m A B M)
+        (@Eq.trans.{1} Nat
+          (oneL2 a b m A B M)
+          (oneL3 a b m A B M)
+          (oneL5 a b m A B M)
+          (oneL2_step a b m A B M)
+          (@Eq.trans.{1} Nat
+            (oneL3 a b m A B M)
+            (oneL4 a b m A B M)
+            (oneL5 a b m A B M)
+            (oneL3_step a b m A B M)
+            (oneL4_step a b m A B M)))))
+    (@Eq.trans.{1} Nat
+      (oneL5 a b m A B M)
+      (oneR5 a b m A B M)
+      (oneR0 a b m A B M)
+      (oneMid a b m A B M)
+      (@Eq.symm.{1} Nat
+        (oneR0 a b m A B M)
+        (oneR5 a b m A B M)
+        (@Eq.trans.{1} Nat
+          (oneR0 a b m A B M)
+          (oneR1 a b m A B M)
+          (oneR5 a b m A B M)
+          (oneR0_step a b m A B M)
+          (@Eq.trans.{1} Nat
+            (oneR1 a b m A B M)
+            (oneR2 a b m A B M)
+            (oneR5 a b m A B M)
+            (oneR1_step a b m A B M h)
+            (@Eq.trans.{1} Nat
+              (oneR2 a b m A B M)
+              (oneR3 a b m A B M)
+              (oneR5 a b m A B M)
+              (oneR2_step a b m A B M)
+              (@Eq.trans.{1} Nat
+                (oneR3 a b m A B M)
+                (oneR4 a b m A B M)
+                (oneR5 a b m A B M)
+                (oneR3_step a b m A B M)
+                (oneR4_step a b m A B M)))))))
+
+-- `qrep A B M` 代表 1 时，`x = qrep a b m` 乘上它仍是 `x`。
+
+theorem ratMul_one_rep_qrep (a b m A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    ratRel (ratMulRep (qrep a b m) (qrep A B M)) (qrep a b m) :=
+  ratRel_qrep_of_eq
+    (Nat.add (myMul a A) (myMul b B))
+    (Nat.add (myMul a B) (myMul b A))
+    a b (ratDenRep m M) m
+    (@Eq.trans.{1} Nat
+      (oneL0 a b m A B M)
+      (oneR0 a b m A B M)
+      (Nat.add
+        (myMul a (Nat.succ (ratDenRep m M)))
+        (myMul (Nat.add (myMul a B) (myMul b A)) (Nat.succ m)))
+      (oneRep_main a b m A B M h)
+      (congrArg.{1}
+        (fun (x : Nat) =>
+          Nat.add (myMul a (Nat.succ (ratDenRep m M)))
+            (myMul x (Nat.succ m)))
+        (add_comm (myMul b A) (myMul a B))))
+
+theorem ratMul_one_rep_aux (x : Prod (Prod Nat Nat) Nat) (A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    ratRel (ratMulRep x (qrep A B M)) x :=
+  match x with
+  | prod_mk (prod_mk a b) m => ratMul_one_rep_qrep a b m A B M h
+
+-- 乘一个「1 的代表元」不变（`qrep A B M` 满足 `A = B + (M+1)` 时它代表 1）。
+
+theorem ratMul_one_rep (x : ratRep) (A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    ratRel (ratMulRep x (qrep A B M)) x :=
+  ratMul_one_rep_aux x A B M h
+
+-- ─────────────────────────────────────────────────────────────
+-- 7. 主定理：除以非零代表元
+-- ─────────────────────────────────────────────────────────────
+
+-- 每支里 `q0·d` 的代表元形如 `qrep A B M` 且 `A = B + (M+1)`：
+-- 把 `0·c` 之类的项清掉，再用 `mul_add_succ_eq` 与 `ratDenRep_succ` 对到 `1`。
+
+theorem ratDiv_case_le_num (c f e k : Nat)
+    (hf : f = Nat.add c (Nat.succ k)) :
+    Nat.add (myMul Nat.zero c) (myMul (Nat.succ e) f) =
+    Nat.add
+      (Nat.add (myMul Nat.zero f) (myMul (Nat.succ e) c))
+      (Nat.succ (ratDenRep k e)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul Nat.zero c) (myMul (Nat.succ e) f))
+    (myMul (Nat.succ e) f)
+    (Nat.add
+      (Nat.add (myMul Nat.zero f) (myMul (Nat.succ e) c))
+      (Nat.succ (ratDenRep k e)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero c) (myMul (Nat.succ e) f))
+      (Nat.add Nat.zero (myMul (Nat.succ e) f))
+      (myMul (Nat.succ e) f)
+      (congrArg.{1}
+        (fun (x : Nat) => Nat.add x (myMul (Nat.succ e) f))
+        (zero_mul c))
+      (zero_add (myMul (Nat.succ e) f)))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ e) f)
+      (Nat.add (myMul (Nat.succ e) c) (Nat.succ (ratDenRep k e)))
+      (Nat.add
+        (Nat.add (myMul Nat.zero f) (myMul (Nat.succ e) c))
+        (Nat.succ (ratDenRep k e)))
+      (@Eq.trans.{1} Nat
+        (myMul (Nat.succ e) f)
+        (Nat.add (myMul (Nat.succ e) c) (myMul (Nat.succ k) (Nat.succ e)))
+        (Nat.add (myMul (Nat.succ e) c) (Nat.succ (ratDenRep k e)))
+        (mul_add_succ_eq e c f k hf)
+        (congrArg.{1}
+          (fun (x : Nat) => Nat.add (myMul (Nat.succ e) c) x)
+          (@Eq.symm.{1} Nat
+            (Nat.succ (ratDenRep k e))
+            (myMul (Nat.succ k) (Nat.succ e))
+            (ratDenRep_succ k e))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (Nat.succ e) c) (Nat.succ (ratDenRep k e)))
+        (Nat.add (Nat.add Nat.zero (myMul (Nat.succ e) c))
+                 (Nat.succ (ratDenRep k e)))
+        (Nat.add
+          (Nat.add (myMul Nat.zero f) (myMul (Nat.succ e) c))
+          (Nat.succ (ratDenRep k e)))
+        (congrArg.{1}
+          (fun (x : Nat) => Nat.add x (Nat.succ (ratDenRep k e)))
+          (@Eq.symm.{1} Nat
+            (Nat.add Nat.zero (myMul (Nat.succ e) c))
+            (myMul (Nat.succ e) c)
+            (zero_add (myMul (Nat.succ e) c))))
+        (congrArg.{1}
+          (fun (x : Nat) =>
+            Nat.add (Nat.add x (myMul (Nat.succ e) c))
+              (Nat.succ (ratDenRep k e)))
+          (@Eq.symm.{1} Nat
+            (myMul Nat.zero f) Nat.zero (zero_mul f)))))
+
+theorem ratDiv_case_ge_num (c f e k : Nat)
+    (hc : c = Nat.add f (Nat.succ k)) :
+    Nat.add (myMul (Nat.succ e) c) (myMul Nat.zero f) =
+    Nat.add
+      (Nat.add (myMul (Nat.succ e) f) (myMul Nat.zero c))
+      (Nat.succ (ratDenRep k e)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul (Nat.succ e) c) (myMul Nat.zero f))
+    (myMul (Nat.succ e) c)
+    (Nat.add
+      (Nat.add (myMul (Nat.succ e) f) (myMul Nat.zero c))
+      (Nat.succ (ratDenRep k e)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul (Nat.succ e) c) (myMul Nat.zero f))
+      (Nat.add (myMul (Nat.succ e) c) Nat.zero)
+      (myMul (Nat.succ e) c)
+      (congrArg.{1} (fun (x : Nat) => Nat.add (myMul (Nat.succ e) c) x)
+        (zero_mul f))
+      (add_zero (myMul (Nat.succ e) c)))
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ e) c)
+      (Nat.add (myMul (Nat.succ e) f) (Nat.succ (ratDenRep k e)))
+      (Nat.add
+        (Nat.add (myMul (Nat.succ e) f) (myMul Nat.zero c))
+        (Nat.succ (ratDenRep k e)))
+      (@Eq.trans.{1} Nat
+        (myMul (Nat.succ e) c)
+        (Nat.add (myMul (Nat.succ e) f) (myMul (Nat.succ k) (Nat.succ e)))
+        (Nat.add (myMul (Nat.succ e) f) (Nat.succ (ratDenRep k e)))
+        (mul_add_succ_eq e f c k hc)
+        (congrArg.{1}
+          (fun (x : Nat) => Nat.add (myMul (Nat.succ e) f) x)
+          (@Eq.symm.{1} Nat
+            (Nat.succ (ratDenRep k e))
+            (myMul (Nat.succ k) (Nat.succ e))
+            (ratDenRep_succ k e))))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul (Nat.succ e) f) (Nat.succ (ratDenRep k e)))
+        (Nat.add (Nat.add (myMul (Nat.succ e) f) Nat.zero)
+                 (Nat.succ (ratDenRep k e)))
+        (Nat.add
+          (Nat.add (myMul (Nat.succ e) f) (myMul Nat.zero c))
+          (Nat.succ (ratDenRep k e)))
+        (congrArg.{1}
+          (fun (x : Nat) => Nat.add x (Nat.succ (ratDenRep k e)))
+          (@Eq.symm.{1} Nat
+            (Nat.add (myMul (Nat.succ e) f) Nat.zero)
+            (myMul (Nat.succ e) f)
+            (add_zero (myMul (Nat.succ e) f))))
+        (congrArg.{1}
+          (fun (x : Nat) =>
+            Nat.add (Nat.add (myMul (Nat.succ e) f) x)
+              (Nat.succ (ratDenRep k e)))
+          (@Eq.symm.{1} Nat
+            (myMul Nat.zero c) Nat.zero (zero_mul c)))))
+
+theorem ratDiv_exists_aux (n : Prod (Prod Nat Nat) Nat)
+    (d : Prod (Prod Nat Nat) Nat) :
+    (¬ ratRel d ratZeroRep) →
+      ∃ (q : ratRep), ratRel (ratMulRep q d) n :=
+  match n with
+  | prod_mk (prod_mk a b) m =>
+    match d with
+    | prod_mk (prod_mk c f) e =>
+      fun (hd : ¬ ratRel (prod_mk (prod_mk c f) e) ratZeroRep) =>
+        Or.elim
+          (fun (hcf : LeNat c f) =>
+            Or.elim
+              (fun (heq : c = f) =>
+                False.elim (hd (ratRel_zero_of_eq c f e heq)))
+              (fun (hlt : LeNat (Nat.succ c) f) =>
+                Exists.elim
+                  (leNat_exists_add (Nat.succ c) f hlt)
+                  (fun (k : Nat) (hfk : f = Nat.add (Nat.succ c) k) =>
+                    Exists.intro
+                      (ratMulRep (qrep a b m) (qrep Nat.zero (Nat.succ e) k))
+                      (ratRel_trans_gen
+                        (ratMulRep
+                          (ratMulRep (qrep a b m) (qrep Nat.zero (Nat.succ e) k))
+                          (qrep c f e))
+                        (ratMulRep (qrep a b m)
+                          (ratMulRep (qrep Nat.zero (Nat.succ e) k)
+                                     (qrep c f e)))
+                        (qrep a b m)
+                        (ratMul_assoc (qrep a b m)
+                          (qrep Nat.zero (Nat.succ e) k) (qrep c f e))
+                        (ratMul_one_rep (qrep a b m)
+                          (Nat.add (myMul Nat.zero c) (myMul (Nat.succ e) f))
+                          (Nat.add (myMul Nat.zero f) (myMul (Nat.succ e) c))
+                          (ratDenRep k e)
+                          (ratDiv_case_le_num c f e k
+                            (@Eq.trans.{1} Nat
+                              f
+                              (Nat.add (Nat.succ c) k)
+                              (Nat.add c (Nat.succ k))
+                              hfk
+                              (succ_add c k)))))))
+              (leNat_eq_or_succ c f hcf))
+          (fun (hfc : LeNat f c) =>
+            Or.elim
+              (fun (heq : f = c) =>
+                False.elim
+                  (hd (ratRel_zero_of_eq c f e
+                    (@Eq.symm.{1} Nat f c heq))))
+              (fun (hlt : LeNat (Nat.succ f) c) =>
+                Exists.elim
+                  (leNat_exists_add (Nat.succ f) c hlt)
+                  (fun (k : Nat) (hck : c = Nat.add (Nat.succ f) k) =>
+                    Exists.intro
+                      (ratMulRep (qrep a b m)
+                        (qrep (Nat.succ e) Nat.zero k))
+                      (ratRel_trans_gen
+                        (ratMulRep
+                          (ratMulRep (qrep a b m)
+                            (qrep (Nat.succ e) Nat.zero k))
+                          (qrep c f e))
+                        (ratMulRep (qrep a b m)
+                          (ratMulRep (qrep (Nat.succ e) Nat.zero k)
+                                     (qrep c f e)))
+                        (qrep a b m)
+                        (ratMul_assoc (qrep a b m)
+                          (qrep (Nat.succ e) Nat.zero k) (qrep c f e))
+                        (ratMul_one_rep (qrep a b m)
+                          (Nat.add (myMul (Nat.succ e) c) (myMul Nat.zero f))
+                          (Nat.add (myMul (Nat.succ e) f) (myMul Nat.zero c))
+                          (ratDenRep k e)
+                          (ratDiv_case_ge_num c f e k
+                            (@Eq.trans.{1} Nat
+                              c
+                              (Nat.add (Nat.succ f) k)
+                              (Nat.add f (Nat.succ k))
+                              hck
+                              (succ_add f k)))))))
+              (leNat_eq_or_succ f c hfc))
+          (leNat_total c f)
+
+-- 主定理：每个非零代表元都能除。
+
+theorem ratDiv_exists (n d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ∃ (q : ratRep), ratRel (ratMulRep q d) n :=
+  ratDiv_exists_aux n d hd
+
+-- ─────────────────────────────────────────────────────────────
+-- 8. 选择包装（`Exists.choose` 来自 `lib/Choice`，本文件不新增公理）
+-- ─────────────────────────────────────────────────────────────
+
+def ratInv (d : ratRep) (hd : ¬ ratRel d ratZeroRep) : ratRep :=
+  Exists.choose ratRep
+    (fun (q : ratRep) => ratRel (ratMulRep q d) ratOneRep)
+    (ratInv_exists d hd)
+
+theorem ratInv_mul (d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ratRel (ratMulRep (ratInv d hd) d) ratOneRep :=
+  Exists.choose_spec ratRep
+    (fun (q : ratRep) => ratRel (ratMulRep q d) ratOneRep)
+    (ratInv_exists d hd)
+
+def ratQuot (n d : ratRep) (hd : ¬ ratRel d ratZeroRep) : ratRep :=
+  Exists.choose ratRep
+    (fun (q : ratRep) => ratRel (ratMulRep q d) n)
+    (ratDiv_exists n d hd)
+
+theorem ratQuot_mul (n d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ratRel (ratMulRep (ratQuot n d hd) d) n :=
+  Exists.choose_spec ratRep
+    (fun (q : ratRep) => ratRel (ratMulRep q d) n)
+    (ratDiv_exists n d hd)

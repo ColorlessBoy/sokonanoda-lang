@@ -1,0 +1,21 @@
+-- 课程库：选择公理（A0 决策，2026-11-24 用户批准）
+--
+-- 分析课到 FTC 之前只需要「从存在命题取一个见证」这一件事：有理数倒数
+-- 用 `∃ q, q·d = 1` 的存在性取见证，再把见证包成函数。没有它，`HasDerivAt`
+-- 的斜率函数 `q(x) = (F x - F c)/(x - c)` 只能停在「每个 x 各自存在」，
+-- 拼不成一个函数。
+--
+-- 这是一条**显式公理**（与卷 I 的 `propext`、set-theory 单元⑩ 的
+-- `Exists.choose` 同款），不是新判定规则，也不碰 kernel/front：
+--   · `Exists.choose` —— 从 `∃ x, p x` 取一个 `x`；
+--   · `Exists.choose_spec` —— 取出来的 `x` 确实满足 `p`。
+--
+-- 边界：只给「选择」这一件事；不引入排中律的其它形式，也不改变既有单元的
+-- 可证性（已判卷的声明不因为 import 本文件而改变）。
+
+import lib.Exists
+
+axiom Exists.choose (A : Type) (p : A → Prop) (h : ∃ (x : A), p x) : A
+
+axiom Exists.choose_spec (A : Type) (p : A → Prop) (h : ∃ (x : A), p x) :
+    p (Exists.choose A p h)

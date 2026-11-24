@@ -1,0 +1,465 @@
+-- RatInv.sokonanoda —— 非零有理代表元的乘法逆（**存在性**）
+--
+-- A0 要定义有理数的除法/取逆，做法是对本文件的
+--   `ratInv_exists : ¬ ratRel d ratZeroRep → ∃ q, ratRel (ratMulRep q d) ratOneRep`
+-- 用 `Exists.choose` 取出那个 `q`。选择函数**在使用处**消费：本文件只证存在，
+-- 自己不定义选择函数、不引入任何公理（没有 `axiom`，也没有留洞）。
+--
+-- 内容：
+--   · `myMul_one` / `one_mul` —— ℕ 上乘 1 的两条（库里已有 `myMul_zero`、
+--     `succ_mul`、`zero_mul`，缺这两条）；
+--   · `myMul_one_zero_right` / `one_mul_add_mul_one` / `zero_mul_add_mul_one` ——
+--     代表元交叉乘积里的 `·1`、`·0` 清理；
+--   · `prod_mk_den_form` —— `mulRep_den_form` 的对称方向（把规范形搬回 `mulRep`）；
+--   · `ratRel_qrep_of_eq` —— `qrep` 形的 `ratRel` 展开成一条干净的 ℕ 加法等式
+--     `a(n+1) + d(m+1) = c(m+1) + b(n+1)`；
+--   · `ratRel_same_den` —— 同分母时交叉乘积消去（`mulRep_wd` 的直接转发）；
+--   · `ratRel_one_of_num` —— `qrep A B M ~ 1` 的判据：`A = B + (M+1)`；
+--   · `ratRel_zero_of_self` / `ratRel_zero_of_eq` —— 分子相等的代表元就是零，
+--     即 `c = f ⇒ qrep c f e ~ 0`（主定理的两个「非零」前提靠它）；
+--   · `ratMul_fst_clean` / `ratMul_snd_clean` —— 两个 `0·_` 的清理等式；
+--   · `ratMul_zero_fst_rel` / `ratMul_zero_snd_rel` —— 含一个零分子的乘积化简；
+--   · `mul_add_succ_eq` —— 主算术：`b = a + (k+1) ⇒ (e+1)·b = (e+1)·a + (k+1)·(e+1)`；
+--   · `ratInv_case_le` / `ratInv_case_ge` —— 全性 `leNat_total` 的两支；
+--   · `ratInv_exists` —— 主定理。
+--
+-- 证明思路：把 d 写成 `qrep c f e`（代表 `(c-f)/(e+1)`）。`d ~ 0` 当且仅当
+-- `c = f`，所以 `¬ d ~ 0` 给出 `c ≠ f`；`leNat_total c f` 分两支：
+--   · `c ≤ f`：`c ≠ f` 把它加强成 `c+1 ≤ f`，于是 `f = c + (k+1)`，
+--     取 `q = qrep 0 (e+1) k`（值 `-(e+1)/(k+1)`）；
+--   · `f ≤ c`：对称地 `c = f + (k+1)`，取 `q = qrep (e+1) 0 k`（值 `(e+1)/(k+1)`）。
+-- 两支行到同一条 ℕ 等式，由 `mul_add`、`myMul_comm`、`ratDenRep_succ` 收口。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Bounded
+
+-- ─────────────────────────────────────────────────────────────
+-- 1. ℕ 上乘 1 的两条（其余的乘法律都在 `lib.Rat`）
+-- ─────────────────────────────────────────────────────────────
+
+-- `myMul n 1 = n`：`myMul n (succ 0)` 展开成 `n + myMul n 0`，base 就是 0。
+
+theorem myMul_one (n : Nat) :
+    myMul n (Nat.succ Nat.zero) = n :=
+  @Eq.trans.{1} Nat
+    (myMul n (Nat.succ Nat.zero))
+    (Nat.add n (myMul n Nat.zero))
+    n
+    (myMul_succ n Nat.zero)
+    (add_zero n)
+
+-- `myMul 1 n = n`：`succ_mul` 展开成 `myMul 0 n + n`，再用 `zero_mul`、`zero_add`。
+
+theorem one_mul (n : Nat) :
+    myMul (Nat.succ Nat.zero) n = n :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.succ Nat.zero) n)
+    (Nat.add (myMul Nat.zero n) n)
+    n
+    (succ_mul Nat.zero n)
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul Nat.zero n) n)
+      (Nat.add Nat.zero n)
+      n
+      (congrArg.{1} (fun (x : Nat) => Nat.add x n) (zero_mul n))
+      (zero_add n))
+
+-- 交叉乘积里的清理：`x·1 + 0·y = x`。
+
+theorem myMul_one_zero_right (x y : Nat) :
+    Nat.add (myMul x (Nat.succ Nat.zero)) (myMul Nat.zero y) = x :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul x (Nat.succ Nat.zero)) (myMul Nat.zero y))
+    (Nat.add (myMul x (Nat.succ Nat.zero)) Nat.zero)
+    x
+    (congrArg.{1} (fun (z : Nat) => Nat.add (myMul x (Nat.succ Nat.zero)) z)
+      (zero_mul y))
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul x (Nat.succ Nat.zero)) Nat.zero)
+      (myMul x (Nat.succ Nat.zero))
+      x
+      (add_zero (myMul x (Nat.succ Nat.zero)))
+      (myMul_one x))
+
+-- `1·d + x·1 = x + d`（"1 的代表元"那一侧的交叉乘积）。
+
+theorem one_mul_add_mul_one (d x : Nat) :
+    Nat.add (myMul (Nat.succ Nat.zero) d) (myMul x (Nat.succ Nat.zero)) =
+    Nat.add x d :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul (Nat.succ Nat.zero) d) (myMul x (Nat.succ Nat.zero)))
+    (Nat.add d (myMul x (Nat.succ Nat.zero)))
+    (Nat.add x d)
+    (congrArg.{1} (fun (z : Nat) => Nat.add z (myMul x (Nat.succ Nat.zero)))
+      (one_mul d))
+    (@Eq.trans.{1} Nat
+      (Nat.add d (myMul x (Nat.succ Nat.zero)))
+      (Nat.add d x)
+      (Nat.add x d)
+      (congrArg.{1} (fun (z : Nat) => Nat.add d z) (myMul_one x))
+      (add_comm d x))
+
+-- `0·d + x·1 = x`（零的代表元那一侧的交叉乘积）。
+
+theorem zero_mul_add_mul_one (d x : Nat) :
+    Nat.add (myMul Nat.zero d) (myMul x (Nat.succ Nat.zero)) = x :=
+  @Eq.trans.{1} Nat
+    (Nat.add (myMul Nat.zero d) (myMul x (Nat.succ Nat.zero)))
+    (Nat.add Nat.zero (myMul x (Nat.succ Nat.zero)))
+    x
+    (congrArg.{1} (fun (z : Nat) => Nat.add z (myMul x (Nat.succ Nat.zero)))
+      (zero_mul d))
+    (@Eq.trans.{1} Nat
+      (Nat.add Nat.zero (myMul x (Nat.succ Nat.zero)))
+      (Nat.add Nat.zero x)
+      x
+      (congrArg.{1} (fun (z : Nat) => Nat.add Nat.zero z) (myMul_one x))
+      (zero_add x))
+
+-- ─────────────────────────────────────────────────────────────
+-- 2. `qrep` 形的 `ratRel`：交叉和化成一条干净的 ℕ 等式
+-- ─────────────────────────────────────────────────────────────
+
+-- `mulRep_den_form` 的对称方向：规范形的分子序对乘回正分母。
+
+theorem prod_mk_den_form (p : Prod Nat Nat) (k : Nat) :
+    @prod_mk Nat Nat
+      (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+      (myMul (Prod.snd Nat Nat p) (Nat.succ k)) =
+    mulRep p (den k) :=
+  @Eq.symm.{1} (Prod Nat Nat)
+    (mulRep p (den k))
+    (@prod_mk Nat Nat
+      (myMul (Prod.fst Nat Nat p) (Nat.succ k))
+      (myMul (Prod.snd Nat Nat p) (Nat.succ k)))
+    (mulRep_den_form p k)
+
+-- `ratRel (qrep a b m) (qrep c d n)` 展开后，两侧各是 `mulRep (a,b) (den n)`
+-- 与 `mulRep (c,d) (den m)`；`mulRep_den_form` 把它们各写成
+-- `(a(n+1), b(n+1))`、`(c(m+1), d(m+1))`，于是 `intRel` 就是
+-- `a(n+1) + d(m+1) = c(m+1) + b(n+1)`。两次 `Eq.subst` 把两侧换成规范形。
+
+theorem ratRel_qrep_of_eq (a b c d m n : Nat)
+    (h : Nat.add (myMul a (Nat.succ n)) (myMul d (Nat.succ m)) =
+         Nat.add (myMul c (Nat.succ m)) (myMul b (Nat.succ n))) :
+    ratRel (qrep a b m) (qrep c d n) :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (x : Prod Nat Nat) =>
+      intRel x (mulRep (@prod_mk Nat Nat c d) (den m)))
+    (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n)))
+    (mulRep (@prod_mk Nat Nat a b) (den n))
+    (prod_mk_den_form (@prod_mk Nat Nat a b) n)
+    (@Eq.subst.{1} (Prod Nat Nat)
+      (fun (x : Prod Nat Nat) =>
+        intRel (@prod_mk Nat Nat (myMul a (Nat.succ n)) (myMul b (Nat.succ n))) x)
+      (@prod_mk Nat Nat (myMul c (Nat.succ m)) (myMul d (Nat.succ m)))
+      (mulRep (@prod_mk Nat Nat c d) (den m))
+      (prod_mk_den_form (@prod_mk Nat Nat c d) m)
+      h)
+
+-- 同分母的 `ratRel` 只要分子序对的加法等式：`mulRep_wd` 直接把它搬到
+-- 两边乘上同一个正分母之后，那正是 `ratRel` 的定义。
+
+theorem ratRel_same_den (a b a' b' m : Nat)
+    (h : Nat.add a b' = Nat.add a' b) :
+    ratRel (qrep a b m) (qrep a' b' m) :=
+  mulRep_wd a b a' b' (Nat.succ m) Nat.zero h
+
+-- ─────────────────────────────────────────────────────────────
+-- 3. 两条「代表元形状」的判据
+-- ─────────────────────────────────────────────────────────────
+
+-- `qrep A B M ~ 1` 的判据：`A - B = M+1`，即 `A = B + (M+1)`。
+-- 取 `c = 1`、`d = 0`、`n = 0` 代入 `ratRel_qrep_of_eq`，交叉和就是
+-- `A + 0 = (M+1) + B`，清理 `·1`、`·0` 后正好是 `A = B + (M+1)`。
+
+theorem ratRel_one_of_num (A B M : Nat)
+    (h : A = Nat.add B (Nat.succ M)) :
+    ratRel (qrep A B M) ratOneRep :=
+  ratRel_qrep_of_eq A B (Nat.succ Nat.zero) Nat.zero M Nat.zero
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul A (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ M)))
+      A
+      (Nat.add (myMul (Nat.succ Nat.zero) (Nat.succ M))
+               (myMul B (Nat.succ Nat.zero)))
+      (myMul_one_zero_right A (Nat.succ M))
+      (@Eq.trans.{1} Nat
+        A
+        (Nat.add B (Nat.succ M))
+        (Nat.add (myMul (Nat.succ Nat.zero) (Nat.succ M))
+                 (myMul B (Nat.succ Nat.zero)))
+        h
+        (@Eq.symm.{1} Nat
+          (Nat.add (myMul (Nat.succ Nat.zero) (Nat.succ M))
+                   (myMul B (Nat.succ Nat.zero)))
+          (Nat.add B (Nat.succ M))
+          (one_mul_add_mul_one (Nat.succ M) B))))
+
+-- 分子相同的代表元就是零：`qrep c c e ~ 0`。
+-- 取 `c = 0`、`d = 0`、`n = 0` 代入 `ratRel_qrep_of_eq`，交叉和是 `c + 0 = 0 + c`。
+
+theorem ratRel_zero_of_self (c e : Nat) :
+    ratRel (qrep c c e) ratZeroRep :=
+  ratRel_qrep_of_eq c c Nat.zero Nat.zero e Nat.zero
+    (@Eq.trans.{1} Nat
+      (Nat.add (myMul c (Nat.succ Nat.zero)) (myMul Nat.zero (Nat.succ e)))
+      c
+      (Nat.add (myMul Nat.zero (Nat.succ e)) (myMul c (Nat.succ Nat.zero)))
+      (myMul_one_zero_right c (Nat.succ e))
+      (@Eq.symm.{1} Nat
+        (Nat.add (myMul Nat.zero (Nat.succ e)) (myMul c (Nat.succ Nat.zero)))
+        c
+        (zero_mul_add_mul_one (Nat.succ e) c)))
+
+-- 主定理要的「非零」前提：`c = f ⇒ qrep c f e ~ 0`。先把 `f` 换成 `c`。
+
+theorem ratRel_zero_of_eq (c f e : Nat) (h : c = f) :
+    ratRel (qrep c f e) ratZeroRep :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) => ratRel (qrep c x e) ratZeroRep)
+    c f h
+    (ratRel_zero_of_self c e)
+
+-- ─────────────────────────────────────────────────────────────
+-- 4. 含一个零分子的乘积化简
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个 `0·_` 的清理：`(0·c + b·d) + b·c = b·d + (0·d + b·c)`。
+
+theorem ratMul_fst_clean (b c d : Nat) :
+    Nat.add (Nat.add (myMul Nat.zero c) (myMul b d)) (myMul b c) =
+    Nat.add (myMul b d) (Nat.add (myMul Nat.zero d) (myMul b c)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (myMul Nat.zero c) (myMul b d)) (myMul b c))
+    (Nat.add (myMul b d) (myMul b c))
+    (Nat.add (myMul b d) (Nat.add (myMul Nat.zero d) (myMul b c)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul Nat.zero c) (myMul b d)) (myMul b c))
+      (Nat.add (Nat.add Nat.zero (myMul b d)) (myMul b c))
+      (Nat.add (myMul b d) (myMul b c))
+      (congrArg.{1}
+        (fun (z : Nat) => Nat.add (Nat.add z (myMul b d)) (myMul b c))
+        (zero_mul c))
+      (congrArg.{1} (fun (z : Nat) => Nat.add z (myMul b c))
+        (zero_add (myMul b d))))
+    (@Eq.symm.{1} Nat
+      (Nat.add (myMul b d) (Nat.add (myMul Nat.zero d) (myMul b c)))
+      (Nat.add (myMul b d) (myMul b c))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul b d) (Nat.add (myMul Nat.zero d) (myMul b c)))
+        (Nat.add (myMul b d) (Nat.add Nat.zero (myMul b c)))
+        (Nat.add (myMul b d) (myMul b c))
+        (congrArg.{1}
+          (fun (z : Nat) => Nat.add (myMul b d) (Nat.add z (myMul b c)))
+          (zero_mul d))
+        (congrArg.{1} (fun (z : Nat) => Nat.add (myMul b d) z)
+          (zero_add (myMul b c)))))
+
+-- 对称的一条：`(a·c + 0·d) + a·d = a·c + (a·d + 0·c)`。
+
+theorem ratMul_snd_clean (a c d : Nat) :
+    Nat.add (Nat.add (myMul a c) (myMul Nat.zero d)) (myMul a d) =
+    Nat.add (myMul a c) (Nat.add (myMul a d) (myMul Nat.zero c)) :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.add (myMul a c) (myMul Nat.zero d)) (myMul a d))
+    (Nat.add (myMul a c) (myMul a d))
+    (Nat.add (myMul a c) (Nat.add (myMul a d) (myMul Nat.zero c)))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul Nat.zero d)) (myMul a d))
+      (Nat.add (Nat.add (myMul a c) Nat.zero) (myMul a d))
+      (Nat.add (myMul a c) (myMul a d))
+      (congrArg.{1}
+        (fun (z : Nat) => Nat.add (Nat.add (myMul a c) z) (myMul a d))
+        (zero_mul d))
+      (congrArg.{1} (fun (z : Nat) => Nat.add z (myMul a d))
+        (add_zero (myMul a c))))
+    (@Eq.symm.{1} Nat
+      (Nat.add (myMul a c) (Nat.add (myMul a d) (myMul Nat.zero c)))
+      (Nat.add (myMul a c) (myMul a d))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul a c) (Nat.add (myMul a d) (myMul Nat.zero c)))
+        (Nat.add (myMul a c) (Nat.add (myMul a d) Nat.zero))
+        (Nat.add (myMul a c) (myMul a d))
+        (congrArg.{1}
+          (fun (z : Nat) => Nat.add (myMul a c) (Nat.add (myMul a d) z))
+          (zero_mul c))
+        (congrArg.{1} (fun (z : Nat) => Nat.add (myMul a c) z)
+          (add_zero (myMul a d)))))
+
+-- `qrep 0 b m * qrep c d n ~ qrep (b·d) (b·c) (ratDenRep m n)`：
+-- `ratMulRep_mk` 给出分子 `(0·c + b·d, 0·d + b·c)`，把两个 `0·_` 清掉即可。
+
+theorem ratMul_zero_fst_rel (b c d m n : Nat) :
+    ratRel (ratMulRep (qrep Nat.zero b m) (qrep c d n))
+           (qrep (myMul b d) (myMul b c) (ratDenRep m n)) :=
+  @Eq.subst.{1} ratRep
+    (fun (x : ratRep) =>
+      ratRel x (qrep (myMul b d) (myMul b c) (ratDenRep m n)))
+    (ratMulRep (qrep Nat.zero b m) (qrep c d n))
+    (qrep
+      (Nat.add (myMul Nat.zero c) (myMul b d))
+      (Nat.add (myMul Nat.zero d) (myMul b c))
+      (ratDenRep m n))
+    (ratMulRep_mk Nat.zero b c d m n)
+    (ratRel_same_den
+      (Nat.add (myMul Nat.zero c) (myMul b d))
+      (Nat.add (myMul Nat.zero d) (myMul b c))
+      (myMul b d) (myMul b c) (ratDenRep m n)
+      (ratMul_fst_clean b c d))
+
+-- `qrep a 0 m * qrep c d n ~ qrep (a·c) (a·d) (ratDenRep m n)`：对称的一条。
+
+theorem ratMul_zero_snd_rel (a c d m n : Nat) :
+    ratRel (ratMulRep (qrep a Nat.zero m) (qrep c d n))
+           (qrep (myMul a c) (myMul a d) (ratDenRep m n)) :=
+  @Eq.subst.{1} ratRep
+    (fun (x : ratRep) =>
+      ratRel x (qrep (myMul a c) (myMul a d) (ratDenRep m n)))
+    (ratMulRep (qrep a Nat.zero m) (qrep c d n))
+    (qrep
+      (Nat.add (myMul a c) (myMul Nat.zero d))
+      (Nat.add (myMul a d) (myMul Nat.zero c))
+      (ratDenRep m n))
+    (ratMulRep_mk a Nat.zero c d m n)
+    (ratRel_same_den
+      (Nat.add (myMul a c) (myMul Nat.zero d))
+      (Nat.add (myMul a d) (myMul Nat.zero c))
+      (myMul a c) (myMul a d) (ratDenRep m n)
+      (ratMul_snd_clean a c d))
+
+-- ─────────────────────────────────────────────────────────────
+-- 5. 主算术
+-- ─────────────────────────────────────────────────────────────
+
+-- `b = a + (k+1)` ⇒ `(e+1)·b = (e+1)·a + (k+1)·(e+1)`。
+-- 分配律展开后只剩两个因子换位（`myMul_comm`）。
+
+theorem mul_add_succ_eq (e a b k : Nat)
+    (hb : b = Nat.add a (Nat.succ k)) :
+    myMul (Nat.succ e) b =
+    Nat.add (myMul (Nat.succ e) a) (myMul (Nat.succ k) (Nat.succ e)) :=
+  @Eq.trans.{1} Nat
+    (myMul (Nat.succ e) b)
+    (myMul (Nat.succ e) (Nat.add a (Nat.succ k)))
+    (Nat.add (myMul (Nat.succ e) a) (myMul (Nat.succ k) (Nat.succ e)))
+    (congrArg.{1} (fun (x : Nat) => myMul (Nat.succ e) x) hb)
+    (@Eq.trans.{1} Nat
+      (myMul (Nat.succ e) (Nat.add a (Nat.succ k)))
+      (Nat.add (myMul (Nat.succ e) a) (myMul (Nat.succ e) (Nat.succ k)))
+      (Nat.add (myMul (Nat.succ e) a) (myMul (Nat.succ k) (Nat.succ e)))
+      (mul_add (Nat.succ e) a (Nat.succ k))
+      (congrArg.{1}
+        (fun (x : Nat) => Nat.add (myMul (Nat.succ e) a) x)
+        (myMul_comm (Nat.succ e) (Nat.succ k))))
+
+-- `f = c + (k+1)` 时 `qrep 0 (e+1) k` 乘上 `d = qrep c f e` 得 1：
+-- 乘积化简成 `qrep ((e+1)·f) ((e+1)·c) (ratDenRep k e)`，
+-- 而 `succ (ratDenRep k e) = (k+1)·(e+1)`，正好是 `ratRel_one_of_num` 的判据。
+
+theorem ratInv_case_le (c f e k : Nat)
+    (hf : f = Nat.add c (Nat.succ k)) :
+    ratRel (ratMulRep (qrep Nat.zero (Nat.succ e) k) (qrep c f e))
+           ratOneRep :=
+  ratRel_trans_gen
+    (ratMulRep (qrep Nat.zero (Nat.succ e) k) (qrep c f e))
+    (qrep (myMul (Nat.succ e) f) (myMul (Nat.succ e) c) (ratDenRep k e))
+    ratOneRep
+    (ratMul_zero_fst_rel (Nat.succ e) c f k e)
+    (ratRel_one_of_num
+      (myMul (Nat.succ e) f) (myMul (Nat.succ e) c) (ratDenRep k e)
+      (@Eq.trans.{1} Nat
+        (myMul (Nat.succ e) f)
+        (Nat.add (myMul (Nat.succ e) c) (myMul (Nat.succ k) (Nat.succ e)))
+        (Nat.add (myMul (Nat.succ e) c) (Nat.succ (ratDenRep k e)))
+        (mul_add_succ_eq e c f k hf)
+        (@Eq.symm.{1} Nat
+          (Nat.add (myMul (Nat.succ e) c) (Nat.succ (ratDenRep k e)))
+          (Nat.add (myMul (Nat.succ e) c) (myMul (Nat.succ k) (Nat.succ e)))
+          (congrArg.{1}
+            (fun (x : Nat) => Nat.add (myMul (Nat.succ e) c) x)
+            (ratDenRep_succ k e)))))
+
+-- `c = f + (k+1)` 时 `qrep (e+1) 0 k` 乘上 `d = qrep c f e` 得 1（对称的一条）。
+
+theorem ratInv_case_ge (c f e k : Nat)
+    (hc : c = Nat.add f (Nat.succ k)) :
+    ratRel (ratMulRep (qrep (Nat.succ e) Nat.zero k) (qrep c f e))
+           ratOneRep :=
+  ratRel_trans_gen
+    (ratMulRep (qrep (Nat.succ e) Nat.zero k) (qrep c f e))
+    (qrep (myMul (Nat.succ e) c) (myMul (Nat.succ e) f) (ratDenRep k e))
+    ratOneRep
+    (ratMul_zero_snd_rel (Nat.succ e) c f k e)
+    (ratRel_one_of_num
+      (myMul (Nat.succ e) c) (myMul (Nat.succ e) f) (ratDenRep k e)
+      (@Eq.trans.{1} Nat
+        (myMul (Nat.succ e) c)
+        (Nat.add (myMul (Nat.succ e) f) (myMul (Nat.succ k) (Nat.succ e)))
+        (Nat.add (myMul (Nat.succ e) f) (Nat.succ (ratDenRep k e)))
+        (mul_add_succ_eq e f c k hc)
+        (@Eq.symm.{1} Nat
+          (Nat.add (myMul (Nat.succ e) f) (Nat.succ (ratDenRep k e)))
+          (Nat.add (myMul (Nat.succ e) f) (myMul (Nat.succ k) (Nat.succ e)))
+          (congrArg.{1}
+            (fun (x : Nat) => Nat.add (myMul (Nat.succ e) f) x)
+            (ratDenRep_succ k e)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. 主定理
+-- ─────────────────────────────────────────────────────────────
+
+-- 先把 `d` 拆成 `prod_mk (prod_mk c f) e`（`ratRep` 是定义别名，与 Cauchy 的
+-- `ratRel_trans_aux` 同样先匹配展开类型，再收成带假设的函数）。
+
+theorem ratInv_exists_aux (d : Prod (Prod Nat Nat) Nat) :
+    (¬ ratRel d ratZeroRep) →
+      ∃ (q : ratRep), ratRel (ratMulRep q d) ratOneRep :=
+  match d with
+  | prod_mk (prod_mk c f) e =>
+    fun (hd : ¬ ratRel (prod_mk (prod_mk c f) e) ratZeroRep) =>
+      Or.elim
+        (fun (hcf : LeNat c f) =>
+          Or.elim
+            (fun (heq : c = f) =>
+              False.elim (hd (ratRel_zero_of_eq c f e heq)))
+            (fun (hlt : LeNat (Nat.succ c) f) =>
+              Exists.elim
+                (leNat_exists_add (Nat.succ c) f hlt)
+                (fun (k : Nat) (hfk : f = Nat.add (Nat.succ c) k) =>
+                  Exists.intro (qrep Nat.zero (Nat.succ e) k)
+                    (ratInv_case_le c f e k
+                      (@Eq.trans.{1} Nat
+                        f
+                        (Nat.add (Nat.succ c) k)
+                        (Nat.add c (Nat.succ k))
+                        hfk
+                        (succ_add c k)))))
+            (leNat_eq_or_succ c f hcf))
+        (fun (hfc : LeNat f c) =>
+          Or.elim
+            (fun (heq : f = c) =>
+              False.elim (hd (ratRel_zero_of_eq c f e
+                (@Eq.symm.{1} Nat f c heq))))
+            (fun (hlt : LeNat (Nat.succ f) c) =>
+              Exists.elim
+                (leNat_exists_add (Nat.succ f) c hlt)
+                (fun (k : Nat) (hck : c = Nat.add (Nat.succ f) k) =>
+                  Exists.intro (qrep (Nat.succ e) Nat.zero k)
+                    (ratInv_case_ge c f e k
+                      (@Eq.trans.{1} Nat
+                        c
+                        (Nat.add (Nat.succ f) k)
+                        (Nat.add f (Nat.succ k))
+                        hck
+                        (succ_add f k)))))
+            (leNat_eq_or_succ f c hfc))
+        (leNat_total c f)
+
+-- 主定理：每个「非零」代表元都有乘法逆。A0 用 `Exists.choose` 从这里取逆元；
+-- 本文件只证存在，不加公理。
+
+theorem ratInv_exists (d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ∃ (q : ratRep), ratRel (ratMulRep q d) ratOneRep :=
+  ratInv_exists_aux d hd

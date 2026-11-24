@@ -1,0 +1,1108 @@
+-- 课程库：把两个分割沿接缝拼起来
+--
+-- 区间可加性要把 `[a,c]` 与 `[c,b]` 两块面积接起来。`lib/IntegralCat` 只给了
+-- 切点序的拼接函数 `catFun`；这里把它包装成一个真正的分割 `catPartition`，
+-- 并证明接缝处严格上升、上下界与矩形和沿拼接搬运。
+--
+-- 已证：
+--   · `catPartition` —— 段数是 `succ n1 + partCount p2`，切点序是 `catFun`；
+--   · `catPartition_isPartition` —— 两端点与严格上升（按 i < n1 / i = n1 /
+--     i > n1 三支做索引算术）；
+--   · `catPartition_lowerStep` / `catPartition_upperStep` —— 上下界逐段搬运；
+--   · `catPartition_stepSum` —— 矩形和拆成两块之和。
+--
+-- 边界：停在有理代表元层，不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.Cauchy
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralCat
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.Sum
+import lib.SumSplit
+
+-- ─────────────────────────────────────────────────────────────
+-- 拼接后的分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 左半的 `succ n1` 个切点加右半的 `partCount p2` 个切点：左边贡献
+-- `p1 0, …, p1 n1`（共 n1+1 个），右边贡献 `p2 1, …, p2 (partCount p2)`，
+-- 接缝 `p2 0` 与 `p1 (succ n1)` 重合，所以总数是 `(succ n1) + partCount p2`。
+def catPartition (n1 : Nat) (p1 p2 : Partition) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.add (Nat.succ n1) (partCount p2))
+    (catFun (Nat.succ n1) (partPoint p1) (partPoint p2))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两条定义性读数
+-- ─────────────────────────────────────────────────────────────
+
+theorem catPartition_count (n1 : Nat) (p1 p2 : Partition) :
+    partCount (catPartition n1 p1 p2) =
+      Nat.add (Nat.succ n1) (partCount p2) :=
+  @Eq.refl.{1} Nat (Nat.add (Nat.succ n1) (partCount p2))
+
+theorem catPartition_point (n1 : Nat) (p1 p2 : Partition) (i : Nat) :
+    partPoint (catPartition n1 p1 p2) i =
+      catFun (Nat.succ n1) (partPoint p1) (partPoint p2) i :=
+  @Eq.refl.{1} ratRep
+    (catFun (Nat.succ n1) (partPoint p1) (partPoint p2) i)
+
+-- 左半第 i 个切点就是 `p1 i`（i ≤ n1）。
+theorem catPartition_point_left (n1 : Nat) (p1 p2 : Partition) (i : Nat)
+    (h : LeNat (Nat.succ i) (Nat.succ n1)) :
+    partPoint (catPartition n1 p1 p2) i = partPoint p1 i :=
+  catFun_left (partPoint p1) (partPoint p2) (Nat.succ n1) i h
+
+-- 从接缝起第 j 个切点就是 `p2 j`。
+theorem catPartition_point_at (n1 : Nat) (p1 p2 : Partition) (j : Nat) :
+    partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) j) =
+      partPoint p2 j :=
+  catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) j
+
+theorem catPartition_point_at_zero (n1 : Nat) (p1 p2 : Partition) :
+    partPoint (catPartition n1 p1 p2) (Nat.succ n1) = partPoint p2 Nat.zero :=
+  catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) Nat.zero
+
+theorem catPartition_point_at_one (n1 : Nat) (p1 p2 : Partition) :
+    partPoint (catPartition n1 p1 p2) (Nat.succ (Nat.succ n1)) =
+      partPoint p2 (Nat.succ Nat.zero) :=
+  catFun_at (partPoint p1) (partPoint p2) (Nat.succ n1) (Nat.succ Nat.zero)
+
+-- ─────────────────────────────────────────────────────────────
+-- 索引算术的三条小律
+-- ─────────────────────────────────────────────────────────────
+
+-- `Nat.add a (succ b)` 定义性展开成 `succ (Nat.add a b)`。
+theorem catPartition_succ_index (a j : Nat) :
+    Nat.succ (Nat.add a j) = Nat.add a (Nat.succ j) :=
+  add_succ a j
+
+-- 接缝以后的下标：`(succ (succ n1)) + j` 与 `(succ n1) + (succ j)` 是同一个。
+theorem catPartition_index_shift (n1 j : Nat) :
+    Nat.add (Nat.succ (Nat.succ n1)) j =
+      Nat.add (Nat.succ n1) (Nat.succ j) :=
+  succ_add (Nat.succ n1) j
+
+-- 再走一段之后的下标：`succ ((succ (succ n1)) + j)` 与
+-- `(succ n1) + succ (succ j)` 是同一个。
+theorem catPartition_succ_index_shift (n1 j : Nat) :
+    Nat.succ (Nat.add (Nat.succ (Nat.succ n1)) j) =
+      Nat.add (Nat.succ n1) (Nat.succ (Nat.succ j)) :=
+  @Eq.trans.{1} Nat
+    (Nat.succ (Nat.add (Nat.succ (Nat.succ n1)) j))
+    (Nat.add (Nat.succ (Nat.succ n1)) (Nat.succ j))
+    (Nat.add (Nat.succ n1) (Nat.succ (Nat.succ j)))
+    (@Eq.symm.{1} Nat
+      (Nat.add (Nat.succ (Nat.succ n1)) (Nat.succ j))
+      (Nat.succ (Nat.add (Nat.succ (Nat.succ n1)) j))
+      (add_succ (Nat.succ (Nat.succ n1)) j))
+    (catPartition_index_shift n1 (Nat.succ j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 严格序沿字面相等换形
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLtRep_congr_eq (a a' b b' : ratRep) (ha : a = a') (hb : b = b')
+    (h : ratLtRep a b) : ratLtRep a' b' :=
+  @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLtRep z b') a a' ha
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLtRep a z) b b' hb h)
+
+-- ─────────────────────────────────────────────────────────────
+-- 接缝的两条读数
+-- ─────────────────────────────────────────────────────────────
+
+-- `hjoin` 写在 `partCount p1` 上，`catFun` 的接缝写在下标 `succ n1` 上：
+-- 由 `hn1` 把前者搬到后者。
+theorem catPartition_join (c : ratRep) (p1 : Partition) (n1 : Nat)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1) :
+    ratRel (partPoint p1 (Nat.succ n1)) c :=
+  @Eq.subst.{1} Nat (fun (z : Nat) => ratRel (partPoint p1 z) c)
+    (partCount p1) (Nat.succ n1) hn1 hjoin
+
+-- 左半第 i 段的右端点：下标 `succ i` 仍在左半时它就是 `p1 (succ i)`；
+-- 到了接缝（`succ i = succ n1`）它变成 `p2 0`，而 `p2 0 ~ c ~ p1 (succ i)`。
+theorem catPartition_succ_left_rel (c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (h : LeNat (Nat.succ i) (Nat.succ n1))
+    (hjoinN : ratRel (partPoint p1 (Nat.succ n1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c) :
+    ratRel (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+      (partPoint p1 (Nat.succ i)) :=
+  @Or.elim
+    (Nat.succ i = Nat.succ n1)
+    (LeNat (Nat.succ (Nat.succ i)) (Nat.succ n1))
+    (ratRel (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+      (partPoint p1 (Nat.succ i)))
+    (fun (heq : Nat.succ i = Nat.succ n1) =>
+      ratRel_trans_gen
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+        c
+        (partPoint p1 (Nat.succ i))
+        (ratRel_trans_gen
+          (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+          (partPoint p2 Nat.zero)
+          c
+          (ratRel_of_eq
+            (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+            (partPoint p2 Nat.zero)
+            (@Eq.trans.{1} ratRep
+              (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+              (partPoint (catPartition n1 p1 p2) (Nat.succ n1))
+              (partPoint p2 Nat.zero)
+              (congrArg
+                (fun (z : Nat) => partPoint (catPartition n1 p1 p2) z)
+                heq)
+              (catPartition_point_at_zero n1 p1 p2)))
+          hz)
+        (ratRel_symm (partPoint p1 (Nat.succ i)) c
+          (ratRel_trans_gen
+            (partPoint p1 (Nat.succ i))
+            (partPoint p1 (Nat.succ n1))
+            c
+            (ratRel_of_eq
+              (partPoint p1 (Nat.succ i))
+              (partPoint p1 (Nat.succ n1))
+              (congrArg (fun (z : Nat) => partPoint p1 z) heq))
+            hjoinN)))
+    (fun (hlt : LeNat (Nat.succ (Nat.succ i)) (Nat.succ n1)) =>
+      ratRel_of_eq
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+        (partPoint p1 (Nat.succ i))
+        (catPartition_point_left n1 p1 p2 (Nat.succ i) hlt))
+    (leNat_eq_or_succ (Nat.succ i) (Nat.succ n1) h)
+
+-- 下标 `i` 若写成 `(succ n1) + j`，切点就是 `p2 j`。
+theorem catPartition_point_at_rel (n1 : Nat) (p1 p2 : Partition) (i j : Nat)
+    (hij : i = Nat.add (Nat.succ n1) j) :
+    ratRel (partPoint (catPartition n1 p1 p2) i) (partPoint p2 j) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =>
+      ratRel (partPoint (catPartition n1 p1 p2) z) (partPoint p2 j))
+    (Nat.add (Nat.succ n1) j) i (Eq.symm hij)
+    (ratRel_of_eq
+      (partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) j))
+      (partPoint p2 j)
+      (catPartition_point_at n1 p1 p2 j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 三支索引：左半、接缝、右半
+-- ─────────────────────────────────────────────────────────────
+
+-- `succ i ≤ succ n1` 时 `succ i` 还在左半：`p1` 的严格上升直接搬过来，
+-- 右端点已由 `catPartition_succ_left_rel` 对到 `p1 (succ i)`。
+theorem catPartition_step_left (c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (h : LeNat (Nat.succ i) (Nat.succ n1))
+    (hstep : ratLtRep (partPoint p1 i) (partPoint p1 (Nat.succ i)))
+    (hjoinN : ratRel (partPoint p1 (Nat.succ n1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c) :
+    ratLtRep (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) :=
+  ratLtRep_congr_snd
+    (partPoint (catPartition n1 p1 p2) i)
+    (partPoint p1 (Nat.succ i))
+    (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+    (ratLtRep_congr_fst
+      (partPoint (catPartition n1 p1 p2) i)
+      (partPoint p1 i)
+      (partPoint p1 (Nat.succ i))
+      hstep
+      (ratRel_of_eq
+        (partPoint (catPartition n1 p1 p2) i)
+        (partPoint p1 i)
+        (catPartition_point_left n1 p1 p2 i h)))
+    (ratRel_symm
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+      (partPoint p1 (Nat.succ i))
+      (catPartition_succ_left_rel c p1 p2 n1 i h hjoinN hz))
+
+-- `i = succ n1`：这一段是右半的第一段，`p2` 在下标 0 的严格上升就是它。
+theorem catPartition_step_mid (b c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (heq : i = Nat.succ n1)
+    (hp2 : IsPartition c b p2)
+    (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2))) :
+    ratLtRep (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) :=
+  ratLtRep_congr_eq
+    (partPoint p2 Nat.zero)
+    (partPoint (catPartition n1 p1 p2) i)
+    (partPoint p2 (Nat.succ Nat.zero))
+    (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+    (Eq.symm
+      (@Eq.trans.{1} ratRep
+        (partPoint (catPartition n1 p1 p2) i)
+        (partPoint (catPartition n1 p1 p2) (Nat.succ n1))
+        (partPoint p2 Nat.zero)
+        (congrArg (fun (z : Nat) => partPoint (catPartition n1 p1 p2) z) heq)
+        (catPartition_point_at_zero n1 p1 p2)))
+    (Eq.symm
+      (@Eq.trans.{1} ratRep
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+        (partPoint (catPartition n1 p1 p2) (Nat.succ (Nat.succ n1)))
+        (partPoint p2 (Nat.succ Nat.zero))
+        (congrArg (fun (z : Nat) => partPoint (catPartition n1 p1 p2) z)
+          (congrArg.{1} Nat.succ heq))
+        (catPartition_point_at_one n1 p1 p2)))
+    (isPartition_step c b p2 hp2 Nat.zero
+      (leNat_add_cancel_left (Nat.succ Nat.zero) (partCount p2) (Nat.succ n1)
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat z (Nat.add (Nat.succ n1) (partCount p2)))
+          (Nat.succ i) (Nat.succ (Nat.succ n1))
+          (congrArg.{1} Nat.succ heq) hi)))
+
+-- `succ (succ n1) ≤ i`：这一段整段落在右半，`i = (succ n1) + succ j`，
+-- `p2` 在 `succ j` 的严格上升就是它。
+theorem catPartition_step_right (b c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (hgt : LeNat (Nat.succ (Nat.succ n1)) i)
+    (hp2 : IsPartition c b p2)
+    (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2))) :
+    ratLtRep (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) :=
+  Exists.elim (leNat_exists_add (Nat.succ (Nat.succ n1)) i hgt)
+    (fun (j : Nat) (hj : i = Nat.add (Nat.succ (Nat.succ n1)) j) =>
+      ratLtRep_congr_snd
+        (partPoint (catPartition n1 p1 p2) i)
+        (partPoint p2 (Nat.succ (Nat.succ j)))
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+        (ratLtRep_congr_fst
+          (partPoint (catPartition n1 p1 p2) i)
+          (partPoint p2 (Nat.succ j))
+          (partPoint p2 (Nat.succ (Nat.succ j)))
+          (isPartition_step c b p2 hp2 (Nat.succ j)
+            (leNat_add_cancel_left (Nat.succ (Nat.succ j)) (partCount p2)
+              (Nat.succ n1)
+              (@Eq.subst.{1} Nat
+                (fun (z : Nat) =>
+                  LeNat z (Nat.add (Nat.succ n1) (partCount p2)))
+                (Nat.succ i)
+                (Nat.add (Nat.succ n1) (Nat.succ (Nat.succ j)))
+                (@Eq.trans.{1} Nat
+                  (Nat.succ i)
+                  (Nat.succ (Nat.add (Nat.succ (Nat.succ n1)) j))
+                  (Nat.add (Nat.succ n1) (Nat.succ (Nat.succ j)))
+                  (congrArg.{1} Nat.succ hj)
+                  (catPartition_succ_index_shift n1 j))
+                hi)))
+          (catPartition_point_at_rel n1 p1 p2 i (Nat.succ j)
+            (@Eq.trans.{1} Nat i (Nat.add (Nat.succ (Nat.succ n1)) j)
+              (Nat.add (Nat.succ n1) (Nat.succ j))
+              hj (catPartition_index_shift n1 j))))
+        (ratRel_symm
+          (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+          (partPoint p2 (Nat.succ (Nat.succ j)))
+          (catPartition_point_at_rel n1 p1 p2 (Nat.succ i)
+            (Nat.succ (Nat.succ j))
+            (@Eq.trans.{1} Nat
+              (Nat.succ i)
+              (Nat.succ (Nat.add (Nat.succ (Nat.succ n1)) j))
+              (Nat.add (Nat.succ n1) (Nat.succ (Nat.succ j)))
+              (congrArg.{1} Nat.succ hj)
+              (catPartition_succ_index_shift n1 j)))))
+
+-- 三支按 `i` 与 `succ n1` 的大小关系分派。
+theorem catPartition_step (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (i : Nat) (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2))) :
+    ratLtRep (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) :=
+  Or.elim
+    (fun (hil : LeNat i (Nat.succ n1)) =>
+      Or.elim
+        (fun (heq : i = Nat.succ n1) =>
+          catPartition_step_mid b c p1 p2 n1 i heq hp2 hi)
+        (fun (hlt : LeNat (Nat.succ i) (Nat.succ n1)) =>
+          catPartition_step_left c p1 p2 n1 i hlt
+            (isPartition_step a c p1 hp1 i
+              (@Eq.subst.{1} Nat
+                (fun (z : Nat) => LeNat (Nat.succ i) z)
+                (Nat.succ n1) (partCount p1) (Eq.symm hn1) hlt))
+            (catPartition_join c p1 n1 hjoin hn1)
+            (ratRel_of_eq (partPoint p2 Nat.zero) c
+              (isPartition_left c b p2 hp2)))
+        (leNat_eq_or_succ i (Nat.succ n1) hil))
+    (fun (hgi : LeNat (Nat.succ n1) i) =>
+      Or.elim
+        (fun (heq : Nat.succ n1 = i) =>
+          catPartition_step_mid b c p1 p2 n1 i (Eq.symm heq) hp2 hi)
+        (fun (hgt : LeNat (Nat.succ (Nat.succ n1)) i) =>
+          catPartition_step_right b c p1 p2 n1 i hgt hp2 hi)
+        (leNat_eq_or_succ (Nat.succ n1) i hgi))
+    (leNat_total i (Nat.succ n1))
+
+-- ─────────────────────────────────────────────────────────────
+-- 拼接后的分割是合格的分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 第一个切点是 `p1 0`。
+theorem catPartition_zero (a c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp1 : IsPartition a c p1) :
+    partPoint (catPartition n1 p1 p2) Nat.zero = a :=
+  @Eq.trans.{1} ratRep
+    (partPoint (catPartition n1 p1 p2) Nat.zero)
+    (partPoint p1 Nat.zero)
+    a
+    (catPartition_point_left n1 p1 p2 Nat.zero
+      (leNat_succ_succ Nat.zero n1 (leNat_zero_le n1)))
+    (isPartition_left a c p1 hp1)
+
+-- 最后一个切点是 `p2 (partCount p2)`。
+theorem catPartition_last (b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (hp2 : IsPartition c b p2) :
+    partPoint (catPartition n1 p1 p2)
+      (partCount (catPartition n1 p1 p2)) = b :=
+  @Eq.trans.{1} ratRep
+    (partPoint (catPartition n1 p1 p2) (partCount (catPartition n1 p1 p2)))
+    (partPoint p2 (partCount p2))
+    b
+    (catPartition_point_at n1 p1 p2 (partCount p2))
+    (isPartition_right c b p2 hp2)
+
+-- 三条并起来：端点两条是逐字读数，严格上升交给 `catPartition_step` 的三支
+-- 分派。接缝只要求 `p1` 的末点与 `c` 等价（`hjoin`），不要求字面相等。
+theorem catPartition_isPartition (a b c : ratRep) (p1 p2 : Partition)
+    (n1 : Nat)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1) :
+    IsPartition a b (catPartition n1 p1 p2) :=
+  And.intro
+    (catPartition_zero a c p1 p2 n1 hp1)
+    (And.intro
+      (catPartition_last b c p1 p2 n1 hp2)
+      (fun (i : Nat)
+          (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2))) =>
+        catPartition_step a b c p1 p2 n1 hp1 hp2 hjoin hn1 i hi))
+
+-- ─────────────────────────────────────────────────────────────
+-- 闭区间沿代表元等价搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 闭区间的两个端点都只按 `ratRel` 用；两端各搬一次，就得到同一段的另一种写法。
+theorem inClosed_transfer (a a' b b' x : ratRep)
+    (haa : ratRel a a') (hbb : ratRel b b') (h : InClosed a b x) :
+    InClosed a' b' x :=
+  And.intro
+    (ratLeRep_congr_gen a a' x x haa (ratRel_refl x) (And.left h))
+    (ratLeRep_congr_gen x x b b' (ratRel_refl x) hbb (And.right h))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两支索引上的段数据
+-- ─────────────────────────────────────────────────────────────
+
+-- 左半（`succ i ≤ succ n1`）：这一段就是 `p1` 的第 i 段。
+theorem catPartition_left_data (c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c)
+    (hlt : LeNat (Nat.succ i) (Nat.succ n1))
+    (x : ratRep)
+    (hx : InClosed (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) x) :
+    LeNat (Nat.succ i) (partCount p1) ∧
+      InClosed (partPoint p1 i) (partPoint p1 (Nat.succ i)) x :=
+  And.intro
+    (@Eq.subst.{1} Nat (fun (z : Nat) => LeNat (Nat.succ i) z)
+      (Nat.succ n1) (partCount p1) (Eq.symm hn1) hlt)
+    (inClosed_transfer
+      (partPoint (catPartition n1 p1 p2) i)
+      (partPoint p1 i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+      (partPoint p1 (Nat.succ i))
+      x
+      (ratRel_of_eq
+        (partPoint (catPartition n1 p1 p2) i)
+        (partPoint p1 i)
+        (catPartition_point_left n1 p1 p2 i hlt))
+      (catPartition_succ_left_rel c p1 p2 n1 i hlt
+        (catPartition_join c p1 n1 hjoin hn1) hz)
+      hx)
+
+-- 右半（`succ n1 ≤ i`）：把 i 写成 `(succ n1) + k`，这一段就是 `p2` 的第 k 段，
+-- 高度是 `l2 k`，而 `succ i` 对应 `(succ n1) + succ k`。
+theorem catPartition_right_data (b c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (l1 l2 : Nat → ratRep)
+    (hg : LeNat (Nat.succ n1) i)
+    (hp2 : IsPartition c b p2)
+    (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2)))
+    (x : ratRep)
+    (hx : InClosed (partPoint (catPartition n1 p1 p2) i)
+      (partPoint (catPartition n1 p1 p2) (Nat.succ i)) x) :
+    ∃ (k : Nat), LeNat (Nat.succ k) (partCount p2) ∧
+      catFun (Nat.succ n1) l1 l2 i = l2 k ∧
+      InClosed (partPoint p2 k) (partPoint p2 (Nat.succ k)) x :=
+  Exists.elim (leNat_exists_add (Nat.succ n1) i hg)
+    (fun (k : Nat) (hk : i = Nat.add (Nat.succ n1) k) =>
+      Exists.intro k
+        (And.intro
+          (leNat_add_cancel_left (Nat.succ k) (partCount p2) (Nat.succ n1)
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) =>
+                LeNat z (Nat.add (Nat.succ n1) (partCount p2)))
+              (Nat.succ i)
+              (Nat.add (Nat.succ n1) (Nat.succ k))
+              (@Eq.trans.{1} Nat
+                (Nat.succ i)
+                (Nat.succ (Nat.add (Nat.succ n1) k))
+                (Nat.add (Nat.succ n1) (Nat.succ k))
+                (congrArg.{1} Nat.succ hk)
+                (catPartition_succ_index (Nat.succ n1) k))
+              hi))
+          (And.intro
+            (@Eq.trans.{1} ratRep
+              (catFun (Nat.succ n1) l1 l2 i)
+              (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+              (l2 k)
+              (congrArg
+                (fun (z : Nat) => catFun (Nat.succ n1) l1 l2 z) hk)
+              (catFun_at l1 l2 (Nat.succ n1) k))
+            (inClosed_transfer
+              (partPoint (catPartition n1 p1 p2) i)
+              (partPoint p2 k)
+              (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+              (partPoint p2 (Nat.succ k))
+              x
+              (catPartition_point_at_rel n1 p1 p2 i k hk)
+              (catPartition_point_at_rel n1 p1 p2 (Nat.succ i) (Nat.succ k)
+                (@Eq.trans.{1} Nat
+                  (Nat.succ i)
+                  (Nat.succ (Nat.add (Nat.succ n1) k))
+                  (Nat.add (Nat.succ n1) (Nat.succ k))
+                  (congrArg.{1} Nat.succ hk)
+                  (catPartition_succ_index (Nat.succ n1) k)))
+              hx))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 下界沿拼接搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 左半用 `h1`，右半用 `h2`；接缝那一段（`i = succ n1`）归右半（k = 0）。
+-- 高度两半都由 `catFun` 的定义性读数给出，段数据由上一节的两条引理换成
+-- 各自分割上的段。
+theorem catPartition_lowerStep (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (l1 l2 : Nat → ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (h1 : LowerStep a c p1 f l1) (h2 : LowerStep c b p2 f l2) :
+    LowerStep a b (catPartition n1 p1 p2) f (catFun (Nat.succ n1) l1 l2) :=
+  fun (i : Nat)
+      (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2)))
+      (x : ratRep)
+      (hx : InClosed (partPoint (catPartition n1 p1 p2) i)
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i)) x) =>
+    Or.elim
+      (fun (hil : LeNat i (Nat.succ n1)) =>
+        Or.elim
+          (fun (heq : i = Nat.succ n1) =>
+            Exists.elim
+              (catPartition_right_data b c p1 p2 n1 i l1 l2
+                (@Eq.subst.{1} Nat (fun (z : Nat) => LeNat (Nat.succ n1) z)
+                  (Nat.succ n1) i (Eq.symm heq) (le_refl (Nat.succ n1)))
+                hp2 hi x hx)
+              (fun (k : Nat)
+                  (hd : LeNat (Nat.succ k) (partCount p2) ∧
+                    catFun (Nat.succ n1) l1 l2 i = l2 k ∧
+                    InClosed (partPoint p2 k) (partPoint p2 (Nat.succ k)) x) =>
+                @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z (f x))
+                  (l2 k) (catFun (Nat.succ n1) l1 l2 i)
+                  (Eq.symm (And.left (And.right hd)))
+                  (h2 k (And.left hd) x (And.right (And.right hd)))))
+          (fun (hlt : LeNat (Nat.succ i) (Nat.succ n1)) =>
+            (fun (hd : LeNat (Nat.succ i) (partCount p1) ∧
+                InClosed (partPoint p1 i)
+                  (partPoint p1 (Nat.succ i)) x) =>
+              @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z (f x))
+                (l1 i) (catFun (Nat.succ n1) l1 l2 i)
+                (Eq.symm (catFun_left l1 l2 (Nat.succ n1) i hlt))
+                (h1 i (And.left hd) x (And.right hd)))
+              (catPartition_left_data c p1 p2 n1 i hn1 hjoin
+                (ratRel_of_eq (partPoint p2 Nat.zero) c
+                  (isPartition_left c b p2 hp2))
+                hlt x hx))
+          (leNat_eq_or_succ i (Nat.succ n1) hil))
+      (fun (hgi : LeNat (Nat.succ n1) i) =>
+        Exists.elim
+          (catPartition_right_data b c p1 p2 n1 i l1 l2 hgi hp2 hi x hx)
+          (fun (k : Nat)
+              (hd : LeNat (Nat.succ k) (partCount p2) ∧
+                catFun (Nat.succ n1) l1 l2 i = l2 k ∧
+                InClosed (partPoint p2 k) (partPoint p2 (Nat.succ k)) x) =>
+            @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z (f x))
+              (l2 k) (catFun (Nat.succ n1) l1 l2 i)
+              (Eq.symm (And.left (And.right hd)))
+              (h2 k (And.left hd) x (And.right (And.right hd)))))
+      (leNat_total i (Nat.succ n1))
+
+-- ─────────────────────────────────────────────────────────────
+-- 上界沿拼接搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 与下界逐字同形，只有最后一步的方向相反。
+theorem catPartition_upperStep (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (u1 u2 : Nat → ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (h1 : UpperStep a c p1 f u1) (h2 : UpperStep c b p2 f u2) :
+    UpperStep a b (catPartition n1 p1 p2) f (catFun (Nat.succ n1) u1 u2) :=
+  fun (i : Nat)
+      (hi : LeNat (Nat.succ i) (partCount (catPartition n1 p1 p2)))
+      (x : ratRep)
+      (hx : InClosed (partPoint (catPartition n1 p1 p2) i)
+        (partPoint (catPartition n1 p1 p2) (Nat.succ i)) x) =>
+    Or.elim
+      (fun (hil : LeNat i (Nat.succ n1)) =>
+        Or.elim
+          (fun (heq : i = Nat.succ n1) =>
+            Exists.elim
+              (catPartition_right_data b c p1 p2 n1 i u1 u2
+                (@Eq.subst.{1} Nat (fun (z : Nat) => LeNat (Nat.succ n1) z)
+                  (Nat.succ n1) i (Eq.symm heq) (le_refl (Nat.succ n1)))
+                hp2 hi x hx)
+              (fun (k : Nat)
+                  (hd : LeNat (Nat.succ k) (partCount p2) ∧
+                    catFun (Nat.succ n1) u1 u2 i = u2 k ∧
+                    InClosed (partPoint p2 k) (partPoint p2 (Nat.succ k)) x) =>
+                @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep (f x) z)
+                  (u2 k) (catFun (Nat.succ n1) u1 u2 i)
+                  (Eq.symm (And.left (And.right hd)))
+                  (h2 k (And.left hd) x (And.right (And.right hd)))))
+          (fun (hlt : LeNat (Nat.succ i) (Nat.succ n1)) =>
+            (fun (hd : LeNat (Nat.succ i) (partCount p1) ∧
+                InClosed (partPoint p1 i)
+                  (partPoint p1 (Nat.succ i)) x) =>
+              @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep (f x) z)
+                (u1 i) (catFun (Nat.succ n1) u1 u2 i)
+                (Eq.symm (catFun_left u1 u2 (Nat.succ n1) i hlt))
+                (h1 i (And.left hd) x (And.right hd)))
+              (catPartition_left_data c p1 p2 n1 i hn1 hjoin
+                (ratRel_of_eq (partPoint p2 Nat.zero) c
+                  (isPartition_left c b p2 hp2))
+                hlt x hx))
+          (leNat_eq_or_succ i (Nat.succ n1) hil))
+      (fun (hgi : LeNat (Nat.succ n1) i) =>
+        Exists.elim
+          (catPartition_right_data b c p1 p2 n1 i u1 u2 hgi hp2 hi x hx)
+          (fun (k : Nat)
+              (hd : LeNat (Nat.succ k) (partCount p2) ∧
+                catFun (Nat.succ n1) u1 u2 i = u2 k ∧
+                InClosed (partPoint p2 k) (partPoint p2 (Nat.succ k)) x) =>
+            @Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep (f x) z)
+              (u2 k) (catFun (Nat.succ n1) u1 u2 i)
+              (Eq.symm (And.left (And.right hd)))
+              (h2 k (And.left hd) x (And.right (And.right hd)))))
+      (leNat_total i (Nat.succ n1))
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘积的通用同余（左因子固定，右因子沿 `ratRel` 换形）
+-- ─────────────────────────────────────────────────────────────
+--
+-- 库里的 `ratMulRep_wd` 只认字面三元组且要求两个因子同分母；拼接矩形和
+-- 需要的是「固定一个因子、另一个只按 `ratRel` 换形」。这里按固定因子的符号
+-- 分三支：它等价于零、为正、为负。正负两支用 `ratLeRep` 的保序与反对称性，
+-- 因为 `ratRel` 同时给出两个方向的弱序。
+
+-- 分子两个格子相同时乘积等价于零：交叉相乘两侧都是同一个和，只差交换次序。
+theorem ratMul_zero_num_eq (a c d m n : Nat) :
+    ratRel (ratMulRep (qrep a a m) (qrep c d n)) ratZeroRep :=
+  Iff.mpr
+    (ratRel_zero_iff_num_zero
+      (Nat.add (myMul a c) (myMul a d))
+      (Nat.add (myMul a d) (myMul a c))
+      (ratDenRep m n))
+    (@Eq.trans.{1} Nat
+      (Nat.add (Nat.add (myMul a c) (myMul a d)) Nat.zero)
+      (Nat.add (myMul a c) (myMul a d))
+      (Nat.add Nat.zero (Nat.add (myMul a d) (myMul a c)))
+      (add_zero (Nat.add (myMul a c) (myMul a d)))
+      (@Eq.trans.{1} Nat
+        (Nat.add (myMul a c) (myMul a d))
+        (Nat.add (myMul a d) (myMul a c))
+        (Nat.add Nat.zero (Nat.add (myMul a d) (myMul a c)))
+        (add_comm (myMul a c) (myMul a d))
+        (@Eq.symm.{1} Nat
+          (Nat.add Nat.zero (Nat.add (myMul a d) (myMul a c)))
+          (Nat.add (myMul a d) (myMul a c))
+          (zero_add (Nat.add (myMul a d) (myMul a c))))))
+
+-- `f < e` 时 `qrep e f k` 为正：弱序由 `ratLeRep_lit` 给出，非零由
+-- 「分子两格不同」给出。
+theorem ratLtRep_zero_of_num_lt (e f k : Nat) (h : LeNat (Nat.succ f) e) :
+    ratLtRep ratZeroRep (qrep e f k) :=
+  And.intro
+    (Iff.mpr (ratLeRep_lit Nat.zero Nat.zero Nat.zero e f k)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat (Nat.add z f) (Nat.add e z))
+        Nat.zero (myMul Nat.zero (Nat.succ k))
+        (@Eq.symm.{1} Nat (myMul Nat.zero (Nat.succ k)) Nat.zero
+          (zero_mul (Nat.succ k)))
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) => LeNat z (Nat.add e Nat.zero))
+          f (Nat.add Nat.zero f)
+          (@Eq.symm.{1} Nat (Nat.add Nat.zero f) f (zero_add f))
+          (leNat_trans f (Nat.succ f) e (le_succ f f (le_refl f)) h))))
+    (fun (hrel : ratRel ratZeroRep (qrep e f k)) =>
+      leNat_succ_not_self f
+        (@Eq.subst.{1} Nat (fun (z : Nat) => LeNat (Nat.succ f) z)
+          e f (Iff.mp (ratRel_zero_lit e f k) hrel) h))
+
+-- 固定因子为正：`ratRel` 两个方向的弱序各乘一次，反称性给出等价。
+theorem ratMulRel_of_pos (x y y' : ratRep) (h : ratRel y y')
+    (hx : ratLtRep ratZeroRep x) :
+    ratRel (ratMulRep y x) (ratMulRep y' x) :=
+  ratLeRep_antisymm (ratMulRep y x) (ratMulRep y' x)
+    (ratLeRep_mul_pos_right y y' x (ratLeRep_of_ratRel y y' h) hx)
+    (ratLeRep_mul_pos_right y' y x
+      (ratLeRep_of_ratRel y' y (ratRel_symm y y' h)) hx)
+
+-- 固定因子为负：先把它换成正的 `-x` 走同一套，再把两侧的负号收回。
+theorem ratMulRel_of_neg (x y y' : ratRep) (h : ratRel y y')
+    (hx : ratLtRep x ratZeroRep) :
+    ratRel (ratMulRep y x) (ratMulRep y' x) :=
+  ratRel_trans_gen
+    (ratMulRep y x)
+    (ratNegRep (ratNegRep (ratMulRep y x)))
+    (ratMulRep y' x)
+    (ratRel_symm
+      (ratNegRep (ratNegRep (ratMulRep y x)))
+      (ratMulRep y x)
+      (ratNegRep_invol (ratMulRep y x)))
+    (ratRel_trans_gen
+      (ratNegRep (ratNegRep (ratMulRep y x)))
+      (ratNegRep (ratNegRep (ratMulRep y' x)))
+      (ratMulRep y' x)
+      (ratNegRep_wd
+        (ratNegRep (ratMulRep y x))
+        (ratNegRep (ratMulRep y' x))
+        (ratRel_trans_gen
+          (ratNegRep (ratMulRep y x))
+          (ratMulRep y (ratNegRep x))
+          (ratNegRep (ratMulRep y' x))
+          (ratRel_symm
+            (ratMulRep y (ratNegRep x))
+            (ratNegRep (ratMulRep y x))
+            (ratMul_neg y x))
+          (ratRel_trans_gen
+            (ratMulRep y (ratNegRep x))
+            (ratMulRep y' (ratNegRep x))
+            (ratNegRep (ratMulRep y' x))
+            (ratLeRep_antisymm
+              (ratMulRep y (ratNegRep x))
+              (ratMulRep y' (ratNegRep x))
+              (ratLeRep_mul_pos_right y y' (ratNegRep x)
+                (ratLeRep_of_ratRel y y' h)
+                (ratLtRep_pos_of_neg x hx))
+              (ratLeRep_mul_pos_right y' y (ratNegRep x)
+                (ratLeRep_of_ratRel y' y (ratRel_symm y y' h))
+                (ratLtRep_pos_of_neg x hx)))
+            (ratMul_neg y' x))))
+      (ratNegRep_invol (ratMulRep y' x)))
+
+-- 把「`y * x ~ y' * x`」换成「`x * y ~ x * y'`」：两侧各交换一次。
+theorem ratMulRel_commute (x y y' : ratRep)
+    (h : ratRel (ratMulRep y x) (ratMulRep y' x)) :
+    ratRel (ratMulRep x y) (ratMulRep x y') :=
+  ratRel_trans_gen
+    (ratMulRep x y)
+    (ratMulRep y x)
+    (ratMulRep x y')
+    (ratMul_comm x y)
+    (ratRel_trans_gen
+      (ratMulRep y x)
+      (ratMulRep y' x)
+      (ratMulRep x y')
+      h
+      (ratRel_symm (ratMulRep x y') (ratMulRep y' x)
+        (ratMul_comm x y')))
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘积的通用同余（左因子固定，右因子沿 `ratRel` 换形）
+-- ─────────────────────────────────────────────────────────────
+--
+-- 先展开成 `Prod (Prod Nat Nat) Nat` 再 match：`ratRep` 是定义别名，`match`
+-- 只认归纳类型本身（与库里的 `ratRel_trans_aux` 同一写法）。
+
+-- 零那一支单独成条：两个 `match` 要有已知的结果类型，放在声明位置上取。
+theorem ratMul_zero_case (a m : Nat) (y y' : Prod (Prod Nat Nat) Nat) :
+    ratRel (ratMulRep (qrep a a m) y) (ratMulRep (qrep a a m) y') :=
+  match y with
+  | prod_mk (prod_mk c d) n =>
+    match y' with
+    | prod_mk (prod_mk c' d') n' =>
+      ratRel_trans_gen
+        (ratMulRep (qrep a a m) (qrep c d n))
+        ratZeroRep
+        (ratMulRep (qrep a a m) (qrep c' d' n'))
+        (ratMul_zero_num_eq a c d m n)
+        (ratRel_symm
+          (ratMulRep (qrep a a m) (qrep c' d' n'))
+          ratZeroRep
+          (ratMul_zero_num_eq a c' d' m n'))
+
+theorem ratMulRep_wd_snd_aux (x y y' : Prod (Prod Nat Nat) Nat)
+    (h : ratRel y y') :
+    ratRel (ratMulRep x y) (ratMulRep x y') :=
+  match x with
+  | prod_mk (prod_mk a b) m =>
+    Or.elim
+      (fun (hle : LeNat a b) =>
+        Or.elim
+          (fun (heq : a = b) =>
+            @Eq.subst.{1} Nat
+              (fun (z : Nat) =>
+                ratRel (ratMulRep (qrep a z m) y)
+                  (ratMulRep (qrep a z m) y'))
+              a b heq
+              (ratMul_zero_case a m y y'))
+          (fun (hlt : LeNat (Nat.succ a) b) =>
+            ratMulRel_commute (qrep a b m) y y'
+              (ratMulRel_of_neg (qrep a b m) y y' h
+                (ratLtRep_congr_fst
+                  (qrep a b m)
+                  (ratNegRep (ratNegRep (qrep a b m)))
+                  ratZeroRep
+                  (ratLtRep_neg_of_pos (ratNegRep (qrep a b m))
+                    (ratLtRep_zero_of_num_lt b a m hlt))
+                  (ratRel_symm
+                    (ratNegRep (ratNegRep (qrep a b m)))
+                    (qrep a b m)
+                    (ratNegRep_invol (qrep a b m))))))
+          (leNat_eq_or_succ a b hle))
+      (fun (hle : LeNat b a) =>
+        Or.elim
+          (fun (heq : b = a) =>
+            @Eq.subst.{1} Nat
+              (fun (z : Nat) =>
+                ratRel (ratMulRep (qrep a z m) y)
+                  (ratMulRep (qrep a z m) y'))
+              a b (Eq.symm heq)
+              (ratMul_zero_case a m y y'))
+          (fun (hlt : LeNat (Nat.succ b) a) =>
+            ratMulRel_commute (qrep a b m) y y'
+              (ratMulRel_of_pos (qrep a b m) y y' h
+                (ratLtRep_zero_of_num_lt a b m hlt)))
+          (leNat_eq_or_succ b a hle))
+      (leNat_total a b)
+
+-- 别名上的转发。
+theorem ratMulRep_wd_snd_gen (x y y' : ratRep) (h : ratRel y y') :
+    ratRel (ratMulRep x y) (ratMulRep x y') :=
+  ratMulRep_wd_snd_aux x y y' h
+
+-- ─────────────────────────────────────────────────────────────
+-- 带段数前提的逐项同余
+-- ─────────────────────────────────────────────────────────────
+
+-- `sumTo_congr` 要求逐项关系对每个项都成立；这里只要求对**存在的那几段**
+-- （`succ k ≤ n`）成立。归纳与 `sumTo_le_upto` 同形，只是把序换成等价。
+theorem sumTo_congr_upto (f g : Nat → ratRep) (n : Nat)
+    (h : ∀ (k : Nat), LeNat (Nat.succ k) n → ratRel (f k) (g k)) :
+    ratRel (sumTo f n) (sumTo g n) :=
+  Nat.rec
+    (fun (n : Nat) =>
+      (∀ (k : Nat), LeNat (Nat.succ k) n → ratRel (f k) (g k)) →
+        ratRel (sumTo f n) (sumTo g n))
+    (fun (_h : ∀ (k : Nat), LeNat (Nat.succ k) Nat.zero →
+        ratRel (f k) (g k)) =>
+      ratRel_refl ratZeroRep)
+    (fun (n : Nat)
+        (ih : (∀ (k : Nat), LeNat (Nat.succ k) n → ratRel (f k) (g k)) →
+          ratRel (sumTo f n) (sumTo g n))
+        (h : ∀ (k : Nat), LeNat (Nat.succ k) (Nat.succ n) →
+          ratRel (f k) (g k)) =>
+      ratRel_trans_gen
+        (ratAddRep (sumTo f n) (f n))
+        (ratAddRep (sumTo g n) (f n))
+        (ratAddRep (sumTo g n) (g n))
+        (ratAddRep_wd_gen (sumTo f n) (sumTo g n) (f n)
+          (ih (fun (k : Nat) (hk : LeNat (Nat.succ k) n) =>
+            h k (leNat_trans (Nat.succ k) n (Nat.succ n) hk
+              (le_succ n n (le_refl n))))))
+        (ratAddRep_wd_snd_gen (sumTo g n) (f n) (g n)
+          (h n (le_refl (Nat.succ n)))))
+    n h
+
+-- 高度只差一个**字面相等**、宽度只差一个等价时，乘积仍然等价。
+theorem ratMulRep_congr_eq_left (h h' w w' : ratRep) (hh : h = h')
+    (hww : ratRel w w') :
+    ratRel (ratMulRep h w) (ratMulRep h' w') :=
+  ratRel_trans_gen
+    (ratMulRep h w)
+    (ratMulRep h' w)
+    (ratMulRep h' w')
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratRel (ratMulRep z w) (ratMulRep h' w))
+      h' h (Eq.symm hh) (ratRel_refl (ratMulRep h' w)))
+    (ratMulRep_wd_snd_gen h' w w' hww)
+
+-- ─────────────────────────────────────────────────────────────
+-- 段宽沿拼接的两条读数
+-- ─────────────────────────────────────────────────────────────
+
+-- 左半第 i 段的宽就是 `p1` 第 i 段的宽（接缝处的右端点按等价算）。
+theorem catPartition_segLen_left (c : ratRep) (p1 p2 : Partition) (n1 i : Nat)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c)
+    (hlt : LeNat (Nat.succ i) (Nat.succ n1)) :
+    ratRel (segLen (catPartition n1 p1 p2) i) (segLen p1 i) :=
+  ratSubRep_wd
+    (partPoint (catPartition n1 p1 p2) (Nat.succ i))
+    (partPoint p1 (Nat.succ i))
+    (partPoint (catPartition n1 p1 p2) i)
+    (partPoint p1 i)
+    (catPartition_succ_left_rel c p1 p2 n1 i hlt
+      (catPartition_join c p1 n1 hjoin hn1) hz)
+    (ratRel_of_eq
+      (partPoint (catPartition n1 p1 p2) i)
+      (partPoint p1 i)
+      (catPartition_point_left n1 p1 p2 i hlt))
+
+-- 右半第 k 段的宽（下标 `(succ n1) + k`）就是 `p2` 第 k 段的宽。
+theorem catPartition_segLen_right (n1 : Nat) (p1 p2 : Partition) (k : Nat) :
+    ratRel
+      (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k))
+      (segLen p2 k) :=
+  ratSubRep_wd
+    (partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) (Nat.succ k)))
+    (partPoint p2 (Nat.succ k))
+    (partPoint (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k))
+    (partPoint p2 k)
+    (catPartition_point_at_rel n1 p1 p2
+      (Nat.add (Nat.succ n1) (Nat.succ k)) (Nat.succ k)
+      (@Eq.refl.{1} Nat (Nat.add (Nat.succ n1) (Nat.succ k))))
+    (catPartition_point_at_rel n1 p1 p2
+      (Nat.add (Nat.succ n1) k) k
+      (@Eq.refl.{1} Nat (Nat.add (Nat.succ n1) k)))
+
+-- 左半第 i 项的乘积：高度是 `l1 i`，宽是 `p1` 第 i 段。
+theorem catPartition_term_left (c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (l1 l2 : Nat → ratRep)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c)
+    (i : Nat) (hlt : LeNat (Nat.succ i) (Nat.succ n1)) :
+    ratRel
+      (ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+        (segLen (catPartition n1 p1 p2) i))
+      (ratMulRep (l1 i) (segLen p1 i)) :=
+  ratMulRep_congr_eq_left
+    (catFun (Nat.succ n1) l1 l2 i)
+    (l1 i)
+    (segLen (catPartition n1 p1 p2) i)
+    (segLen p1 i)
+    (catFun_left l1 l2 (Nat.succ n1) i hlt)
+    (catPartition_segLen_left c p1 p2 n1 i hn1 hjoin hz hlt)
+
+-- 右半第 k 项的乘积：高度是 `l2 k`，宽是 `p2` 第 k 段。
+theorem catPartition_term_right (n1 : Nat) (p1 p2 : Partition)
+    (l1 l2 : Nat → ratRep) (k : Nat) :
+    ratRel
+      (ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+        (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+      (ratMulRep (l2 k) (segLen p2 k)) :=
+  ratMulRep_congr_eq_left
+    (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+    (l2 k)
+    (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k))
+    (segLen p2 k)
+    (catFun_at l1 l2 (Nat.succ n1) k)
+    (catPartition_segLen_right n1 p1 p2 k)
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和沿拼接拆分
+-- ─────────────────────────────────────────────────────────────
+
+-- 左半：`succ n1` 项逐项换成 `p1` 的项；和的下标由 `hn1` 对到段数。
+theorem catPartition_stepSum_left (c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (l1 l2 : Nat → ratRep)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hz : ratRel (partPoint p2 Nat.zero) c) :
+    ratRel
+      (sumTo (fun (i : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+          (segLen (catPartition n1 p1 p2) i)) (Nat.succ n1))
+      (stepSum p1 l1) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) =>
+      ratRel
+        (sumTo (fun (i : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+            (segLen (catPartition n1 p1 p2) i)) (Nat.succ n1))
+        (sumTo (fun (i : Nat) => ratMulRep (l1 i) (segLen p1 i)) z))
+    (Nat.succ n1) (partCount p1) (Eq.symm hn1)
+    (sumTo_congr_upto
+      (fun (i : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+          (segLen (catPartition n1 p1 p2) i))
+      (fun (i : Nat) => ratMulRep (l1 i) (segLen p1 i))
+      (Nat.succ n1)
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (Nat.succ n1)) =>
+        catPartition_term_left c p1 p2 n1 l1 l2 hn1 hjoin hz i hi))
+
+-- 右半：平移后的第 k 项逐项换成 `p2` 的项。
+theorem catPartition_stepSum_right (n1 : Nat) (p1 p2 : Partition)
+    (l1 l2 : Nat → ratRep) :
+    ratRel
+      (sumTo (fun (k : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+          (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+        (partCount p2))
+      (stepSum p2 l2) :=
+  sumTo_congr_upto
+    (fun (k : Nat) =>
+      ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+        (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+    (fun (k : Nat) => ratMulRep (l2 k) (segLen p2 k))
+    (partCount p2)
+    (fun (k : Nat) (_hk : LeNat (Nat.succ k) (partCount p2)) =>
+      catPartition_term_right n1 p1 p2 l1 l2 k)
+
+-- 主定理：`sumTo_shift` 把拼接后的和切成 `succ n1` 项与 `partCount p2` 项，
+-- 两半再各自换成原来的矩形和。
+theorem catPartition_stepSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (l1 l2 : Nat → ratRep) (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1) :
+    ratRel (stepSum (catPartition n1 p1 p2) (catFun (Nat.succ n1) l1 l2))
+      (ratAddRep (stepSum p1 l1) (stepSum p2 l2)) :=
+  ratRel_trans_gen
+    (stepSum (catPartition n1 p1 p2) (catFun (Nat.succ n1) l1 l2))
+    (ratAddRep
+      (sumTo (fun (i : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+          (segLen (catPartition n1 p1 p2) i)) (Nat.succ n1))
+      (sumTo (fun (k : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+          (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+        (partCount p2)))
+    (ratAddRep (stepSum p1 l1) (stepSum p2 l2))
+    (sumTo_shift
+      (fun (i : Nat) =>
+        ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+          (segLen (catPartition n1 p1 p2) i))
+      (Nat.succ n1) (partCount p2))
+    (ratRel_trans_gen
+      (ratAddRep
+        (sumTo (fun (i : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+            (segLen (catPartition n1 p1 p2) i)) (Nat.succ n1))
+        (sumTo (fun (k : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+            (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+          (partCount p2)))
+      (ratAddRep (stepSum p1 l1)
+        (sumTo (fun (k : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+            (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+          (partCount p2)))
+      (ratAddRep (stepSum p1 l1) (stepSum p2 l2))
+      (ratAddRep_wd_gen
+        (sumTo (fun (i : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 i)
+            (segLen (catPartition n1 p1 p2) i)) (Nat.succ n1))
+        (stepSum p1 l1)
+        (sumTo (fun (k : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+            (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+          (partCount p2))
+        (catPartition_stepSum_left c p1 p2 n1 l1 l2 hn1 hjoin
+          (ratRel_of_eq (partPoint p2 Nat.zero) c
+            (isPartition_left c b p2 hp2))))
+      (ratAddRep_wd_snd_gen
+        (stepSum p1 l1)
+        (sumTo (fun (k : Nat) =>
+          ratMulRep (catFun (Nat.succ n1) l1 l2 (Nat.add (Nat.succ n1) k))
+            (segLen (catPartition n1 p1 p2) (Nat.add (Nat.succ n1) k)))
+          (partCount p2))
+        (stepSum p2 l2)
+        (catPartition_stepSum_right n1 p1 p2 l1 l2)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 下和 / 上和沿拼接相加
+-- ─────────────────────────────────────────────────────────────
+
+-- 两块下和各自取出一摞下界，逐段搬到拼接后的分割上；矩形和由
+-- `catPartition_stepSum` 拆开，候选值也跟着相加。
+theorem catPartition_lowerSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (L1 L2 : ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hL1 : LowerSum a c p1 f L1) (hL2 : LowerSum c b p2 f L2) :
+    LowerSum a b (catPartition n1 p1 p2) f (ratAddRep L1 L2) :=
+  Exists.elim (lowerSum_witness a c p1 f L1 hL1)
+    (fun (l1 : Nat → ratRep)
+        (hl1 : LowerStep a c p1 f l1 ∧ ratRel L1 (stepSum p1 l1)) =>
+      Exists.elim (lowerSum_witness c b p2 f L2 hL2)
+        (fun (l2 : Nat → ratRep)
+            (hl2 : LowerStep c b p2 f l2 ∧ ratRel L2 (stepSum p2 l2)) =>
+          Exists.intro (catFun (Nat.succ n1) l1 l2)
+            (And.intro
+              (catPartition_lowerStep a b c p1 p2 n1 f l1 l2 hp1 hp2 hjoin
+                hn1 (And.left hl1) (And.left hl2))
+              (ratRel_trans_gen
+                (ratAddRep L1 L2)
+                (ratAddRep (stepSum p1 l1) (stepSum p2 l2))
+                (stepSum (catPartition n1 p1 p2)
+                  (catFun (Nat.succ n1) l1 l2))
+                (ratRel_trans_gen
+                  (ratAddRep L1 L2)
+                  (ratAddRep (stepSum p1 l1) L2)
+                  (ratAddRep (stepSum p1 l1) (stepSum p2 l2))
+                  (ratAddRep_wd_gen L1 (stepSum p1 l1) L2 (And.right hl1))
+                  (ratAddRep_wd_snd_gen (stepSum p1 l1) L2
+                    (stepSum p2 l2) (And.right hl2)))
+                (ratRel_symm
+                  (stepSum (catPartition n1 p1 p2)
+                    (catFun (Nat.succ n1) l1 l2))
+                  (ratAddRep (stepSum p1 l1) (stepSum p2 l2))
+                  (catPartition_stepSum a b c p1 p2 n1 l1 l2 hp1 hp2 hjoin
+                    hn1))))))
+
+-- 上和同形。
+theorem catPartition_upperSum (a b c : ratRep) (p1 p2 : Partition) (n1 : Nat)
+    (f : ratRep → ratRep) (U1 U2 : ratRep)
+    (hp1 : IsPartition a c p1) (hp2 : IsPartition c b p2)
+    (hjoin : ratRel (partPoint p1 (partCount p1)) c)
+    (hn1 : partCount p1 = Nat.succ n1)
+    (hU1 : UpperSum a c p1 f U1) (hU2 : UpperSum c b p2 f U2) :
+    UpperSum a b (catPartition n1 p1 p2) f (ratAddRep U1 U2) :=
+  Exists.elim (upperSum_witness a c p1 f U1 hU1)
+    (fun (u1 : Nat → ratRep)
+        (hu1 : UpperStep a c p1 f u1 ∧ ratRel U1 (stepSum p1 u1)) =>
+      Exists.elim (upperSum_witness c b p2 f U2 hU2)
+        (fun (u2 : Nat → ratRep)
+            (hu2 : UpperStep c b p2 f u2 ∧ ratRel U2 (stepSum p2 u2)) =>
+          Exists.intro (catFun (Nat.succ n1) u1 u2)
+            (And.intro
+              (catPartition_upperStep a b c p1 p2 n1 f u1 u2 hp1 hp2 hjoin
+                hn1 (And.left hu1) (And.left hu2))
+              (ratRel_trans_gen
+                (ratAddRep U1 U2)
+                (ratAddRep (stepSum p1 u1) (stepSum p2 u2))
+                (stepSum (catPartition n1 p1 p2)
+                  (catFun (Nat.succ n1) u1 u2))
+                (ratRel_trans_gen
+                  (ratAddRep U1 U2)
+                  (ratAddRep (stepSum p1 u1) U2)
+                  (ratAddRep (stepSum p1 u1) (stepSum p2 u2))
+                  (ratAddRep_wd_gen U1 (stepSum p1 u1) U2 (And.right hu1))
+                  (ratAddRep_wd_snd_gen (stepSum p1 u1) U2
+                    (stepSum p2 u2) (And.right hu2)))
+                (ratRel_symm
+                  (stepSum (catPartition n1 p1 p2)
+                    (catFun (Nat.succ n1) u1 u2))
+                  (ratAddRep (stepSum p1 u1) (stepSum p2 u2))
+                  (catPartition_stepSum a b c p1 p2 n1 u1 u2 hp1 hp2 hjoin
+                    hn1))))))

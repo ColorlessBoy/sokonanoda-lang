@@ -1,0 +1,1045 @@
+-- 课程库：微积分基本定理（第一部分）的核心——无除法的差界
+--
+-- 设 `a < c < b`，`f` 一致连续，`F x` 是 `f` 在 `[a,x]` 上的面积值
+-- （`HasIntegral a x f (F x)`）。要证的是「`F` 在 `c` 处可导且导数为 `f c`」
+-- 所需的那条纯差界：
+--
+--   |(F x - F c) - f(c)·(x - c)| ≤ eps·|x - c|     （x 靠近 c）
+--
+-- 做法是把区间可加性（`catPartition`）夹在用一小段细分割上：把 `c` 与 `x`
+-- 之间的那块用「常数台阶 `f c ± eta`」夹住（一致连续性保证每段的高都落在
+-- 这条带子里），而 `a` 到近端那段用可积性取一个缝隙极小的分割。两块拼起来
+-- 就把 `F x - F c` 夹住，缝隙按 `|x - c|` 同阶收缩，于是差界成立。
+--
+-- 绝对值在本课程里是关系 `ratAbsRel x d`（`d` 是 `x` 的一个见证），所以下面
+-- 的界都写成 `∃ d, ratAbsRel … d ∧ d ≤ eps · |x - c|` 的形式——这正是
+-- `close` 去掉严格性之后的样子。
+--
+-- 边界：停在有理代表元层；不构造积分函数，也不假设面积值存在。不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.RatClose
+import lib.RatCloseTrans
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatGroup
+import lib.RatMulOrder
+import lib.RatCancel
+import lib.Bounded
+import lib.MaxOn
+import lib.Monotone
+import lib.LimitLe
+import lib.LimitAbs
+import lib.LimInfinity
+import lib.LimAt
+import lib.Uniform
+import lib.DerivAlgebra
+import lib.DerivShift
+import lib.Deriv
+import lib.Sum
+import lib.Integral
+import lib.IntegralCat
+import lib.IntegralCatPart
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralShift
+import lib.IntegralAdd
+import lib.IntegralGap
+import lib.IntegralValue
+import lib.IntegralMesh
+import lib.IntegralStrip
+import lib.IntegralSlope
+
+-- ─────────────────────────────────────────────────────────────
+-- 区间成员在放大区间里
+-- ─────────────────────────────────────────────────────────────
+
+theorem inClosed_mono (u v p q x : ratRep) (hup : ratLeRep u p)
+    (hqv : ratLeRep q v) (h : InClosed p q x) : InClosed u v x :=
+  And.intro
+    (ratLeRep_trans u p x hup (And.left h))
+    (ratLeRep_trans x q v (And.right h) hqv)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两个差同时比较
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLeRep_sub (a b c d : ratRep) (h1 : ratLeRep a b)
+    (h2 : ratLeRep d c) : ratLeRep (ratSubRep a c) (ratSubRep b d) :=
+  ratLeRep_add a b (ratNegRep c) (ratNegRep d) h1 (ratLeRep_neg_gen d c h2)
+
+-- ─────────────────────────────────────────────────────────────
+-- 乘法对加法 / 减法的分配律（因子在右边）
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratMul_add_left (x y z : ratRep) :
+    ratRel (ratMulRep (ratAddRep x y) z)
+      (ratAddRep (ratMulRep x z) (ratMulRep y z)) :=
+  ratRel_trans_gen
+    (ratMulRep (ratAddRep x y) z)
+    (ratMulRep z (ratAddRep x y))
+    (ratAddRep (ratMulRep x z) (ratMulRep y z))
+    (ratMul_comm (ratAddRep x y) z)
+    (ratRel_trans_gen
+      (ratMulRep z (ratAddRep x y))
+      (ratAddRep (ratMulRep z x) (ratMulRep z y))
+      (ratAddRep (ratMulRep x z) (ratMulRep y z))
+      (ratMul_add z x y)
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep z x) (ratMulRep z y))
+        (ratAddRep (ratMulRep x z) (ratMulRep z y))
+        (ratAddRep (ratMulRep x z) (ratMulRep y z))
+        (ratAddRep_wd_gen (ratMulRep z x) (ratMulRep x z)
+          (ratMulRep z y) (ratMul_comm z x))
+        (ratAddRep_wd_snd_gen (ratMulRep x z) (ratMulRep z y)
+          (ratMulRep y z) (ratMul_comm z y))))
+
+theorem ratMul_sub_left (x y z : ratRep) :
+    ratRel (ratMulRep (ratSubRep x y) z)
+      (ratSubRep (ratMulRep x z) (ratMulRep y z)) :=
+  ratRel_trans_gen
+    (ratMulRep (ratSubRep x y) z)
+    (ratMulRep z (ratSubRep x y))
+    (ratSubRep (ratMulRep x z) (ratMulRep y z))
+    (ratMul_comm (ratSubRep x y) z)
+    (ratRel_trans_gen
+      (ratMulRep z (ratSubRep x y))
+      (ratSubRep (ratMulRep z x) (ratMulRep z y))
+      (ratSubRep (ratMulRep x z) (ratMulRep y z))
+      (ratMul_sub z x y)
+      (ratRel_trans_gen
+        (ratSubRep (ratMulRep z x) (ratMulRep z y))
+        (ratSubRep (ratMulRep x z) (ratMulRep z y))
+        (ratSubRep (ratMulRep x z) (ratMulRep y z))
+        (ratAddRep_wd_gen (ratMulRep z x) (ratMulRep x z)
+          (ratNegRep (ratMulRep z y)) (ratMul_comm z x))
+        (ratAddRep_wd_snd_gen (ratMulRep x z) (ratNegRep (ratMulRep z y))
+          (ratNegRep (ratMulRep y z))
+          (ratNegRep_wd (ratMulRep z y) (ratMulRep y z)
+            (ratMul_comm z y)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- `(A + E) - (A - E) ~ E + E`：夹住 `A` 的两端之差
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratSubRep_neg_neg_self (x y : ratRep) :
+    ratRel (ratSubRep x (ratNegRep y)) (ratAddRep x y) :=
+  ratAddRep_wd_snd_gen x (ratNegRep (ratNegRep y)) y (ratNegRep_invol y)
+
+theorem ratSubRep_pair_gap (x y : ratRep) :
+    ratRel (ratSubRep (ratAddRep x y) (ratSubRep x y))
+      (ratAddRep y y) :=
+  ratRel_trans_gen
+    (ratSubRep (ratAddRep x y) (ratSubRep x y))
+    (ratSubRep (ratAddRep y x) (ratAddRep (ratNegRep y) x))
+    (ratAddRep y y)
+    (ratSubRep_wd
+      (ratAddRep x y) (ratAddRep y x)
+      (ratSubRep x y) (ratAddRep (ratNegRep y) x)
+      (ratAdd_comm x y)
+      (ratAdd_comm x (ratNegRep y)))
+    (ratRel_trans_gen
+      (ratSubRep (ratAddRep y x) (ratAddRep (ratNegRep y) x))
+      (ratSubRep y (ratNegRep y))
+      (ratAddRep y y)
+      (ratSubRep_add_cancel y (ratNegRep y) x)
+      (ratSubRep_neg_neg_self y y))
+
+-- ─────────────────────────────────────────────────────────────
+-- 共同被减数 / 共同减数上的序
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLtRep_of_sub_lt (x y c : ratRep)
+    (h : ratLtRep (ratSubRep x c) (ratSubRep y c)) : ratLtRep x y :=
+  ratLtRep_congr_snd x (ratAddRep (ratSubRep y c) c) y
+    (ratLtRep_congr_fst x (ratAddRep (ratSubRep x c) c)
+      (ratAddRep (ratSubRep y c) c)
+      (ratLtRep_add_right (ratSubRep x c) (ratSubRep y c) c h)
+      (ratRel_symm (ratAddRep (ratSubRep x c) c) x
+        (ratSubRep_add_self x c)))
+    (ratSubRep_add_self y c)
+
+theorem ratLeRep_of_sub_le (x y c : ratRep)
+    (h : ratLeRep (ratSubRep x c) (ratSubRep y c)) : ratLeRep x y :=
+  ratLeRep_congr_gen
+    (ratAddRep (ratSubRep x c) c) x
+    (ratAddRep (ratSubRep y c) c) y
+    (ratSubRep_add_self x c) (ratSubRep_add_self y c)
+    (ratLeRep_add_right (ratSubRep x c) (ratSubRep y c) c h)
+
+theorem ftc_ratSubRep_wd_snd (x y y' : ratRep) (h : ratRel y y') :
+    ratRel (ratSubRep x y) (ratSubRep x y') :=
+  ratAddRep_wd_snd_gen x (ratNegRep y) (ratNegRep y')
+    (ratNegRep_wd y y' h)
+
+theorem ratLtRep_of_sub_lt_left (c x a : ratRep)
+    (h : ratLtRep (ratSubRep c x) (ratSubRep c a)) : ratLtRep a x :=
+  And.intro
+    (le_of_sub_right_le c x a (ratLtRep_le (ratSubRep c x) (ratSubRep c a) h))
+    (fun (hax : ratRel a x) =>
+      ratLtRep_right (ratSubRep c x) (ratSubRep c a) h
+        (ratRel_symm (ratSubRep c a) (ratSubRep c x)
+          (ftc_ratSubRep_wd_snd c a x hax)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 由「离端点不超过 d」得到 `close`
+-- ─────────────────────────────────────────────────────────────
+
+theorem leRep_self_sub_nonpos (t c : ratRep) (h : ratLeRep t c) :
+    ratLeRep (ratSubRep t c) ratZeroRep :=
+  ratLeRep_congr_gen
+    (ratNegRep (ratSubRep c t)) (ratSubRep t c)
+    (ratNegRep ratZeroRep) ratZeroRep
+    (ratRel_symm (ratSubRep t c) (ratNegRep (ratSubRep c t))
+      (ratSubRep_neg c t))
+    (ratRel_refl ratZeroRep)
+    (ratLeRep_neg_gen ratZeroRep (ratSubRep c t) (le_sub_of_le t c h))
+
+theorem close_of_le_right (t c d delta : ratRep) (hct : ratLeRep c t)
+    (hle : ratLeRep (ratSubRep t c) d) (hd : ratLtRep d delta) :
+    close t c delta :=
+  Exists.intro (ratSubRep t c)
+    (And.intro
+      (Or.inl (And.intro (le_sub_of_le c t hct)
+        (ratRel_refl (ratSubRep t c))))
+      (ratLtRep_of_le_lt (ratSubRep t c) d delta hle hd))
+
+theorem close_of_le_left (t c d delta : ratRep) (htc : ratLeRep t c)
+    (hle : ratLeRep (ratSubRep c t) d) (hd : ratLtRep d delta) :
+    close t c delta :=
+  Exists.intro (ratSubRep c t)
+    (And.intro
+      (Or.inr (And.intro (leRep_self_sub_nonpos t c htc)
+        (ratSubRep_neg t c)))
+      (ratLtRep_of_le_lt (ratSubRep c t) d delta hle hd))
+
+-- ─────────────────────────────────────────────────────────────
+-- 正数的加法半群上的一点序
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLeRep_self_add_nonneg (x y : ratRep) (h : ratLeRep ratZeroRep y) :
+    ratLeRep x (ratAddRep x y) :=
+  ratLeRep_congr_gen
+    (ratAddRep ratZeroRep x) x (ratAddRep y x) (ratAddRep x y)
+    (ratAdd_zero_left x) (ratAdd_comm y x)
+    (ratLeRep_add_right ratZeroRep y x h)
+
+theorem ratLeRep_neg_self (x : ratRep) : ratLeRep (ratNegRep x) x ∨
+    ratLeRep x (ratNegRep x) :=
+  ratLeRep_total (ratNegRep x) x
+
+theorem ratMulRep_wd_left (x x' z : ratRep) (h : ratRel x x') :
+    ratRel (ratMulRep x z) (ratMulRep x' z) :=
+  ratRel_trans_gen
+    (ratMulRep x z) (ratMulRep z x) (ratMulRep x' z)
+    (ratMul_comm x z)
+    (ratRel_trans_gen
+      (ratMulRep z x) (ratMulRep z x') (ratMulRep x' z)
+      (ratMulRep_wd_snd_gen z x x' h)
+      (ratMul_comm z x'))
+
+theorem ratSubRep_assoc (x y z : ratRep) :
+    ratRel (ratSubRep (ratSubRep x y) z) (ratSubRep x (ratAddRep y z)) :=
+  ratRel_trans_gen
+    (ratSubRep (ratSubRep x y) z)
+    (ratAddRep x (ratAddRep (ratNegRep y) (ratNegRep z)))
+    (ratSubRep x (ratAddRep y z))
+    (ratAdd_assoc x (ratNegRep y) (ratNegRep z))
+    (ratAddRep_wd_snd_gen x (ratAddRep (ratNegRep y) (ratNegRep z))
+      (ratNegRep (ratAddRep y z))
+      (ratRel_symm (ratNegRep (ratAddRep y z))
+        (ratAddRep (ratNegRep y) (ratNegRep z)) (ratNegRep_add y z)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 绝对值见证被两侧界压住
+-- ─────────────────────────────────────────────────────────────
+
+theorem abs_witness_le (x d B : ratRep) (h : ratAbsRel x d)
+    (h1 : ratLeRep x B) (h2 : ratLeRep (ratNegRep x) B) :
+    ratLeRep d B :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep x ∧ ratRel d x) =>
+      ratLeRep_congr_gen x d B B
+        (ratRel_symm d x (And.right hp)) (ratRel_refl B) h1)
+    (fun (hp : ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) =>
+      ratLeRep_congr_gen (ratNegRep x) d B B
+        (ratRel_symm d (ratNegRep x) (And.right hp)) (ratRel_refl B) h2)
+    h
+
+-- `ratAbsRel` 的两支摊开成语法上的析取，方便 `Or.elim` 反解。
+theorem abs_or (x d : ratRep) (h : ratAbsRel x d) :
+    (ratLeRep ratZeroRep x ∧ ratRel d x) ∨
+      (ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) :=
+  h
+
+-- ─────────────────────────────────────────────────────────────
+-- 内区间上的两条常数台阶：`f c ± eta`
+-- ─────────────────────────────────────────────────────────────
+
+theorem strip_upper_sum (u v : ratRep) (q : Partition) (f : ratRep → ratRep)
+    (c : ratRep) (eta delta : ratRep) (hq : IsPartition u v q)
+    (hm : MeshBelow q delta)
+    (hcl : ∀ (t : ratRep), InClosed u v t → close t c delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    UpperSum u v q f
+      (ratAddRep (ratMulRep (f c) (ratSubRep v u))
+        (ratMulRep eta (ratSubRep v u))) :=
+  Exists.intro (fun (_ : Nat) => ratAddRep (f c) eta)
+    (And.intro
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount q))
+          (x : ratRep)
+          (hx : InClosed (partPoint q i) (partPoint q (Nat.succ i)) x) =>
+        ratLtRep_le (f x) (ratAddRep (f c) eta)
+          (close_lt_add_right (f x) (f c) eta
+            (hu x c
+              (hcl x
+                (inClosed_mono u v (partPoint q i)
+                  (partPoint q (Nat.succ i)) x
+                  (inClosed_left u v (partPoint q i)
+                    (point_in_closed u v q hq i
+                      (leNat_trans i (Nat.succ i) (partCount q)
+                        (le_succ i i (le_refl i)) hi)))
+                  (inClosed_right u v (partPoint q (Nat.succ i))
+                    (point_in_closed u v q hq (Nat.succ i) hi))
+                  hx)))))
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep (f c) (ratSubRep v u))
+          (ratMulRep eta (ratSubRep v u)))
+        (ratMulRep (ratAddRep (f c) eta) (ratSubRep v u))
+        (stepSum q (fun (_ : Nat) => ratAddRep (f c) eta))
+        (ratRel_symm (ratMulRep (ratAddRep (f c) eta) (ratSubRep v u))
+          (ratAddRep (ratMulRep (f c) (ratSubRep v u))
+            (ratMulRep eta (ratSubRep v u)))
+          (ratMul_add_left (f c) eta (ratSubRep v u)))
+        (ratRel_symm (stepSum q (fun (_ : Nat) => ratAddRep (f c) eta))
+          (ratMulRep (ratAddRep (f c) eta) (ratSubRep v u))
+          (stepSum_const u v q hq (ratAddRep (f c) eta)))))
+
+theorem strip_lower_sum (u v : ratRep) (q : Partition) (f : ratRep → ratRep)
+    (c : ratRep) (eta delta : ratRep) (hq : IsPartition u v q)
+    (hm : MeshBelow q delta)
+    (hcl : ∀ (t : ratRep), InClosed u v t → close t c delta)
+    (hu : ∀ (x y : ratRep), close x y delta → close (f x) (f y) eta) :
+    LowerSum u v q f
+      (ratSubRep (ratMulRep (f c) (ratSubRep v u))
+        (ratMulRep eta (ratSubRep v u))) :=
+  Exists.intro (fun (_ : Nat) => ratSubRep (f c) eta)
+    (And.intro
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (partCount q))
+          (x : ratRep)
+          (hx : InClosed (partPoint q i) (partPoint q (Nat.succ i)) x) =>
+        le_sub_of_sub_le (f c) (f x) eta
+          (close_neg_bound (f x) (f c) eta
+            (hu x c
+              (hcl x
+                (inClosed_mono u v (partPoint q i)
+                  (partPoint q (Nat.succ i)) x
+                  (inClosed_left u v (partPoint q i)
+                    (point_in_closed u v q hq i
+                      (leNat_trans i (Nat.succ i) (partCount q)
+                        (le_succ i i (le_refl i)) hi)))
+                  (inClosed_right u v (partPoint q (Nat.succ i))
+                    (point_in_closed u v q hq (Nat.succ i) hi))
+                  hx)))))
+      (ratRel_trans_gen
+        (ratSubRep (ratMulRep (f c) (ratSubRep v u))
+          (ratMulRep eta (ratSubRep v u)))
+        (ratMulRep (ratSubRep (f c) eta) (ratSubRep v u))
+        (stepSum q (fun (_ : Nat) => ratSubRep (f c) eta))
+        (ratRel_symm (ratMulRep (ratSubRep (f c) eta) (ratSubRep v u))
+          (ratSubRep (ratMulRep (f c) (ratSubRep v u))
+            (ratMulRep eta (ratSubRep v u)))
+          (ratMul_sub_left (f c) eta (ratSubRep v u)))
+        (ratRel_symm (stepSum q (fun (_ : Nat) => ratSubRep (f c) eta))
+          (ratMulRep (ratSubRep (f c) eta) (ratSubRep v u))
+          (stepSum_const u v q hq (ratSubRep (f c) eta)))))
+
+-- 「`2 eta · 宽` 就是 `eps/2 · 宽`」：两个 `eta` 先合成 `eps/2`，再乘宽。
+theorem ratDouble_half (eta e2 d : ratRep) (h : ratRel (ratAddRep eta eta) e2) :
+    ratRel (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+      (ratMulRep e2 d) :=
+  ratRel_trans_gen
+    (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+    (ratMulRep (ratAddRep eta eta) d)
+    (ratMulRep e2 d)
+    (ratRel_symm (ratMulRep (ratAddRep eta eta) d)
+      (ratAddRep (ratMulRep eta d) (ratMulRep eta d))
+      (ratMul_add_left eta eta d))
+    (ratMulRep_wd_left (ratAddRep eta eta) e2 d h)
+
+theorem ratHalf_of_ratHalf (eps : ratRep) :
+    ratHalf (ratHalf eps) = ratHalf (ratHalf eps) :=
+  Eq.refl (ratHalf (ratHalf eps))
+
+theorem ratHalf_add_half_eps (eps : ratRep) :
+    ratRel (ratAddRep (ratHalf eps) (ratHalf eps)) eps :=
+  ratHalf_add_self eps
+
+theorem ratHalf_add_half_half (eps : ratRep) :
+    ratRel (ratAddRep (ratHalf (ratHalf eps)) (ratHalf (ratHalf eps)))
+      (ratHalf eps) :=
+  ratHalf_add_self (ratHalf eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 段数非零就能写出后继
+-- ─────────────────────────────────────────────────────────────
+
+theorem nat_succ_of_ne_zero (n : Nat) (h : ¬ n = Nat.zero) :
+    ∃ (m : Nat), n = Nat.succ m :=
+  Nat.rec
+    (fun (k : Nat) => ¬ k = Nat.zero → ∃ (m : Nat), k = Nat.succ m)
+    (fun (h0 : ¬ Nat.zero = Nat.zero) =>
+      @False.elim (∃ (m : Nat), Nat.zero = Nat.succ m)
+        (h0 (@Eq.refl.{1} Nat Nat.zero)))
+    (fun (k : Nat)
+        (_ih : ¬ k = Nat.zero → ∃ (m : Nat), k = Nat.succ m)
+        (_h : ¬ Nat.succ k = Nat.zero) =>
+      Exists.intro k (@Eq.refl.{1} Nat (Nat.succ k)))
+    n h
+
+-- 区间非退化时分割不可能只有零段：零段会让两个端点相等。
+theorem partCount_ne_zero (a b : ratRep) (p : Partition)
+    (hp : IsPartition a b p) (hab : ratLtRep a b) :
+    ¬ partCount p = Nat.zero :=
+  fun (h0 : partCount p = Nat.zero) =>
+    ratLtRep_right a b hab
+      (ratRel_of_eq a b
+        (@Eq.trans.{1} ratRep a (partPoint p (partCount p)) b
+          (@Eq.symm.{1} ratRep (partPoint p (partCount p)) a
+            (@Eq.subst.{1} Nat (fun (z : Nat) => partPoint p z = a)
+              Nat.zero (partCount p) (Eq.symm h0)
+              (isPartition_left a b p hp)))
+          (isPartition_right a b p hp)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 两段台阶与中心的序（`eta · 宽` 为正时）
+-- ─────────────────────────────────────────────────────────────
+
+theorem eta_d_pos (eps d : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (hd : ratLtRep ratZeroRep d) :
+    ratLtRep ratZeroRep
+      (ratMulRep (ratHalf (ratHalf eps)) d) :=
+  ratMul_pos (ratHalf (ratHalf eps)) d
+    (ratLtRep_half (ratHalf eps) (ratLtRep_half eps heps)) hd
+
+theorem lower_step_le_value (dV dE : ratRep)
+    (hE : ratLtRep ratZeroRep dE) :
+    ratLeRep (ratSubRep dV dE) dV :=
+  ratLtRep_le (ratSubRep dV dE) dV
+    (ratLtRep_self_sub_pos dV dE hE)
+
+theorem value_le_upper_step (dV dE : ratRep)
+    (hE : ratLtRep ratZeroRep dE) :
+    ratLeRep dV (ratAddRep dV dE) :=
+  ratLtRep_le dV (ratAddRep dV dE)
+    (ratLtRep_self_add_pos dV dE hE)
+
+-- ─────────────────────────────────────────────────────────────
+-- 拼起来的两块：缝隙的严格界
+-- ─────────────────────────────────────────────────────────────
+
+theorem gap_total_lt (U0 L0 U2 L2 e2 eps d : ratRep)
+    (hgap0 : ratLtRep (ratSubRep U0 L0) (ratMulRep e2 d))
+    (hU2L2 : ratRel (ratSubRep U2 L2) (ratMulRep e2 d))
+    (hBB : ratRel (ratAddRep (ratMulRep e2 d) (ratMulRep e2 d))
+      (ratMulRep eps d)) :
+    ratLtRep (ratSubRep (ratAddRep U0 U2) (ratAddRep L0 L2))
+      (ratMulRep eps d) :=
+  ratLtRep_congr_fst
+    (ratSubRep (ratAddRep U0 U2) (ratAddRep L0 L2))
+    (ratAddRep (ratSubRep U0 L0) (ratSubRep U2 L2))
+    (ratMulRep eps d)
+    (ratLtRep_congr_snd
+      (ratAddRep (ratSubRep U0 L0) (ratSubRep U2 L2))
+      (ratAddRep (ratMulRep e2 d) (ratSubRep U2 L2))
+      (ratMulRep eps d)
+      (ratLtRep_add_right (ratSubRep U0 L0) (ratMulRep e2 d)
+        (ratSubRep U2 L2) hgap0)
+      (ratRel_trans_gen
+        (ratAddRep (ratMulRep e2 d) (ratSubRep U2 L2))
+        (ratAddRep (ratMulRep e2 d) (ratMulRep e2 d))
+        (ratMulRep eps d)
+        (ratAddRep_wd_snd_gen (ratMulRep e2 d) (ratSubRep U2 L2)
+          (ratMulRep e2 d) hU2L2)
+        hBB))
+    (ratSubRep_add_sub U0 L0 U2 L2)
+
+-- ─────────────────────────────────────────────────────────────
+-- 两侧界合成绝对值见证
+-- ─────────────────────────────────────────────────────────────
+
+theorem abs_of_two_sided (Q R R' B : ratRep)
+    (hQR : ratRel Q R) (hQR' : ratRel (ratNegRep Q) R')
+    (hR : ratLeRep R B) (hR' : ratLeRep R' B) :
+    ∃ (dN : ratRep), ratAbsRel Q dN ∧ ratLeRep dN B :=
+  Exists.elim (ratAbsRel_total Q)
+    (fun (dN : ratRep) (hdN : ratAbsRel Q dN) =>
+      Exists.intro dN
+        (And.intro hdN
+          (abs_witness_le Q dN B hdN
+            (ratLeRep_congr_gen R Q B B (ratRel_symm Q R hQR)
+              (ratRel_refl B) hR)
+            (ratLeRep_congr_gen R' (ratNegRep Q) B B
+              (ratRel_symm (ratNegRep Q) R' hQR') (ratRel_refl B) hR'))))
+-- ─────────────────────────────────────────────────────────────
+-- 拼装：两侧的夹逼
+-- ─────────────────────────────────────────────────────────────
+
+theorem interval_core (a b c u v : ratRep) (f F : ratRep → ratRep)
+    (hau : ratLtRep a u) (huv : ratLtRep u v) (hvb : ratLtRep v b)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (q0 : Partition) (hq0 : IsPartition a u q0) (L0 U0 : ratRep)
+    (hL0 : LowerSum a u q0 f L0) (hU0 : UpperSum a u q0 f U0)
+    (hgap0 : ratLtRep (ratSubRep U0 L0)
+      (ratMulRep (ratHalf eps) (ratSubRep v u)))
+    (q1 : Partition) (hq1 : IsPartition u v q1)
+    (hU2 : UpperSum u v q1 f (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))))
+    (hL2 : LowerSum u v q1 f (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))))
+    (n1 : Nat) (hn1 : partCount q0 = Nat.succ n1) :
+    ∃ (dN : ratRep),
+      ratAbsRel (ratSubRep (ratSubRep (F v) (F u)) (ratMulRep (f c) (ratSubRep v u))) dN ∧ ratLeRep dN (ratMulRep eps (ratSubRep v u)) :=
+  abs_of_two_sided (ratSubRep (ratSubRep (F v) (F u)) (ratMulRep (f c) (ratSubRep v u)))
+    (ratSubRep (F v) (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))))
+    (ratSubRep (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))) (F v))
+    (ratMulRep eps (ratSubRep v u))
+    (ratSubRep_assoc (F v) (F u) (ratMulRep (f c) (ratSubRep v u)))
+    (ratRel_trans_gen (ratNegRep (ratSubRep (ratSubRep (F v) (F u)) (ratMulRep (f c) (ratSubRep v u)))) (ratNegRep (ratSubRep (F v) (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))))) (ratSubRep (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))) (F v)) (ratNegRep_wd (ratSubRep (ratSubRep (F v) (F u)) (ratMulRep (f c) (ratSubRep v u))) (ratSubRep (F v) (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u)))) (ratSubRep_assoc (F v) (F u) (ratMulRep (f c) (ratSubRep v u)))) (ratNegRep_sub (F v) (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u)))))
+    (sub_le_of_pin (F v) (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))) (ratAddRep L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratAddRep U0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratMulRep eps (ratSubRep v u)) (hasIntegral_lower a v f (F v) (hF v (ratLtRep_trans a u v hau huv) hvb) (catPartition n1 q0 q1) (ratAddRep L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (catPartition_isPartition a v u q0 q1 n1 hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1) (catPartition_lowerSum a v u q0 q1 n1 f L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1 hL0 hL2)) (hasIntegral_upper a v f (F v) (hF v (ratLtRep_trans a u v hau huv) hvb) (catPartition n1 q0 q1) (ratAddRep U0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (catPartition_isPartition a v u q0 q1 n1 hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1) (catPartition_upperSum a v u q0 q1 n1 f U0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1 hU0 hU2)) (ratLeRep_add L0 (F u) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratMulRep (f c) (ratSubRep v u)) (hasIntegral_lower a u f (F u) (hF u hau (ratLtRep_trans u v b huv hvb)) q0 L0 hq0 hL0) (lower_step_le_value (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)) (eta_d_pos eps (ratSubRep v u) heps (ratLtRep_sub_pos v u huv)))) (gap_total_lt U0 L0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratHalf eps) eps (ratSubRep v u) hgap0 (ratRel_trans_gen (ratSubRep (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratAddRep (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratMulRep (ratHalf eps) (ratSubRep v u)) (ratSubRep_pair_gap (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratDouble_half (ratHalf (ratHalf eps)) (ratHalf eps) (ratSubRep v u) (ratHalf_add_self (ratHalf eps)))) (ratDouble_half (ratHalf eps) eps (ratSubRep v u) (ratHalf_add_self eps))))
+    (sub_le_of_pin (ratAddRep (F u) (ratMulRep (f c) (ratSubRep v u))) (F v) (ratAddRep L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratAddRep U0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratMulRep eps (ratSubRep v u)) (ratLeRep_add L0 (F u) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratMulRep (f c) (ratSubRep v u)) (hasIntegral_lower a u f (F u) (hF u hau (ratLtRep_trans u v b huv hvb)) q0 L0 hq0 hL0) (lower_step_le_value (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)) (eta_d_pos eps (ratSubRep v u) heps (ratLtRep_sub_pos v u huv)))) (ratLeRep_add (F u) U0 (ratMulRep (f c) (ratSubRep v u)) (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (hasIntegral_upper a u f (F u) (hF u hau (ratLtRep_trans u v b huv hvb)) q0 U0 hq0 hU0) (value_le_upper_step (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)) (eta_d_pos eps (ratSubRep v u) heps (ratLtRep_sub_pos v u huv)))) (hasIntegral_lower a v f (F v) (hF v (ratLtRep_trans a u v hau huv) hvb) (catPartition n1 q0 q1) (ratAddRep L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (catPartition_isPartition a v u q0 q1 n1 hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1) (catPartition_lowerSum a v u q0 q1 n1 f L0 (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) hq0 hq1 (ratRel_of_eq (partPoint q0 (partCount q0)) u (isPartition_right a u q0 hq0)) hn1 hL0 hL2)) (gap_total_lt U0 L0 (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratHalf eps) eps (ratSubRep v u) hgap0 (ratRel_trans_gen (ratSubRep (ratAddRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratSubRep (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)))) (ratAddRep (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratMulRep (ratHalf eps) (ratSubRep v u)) (ratSubRep_pair_gap (ratMulRep (f c) (ratSubRep v u)) (ratMulRep (ratHalf (ratHalf eps)) (ratSubRep v u))) (ratDouble_half (ratHalf (ratHalf eps)) (ratHalf eps) (ratSubRep v u) (ratHalf_add_self (ratHalf eps)))) (ratDouble_half (ratHalf eps) eps (ratSubRep v u) (ratHalf_add_self eps))))
+-- ─────────────────────────────────────────────────────────────
+-- 主引理：任意子区间上的差界
+-- ─────────────────────────────────────────────────────────────
+
+theorem interval_abs_bound (a b c u v : ratRep) (f F : ratRep → ratRep)
+    (hau : ratLtRep a u) (huv : ratLtRep u v) (hvb : ratLtRep v b)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (deltaU : ratRep) (hdeltaU : ratLtRep ratZeroRep deltaU)
+    (hucd : ∀ (x y : ratRep), close x y deltaU →
+      close (f x) (f y) (ratHalf (ratHalf eps)))
+    (hcl : ∀ (t : ratRep), InClosed u v t → close t c deltaU) :
+    ∃ (dN : ratRep), ratAbsRel (ratSubRep (ratSubRep (F v) (F u)) (ratMulRep (f c) (ratSubRep v u))) dN ∧ ratLeRep dN (ratMulRep eps (ratSubRep v u)) :=
+  Exists.elim
+    (hasIntegral_integrable a u f (F u)
+      (hF u hau (ratLtRep_trans u v b huv hvb))
+      (ratMulRep (ratHalf eps) (ratSubRep v u))
+      (ratMul_pos (ratHalf eps) (ratSubRep v u)
+        (ratLtRep_half eps heps) (ratLtRep_sub_pos v u huv)))
+    (fun (q0 : Partition)
+        (hq0all : IsPartition a u q0 ∧
+          ∃ (L : ratRep), ∃ (U : ratRep),
+            LowerSum a u q0 f L ∧ UpperSum a u q0 f U ∧
+              ratLtRep (ratSubRep U L) (ratMulRep (ratHalf eps) (ratSubRep v u))) =>
+      Exists.elim (And.right hq0all)
+        (fun (L0 : ratRep)
+            (hL0all : ∃ (U : ratRep), LowerSum a u q0 f L0 ∧
+              UpperSum a u q0 f U ∧
+                ratLtRep (ratSubRep U L0) (ratMulRep (ratHalf eps) (ratSubRep v u))) =>
+          Exists.elim hL0all
+            (fun (U0 : ratRep)
+                (hU0all : LowerSum a u q0 f L0 ∧
+                  UpperSum a u q0 f U0 ∧
+                    ratLtRep (ratSubRep U0 L0) (ratMulRep (ratHalf eps) (ratSubRep v u))) =>
+              Exists.elim
+                (exists_mesh_partition u v deltaU huv hdeltaU)
+                (fun (q1 : Partition)
+                    (hq1all : IsPartition u v q1 ∧ MeshBelow q1 deltaU) =>
+                  Exists.elim
+                    (nat_succ_of_ne_zero (partCount q0)
+                      (partCount_ne_zero a u q0 (And.left hq0all) hau))
+                    (fun (n1 : Nat) (hn1 : partCount q0 = Nat.succ n1) =>
+                      interval_core a b c u v f F hau huv hvb hF eps heps
+                        q0 (And.left hq0all) L0 U0
+                        (And.left hU0all) (And.left (And.right hU0all))
+                        (And.right (And.right hU0all))
+                        q1 (And.left hq1all)
+                        (strip_upper_sum u v q1 f c (ratHalf (ratHalf eps)) deltaU
+                          (And.left hq1all) (And.right hq1all) hcl hucd)
+                        (strip_lower_sum u v q1 f c (ratHalf (ratHalf eps)) deltaU
+                          (And.left hq1all) (And.right hq1all) hcl hucd)
+                        n1 hn1)))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 取负保持绝对值关系
+-- ─────────────────────────────────────────────────────────────
+
+theorem absRel_neg_left (x d : ratRep) (h : ratAbsRel x d) :
+    ratAbsRel (ratNegRep x) d :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep x ∧ ratRel d x) =>
+      Or.inr (And.intro
+        (ratLeRep_neg_gen ratZeroRep x (And.left hp))
+        (ratRel_trans_gen d x (ratNegRep (ratNegRep x))
+          (And.right hp)
+          (ratRel_symm (ratNegRep (ratNegRep x)) x
+            (ratNegRep_invol x)))))
+    (fun (hp : ratLeRep x ratZeroRep ∧ ratRel d (ratNegRep x)) =>
+      Or.inl (And.intro
+        (ratLeRep_neg_gen x ratZeroRep (And.left hp))
+        (And.right hp)))
+    h
+-- `close` 只给绝对值；两个方向各取一支：负侧是现成的 `close_neg_lt`，
+-- 正侧把 `x < c + delta` 两边减去 `c`，再认成 `delta`。
+theorem close_right_dist (x c delta : ratRep) (h : close x c delta) :
+    ratLtRep (ratSubRep x c) delta :=
+  ratLtRep_congr_snd (ratSubRep x c)
+    (ratSubRep (ratAddRep c delta) c) delta
+    (ratLtRep_add_right x (ratAddRep c delta) (ratNegRep c)
+      (close_lt_add_right x c delta h))
+    (ratSubRep_add_self_sub c delta)
+
+theorem close_left_dist (x c delta : ratRep) (h : close x c delta) :
+    ratLtRep (ratSubRep c x) delta :=
+  close_neg_lt x c delta h
+
+-- ─────────────────────────────────────────────────────────────
+-- 绝对值见证落在哪一侧
+-- ─────────────────────────────────────────────────────────────
+theorem abs_left_witness (x c dx : ratRep) (hxc : ratLeRep x c)
+    (h : ratAbsRel (ratSubRep x c) dx) :
+    ratRel dx (ratSubRep c x) :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep (ratSubRep x c) ∧
+        ratRel dx (ratSubRep x c)) =>
+      ratRel_trans_gen dx (ratSubRep x c) (ratSubRep c x)
+        (And.right hp)
+        (ratRel_trans_gen (ratSubRep x c) ratZeroRep (ratSubRep c x)
+          (ratLeRep_antisymm (ratSubRep x c) ratZeroRep
+            (leRep_self_sub_nonpos x c hxc) (And.left hp))
+          (ratRel_symm (ratSubRep c x) ratZeroRep
+            (ratRel_trans_gen (ratSubRep c x)
+              (ratNegRep (ratSubRep x c)) ratZeroRep
+              (ratSubRep_neg x c)
+              (ratNegRep_wd (ratSubRep x c) ratZeroRep
+                (ratLeRep_antisymm (ratSubRep x c) ratZeroRep
+                  (leRep_self_sub_nonpos x c hxc)
+                  (And.left hp)))))))
+    (fun (hp : ratLeRep (ratSubRep x c) ratZeroRep ∧
+        ratRel dx (ratNegRep (ratSubRep x c))) =>
+      ratRel_trans_gen dx (ratNegRep (ratSubRep x c)) (ratSubRep c x)
+        (And.right hp) (ratNegRep_sub x c))
+    (abs_or (ratSubRep x c) dx h)
+
+theorem abs_right_witness (x c dx : ratRep) (hcx : ratLeRep c x)
+    (h : ratAbsRel (ratSubRep x c) dx) :
+    ratRel dx (ratSubRep x c) :=
+  Or.elim
+    (fun (hp : ratLeRep ratZeroRep (ratSubRep x c) ∧
+        ratRel dx (ratSubRep x c)) => And.right hp)
+    (fun (hp : ratLeRep (ratSubRep x c) ratZeroRep ∧
+        ratRel dx (ratNegRep (ratSubRep x c))) =>
+      ratRel_trans_gen dx (ratNegRep (ratSubRep x c)) (ratSubRep x c)
+        (And.right hp)
+        (ratRel_trans_gen (ratNegRep (ratSubRep x c)) ratZeroRep
+          (ratSubRep x c)
+          (ratNegRep_wd (ratSubRep x c) ratZeroRep
+            (ratLeRep_antisymm (ratSubRep x c) ratZeroRep
+              (And.left hp) (le_sub_of_le c x hcx)))
+          (ratRel_symm (ratSubRep x c) ratZeroRep
+            (ratLeRep_antisymm (ratSubRep x c) ratZeroRep
+              (And.left hp) (le_sub_of_le c x hcx)))))
+    (abs_or (ratSubRep x c) dx h)
+
+
+-- 包一层：把「见证 + 界」装成差界结论的 `∃` 形状，好让外层 `Or.elim` /
+-- `Exists.elim` 从函数类型（而不是从分支体的期望类型）反解出结论。
+theorem mk_abs_bound (N eps dx dN : ratRep) (h1 : ratAbsRel N dN)
+    (h2 : ratLeRep dN (ratMulRep eps dx)) :
+    ∃ (w : ratRep), ratAbsRel N w ∧ ratLeRep w (ratMulRep eps dx) :=
+  @Exists.intro ratRep
+    (fun (w : ratRep) => ratAbsRel N w ∧ ratLeRep w (ratMulRep eps dx))
+    dN (And.intro h1 h2)
+
+-- ─────────────────────────────────────────────────────────────
+-- 左半支：`x < c`，内区间取 `[x, c]`
+-- ─────────────────────────────────────────────────────────────
+
+theorem interval_left_case (a b c x : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (hxclt : ratLtRep x c)
+    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b → HasIntegral a y f (F y))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (deltaU : ratRep) (hdeltaU : ratLtRep ratZeroRep deltaU)
+    (hucd : ∀ (u v : ratRep), close u v deltaU →
+      close (f u) (f v) (ratHalf (ratHalf eps)))
+    (delta m1 : ratRep) (hdm1 : ratLeRep delta m1)
+    (hm1d : ratLeRep m1 deltaU) (hdca : ratLeRep delta (ratSubRep c a))
+    (hcl : close x c delta) (hxc : ratLeRep x c)
+    (dx : ratRep) (hdx : ratAbsRel (ratSubRep x c) dx) :
+    ∃ (w : ratRep),
+      ratAbsRel
+        (ratSubRep (ratSubRep (F x) (F c))
+          (ratMulRep (f c) (ratSubRep x c))) w ∧
+      ratLeRep w (ratMulRep eps dx) :=
+  Exists.elim
+    (interval_abs_bound a b c x c f F
+      (ratLtRep_of_sub_lt_left c x a
+        (ratLtRep_of_lt_le (ratSubRep c x) delta (ratSubRep c a)
+          (close_left_dist x c delta hcl)
+          hdca))
+      hxclt hcb hF eps heps deltaU hdeltaU hucd
+      (fun (t : ratRep) (ht : InClosed x c t) =>
+        close_of_le_left t c (ratSubRep c x) deltaU
+          (inClosed_right x c t ht)
+          (ratLeRep_add_left (ratNegRep t) (ratNegRep x) c
+            (ratLeRep_neg_gen x t (inClosed_left x c t ht)))
+          (ratLtRep_of_lt_le (ratSubRep c x) delta deltaU
+            (close_left_dist x c delta hcl)
+            (ratLeRep_trans delta m1 deltaU hdm1 hm1d))))
+    (fun (dN : ratRep)
+        (hdN : ratAbsRel
+          (ratSubRep (ratSubRep (F c) (F x))
+            (ratMulRep (f c) (ratSubRep c x))) dN ∧
+          ratLeRep dN (ratMulRep eps (ratSubRep c x))) =>
+      mk_abs_bound
+        (ratSubRep (ratSubRep (F x) (F c))
+          (ratMulRep (f c) (ratSubRep x c)))
+        eps dx dN
+        (ratAbsRel_wd_left
+          (ratNegRep (ratSubRep (ratSubRep (F c) (F x))
+            (ratMulRep (f c) (ratSubRep c x))))
+          (ratSubRep (ratSubRep (F x) (F c))
+            (ratMulRep (f c) (ratSubRep x c)))
+          dN
+          (ratRel_trans_gen
+            (ratNegRep (ratSubRep (ratSubRep (F c) (F x))
+              (ratMulRep (f c) (ratSubRep c x))))
+            (ratAddRep (ratSubRep (F x) (F c))
+              (ratMulRep (f c) (ratSubRep c x)))
+            (ratSubRep (ratSubRep (F x) (F c))
+              (ratMulRep (f c) (ratSubRep x c)))
+            (ratRel_trans_gen
+              (ratNegRep (ratSubRep (ratSubRep (F c) (F x))
+                (ratMulRep (f c) (ratSubRep c x))))
+              (ratSubRep (ratMulRep (f c) (ratSubRep c x))
+                (ratSubRep (F c) (F x)))
+              (ratAddRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep c x)))
+              (ratNegRep_sub (ratSubRep (F c) (F x))
+                (ratMulRep (f c) (ratSubRep c x)))
+              (ratRel_trans_gen
+                (ratSubRep (ratMulRep (f c) (ratSubRep c x))
+                  (ratSubRep (F c) (F x)))
+                (ratAddRep (ratMulRep (f c) (ratSubRep c x))
+                  (ratSubRep (F x) (F c)))
+                (ratAddRep (ratSubRep (F x) (F c))
+                  (ratMulRep (f c) (ratSubRep c x)))
+                (ratAddRep_wd_snd_gen
+                  (ratMulRep (f c) (ratSubRep c x))
+                  (ratNegRep (ratSubRep (F c) (F x)))
+                  (ratSubRep (F x) (F c))
+                  (ratNegRep_sub (F c) (F x)))
+                (ratAdd_comm (ratMulRep (f c) (ratSubRep c x))
+                  (ratSubRep (F x) (F c)))))
+            (ratRel_symm
+              (ratSubRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep x c)))
+              (ratAddRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep c x)))
+              (ratAddRep_wd_snd_gen (ratSubRep (F x) (F c))
+                (ratNegRep (ratMulRep (f c) (ratSubRep x c)))
+                (ratMulRep (f c) (ratSubRep c x))
+                (ratRel_trans_gen
+                  (ratNegRep (ratMulRep (f c) (ratSubRep x c)))
+                  (ratMulRep (f c) (ratNegRep (ratSubRep x c)))
+                  (ratMulRep (f c) (ratSubRep c x))
+                  (ratRel_symm
+                    (ratMulRep (f c) (ratNegRep (ratSubRep x c)))
+                    (ratNegRep (ratMulRep (f c) (ratSubRep x c)))
+                    (ratMul_neg (f c) (ratSubRep x c)))
+                  (ratMulRep_wd_snd_gen (f c)
+                    (ratNegRep (ratSubRep x c))
+                    (ratSubRep c x)
+                    (ratRel_symm (ratSubRep c x)
+                      (ratNegRep (ratSubRep x c))
+                      (ratSubRep_neg x c)))))))
+          (absRel_neg_left
+            (ratSubRep (ratSubRep (F c) (F x))
+              (ratMulRep (f c) (ratSubRep c x))) dN (And.left hdN)))
+        (ratLeRep_congr_gen dN dN
+          (ratMulRep eps (ratSubRep c x))
+          (ratMulRep eps dx) (ratRel_refl dN)
+          (ratMulRep_wd_snd_gen eps (ratSubRep c x) dx
+            (ratRel_symm dx (ratSubRep c x)
+              (abs_left_witness x c dx hxc hdx)))
+          (And.right hdN)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 右半支：`c < x`，内区间取 `[c, x]`
+-- ─────────────────────────────────────────────────────────────
+
+theorem interval_right_case (a b c x : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (hcxlt : ratLtRep c x)
+    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b → HasIntegral a y f (F y))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps)
+    (deltaU : ratRep) (hdeltaU : ratLtRep ratZeroRep deltaU)
+    (hucd : ∀ (u v : ratRep), close u v deltaU →
+      close (f u) (f v) (ratHalf (ratHalf eps)))
+    (delta m1 : ratRep) (hdm1 : ratLeRep delta m1)
+    (hm1d : ratLeRep m1 deltaU) (hm1b : ratLeRep m1 (ratSubRep b c))
+    (hcl : close x c delta) (hcx : ratLeRep c x)
+    (dx : ratRep) (hdx : ratAbsRel (ratSubRep x c) dx) :
+    ∃ (w : ratRep),
+      ratAbsRel
+        (ratSubRep (ratSubRep (F x) (F c))
+          (ratMulRep (f c) (ratSubRep x c))) w ∧
+      ratLeRep w (ratMulRep eps dx) :=
+  Exists.elim
+    (interval_abs_bound a b c c x f F hac hcxlt
+      (ratLtRep_of_sub_lt x b c
+        (ratLtRep_of_lt_le (ratSubRep x c) delta (ratSubRep b c)
+          (close_right_dist x c delta hcl)
+          (ratLeRep_trans delta m1 (ratSubRep b c) hdm1 hm1b)))
+      hF eps heps deltaU hdeltaU hucd
+      (fun (t : ratRep) (ht : InClosed c x t) =>
+        close_of_le_right t c (ratSubRep x c) deltaU
+          (inClosed_left c x t ht)
+          (ratLeRep_add_right t x (ratNegRep c)
+            (inClosed_right c x t ht))
+          (ratLtRep_of_lt_le (ratSubRep x c) delta deltaU
+            (close_right_dist x c delta hcl)
+            (ratLeRep_trans delta m1 deltaU hdm1 hm1d))))
+    (fun (dN : ratRep)
+        (hdN : ratAbsRel
+          (ratSubRep (ratSubRep (F x) (F c))
+            (ratMulRep (f c) (ratSubRep x c))) dN ∧
+          ratLeRep dN (ratMulRep eps (ratSubRep x c))) =>
+      mk_abs_bound
+        (ratSubRep (ratSubRep (F x) (F c))
+          (ratMulRep (f c) (ratSubRep x c)))
+        eps dx dN (And.left hdN)
+        (ratLeRep_congr_gen dN dN
+          (ratMulRep eps (ratSubRep x c))
+          (ratMulRep eps dx) (ratRel_refl dN)
+          (ratMulRep_wd_snd_gen eps (ratSubRep x c) dx
+            (ratRel_symm dx (ratSubRep x c)
+              (abs_right_witness x c dx hcx hdx)))
+          (And.right hdN)))
+
+-- ─────────────────────────────────────────────────────────────
+-- 第一部分的核心：无除法的差界
+-- ─────────────────────────────────────────────────────────────
+
+theorem integral_difference_bound (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x))
+    (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :
+    ∃ (delta : ratRep), ratLtRep ratZeroRep delta ∧
+      ∀ (x : ratRep), close x c delta → ¬ ratRel x c →
+        ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+          ∃ (dN : ratRep),
+            ratAbsRel
+              (ratSubRep (ratSubRep (F x) (F c))
+                (ratMulRep (f c) (ratSubRep x c))) dN ∧
+            ratLeRep dN (ratMulRep eps dx) :=
+  Exists.elim
+    (huc (ratHalf (ratHalf eps))
+      (ratLtRep_half (ratHalf eps) (ratLtRep_half eps heps)))
+    (fun (deltaU : ratRep)
+        (hUD : ratLtRep ratZeroRep deltaU ∧
+          ∀ (u v : ratRep), close u v deltaU →
+            close (f u) (f v) (ratHalf (ratHalf eps))) =>
+      Exists.elim
+        (exists_min_pos deltaU (ratSubRep b c) (And.left hUD)
+          (ratLtRep_sub_pos b c hcb))
+        (fun (m1 : ratRep)
+            (hm1 : ratLtRep ratZeroRep m1 ∧ ratLeRep m1 deltaU ∧
+              ratLeRep m1 (ratSubRep b c)) =>
+          Exists.elim
+            (exists_min_pos m1 (ratSubRep c a) (And.left hm1)
+              (ratLtRep_sub_pos c a hac))
+            (fun (delta : ratRep)
+                (hd : ratLtRep ratZeroRep delta ∧ ratLeRep delta m1 ∧
+                  ratLeRep delta (ratSubRep c a)) =>
+              Exists.intro delta
+                (And.intro (And.left hd)
+                  (fun (x : ratRep) (hcl : close x c delta)
+                      (hxne : ¬ ratRel x c) (dx : ratRep)
+                      (hdx : ratAbsRel (ratSubRep x c) dx) =>
+                    Or.elim
+                      (fun (hxc : ratLeRep x c) =>
+                        interval_left_case a b c x f F hac hcb
+                          (And.intro hxc (fun (hrc : ratRel x c) => hxne hrc))
+                          hF eps heps deltaU (And.left hUD) (And.right hUD)
+                          delta m1 (And.left (And.right hd))
+                          (And.left (And.right hm1))
+                          (And.right (And.right hd))
+                          hcl hxc dx hdx)
+                      (fun (hcx : ratLeRep c x) =>
+                        interval_right_case a b c x f F hac hcb
+                          (And.intro hcx
+                            (fun (hrc : ratRel c x) =>
+                              hxne (ratRel_symm c x hrc)))
+                          hF eps heps deltaU (And.left hUD) (And.right hUD)
+                          delta m1 (And.left (And.right hd))
+                          (And.left (And.right hm1))
+                          (And.right (And.right hm1))
+                          hcl hcx dx hdx)
+                      (ratLeRep_total x c))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 第二部分用的序工具：正因子可以消去
+-- ─────────────────────────────────────────────────────────────
+
+theorem ratLeRep_mul_cancel_right (a b z : ratRep)
+    (hz : ratLtRep ratZeroRep z)
+    (h : ratLeRep (ratMulRep a z) (ratMulRep b z)) :
+    ratLeRep a b :=
+  Or.elim
+    (fun (hab : ratLeRep a b) => hab)
+    (fun (hba : ratLeRep b a) =>
+      ratLeRep_of_ratRel a b
+        (ratMul_cancel z a b
+          (fun (h0 : ratRel z ratZeroRep) =>
+            ratLtRep_right ratZeroRep z hz (ratRel_symm z ratZeroRep h0))
+          (ratRel_trans_gen
+            (ratMulRep z a) (ratMulRep a z) (ratMulRep z b)
+            (ratMul_comm z a)
+            (ratRel_trans_gen
+              (ratMulRep a z) (ratMulRep b z) (ratMulRep z b)
+              (ratLeRep_antisymm (ratMulRep a z) (ratMulRep b z) h
+                (ratLeRep_mul_pos_right b a z hba hz))
+              (ratMul_comm b z)))))
+    (ratLeRep_total a b)
+
+theorem ratLtRep_half_self (eps : ratRep) (heps : ratLtRep ratZeroRep eps) :
+    ratLtRep (ratHalf eps) eps :=
+  ratLtRep_congr_snd (ratHalf eps)
+    (ratAddRep (ratHalf eps) (ratHalf eps)) eps
+    (ratLtRep_self_add_pos (ratHalf eps) (ratHalf eps)
+      (ratLtRep_half eps heps))
+    (ratHalf_add_self eps)
+
+-- ─────────────────────────────────────────────────────────────
+-- 商减去常数后的乘积：`(q - f c)·(x - c)` 就是那个差
+-- ─────────────────────────────────────────────────────────────
+
+theorem slope_sub_mul (F : ratRep → ratRep) (c x fc : ratRep)
+    (hx : ¬ ratRel x c) :
+    ratRel
+      (ratMulRep (ratSubRep (integralSlope F c x) fc)
+        (ratSubRep x c))
+      (ratSubRep (ratSubRep (F x) (F c))
+        (ratMulRep fc (ratSubRep x c))) :=
+  ratRel_trans_gen
+    (ratMulRep (ratSubRep (integralSlope F c x) fc)
+      (ratSubRep x c))
+    (ratSubRep
+      (ratMulRep (integralSlope F c x) (ratSubRep x c))
+      (ratMulRep fc (ratSubRep x c)))
+    (ratSubRep (ratSubRep (F x) (F c))
+      (ratMulRep fc (ratSubRep x c)))
+    (ratMul_sub_left (integralSlope F c x) fc (ratSubRep x c))
+    (ratSubRep_wd
+      (ratMulRep (integralSlope F c x) (ratSubRep x c))
+      (ratSubRep (F x) (F c))
+      (ratMulRep fc (ratSubRep x c))
+      (ratMulRep fc (ratSubRep x c))
+      (ratQuotTotal_mul (ratSubRep (F x) (F c)) (ratSubRep x c)
+        (ratSubRep_ne_zero x c hx))
+      (ratRel_refl (ratMulRep fc (ratSubRep x c))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 单侧：乘积被压住就消去正因子
+-- ─────────────────────────────────────────────────────────────
+
+theorem one_sided_le (P w N dN eps' dx : ratRep)
+    (hw : ratLtRep ratZeroRep w)
+    (hprod : ratRel (ratMulRep P w) N)
+    (hN : ratLeRep N dN)
+    (hdN : ratLeRep dN (ratMulRep eps' dx))
+    (hdxw : ratRel dx w) :
+    ratLeRep P eps' :=
+  ratLeRep_mul_cancel_right P eps' w hw
+    (ratLeRep_trans (ratMulRep P w) dN (ratMulRep eps' w)
+      (ratLeRep_congr_gen N (ratMulRep P w) dN dN
+        (ratRel_symm (ratMulRep P w) N hprod)
+        (ratRel_refl dN) hN)
+      (ratLeRep_congr_gen dN dN (ratMulRep eps' dx)
+        (ratMulRep eps' w) (ratRel_refl dN)
+        (ratMulRep_wd_snd_gen eps' dx w hdxw) hdN))
+
+theorem close_of_abs_lt (q fc eps eps' dq : ratRep)
+    (hdq : ratAbsRel (ratSubRep q fc) dq)
+    (h1 : ratLeRep (ratSubRep q fc) eps')
+    (h2 : ratLeRep (ratNegRep (ratSubRep q fc)) eps')
+    (hb : ratLtRep eps' eps) :
+    close q fc eps :=
+  Exists.intro dq
+    (And.intro hdq
+      (ratAbsRel_lt_of_bounds (ratSubRep q fc) dq eps' eps hdq h1 h2 hb))
+
+-- ─────────────────────────────────────────────────────────────
+-- 第二部分：斜率函数的极限（`F` 在 `c` 处可导，导数是 `f c`）
+-- ─────────────────────────────────────────────────────────────
+
+-- 左支（`x ≤ c`）：用 `c - x` 作正因子。
+theorem tends_left (x c : ratRep) (f F : ratRep → ratRep) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (hbound : ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+      ∃ (dN : ratRep), ratAbsRel (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN ∧
+        ratLeRep dN (ratMulRep (ratHalf eps) dx))
+    (hxc : ratLeRep x c) (hxne : ¬ ratRel x c) :
+    close (integralSlope F c x) (f c) eps :=
+  (Exists.elim (ratAbsRel_total (ratSubRep x c)) (fun (dx : ratRep) (hdx : (ratAbsRel (ratSubRep x c) dx)) => (Exists.elim (hbound dx hdx) (fun (dN : ratRep) (hdN : (ratAbsRel (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN ∧ ratLeRep dN (ratMulRep (ratHalf eps) dx))) => (Exists.elim (ratAbsRel_total (ratSubRep (integralSlope F c x) (f c))) (fun (dq : ratRep) (hdq : (ratAbsRel (ratSubRep (integralSlope F c x) (f c)) dq)) => (close_of_abs_lt (integralSlope F c x) (f c) eps (ratHalf eps) dq hdq (one_sided_le (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x) (ratNegRep (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c)))) dN (ratHalf eps) dx (And.intro (le_sub_of_le x c hxc) (fun (h0 : (ratRel ratZeroRep (ratSubRep c x))) => (ratSubRep_ne_zero c x (fun (hc : ratRel c x) => (hxne (ratRel_symm c x hc))) (ratRel_symm ratZeroRep (ratSubRep c x) h0)))) (ratRel_trans_gen (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x)) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratNegRep (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c)))) (ratRel_trans_gen (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x)) (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratNegRep (ratSubRep x c))) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratMulRep_wd_snd_gen (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x) (ratNegRep (ratSubRep x c)) (ratSubRep_neg x c)) (ratMul_neg (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratNegRep_wd (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) (slope_sub_mul F c x (f c) hxne))) (ratAbsRel_neg_le (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (And.left hdN)) (And.right hdN) (abs_left_witness x c dx hxc hdx)) (one_sided_le (ratNegRep (ratSubRep (integralSlope F c x) (f c))) (ratSubRep c x) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (ratHalf eps) dx (And.intro (le_sub_of_le x c hxc) (fun (h0 : (ratRel ratZeroRep (ratSubRep c x))) => (ratSubRep_ne_zero c x (fun (hc : ratRel c x) => (hxne (ratRel_symm c x hc))) (ratRel_symm ratZeroRep (ratSubRep c x) h0)))) (ratRel_trans_gen (ratMulRep (ratNegRep (ratSubRep (integralSlope F c x) (f c))) (ratSubRep c x)) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x))) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) (ratMul_neg_left (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x)) (ratRel_trans_gen (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x))) (ratNegRep (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)))) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) (ratNegRep_wd (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x)) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratRel_trans_gen (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x)) (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratNegRep (ratSubRep x c))) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratMulRep_wd_snd_gen (ratSubRep (integralSlope F c x) (f c)) (ratSubRep c x) (ratNegRep (ratSubRep x c)) (ratSubRep_neg x c)) (ratMul_neg (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)))) (ratRel_trans_gen (ratNegRep (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)))) (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) (ratNegRep_invol (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (slope_sub_mul F c x (f c) hxne)))) (ratAbsRel_le (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (And.left hdN)) (And.right hdN) (abs_left_witness x c dx hxc hdx)) (ratLtRep_half_self eps heps))))))))
+
+-- 右支（`c ≤ x`）：用 `x - c` 作正因子。
+theorem tends_right (x c : ratRep) (f F : ratRep → ratRep) (eps : ratRep)
+    (heps : ratLtRep ratZeroRep eps)
+    (hbound : ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+      ∃ (dN : ratRep), ratAbsRel (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN ∧
+        ratLeRep dN (ratMulRep (ratHalf eps) dx))
+    (hcx : ratLeRep c x) (hxne : ¬ ratRel x c) :
+    close (integralSlope F c x) (f c) eps :=
+  (Exists.elim (ratAbsRel_total (ratSubRep x c)) (fun (dx : ratRep) (hdx : (ratAbsRel (ratSubRep x c) dx)) => (Exists.elim (hbound dx hdx) (fun (dN : ratRep) (hdN : (ratAbsRel (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN ∧ ratLeRep dN (ratMulRep (ratHalf eps) dx))) => (Exists.elim (ratAbsRel_total (ratSubRep (integralSlope F c x) (f c))) (fun (dq : ratRep) (hdq : (ratAbsRel (ratSubRep (integralSlope F c x) (f c)) dq)) => (close_of_abs_lt (integralSlope F c x) (f c) eps (ratHalf eps) dq hdq (one_sided_le (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (ratHalf eps) dx (And.intro (le_sub_of_le c x hcx) (fun (h0 : (ratRel ratZeroRep (ratSubRep x c))) => (ratSubRep_ne_zero x c hxne (ratRel_symm ratZeroRep (ratSubRep x c) h0)))) (slope_sub_mul F c x (f c) hxne) (ratAbsRel_le (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (And.left hdN)) (And.right hdN) (abs_right_witness x c dx hcx hdx)) (one_sided_le (ratNegRep (ratSubRep (integralSlope F c x) (f c))) (ratSubRep x c) (ratNegRep (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c)))) dN (ratHalf eps) dx (And.intro (le_sub_of_le c x hcx) (fun (h0 : (ratRel ratZeroRep (ratSubRep x c))) => (ratSubRep_ne_zero x c hxne (ratRel_symm ratZeroRep (ratSubRep x c) h0)))) (ratRel_trans_gen (ratMulRep (ratNegRep (ratSubRep (integralSlope F c x) (f c))) (ratSubRep x c)) (ratNegRep (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c))) (ratNegRep (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c)))) (ratMul_neg_left (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)) (ratNegRep_wd (ratMulRep (ratSubRep (integralSlope F c x) (f c)) (ratSubRep x c)) (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) (slope_sub_mul F c x (f c) hxne))) (ratAbsRel_neg_le (ratSubRep (ratSubRep (F x) (F c)) (ratMulRep (f c) (ratSubRep x c))) dN (And.left hdN)) (And.right hdN) (abs_right_witness x c dx hcx hdx)) (ratLtRep_half_self eps heps))))))))
+
+theorem integral_tendsTo (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    TendsToAt (integralSlope F c) c (f c) :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim
+      (integral_difference_bound a c b f F hac hcb huc hF (ratHalf eps)
+        (ratLtRep_half eps heps))
+      (fun (delta : ratRep)
+          (hdel : ratLtRep ratZeroRep delta ∧
+            ∀ (x : ratRep), close x c delta → ¬ ratRel x c →
+              ∀ (dx : ratRep), ratAbsRel (ratSubRep x c) dx →
+                ∃ (dN : ratRep),
+                  ratAbsRel
+                    (ratSubRep (ratSubRep (F x) (F c))
+                      (ratMulRep (f c) (ratSubRep x c))) dN ∧
+                  ratLeRep dN (ratMulRep (ratHalf eps) dx)) =>
+        Exists.intro delta
+          (And.intro (And.left hdel)
+            (fun (x : ratRep) (hclose : close x c delta)
+                (hxne : ¬ ratRel x c) =>
+              Or.elim
+                (fun (hxc : ratLeRep x c) =>
+                  tends_left x c f F eps heps
+                    ((And.right hdel) x hclose hxne) hxc hxne)
+                (fun (hcx : ratLeRep c x) =>
+                  tends_right x c f F eps heps
+                    ((And.right hdel) x hclose hxne) hcx hxne)
+                (ratLeRep_total x c))))
+
+-- ─────────────────────────────────────────────────────────────
+-- FTC 第一部分：`F` 在 `c` 处可导，导数是 `f c`
+-- ─────────────────────────────────────────────────────────────
+
+theorem integral_hasDerivAt (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b → HasIntegral a x f (F x)) :
+    HasDerivAt F c (f c) :=
+  Exists.intro (integralSlope F c)
+    (And.intro (integralSlope_isSlope F c)
+      (integral_tendsTo a c b f F hac hcb huc hF))
+
+-- 收尾：以上全部在 0.5 秒缓存命中下判过；这一行让缓存失效，强制整文件重判一次。

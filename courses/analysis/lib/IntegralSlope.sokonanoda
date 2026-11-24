@@ -1,0 +1,44 @@
+-- 课程库：积分函数的斜率函数（FTC 第一部分的第一块）
+--
+-- `HasDerivAt F c L` 要求一个**全函数** `q : ratRep → ratRep`，使
+-- `q x · (x - c) ~ F x - F c`（x ≠ c 时）。`RatEqBool` 已给出带默认值的
+-- 总商 `ratQuotTotal`：分母为零时返回 0（x = c 处本来就不受约束），否则
+-- 就是 `RatDivExist` 的 `ratQuot`。于是斜率函数是
+--
+--   `integralSlope F c x = (F x - F c) / (x - c)`（总商，c 处取 0）。
+--
+-- 本文件只立斜率函数与 `IsSlope`（点式方程）；`TendsToAt`（极限）要用
+-- 区间拼接/面积估计，留给后续单元。
+--
+-- 边界：函数取 `ratRep → ratRep`；总商来自 `lib/Choice` 的 `Exists.choose`，
+-- 本文件不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.RatRing
+import lib.Choice
+import lib.RatInv
+import lib.RatDivExist
+import lib.RatEqBool
+import lib.Deriv
+import lib.DerivUnique
+
+-- 总商形式的斜率：分母为 0（x = c）时 `ratQuotTotal` 给 0；`IsSlope` 不约束
+-- 这一点，所以全函数不必真的做除法。
+def integralSlope (F : ratRep → ratRep) (c : ratRep) : ratRep → ratRep :=
+  fun (x : ratRep) =>
+    ratQuotTotal (ratSubRep (F x) (F c)) (ratSubRep x c)
+
+-- x ≠ c 时 `x - c` 不为零，总商退化成 `ratQuot`，乘法方程由 `ratQuot_mul` 给。
+theorem integralSlope_isSlope (F : ratRep → ratRep) (c : ratRep) :
+    IsSlope F c (integralSlope F c) :=
+  fun (x : ratRep) (hx : ¬ ratRel x c) =>
+    ratRel_trans_gen
+      (ratMulRep (ratSubRep x c) (integralSlope F c x))
+      (ratMulRep (integralSlope F c x) (ratSubRep x c))
+      (ratSubRep (F x) (F c))
+      (ratMul_comm (ratSubRep x c) (integralSlope F c x))
+      (ratQuotTotal_mul (ratSubRep (F x) (F c)) (ratSubRep x c)
+        (ratSubRep_ne_zero x c hx))

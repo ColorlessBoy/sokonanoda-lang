@@ -1,0 +1,232 @@
+-- 课程库：区间拼接引擎（FTC 证明的第一块，暂未接课程单元）
+--
+-- 要把 `[a,c]` 与 `[c,b]` 两块面积接起来，先要把两个分割的切点序列拼成
+-- 一个序列：左半 `f1(0), …, f1(n1-1)`，接缝取 `f2(0)`（它等于 `f1(n1)`），
+-- 再接 `f2(1), …, f2(n2)`。`catFun` 就是这个序列；它只做索引重排，不谈
+-- 可积性。
+--
+-- 已证：
+--   · `catFun_left` —— 左半第 k 个切点就是 `f1 k`（k < n1）；
+--   · `catFun_at` —— 从接缝起第 j 个切点就是 `f2 j`；
+--   · `nat_add_cancel_left` / `leNat_add_cancel_left` —— 左消去律；
+--   · `ratRel_of_eq` —— 字面相等投到代表元等价。
+--
+-- 未完成（本文件有意停在这里，见 PR 说明）：
+--   · `catPartition : IsPartition`（接缝处严格上升）——它要按 i < n1 / i = n1
+--     / i > n1 三支做索引算术，当前还在打磨；
+--   · 上下和/矩形和沿拼接的搬运（`LowerStep` / `UpperStep` / `stepSum`）；
+--   · 区间可加性与 FTC 第一部分（还需要有理数倒数：库里没有）。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.Cauchy
+import lib.Bounded
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.Cauchy
+import lib.Bounded
+
+def catBase (f2 : Nat → ratRep) (k : Nat) : ratRep :=
+  match k with
+  | Nat.zero => f2 Nat.zero
+  | Nat.succ j => f2 (Nat.succ j)
+
+def catHead (f1 f2 : Nat → ratRep)
+    (ih : (Nat → ratRep) → (Nat → ratRep) → Nat → ratRep) (k : Nat) : ratRep :=
+  match k with
+  | Nat.zero => f1 Nat.zero
+  | Nat.succ j => ih (fun (t : Nat) => f1 (Nat.succ t)) f2 j
+
+def catFun (n1 : Nat) (f1 f2 : Nat → ratRep) : Nat → ratRep :=
+  @Nat.rec
+    (fun (_ : Nat) => (Nat → ratRep) → (Nat → ratRep) → Nat → ratRep)
+    (fun (f1 f2 : Nat → ratRep) (k : Nat) => catBase f2 k)
+    (fun (m : Nat) (ih : (Nat → ratRep) → (Nat → ratRep) → Nat → ratRep) =>
+      fun (f1 f2 : Nat → ratRep) (k : Nat) => catHead f1 f2 ih k)
+    n1 f1 f2
+
+theorem catFun_zero (f1 f2 : Nat → ratRep) (k : Nat) :
+    catFun Nat.zero f1 f2 k = catBase f2 k :=
+  @Eq.refl.{1} ratRep (catBase f2 k)
+
+theorem catFun_succ (m : Nat) (f1 f2 : Nat → ratRep) (k : Nat) :
+    catFun (Nat.succ m) f1 f2 k = catHead f1 f2 (catFun m) k :=
+  @Eq.refl.{1} ratRep (catHead f1 f2 (catFun m) k)
+
+theorem catBase_eq (f2 : Nat → ratRep) (k : Nat) : catBase f2 k = f2 k :=
+  @Nat.rec
+    (fun (k : Nat) => catBase f2 k = f2 k)
+    (@Eq.refl.{1} ratRep (f2 Nat.zero))
+    (fun (j : Nat) (_ : catBase f2 j = f2 j) =>
+      @Eq.refl.{1} ratRep (f2 (Nat.succ j)))
+    k
+
+theorem catHead_zero (f1 f2 : Nat → ratRep)
+    (ih : (Nat → ratRep) → (Nat → ratRep) → Nat → ratRep) :
+    catHead f1 f2 ih Nat.zero = f1 Nat.zero :=
+  @Eq.refl.{1} ratRep (f1 Nat.zero)
+
+theorem catHead_succ (f1 f2 : Nat → ratRep)
+    (ih : (Nat → ratRep) → (Nat → ratRep) → Nat → ratRep) (j : Nat) :
+    catHead f1 f2 ih (Nat.succ j) =
+      ih (fun (t : Nat) => f1 (Nat.succ t)) f2 j :=
+  @Eq.refl.{1} ratRep (ih (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+
+theorem catFun_left (f1 f2 : Nat → ratRep) :
+    ∀ (n1 k : Nat), LeNat (Nat.succ k) n1 → catFun n1 f1 f2 k = f1 k :=
+  fun (n1 : Nat) =>
+    (@Nat.rec
+      (fun (n1 : Nat) =>
+        ∀ (f1 f2 : Nat → ratRep) (k : Nat),
+          LeNat (Nat.succ k) n1 → catFun n1 f1 f2 k = f1 k)
+      (fun (f1 f2 : Nat → ratRep) (k : Nat)
+          (hk : LeNat (Nat.succ k) Nat.zero) =>
+        False.elim (leNat_succ_zero_absurd k hk))
+      (fun (m : Nat)
+          (ih : ∀ (f1 f2 : Nat → ratRep) (k : Nat),
+            LeNat (Nat.succ k) m → catFun m f1 f2 k = f1 k)
+          (f1 f2 : Nat → ratRep) (k : Nat)
+          (hk : LeNat (Nat.succ k) (Nat.succ m)) =>
+        @Nat.rec
+          (fun (k : Nat) =>
+            ∀ (f1 f2 : Nat → ratRep),
+              LeNat (Nat.succ k) (Nat.succ m) →
+                catFun (Nat.succ m) f1 f2 k = f1 k)
+          (fun (f1 f2 : Nat → ratRep)
+              (hk0 : LeNat (Nat.succ Nat.zero) (Nat.succ m)) =>
+            @Eq.trans.{1} ratRep
+              (catFun (Nat.succ m) f1 f2 Nat.zero)
+              (catHead f1 f2 (catFun m) Nat.zero)
+              (f1 Nat.zero)
+              (catFun_succ m f1 f2 Nat.zero)
+              (@Eq.trans.{1} ratRep
+                (catHead f1 f2 (catFun m) Nat.zero)
+                (f1 Nat.zero)
+                (f1 Nat.zero)
+                (catHead_zero f1 f2 (catFun m))
+                (@Eq.refl.{1} ratRep (f1 Nat.zero))))
+          (fun (j : Nat)
+              (_ : ∀ (f1 f2 : Nat → ratRep),
+                LeNat (Nat.succ j) (Nat.succ m) →
+                  catFun (Nat.succ m) f1 f2 j = f1 j)
+              (f1 f2 : Nat → ratRep)
+              (hk1 : LeNat (Nat.succ (Nat.succ j)) (Nat.succ m)) =>
+            @Eq.trans.{1} ratRep
+              (catFun (Nat.succ m) f1 f2 (Nat.succ j))
+              (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+              (f1 (Nat.succ j))
+              (@Eq.trans.{1} ratRep
+                (catFun (Nat.succ m) f1 f2 (Nat.succ j))
+                (catHead f1 f2 (catFun m) (Nat.succ j))
+                (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+                (catFun_succ m f1 f2 (Nat.succ j))
+                (catHead_succ f1 f2 (catFun m) j))
+              (@Eq.trans.{1} ratRep
+                (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+                ((fun (t : Nat) => f1 (Nat.succ t)) j)
+                (f1 (Nat.succ j))
+                (ih (fun (t : Nat) => f1 (Nat.succ t)) f2 j
+                  (leNat_pred (Nat.succ j) m hk1))
+                (@Eq.refl.{1} ratRep (f1 (Nat.succ j)))))
+          k f1 f2 hk)
+      n1) f1 f2
+
+theorem catFun_at (f1 f2 : Nat → ratRep) :
+    ∀ (n1 j : Nat), catFun n1 f1 f2 (Nat.add n1 j) = f2 j :=
+  fun (n1 : Nat) =>
+    (@Nat.rec
+      (fun (n1 : Nat) =>
+        ∀ (f1 f2 : Nat → ratRep) (j : Nat),
+          catFun n1 f1 f2 (Nat.add n1 j) = f2 j)
+      (fun (f1 f2 : Nat → ratRep) (j : Nat) =>
+        @Eq.trans.{1} ratRep
+          (catFun Nat.zero f1 f2 (Nat.add Nat.zero j))
+          (f2 j)
+          (f2 j)
+          (@Eq.trans.{1} ratRep
+            (catFun Nat.zero f1 f2 (Nat.add Nat.zero j))
+            (f2 (Nat.add Nat.zero j))
+            (f2 j)
+            (@Eq.trans.{1} ratRep
+              (catFun Nat.zero f1 f2 (Nat.add Nat.zero j))
+              (catBase f2 (Nat.add Nat.zero j))
+              (f2 (Nat.add Nat.zero j))
+              (catFun_zero f1 f2 (Nat.add Nat.zero j))
+              (catBase_eq f2 (Nat.add Nat.zero j)))
+            (congrArg (fun (z : Nat) => f2 z) (zero_add j)))
+          (@Eq.refl.{1} ratRep (f2 j)))
+      (fun (m : Nat)
+          (ih : ∀ (f1 f2 : Nat → ratRep) (j : Nat),
+            catFun m f1 f2 (Nat.add m j) = f2 j)
+          (f1 f2 : Nat → ratRep) (j : Nat) =>
+        @Eq.trans.{1} ratRep
+          (catFun (Nat.succ m) f1 f2 (Nat.add (Nat.succ m) j))
+          (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 (Nat.add m j))
+          (f2 j)
+          (@Eq.trans.{1} ratRep
+            (catFun (Nat.succ m) f1 f2 (Nat.add (Nat.succ m) j))
+            (catHead f1 f2 (catFun m) (Nat.add (Nat.succ m) j))
+            (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 (Nat.add m j))
+            (catFun_succ m f1 f2 (Nat.add (Nat.succ m) j))
+            (@Eq.trans.{1} ratRep
+              (catHead f1 f2 (catFun m) (Nat.add (Nat.succ m) j))
+              (catHead f1 f2 (catFun m) (Nat.succ (Nat.add m j)))
+              (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 (Nat.add m j))
+              (congrArg (fun (z : Nat) => catHead f1 f2 (catFun m) z)
+                (succ_add m j))
+              (catHead_succ f1 f2 (catFun m) (Nat.add m j))))
+          (ih (fun (t : Nat) => f1 (Nat.succ t)) f2 j))
+      n1) f1 f2
+
+theorem nat_add_cancel_left (a b k : Nat) (h : Nat.add k a = Nat.add k b) : a = b :=
+  nat_add_cancel_right a b k
+    (@Eq.trans.{1} Nat (Nat.add a k) (Nat.add k a) (Nat.add b k)
+      (add_comm a k)
+      (@Eq.trans.{1} Nat (Nat.add k a) (Nat.add k b) (Nat.add b k) h
+        (@Eq.symm.{1} Nat (Nat.add b k) (Nat.add k b) (add_comm b k))))
+
+theorem leNat_add_cancel_left (a b k : Nat)
+    (h : LeNat (Nat.add k a) (Nat.add k b)) : LeNat a b :=
+  leNat_of_exists_add a b
+    (Exists.elim (leNat_exists_add (Nat.add k a) (Nat.add k b) h)
+      (fun (j : Nat) (hj : Nat.add k b = Nat.add (Nat.add k a) j) =>
+        Exists.intro j
+          (nat_add_cancel_left b (Nat.add a j) k
+            (@Eq.trans.{1} Nat
+              (Nat.add k b)
+              (Nat.add (Nat.add k a) j)
+              (Nat.add k (Nat.add a j))
+              hj
+              (add_assoc k a j)))))
+
+theorem ratRel_of_eq (x y : ratRep) (h : x = y) : ratRel x y :=
+  @Eq.subst.{1} ratRep (fun (z : ratRep) => ratRel x z) x y h (ratRel_refl x)
+
+-- 后继下标从接缝起：`catFun (succ m)` 的后继项就是 `catFun m` 在平移后的
+-- 左半上取值。`catHead_succ` 给出这一步。
+theorem catFun_at_succ (m : Nat) (f1 f2 : Nat → ratRep) (j : Nat) :
+    catFun (Nat.succ m) f1 f2 (Nat.succ j) =
+      catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j :=
+  @Eq.trans.{1} ratRep
+    (catFun (Nat.succ m) f1 f2 (Nat.succ j))
+    (catHead f1 f2 (catFun m) (Nat.succ j))
+    (catFun m (fun (t : Nat) => f1 (Nat.succ t)) f2 j)
+    (catFun_succ m f1 f2 (Nat.succ j))
+    (catHead_succ f1 f2 (catFun m) j)
+
+-- 第 0 项：`catFun (succ m)` 的第 0 项就是左半的第 0 项。
+theorem catFun_at_zero (m : Nat) (f1 f2 : Nat → ratRep) :
+    catFun (Nat.succ m) f1 f2 Nat.zero = f1 Nat.zero :=
+  @Eq.trans.{1} ratRep
+    (catFun (Nat.succ m) f1 f2 Nat.zero)
+    (catHead f1 f2 (catFun m) Nat.zero)
+    (f1 Nat.zero)
+    (catFun_succ m f1 f2 Nat.zero)
+    (catHead_zero f1 f2 (catFun m))

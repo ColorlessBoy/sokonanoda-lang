@@ -1,6 +1,14 @@
 -- lib 自检入口：把当前库模块一次 import 完。
 import lib.Logic
 import lib.Exists
+import lib.Choice
+import lib.RatInv
+import lib.RatDivExist
+import lib.IntegralSlope
+import lib.IntegralFTC
+import lib.IntegralCatPart
+import lib.IntegralCat
+import lib.RatEqBool
 import lib.Set
 import lib.Prod
 import lib.Rel
