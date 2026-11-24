@@ -98,9 +98,6 @@
 
 ## 5. ✅ 已排除 / 设计如此（别当缺口修）
 
-* **r02 `set_option pp.explicit true`「静默空操作」= 误读**：裸常量 `#check Eq.subst` **有意**不受该选项影响
-  （走签名源文本捷径；`reference/commands/set_option.md` §边界已写明、`tests.rs` 钉着）。
-  真问题是**画布内容**：unit01 第 37 行挑了 `#check Iff.refl` 这条看不见效果的演示。
 * **编辑器「补全弹窗打不开」= 探针自纠，撤回**：`offsetParent !== null` 对 **fixed** 定位的 `.suggest-widget`
   恒为 null；行为判据（打 `exa` + Enter ⇒ 变 `exact`）证明弹窗工作。真问题是**候选内容**（F5）。
 * **LSP 侧不报的边界**：声明名位置 F12 = `null`（G-53 已知诚实行为）· `Nat.add`/`Nat.zero` F12 = `null`
