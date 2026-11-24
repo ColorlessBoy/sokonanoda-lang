@@ -1,8 +1,8 @@
 {
   "schema": "soko.knowledge-cards/1",
   "title": "卷 I 集合论 · 知识卡片库",
-  "version": 6,
-  "updated": "2026-11-22",
+  "version": 7,
+  "updated": "2026-11-24",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
     {
@@ -731,6 +731,53 @@
         "choice",
         "order",
         "fun"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "swap-exists-forall",
+      "kicker": "卷 I · I.2 函数与逻辑",
+      "title": "量词换序 · swap_exists_forall",
+      "oneLiner": "`∃ y, ∀ x, P x y` 能推出 `∀ x, ∃ y, P x y`；反过来不成立。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem swap_exists_forall (α β : Type) (P : α → β → Prop)\n    (h : ∃ (y : β), ∀ (x : α), P x y) :\n    ∀ (x : α), ∃ (y : β), P x y"
+      },
+      "sections": [
+        {
+          "heading": "直觉",
+          "kind": "paragraph",
+          "text": "前提说「存在同一个 y，对所有 x 都合用」。既然同一个证人已经对所有 x 都合用，那么对任意一个 x，当然都能把**那个 y**交出去。"
+        },
+        {
+          "heading": "证明骨架",
+          "kind": "list",
+          "items": [
+            "`intro h x`：固定任意 `x`；",
+            "从 `h : ∃ y, ∀ x, P x y` 里拆出证人 `y` 和证据 `hy : ∀ x, P x y`；",
+            "对当前 `x` 用 `hy x : P x y`，再 `Exists.intro y (hy x)` 交出同一个证人。"
+          ]
+        },
+        {
+          "heading": "反方向为什么不成立",
+          "kind": "paragraph",
+          "text": "`∀ x, ∃ y, P x y` 允许每个 `x` 配**不同**的 `y`；它没有承诺存在一个统一的 `y`。反例在 `Set Nat` 的恒等关系上：`∀ x, ∃ y, x = y` 为真（取 `y := x`），但 `∃ y, ∀ x, x = y` 会逼出 `∅ = univ`，与 `0 ∈ univ`、`0 ∉ ∅` 矛盾（见 `swap_converse_false`）。"
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把 `∃∀` 和 `∀∃` 当成可交换：只有 `∃ y, ∀ x ⇒ ∀ x, ∃ y` 恒真，反方向需要额外一致性；",
+            "拆假设时把 `x` 也一起从 `h` 里拿——`h` 里只有 `y` 与 `hy`，`x` 是证明目标里 `intro` 出来的。"
+          ]
+        }
+      ],
+      "source": "units/I.2/unit07-functions.sokonanoda:194",
+      "tags": [
+        "logic",
+        "quantifier",
+        "exists",
+        "forall"
       ],
       "prereq": []
     }

@@ -108,7 +108,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 14 + client 17
+node test/run.mjs     # host 16 + client 20
 ```
 
 ## 迁移与清理（一次性，2026-11-23）

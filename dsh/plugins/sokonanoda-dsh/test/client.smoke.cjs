@@ -370,20 +370,38 @@ test('question fence: option rows render, and a click sends the letter through t
   oneByClass(view, 'dslc-fence')
   oneByClass(view, 'dslc-card')
   const options = byClass(view, 'dslc-opt')
-  expect(options.length === 4, 'question fence must render 4 options')
+  expect(options.length === 5, 'question fence must render 4 choices + the 我不知道 support row')
   expect(textOf(view).includes('单射'), 'question fence lost the stem')
   expect(!textOf(view).includes('RAW CODE'), 'settled fence must replace the raw code block')
   expect(!textOf(view).includes('```'), 'the fence JSON must not leak into the rendered card')
-  expect(typeof options[0].props.onClick === 'function', 'options must be clickable when inputActions exist')
-  expect(options[0].props['data-pickable'] === '1', 'clickable option must advertise it')
-  options[0].props.onClick()
-  expect(JSON.stringify(calls) === JSON.stringify([['setDraft', 'A'], ['submit']]),
-    'a click must send exactly the option letter as a normal composer message, got ' + JSON.stringify(calls))
+  const skip = oneByClass(view, 'dslc-opt-skip')
+  expect(textOf(skip).includes('我不知道'), 'skip row must say 我不知道')
+  expect(typeof skip.props.onClick === 'function', 'skip row must be clickable when inputActions exist')
+  skip.props.onClick()
+  expect(JSON.stringify(calls) === JSON.stringify([['setDraft', '我不知道'], ['submit']]),
+    'the skip row must send the phrase (not a letter), got ' + JSON.stringify(calls))
+
+  const letterCalls = []
+  const letterView = render(LearnCardFence(fenceProps('question', QUESTION, {
+    inputActions: {
+      setDraft: (value) => letterCalls.push(['setDraft', value]),
+      submit: () => letterCalls.push(['submit']),
+    },
+    useInput: () => ({ phase: 'plain', draft: '' }),
+  })))
+  const letterOptions = byClass(letterView, 'dslc-opt')
+  expect(options.length === 5, 'question fence must render 4 choices + skip row')
+  expect(typeof letterOptions[0].props.onClick === 'function', 'options must be clickable when inputActions exist')
+  expect(letterOptions[0].props['data-pickable'] === '1', 'clickable option must advertise it')
+  letterOptions[0].props.onClick()
+  expect(JSON.stringify(letterCalls) === JSON.stringify([['setDraft', 'A'], ['submit']]),
+    'a click must send exactly the option letter as a normal composer message, got ' + JSON.stringify(letterCalls))
 })
 
 test('question fence stays display-only without input actions', () => {
   const quiet = render(LearnCardFence(fenceProps('question', QUESTION)))
   const quietOptions = byClass(quiet, 'dslc-opt')
+  expect(quietOptions.length === 4, 'display-only card has no 我不知道 row')
   expect(quietOptions[0].props.onClick === undefined, 'no inputActions => no click handler')
 })
 
@@ -404,6 +422,40 @@ test('knowledge fence renders title, definition tokens and source', () => {
   expect(textOf(view).includes('单射（injective）'), 'knowledge fence lost the title')
   expect(textOf(view).includes('∀'), 'highlighted definition must keep its text')
   expect(byClass(view, 'dslc-hl').length >= 1, 'definition must be highlighted')
+})
+
+test('knowledge source with sourceLink renders a right-sidebar file link', () => {
+  const payload = {
+    title: '量词换序',
+    oneLiner: '∃∀ ⇒ ∀∃',
+    source: 'units/I.2/unit07-functions.sokonanoda:194',
+    sourceLink: {
+      path: '/tmp/soko/units/I.2/unit07-functions.sokonanoda',
+      relativePath: 'courses/set-theory/units/I.2/unit07-functions.sokonanoda',
+      line: 194,
+    },
+  }
+  const view = render(LearnCardFence(fenceProps('knowledge', payload)))
+  const link = oneByClass(view, 'dslc-link')
+  expect(/^dsh-resource:\/\/file\//.test(link.props.href), 'source link must use a dsh-resource address')
+  expect(link.props.href.includes('unit07-functions.sokonanoda'), 'source link lost the file path')
+  expect(typeof link.props.onClick === 'function', 'source link must handle click through the sidebar service')
+  expect(textOf(view).includes('194'), 'source label must keep the line number')
+})
+
+test('.sokonanoda source preview renders a line-numbered Lean view', () => {
+  const source = 'theorem swap_exists_forall (α β : Type) (P : α → β → Prop) :\n    ∀ (x : α), ∃ (y : β), P x y := by\n  intro x\n  sorry'
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: { kind: 'text', text: source, pages: [], eof: true },
+    wrap: false,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { params: { line: 2 } } } }),
+  }))
+  const numbers = byClass(view, 'dsls-source-no')
+  expect(numbers.length === 4, 'source preview must render one gutter number per line')
+  expect(textOf(view).includes('swap_exists_forall'), 'source preview lost the file text')
+  expect(byClass(view, 'dsls-source-line').length === 4, 'source preview must render one row per line')
+  expect(byClass(view, 'dslc-hl').length >= 1, 'source preview must run the Lean highlighter')
 })
 
 test('lesson fence renders goal, points and intuition', () => {
@@ -440,6 +492,21 @@ test('highlight CSS rules exist', () => {
     '.dslc-hl-type{', '.dslc-hl-str{', '.dslc-hl-com{']) {
     expect(cardCss.includes(selector), 'stylesheet missing ' + selector)
   }
+})
+
+test('inline markdown bold becomes <strong> in question cards', () => {
+  const code = JSON.stringify({ kind: 'question', payload: {
+    stem: '两个**不同**的集合能互相包含吗？',
+    options: [
+      { key: 'A', text: '**不能**，外延性要求元素完全相同' },
+      { key: 'B', text: '能，包含是单向的' },
+    ],
+  } })
+  const view = render(LearnCardFence({ lang: 'learn-card', code: code, streaming: false, t: translator(zh) }))
+  const strongs = nodesOf(view).filter((node) => node.type === 'strong')
+  expect(strongs.length === 2, 'both stem and option bold runs should render as <strong>')
+  expect(strongs.some((node) => textOf(node).includes('不同')), 'stem bold text missing')
+  expect(!textOf(view).includes('**'), 'literal asterisks leaked into the card')
 })
 
 test('open question fence renders the typing hint instead of option rows', () => {
@@ -500,6 +567,8 @@ test('fast-path cards carry a top-right provenance badge', () => {
   expect(byClass(streaming, 'dslc-fast-badge').length === 0, 'streaming raw code must not claim the fast path')
   expect(cardCss.includes('.dslc-fast-badge{'), 'badge CSS rule missing')
   expect(cardCss.includes('.dslc-open-hint{'), 'open-hint CSS rule missing')
+  expect(cardCss.includes('.dslc-bold{'), 'bold CSS rule missing')
+  expect(cardCss.includes('.dslc-opt-skip{'), 'skip CSS rule missing')
 })
 
 console.log('')

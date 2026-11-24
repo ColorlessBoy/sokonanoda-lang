@@ -388,6 +388,38 @@ export function replyTextOf(payload) {
  * mode) into a `learn-card` fenced block — the client renders it, and the text
  * stays an ordinary assistant character stream (no tool call, no tool result).
  */
+/**
+ * Resolve a card's `source` (e.g. "units/I.2/unit07-functions.sokonanoda:194")
+ * into absolute + repo-relative coordinates the client can turn into a
+ * `dsh-resource://file/...` address for the right-sidebar file viewer.
+ * @param payload - learn-card payload; returned unchanged when no source line.
+ * @returns payload with `sourceLink` added, or the original payload.
+ */
+export function withCardSourceLink(payload) {
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) return payload
+  if (payload.sourceLink !== undefined) return payload
+  const source = typeof payload.source === 'string' ? payload.source : ''
+  const match = /([A-Za-z0-9_.\/-]+\.sokonanoda):(\d+)/.exec(source)
+  if (!match) return payload
+  const relative = match[1]
+  const line = Number(match[2])
+  if (!Number.isInteger(line) || line <= 0) return payload
+  const candidates = [
+    path.join(REPO, 'courses', 'set-theory', relative),
+    path.join(REPO, relative),
+    path.resolve(REPO, relative),
+  ]
+  const absolute = candidates.find((candidate) => fs.existsSync(candidate))
+  if (absolute === undefined) return payload
+  return Object.assign({}, payload, {
+    sourceLink: {
+      path: absolute,
+      relativePath: path.relative(REPO, absolute).split(path.sep).join('/'),
+      line,
+    },
+  })
+}
+
 export function composeReplyText(payload) {
   const message = payload !== null && typeof payload === 'object'
     ? payload.choices?.[0]?.message
@@ -403,7 +435,8 @@ export function composeReplyText(payload) {
     let args = null
     try { args = JSON.parse(fn.arguments) } catch { args = null }
     if (args === null || typeof args !== 'object' || typeof args.kind !== 'string' || args.kind === '') continue
-    blocks.push(`\`\`\`${LEARN_CARD_FENCE}\n${JSON.stringify({ kind: args.kind, payload: args.payload ?? {} })}\n\`\`\``)
+    const cardPayload = withCardSourceLink(args.payload ?? {})
+    blocks.push(`\`\`\`${LEARN_CARD_FENCE}\n${JSON.stringify({ kind: args.kind, payload: cardPayload })}\n\`\`\``)
   }
   return blocks.join('\n\n')
 }

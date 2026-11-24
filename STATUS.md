@@ -1,3 +1,6 @@
+## 当前快照（2026-11-24 · DSH 插件补丁 · issue #108）
+`sokonanoda-dsh` 补丁（gist 78f5f716，base `06076df6`）：卡片内联 `**bold**`、选择题「我不知道」支持行（发短语走本地讲解、不判卷）、知识卡出处可点开右栏文件并定位行、`.sokonanoda` 右栏预览（行号 + Lean 高亮 + 折行）、知识卡匹配不再被单个通用 tag 误配（补 `swap-exists-forall` 卡）。本地判据：host 16/16 · client 20/20 · docs-lint 0 · engine selftest/validate/coverage 全绿。
+
 ## 当前快照（2026-11-24 · C9 P0）
 C9 题目集数据集 P0 落盘：`courses/exercise-dataset/` 从三门课程教材抽出 **1995 道代码练习**（294 单元、解答 1995/1995、4949 条 `soko:hint`，JSON 4.59 MB，生成物进 git 但由 `build.py` 唯一生成）；大计划 issue **#96**。判据：`build.py --check` 判源文件漂移，`check.py` 判结构/来源映射/解答，`check.py --selftest` 对 6 类坏数据必须判红；抽样 `compose.py` → 真内核判卷（模板有 `exercise.open`、解答 0 open、0 diagnostic）。
 
