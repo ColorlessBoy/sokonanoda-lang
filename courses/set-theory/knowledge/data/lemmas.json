@@ -1,0 +1,722 @@
+{
+  "schema": "soko.lemmas/2",
+  "version": 8,
+  "updated": "2026-11-22",
+  "note": "题目选项/题干里出现的引理与构造子索引；signature/oneLiner 用于界面「这是什么」提示。",
+  "lemmas": [
+    {
+      "name": "And.intro",
+      "kind": "lemma",
+      "signature": "a → b → a ∧ b",
+      "oneLiner": "合取构造：两份证据装成一个 ∧",
+      "source": "prelude/Prelude.sokonanoda:10"
+    },
+    {
+      "name": "And.left",
+      "kind": "lemma",
+      "signature": "a ∧ b → a",
+      "oneLiner": "合取消去（取左）",
+      "source": "prelude/Prelude.sokonanoda:10"
+    },
+    {
+      "name": "And.right",
+      "kind": "lemma",
+      "signature": "a ∧ b → b",
+      "oneLiner": "合取消去（取右）",
+      "source": "prelude/Prelude.sokonanoda:10"
+    },
+    {
+      "name": "Cardinal.mk",
+      "kind": "def",
+      "signature": "def Cardinal.mk (α : Type) : Cardinal :=",
+      "oneLiner": "一个类型的基数（Mathlib 的 `Cardinal.mk` / `#α`；记法 `#` 本版不做 —— 见文件尾）",
+      "source": "lib/Cardinal.sokonanoda:77"
+    },
+    {
+      "name": "Cardinal.mk_inj",
+      "kind": "theorem",
+      "signature": "theorem Cardinal.mk_inj (α β : Type) (h : Cardinal.mk α = Cardinal.mk β) : Type.Equiv α β :=",
+      "oneLiner": "`Quot.exact` 要**三条等价律**（`Setoid` 的字段 ✓）—— 它们正是上面刚交付的三件 ✓ ⇒ 这条以前写不出（C-120 挡着 ✗），今天**一次判绿** ✓。",
+      "source": "lib/Cardinal.sokonanoda:215"
+    },
+    {
+      "name": "Cardinal.sound",
+      "kind": "theorem",
+      "signature": "theorem Cardinal.sound (α β : Type) (h : Type.Equiv α β) : Cardinal.mk α = Cardinal.mk β :=",
+      "oneLiner": "── `Quot.sound` 的直接实例（**这就是\"商\"给的回报**）──────────────────────── 等价的类型**基数相等** —— 证明是一行：`Quot.sound` 就是那条公理 ✓。",
+      "source": "lib/Cardinal.sokonanoda:82"
+    },
+    {
+      "name": "Classical.byContradiction",
+      "kind": "lemma",
+      "signature": "(¬ p → False) → p",
+      "oneLiner": "反证法",
+      "source": "prelude/Prelude.sokonanoda"
+    },
+    {
+      "name": "Classical.choice",
+      "kind": "lemma",
+      "signature": "Nonempty α → α",
+      "oneLiner": "选择函数：从非空类型取一个元素",
+      "source": "lib/Choice"
+    },
+    {
+      "name": "Classical.em",
+      "kind": "lemma",
+      "signature": "p ∨ ¬ p",
+      "oneLiner": "排中律（经典逻辑）",
+      "source": "prelude/Prelude.sokonanoda"
+    },
+    {
+      "name": "Eq.refl",
+      "kind": "lemma",
+      "signature": "a = a（自反）",
+      "oneLiner": "等式自反；也用于「同一个东西」",
+      "source": "prelude/Prelude.sokonanoda:5"
+    },
+    {
+      "name": "Eq.symm",
+      "kind": "lemma",
+      "signature": "a = b → b = a",
+      "oneLiner": "等式对称",
+      "source": "prelude/Prelude.sokonanoda:5"
+    },
+    {
+      "name": "Eq.trans",
+      "kind": "lemma",
+      "signature": "a = b → b = c → a = c",
+      "oneLiner": "等式传递",
+      "source": "prelude/Prelude.sokonanoda:5"
+    },
+    {
+      "name": "Exists.elim",
+      "kind": "theorem",
+      "signature": "theorem Exists.elim {A : Type} {p : A → Prop} {Q : Prop} (h : Exists A p)  -- soko:notation-ok: `∃` 记法在本文件第 103 行才声明，声明位只能写点名 (f : (w : A) → p w → Q) : Q :=",
+      "oneLiner": "（与 lib/Logic 的 `Or.elim` 同款）。**IA-2 起前导隐式 binder**：调用点写 `Exists.elim h f` 即可（与 Lean 对齐；旧的逐位写全调用仍可用）。",
+      "source": "lib/Exists.sokonanoda:95"
+    },
+    {
+      "name": "Exists.intro",
+      "kind": "lemma",
+      "signature": "p w → ∃ x, p x（给证人 w）",
+      "oneLiner": "存在构造：交证人 + 证据",
+      "source": "lib/Exists"
+    },
+    {
+      "name": "False.elim",
+      "kind": "lemma",
+      "signature": "False → C（任意命题）",
+      "oneLiner": "爆炸原理：从矛盾推出任何命题",
+      "source": "lib/Logic"
+    },
+    {
+      "name": "Function.Injective",
+      "kind": "def",
+      "signature": "def Function.Injective (α β : Type) (f : α → β) : Prop :=",
+      "oneLiner": "── 单射 / 满射 / 双射（Mathlib: Mathlib/Logic/Function/Defs.lean）──────────── 单射按题面要求的形状写：`∀ x y, f x = f y → x = y`（Mathlib 逐字同款）。",
+      "source": "lib/Fun.sokonanoda:78"
+    },
+    {
+      "name": "Function.Inverse",
+      "kind": "def",
+      "signature": "def Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=",
+      "oneLiner": "`Inverse α β f g`：双边逆 = 左逆 ∧ 右逆。**它是 Prop，g 是参数**——这就是\"数据版\"： 逆函数不是被\"存在\"出来的，而是被调用者交进来的（对照文件头 §逆 的 (a)/(b)）。",
+      "source": "lib/Fun.sokonanoda:101"
+    },
+    {
+      "name": "Function.LeftInverse",
+      "kind": "def",
+      "signature": "def Function.LeftInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=",
+      "oneLiner": "── 左逆 / 右逆 / 双边逆（数据版；见文件头 §逆）────────────────────────────── `LeftInverse α β g f`：g : β → α，f : α → β，逐点 `g (f x) = x`。",
+      "source": "lib/Fun.sokonanoda:91"
+    },
+    {
+      "name": "Function.RightInverse",
+      "kind": "def",
+      "signature": "def Function.RightInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=",
+      "oneLiner": "`RightInverse α β g f`：逐点 `f (g y) = y`（与 Mathlib 同款：`RightInverse g f` 就是 `LeftInverse f g`，只是展开写出来）。",
+      "source": "lib/Fun.sokonanoda:96"
+    },
+    {
+      "name": "Function.Surjective",
+      "kind": "def",
+      "signature": "def Function.Surjective (α β : Type) (f : α → β) : Prop :=",
+      "oneLiner": "满射用 `Exists`（lib.Exists 的三件套）：每个 y 都有**原像** x，且原像满足 f x = y。 注意 `Exists α p` 的 `p` 是 `α → Prop`，所以\"原像\"写成 `fun (x : α) => f x = y`。",
+      "source": "lib/Fun.sokonanoda:83"
+    },
+    {
+      "name": "Function.bijective_def",
+      "kind": "theorem",
+      "signature": "theorem Function.bijective_def (α β : Type) (f : α → β) : Function.Bijective α β f ↔ Function.Injective α β f ∧ Function.Surjective α β f :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Fun.sokonanoda:123"
+    },
+    {
+      "name": "Function.comp",
+      "kind": "def",
+      "signature": "def Function.comp {α β γ : Type} (g : β → γ) (f : α → β) : α → γ :=",
+      "oneLiner": "`g ∘ f` 展开就是 `fun x => g (f x)`；定义体直接是 λ，所以 复合**不引入任何数学内容**，`Function.comp_apply` 是 `rfl` 级展开引理。",
+      "source": "lib/Fun.sokonanoda:64"
+    },
+    {
+      "name": "Function.comp_apply",
+      "kind": "theorem",
+      "signature": "theorem Function.comp_apply {α β γ : Type} (g : β → γ) (f : α → β) (x : α) : (g ∘ f) x = g (f x) :=  @Eq.refl.{1} γ (g (f x))",
+      "oneLiner": "`rfl` 级：复合算在参数上就是\"先 f 后 g\"（Mathlib: `Function.comp_apply`）。",
+      "source": "lib/Fun.sokonanoda:110"
+    },
+    {
+      "name": "Iff.intro",
+      "kind": "lemma",
+      "signature": "(a → b) → (b → a) → (a ↔ b)",
+      "oneLiner": "等价构造：两个方向都证",
+      "source": "prelude/Prelude.sokonanoda:20"
+    },
+    {
+      "name": "Iff.mp",
+      "kind": "lemma",
+      "signature": "a ↔ b → a → b",
+      "oneLiner": "等价 → 正向",
+      "source": "prelude/Prelude.sokonanoda:20"
+    },
+    {
+      "name": "Iff.mpr",
+      "kind": "lemma",
+      "signature": "a ↔ b → b → a",
+      "oneLiner": "等价 → 反向",
+      "source": "prelude/Prelude.sokonanoda:20"
+    },
+    {
+      "name": "Or.elim",
+      "kind": "lemma",
+      "signature": "(a → c) → (b → c) → a ∨ b → c",
+      "oneLiner": "析取消去：两个来源各证一次 c",
+      "source": "lib/Logic"
+    },
+    {
+      "name": "Or.inl",
+      "kind": "lemma",
+      "signature": "a → a ∨ b",
+      "oneLiner": "析取构造（从左）",
+      "source": "prelude/Prelude.sokonanoda:14"
+    },
+    {
+      "name": "Or.inr",
+      "kind": "lemma",
+      "signature": "b → a ∨ b",
+      "oneLiner": "析取构造（从右）",
+      "source": "prelude/Prelude.sokonanoda:14"
+    },
+    {
+      "name": "Prod.eta",
+      "kind": "theorem",
+      "signature": "theorem Prod.eta (A B : Type) (p : Prod A B) : @prod_mk A B (Prod.fst A B p) (Prod.snd A B p) = p :=",
+      "oneLiner": "读法：任何序对都等于\"把自己的两个投影再配起来\" ✓ —— 序对**只有**两个坐标。 证明走 `Prod.rec`（本语言**没有 η 转换**，见 G-61 的说明 ⇒ 这条必须显式证出来）",
+      "source": "lib/Prod.sokonanoda:116"
+    },
+    {
+      "name": "Prod.fst",
+      "kind": "def",
+      "signature": "def Prod.fst (A B : Type) (p : Prod A B) : A :=",
+      "oneLiner": "── 投影（消去子：参数在前、motive 在后；Motive 常量 ⇒ 通配 binder）──────────",
+      "source": "lib/Prod.sokonanoda:51"
+    },
+    {
+      "name": "Prod.fst_mk",
+      "kind": "theorem",
+      "signature": "theorem Prod.fst_mk (A B : Type) (a : A) (b : B) : Prod.fst A B (@prod_mk A B a b) = a :=  @Eq.refl.{1} A a",
+      "oneLiner": "── 展开引理（L2：证明全是 `Eq.refl`，即 iota 计算——投影算在构造子上就还原）── Mathlib 里对应的名字是 `Prod.fst_mk` / `Prod.snd_mk`（`rfl` 级，`simp` 也用它）。",
+      "source": "lib/Prod.sokonanoda:59"
+    },
+    {
+      "name": "Prod.snd",
+      "kind": "def",
+      "signature": "def Prod.snd (A B : Type) (p : Prod A B) : B :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Prod.sokonanoda:54"
+    },
+    {
+      "name": "Prod.snd_mk",
+      "kind": "theorem",
+      "signature": "theorem Prod.snd_mk (A B : Type) (a : A) (b : B) : Prod.snd A B (@prod_mk A B a b) = b :=  @Eq.refl.{1} B b",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Prod.sokonanoda:62"
+    },
+    {
+      "name": "Rel.comp",
+      "kind": "def",
+      "signature": "def Rel.comp {A B C : Type} (r : Rel A B) (s : Rel B C) : Rel A C :=",
+      "oneLiner": "在这里就是带标注的 `∃ (b : B), …`；定义体照课程库的统一写法用 `∃` 记法 （定义是词汇，不是证明——`∃` 记法本身由 lib/Exists 声明）。",
+      "source": "lib/Rel.sokonanoda:64"
+    },
+    {
+      "name": "Rel.comp_apply",
+      "kind": "theorem",
+      "signature": "theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) : (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.rfl",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Rel.sokonanoda:87"
+    },
+    {
+      "name": "Rel.comp_mono",
+      "kind": "theorem",
+      "signature": "theorem Rel.comp_mono {A B C : Type} (r r' : Rel A B) (s s' : Rel B C) (hr : ∀ (a : A) (b : B), r a b → r' a b) (hs : ∀ (b : B) (c : C), s b c → s' b c) (a : A) (c : C) (h : (r • s) a c) : (r' • s') a c :=",
+      "oneLiner": "复合对两个关系**都单调**（S-B ✓ I.13）：点式蕴含逐层传下去",
+      "source": "lib/Rel.sokonanoda:218"
+    },
+    {
+      "name": "Rel.ext",
+      "kind": "axiom",
+      "signature": "axiom Rel.ext : (A B : Type) → (r s : Rel A B) → (∀ (a : A) (b : B), r a b ↔ s a b) → r = s",
+      "oneLiner": "── 外延性（**公理**：Mathlib 由 funext + propext 推出，我们两者都没有）────── 用法与 `Set.ext` 同款：要证两条关系相等，就逐元素证两个方向。",
+      "source": "lib/Rel.sokonanoda:78"
+    },
+    {
+      "name": "Rel.inv",
+      "kind": "def",
+      "signature": "def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=",
+      "oneLiner": "逆关系：把两个参数对调（记法 r ⁻¹）。",
+      "source": "lib/Rel.sokonanoda:46"
+    },
+    {
+      "name": "Rel.inv_apply",
+      "kind": "theorem",
+      "signature": "theorem Rel.inv_apply (A B : Type) (r : Rel A B) (b : B) (a : A) : (r ⁻¹) b a ↔ r a b :=  Iff.rfl",
+      "oneLiner": "与 lib/Set 的 `Set.mem_union` 一族同款：右端就是把左端**定义**里的东西照抄一遍， 所以证明是**恒等**——`constructor` 拆开 `↔`，两个方向各 `intro h; exact h`。",
+      "source": "lib/Rel.sokonanoda:84"
+    },
+    {
+      "name": "Set.Countable",
+      "kind": "lemma",
+      "signature": "可数集谓词",
+      "oneLiner": "与自然数等势（本卷边界）",
+      "source": "lib/Cardinal"
+    },
+    {
+      "name": "Set.Equiv",
+      "kind": "def",
+      "signature": "def Set.Equiv (α β : Type) (A : Set α) (B : Set β) : Prop :=",
+      "oneLiner": "等势（记法 `A ≈ B`）是**一对互逆映射 + 域条件**的打包（不是\"存在双射\"的 ∃-命题：那需要选择公理，见文件头）。四条件按 ①②③④ 嵌在嵌套 `And` 里。",
+      "source": "lib/Equiv.sokonanoda:118"
+    },
+    {
+      "name": "Set.InjOn",
+      "kind": "def",
+      "signature": "def Set.InjOn (α β : Type) (f : α → β) (A : Set α) : Prop :=",
+      "oneLiner": "⚠ 为什么不用 `Function.Injective`（全局单射）：`A ≼ B` 只关心 `A` 上发生什么； 用它会把\"`A` 外面也单射\"这条**多余要求**塞进每个定理里 ✗（Mathlib 同款取舍 ✓）",
+      "source": "lib/Equiv.sokonanoda:154"
+    },
+    {
+      "name": "Set.Le",
+      "kind": "def",
+      "signature": "def Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop :=",
+      "oneLiner": "`≼` 是**存在命题** —— 这个差别正是 Schröder–Bernstein 在本版**写不出来**的原因 （它的结论是 `A ≈ B`，要**造**两把映射出来）⇒ 见台账 **G-58** ✓",
+      "source": "lib/Equiv.sokonanoda:169"
+    },
+    {
+      "name": "Set.LeftInvOn",
+      "kind": "def",
+      "signature": "def Set.LeftInvOn (α β : Type) (g : β → α) (f : α → β) (A : Set α) : Prop :=",
+      "oneLiner": "③ 左互逆律：g 是 f 在 A 上的左逆（先 f 后 g，回到原地）。 Mathlib 的读法是 `Set.LeftInvOn f' f s`：第一个参数是\"左逆\"那一把。",
+      "source": "lib/Equiv.sokonanoda:107"
+    },
+    {
+      "name": "Set.MapsTo",
+      "kind": "def",
+      "signature": "def Set.MapsTo (α β : Type) (f : α → β) (A : Set α) (B : Set β) : Prop :=",
+      "oneLiner": "① 正向映射的域条件：A 里每个点都被 f 送进 B。 （`A ⊆ B` 就是 `Set.MapsTo α α (fun (x : α) => x) A B`——逐字相同。）",
+      "source": "lib/Equiv.sokonanoda:102"
+    },
+    {
+      "name": "Set.RightInvOn",
+      "kind": "def",
+      "signature": "def Set.RightInvOn (α β : Type) (f : α → β) (g : β → α) (B : Set β) : Prop :=",
+      "oneLiner": "④ 右互逆律：f 是 g 在 B 上的右逆（先 g 后 f，回到原地）。 Mathlib 的读法是 `Set.RightInvOn f f' t`：先写的那个是\"后作用\"的那把。",
+      "source": "lib/Equiv.sokonanoda:112"
+    },
+    {
+      "name": "Set.compl",
+      "kind": "def",
+      "signature": "def compl {α : Type} (A : Set α) : Set α := fun (x : α) => ¬ (A x)",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:97"
+    },
+    {
+      "name": "Set.empty",
+      "kind": "def",
+      "signature": "def empty {α : Type} : Set α := fun (x : α) => False",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:70"
+    },
+    {
+      "name": "Set.ext",
+      "kind": "axiom",
+      "signature": "axiom ext : {α : Type} → (A B : Set α) → (∀ (x : α), A x ↔ B x) → A = B",
+      "oneLiner": "── 外延性（**公理**：Mathlib 由 propext + funext 推出，我们两者都没有）──────",
+      "source": "lib/Set.sokonanoda:108"
+    },
+    {
+      "name": "Set.image_injOn",
+      "kind": "theorem",
+      "signature": "theorem Set.image_injOn (α β : Type) (f : α → β) (A : Set α) (hf : Set.InjOn α β f A) : Set.InjOn (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) :=",
+      "oneLiner": "像集映射在 `𝒫 A` 上是**单射**（`Set α` 作元素类型的声明 ✓ —— 这正是当年过不去的那一类 ✓）",
+      "source": "lib/Equiv.sokonanoda:342"
+    },
+    {
+      "name": "Set.image_mapsTo_powerset",
+      "kind": "theorem",
+      "signature": "theorem Set.image_mapsTo_powerset (α β : Type) (f : α → β) (A : Set α) (B : Set β) (hfm : Set.MapsTo α β f A B) : Set.MapsTo (Set α) (Set β) (fun (S : Set α) => f '' S) (𝒫 A) (𝒫 B) :=",
+      "oneLiner": "像集映射把 `A` 送进 `B` ⇒ 把 `𝒫 A` 送进 `𝒫 B`",
+      "source": "lib/Equiv.sokonanoda:356"
+    },
+    {
+      "name": "Set.image_mono",
+      "kind": "theorem",
+      "signature": "theorem Set.image_mono {α β : Type} (f : α → β) (A B : Set α) (h : ∀ (x : α), A x → B x) : f '' A ⊆ f '' B :=",
+      "oneLiner": "tactic 块照旧（白名单里的 `exact`），点名残留只有构造子名 （`Exists.intro` / `And.intro` / `Eq.subst`——引理名不算残留）。",
+      "source": "lib/Image.sokonanoda:69"
+    },
+    {
+      "name": "Set.image_subset_iff",
+      "kind": "theorem",
+      "signature": "theorem Set.image_subset_iff {α β : Type} (f : α → β) (A : Set α) (B : Set β) : f '' A ⊆ B ↔ A ⊆ f ⁻¹' B :=",
+      "oneLiner": "像落在 B 里 ⟺ A 里的每个点都被 f 送到 B 里。（Mathlib 同名：`Set.image_subset_iff`） 证明体同上：两个方向都要构造 `∃`，所以是一整条 `exact` 的证明项。",
+      "source": "lib/Image.sokonanoda:82"
+    },
+    {
+      "name": "Set.inter",
+      "kind": "def",
+      "signature": "def inter {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ B x",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:93"
+    },
+    {
+      "name": "Set.le_def",
+      "kind": "theorem",
+      "signature": "theorem Set.le_def (α β : Type) (A : Set α) (B : Set β) : A ≼ B ↔ ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Equiv.sokonanoda:175"
+    },
+    {
+      "name": "Set.mem",
+      "kind": "def",
+      "signature": "def mem {α : Type} (a : α) (A : Set α) : Prop := A a",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:60"
+    },
+    {
+      "name": "Set.mem_empty_iff_false",
+      "kind": "theorem",
+      "signature": "theorem mem_empty_iff_false {α : Type} (a : α) : a ∈ ∅ ↔ False := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:167"
+    },
+    {
+      "name": "Set.mem_image",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_image {α β : Type} (f : α → β) (A : Set α) (y : β) : y ∈ f '' A ↔ ∃ (x : α), A x ∧ f x = y :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Image.sokonanoda:44"
+    },
+    {
+      "name": "Set.mem_image_elim",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_image_elim {α β : Type} (f : α → β) (A : Set α) (y : β) (C : Prop) (h : y ∈ f '' A) (k : ∀ (x : α), x ∈ A → f x = y → C) : C :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Image.sokonanoda:103"
+    },
+    {
+      "name": "Set.mem_image_intro",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_image_intro {α β : Type} (f : α → β) (A : Set α) (y : β) (x : α) (hx : x ∈ A) (hxy : f x = y) : y ∈ f '' A :=",
+      "oneLiner": "── 消去子 / 构造子（L2：同 `lib/SUnion` 那一组，把 `∃` 的拆装收进库）──────────",
+      "source": "lib/Image.sokonanoda:98"
+    },
+    {
+      "name": "Set.mem_inter_iff",
+      "kind": "theorem",
+      "signature": "theorem mem_inter_iff {α : Type} (a : α) (A B : Set α) : a ∈ A ∩ B ↔ a ∈ A ∧ a ∈ B := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:201"
+    },
+    {
+      "name": "Set.mem_powerset_iff",
+      "kind": "theorem",
+      "signature": "theorem mem_powerset_iff {α : Type} (A B : Set α) : B ∈ 𝒫 A ↔ B ⊆ A := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:217"
+    },
+    {
+      "name": "Set.mem_preimage",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_preimage {α β : Type} (f : α → β) (B : Set β) (x : α) : x ∈ f ⁻¹' B ↔ f x ∈ B :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Image.sokonanoda:49"
+    },
+    {
+      "name": "Set.mem_preimage_elim",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_preimage_elim {α β : Type} (f : α → β) (B : Set β) (x : α) (C : Prop) (h : x ∈ f ⁻¹' B) (k : f x ∈ B → C) : C :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Image.sokonanoda:113"
+    },
+    {
+      "name": "Set.mem_preimage_intro",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_preimage_intro {α β : Type} (f : α → β) (B : Set β) (x : α) (h : f x ∈ B) : x ∈ f ⁻¹' B :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Image.sokonanoda:109"
+    },
+    {
+      "name": "Set.mem_prod_iff",
+      "kind": "theorem",
+      "signature": "theorem Set.mem_prod_iff (A B : Type) (s : Set A) (t : Set B) (p : Prod A B) : p ∈ (s ×ˢ t) ↔ ((Prod.fst A B p) ∈ s ∧ (Prod.snd A B p) ∈ t) :=",
+      "oneLiner": "── 积集合的成员刻画（L2：`Set.prod` 的定义体就是\"两个坐标各自满足\"，两向都是恒等）──",
+      "source": "lib/Prod.sokonanoda:88"
+    },
+    {
+      "name": "Set.mem_sInter_iff",
+      "kind": "theorem",
+      "signature": "theorem mem_sInter_iff (α : Type) (F : Set (Set α)) (x : α) : x ∈ sInter α F ↔ ∀ (A : Set α), A ∈ F → x ∈ A := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/SUnion.sokonanoda:43"
+    },
+    {
+      "name": "Set.mem_sInter_intro",
+      "kind": "lemma",
+      "signature": "(∀ A, A∈F → x∈A) ⇒ x ∈ Set.sInter F",
+      "oneLiner": "广义交构造",
+      "source": "lib/SUnion"
+    },
+    {
+      "name": "Set.mem_sUnion_elim",
+      "kind": "lemma",
+      "signature": "x ∈ Set.sUnion F → C 的消去子（存在 A∈F 使 x∈A）",
+      "oneLiner": "广义并消去",
+      "source": "lib/SUnion"
+    },
+    {
+      "name": "Set.mem_sUnion_iff",
+      "kind": "theorem",
+      "signature": "theorem mem_sUnion_iff (α : Type) (F : Set (Set α)) (x : α) : x ∈ sUnion α F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A := by",
+      "oneLiner": "── 定义展开引理（L2：Mathlib 里是 `rfl` 或一行，没有数学内容）──────────────",
+      "source": "lib/SUnion.sokonanoda:35"
+    },
+    {
+      "name": "Set.mem_sUnion_intro",
+      "kind": "lemma",
+      "signature": "给出 A∈F 与 x∈A ⇒ x ∈ Set.sUnion F",
+      "oneLiner": "广义并构造",
+      "source": "lib/SUnion"
+    },
+    {
+      "name": "Set.mem_sdiff",
+      "kind": "theorem",
+      "signature": "theorem mem_sdiff {α : Type} (a : α) (A B : Set α) : a ∈ A \\ B ↔ a ∈ A ∧ ¬ (a ∈ B) := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:209"
+    },
+    {
+      "name": "Set.mem_singleton_iff",
+      "kind": "theorem",
+      "signature": "theorem mem_singleton_iff {α : Type} (a b : α) : a ∈ {b} ↔ a = b := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:182"
+    },
+    {
+      "name": "Set.mem_singleton_self",
+      "kind": "theorem",
+      "signature": "theorem mem_singleton_self {α : Type} (a : α) : a ∈ {a} := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:190"
+    },
+    {
+      "name": "Set.mem_union",
+      "kind": "theorem",
+      "signature": "theorem mem_union {α : Type} (a : α) (A B : Set α) : a ∈ A ∪ B ↔ a ∈ A ∨ a ∈ B := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:193"
+    },
+    {
+      "name": "Set.mem_univ",
+      "kind": "theorem",
+      "signature": "theorem mem_univ {α : Type} (a : α) : a ∈ univ := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:179"
+    },
+    {
+      "name": "Set.notMem_empty",
+      "kind": "theorem",
+      "signature": "theorem notMem_empty {α : Type} (a : α) : ¬ (a ∈ ∅) := by",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:175"
+    },
+    {
+      "name": "Set.pair",
+      "kind": "def",
+      "signature": "def pair {α : Type} (a b : α) : Set α :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:76"
+    },
+    {
+      "name": "Set.powerset",
+      "kind": "def",
+      "signature": "def powerset {α : Type} (A : Set α) : Set (Set α) := fun (B : Set α) => subset B A",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:99"
+    },
+    {
+      "name": "Set.preimage",
+      "kind": "def",
+      "signature": "def Set.preimage {α β : Type} (f : α → β) (B : Set β) : Set α :=",
+      "oneLiner": "原像（回拉）：`x` 落在 `f ⁻¹' B` 里，就是 `f x` 落在 `B` 里。 没有存在量词，只有一个函数应用——所以原像\"全保\"（保并交补），而像只保并。",
+      "source": "lib/Image.sokonanoda:37"
+    },
+    {
+      "name": "Set.prod",
+      "kind": "def",
+      "signature": "def Set.prod (A B : Type) (s : Set A) (t : Set B) : Set (Prod A B) :=",
+      "oneLiner": "返回值是 `Set (Prod A B)`——也就是谓词 `Prod A B → Prop`；定义体照课程库的 统一写法**点名**（定义是词汇，不是证明）：两个坐标分别满足 s 与 t。",
+      "source": "lib/Prod.sokonanoda:74"
+    },
+    {
+      "name": "Set.sInter",
+      "kind": "def",
+      "signature": "def sInter (α : Type) (F : Set (Set α)) : Set α :=",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/SUnion.sokonanoda:31"
+    },
+    {
+      "name": "Set.sUnion",
+      "kind": "def",
+      "signature": "def sUnion (α : Type) (F : Set (Set α)) : Set α :=",
+      "oneLiner": "· `⋂₀ F`：对**每个** `A ∈ F` 都有 `x ∈ A`。 谓词式里这两条就是存在/全称量化，零外挂（ST1 决策记录结论 ① ✓）。",
+      "source": "lib/SUnion.sokonanoda:28"
+    },
+    {
+      "name": "Set.sdiff",
+      "kind": "def",
+      "signature": "def sdiff {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∧ ¬ (B x)",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:95"
+    },
+    {
+      "name": "Set.singleton",
+      "kind": "def",
+      "signature": "def singleton {α : Type} (a : α) : Set α := fun (x : α) => x = a",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:74"
+    },
+    {
+      "name": "Set.subset",
+      "kind": "def",
+      "signature": "def subset {α : Type} (A B : Set α) : Prop := ∀ (x : α), Set.mem x A → Set.mem x B  -- soko:notation-ok: `∈` 记法在本文件第 140 行才声明，定义体只能写点名",
+      "oneLiner": "记法 `∈` 在本文件下半段才声明，所以这里**只能写点名** ✓（同 `Exists.sokonanoda` 的先例 ✓；`lib/Equiv.sokonanoda` 的 `Set.MapsTo` 体里直接用 `x ∈ A` ✓）。",
+      "source": "lib/Set.sokonanoda:68"
+    },
+    {
+      "name": "Set.subset_def",
+      "kind": "theorem",
+      "signature": "theorem subset_def {α : Type} (A B : Set α) : A ⊆ B ↔ ∀ (x : α), x ∈ A → x ∈ B := by",
+      "oneLiner": "`by` tactic 块。这些引理的作用就是\"把定义展开写成一条等式\"，所以两边都是 恒等函数——`constructor` 拆 `↔`，两个方向 `intro h; exact h`。",
+      "source": "lib/Set.sokonanoda:159"
+    },
+    {
+      "name": "Set.subset_sUnion",
+      "kind": "theorem",
+      "signature": "theorem subset_sUnion (α : Type) (F : Set (Set α)) (A : Set α) (h : A ∈ F) : ∀ (x : α), x ∈ A → ∃ (B : Set α), B ∈ F ∧ x ∈ B := by",
+      "oneLiner": "⚠ 结论写成**展开形式**（`x ∈ sUnion α F` 会让期望类型头是 `Set.sUnion`， 而 `⟨…⟩` 只认单构造子归纳）⇒ 展开成 `∃` 之后 `⟨A, h, hx⟩` 才解析得出来 ✓。",
+      "source": "lib/SUnion.sokonanoda:54"
+    },
+    {
+      "name": "Set.union",
+      "kind": "def",
+      "signature": "def union {α : Type} (A B : Set α) : Set α := fun (x : α) => A x ∨ B x",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:91"
+    },
+    {
+      "name": "Set.univ",
+      "kind": "def",
+      "signature": "def univ {α : Type} : Set α := fun (x : α) => True",
+      "oneLiner": "库里的声明（见 signature）",
+      "source": "lib/Set.sokonanoda:72"
+    },
+    {
+      "name": "Type.Equiv.comp",
+      "kind": "theorem",
+      "signature": "theorem Type.Equiv.comp (α β γ : Type) (f₁ : α → β) (g₁ : β → α) (f₂ : β → γ) (g₂ : γ → β) (l₁ : ∀ (a : α), g₁ (f₁ a) = a) (r₁ : ∀ (b : β), f₁ (g₁ b) = b)",
+      "oneLiner": "复合律（`α ≈ β` 与 `β ≈ γ` 的互逆对逐条复合 ✓）",
+      "source": "lib/Cardinal.sokonanoda:190"
+    },
+    {
+      "name": "Type.Equiv.symm",
+      "kind": "theorem",
+      "signature": "theorem Type.Equiv.symm (α β : Type) (h : Type.Equiv α β) : Type.Equiv β α :=",
+      "oneLiner": "对称律（把互逆的一对**对调** ✓）",
+      "source": "lib/Cardinal.sokonanoda:161"
+    },
+    {
+      "name": "Type.Equiv.trans",
+      "kind": "theorem",
+      "signature": "theorem Type.Equiv.trans (α β γ : Type) (h₁ : Type.Equiv α β) (h₂ : Type.Equiv β γ) : Type.Equiv α γ :=",
+      "oneLiner": "传递律（`elim` 两层嵌套 ✓）",
+      "source": "lib/Cardinal.sokonanoda:202"
+    },
+    {
+      "name": "Classical.choose",
+      "kind": "lemma",
+      "signature": "不提供（本课不提供从 ∃ 取数据的函数）",
+      "oneLiner": "选择函数：本课没有 Classical.choose（G-58 边界）；要用选择公理就直接用 axiom choice",
+      "source": "lib/Choice.sokonanoda 文件尾"
+    },
+    {
+      "name": "Exists.rec",
+      "kind": "lemma",
+      "signature": "Exists 的原始递归子",
+      "oneLiner": "存在命题的原始递归子；一般用库里的 Exists.elim",
+      "source": "lib/Exists.sokonanoda"
+    },
+    {
+      "name": "bijective_iff_inverse",
+      "kind": "theorem",
+      "signature": "theorem bijective_iff_inverse (α β : Type) (f : α → β) (g : β → α) (hg : Function.RightInverse α β g f) : Function.Bijective α β f ↔ Function.Inverse α β f g",
+      "oneLiner": "双射 ⇔ g 是 f 的双边逆（前提：g 与「g 是右逆」由调用者交出，否则 → 方向要用选择公理）",
+      "source": "units/I.2/unit07-functions.sokonanoda:157"
+    },
+    {
+      "name": "Function.Bijective",
+      "kind": "def",
+      "signature": "def Function.Bijective (α β : Type) (f : α → β) : Prop := Function.Injective α β f ∧ Function.Surjective α β f",
+      "oneLiner": "双射 = 单射 ∧ 满射",
+      "source": "lib/Fun.sokonanoda:86"
+    },
+    {
+      "name": "subset_of_sdiff_empty",
+      "kind": "theorem",
+      "signature": "theorem subset_of_sdiff_empty (α : Type) (A B : Set α) : A \\ B = ∅ → A ⊆ B",
+      "oneLiner": "差集为空 ⇒ A 包含于 B（经典线：证它要用反证/排中律）",
+      "source": "units/I.1/unit104-classical.sokonanoda:59"
+    },
+    {
+      "name": "leOn_both_forward",
+      "kind": "theorem",
+      "signature": "theorem leOn_both_forward (α β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B ∧ LeOn β α B A) : LeOn α β A B",
+      "oneLiner": "从「双向势比较」里取出前一半（证明就是 `And.left h`）",
+      "source": "units/I.3/unit103-leOn-both.sokonanoda:58"
+    },
+    {
+      "name": "leOn_both_backward",
+      "kind": "theorem",
+      "signature": "theorem leOn_both_backward (α β : Type) (A : Set α) (B : Set β) (h : LeOn α β A B ∧ LeOn β α B A) : LeOn β α B A",
+      "oneLiner": "从「双向势比较」里取出后一半（证明就是 `And.right h`）",
+      "source": "units/I.3/unit103-leOn-both.sokonanoda:63"
+    },
+    {
+      "name": "LeOn",
+      "kind": "def",
+      "signature": "def LeOn (α β : Type) (A : Set α) (B : Set β) : Prop := ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B",
+      "oneLiner": "势比较的「点名前缀」写法，与库里的 `A ≼ B`（Set.Le）是同一个定义",
+      "source": "units/I.3/unit97-equiv-le.sokonanoda:28"
+    }
+  ]
+}

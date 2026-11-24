@@ -1,0 +1,1051 @@
+{
+  "schema": "soko.knowledge-points/1",
+  "version": 3,
+  "updated": "2026-11-21",
+  "saturation_policy": {
+    "min": "每种 kind 的最低题目数（gate，低于即红）",
+    "target": "饱和目标（达到即绿；min 与 target 之间为黄）",
+    "levels": {
+      "L1": "回忆定义/记法",
+      "L2": "直接应用/构造",
+      "L3": "辨析/边界/反例"
+    },
+    "integration": "每题可挂多个 KP；≥2 个 KP 的题算综合题，章节综合题目标 ≈ KP 数 × 0.5"
+  },
+  "kinds": [
+    "definition",
+    "concept",
+    "technique",
+    "boundary",
+    "integration",
+    "prep"
+  ],
+  "kps": [
+    {
+      "id": "kp.i1.mem",
+      "chapter": "I.1",
+      "title": "隶属即谓词（a ∈ A ↔ A a）",
+      "kind": "definition",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "看到 `a ∈ A` 能立刻读成谓词 `A a`，并在两种写法之间来回切换。"
+    },
+    {
+      "id": "kp.i1.subset",
+      "chapter": "I.1",
+      "title": "子集定义与展开（⊆ 是一条箭头）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "能把 `A ⊆ B` 展开成一条全称箭头，并判断何时只需单向成立。"
+    },
+    {
+      "id": "kp.i1.subset.apply",
+      "chapter": "I.1",
+      "title": "证⊆ / 用⊆（intro x、h a ha）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会把 `A ⊆ B` 当两层函数用：证时先吃元素再证目标，用时先吃元素再吃成员证据。"
+    },
+    {
+      "id": "kp.i1.empty",
+      "chapter": "I.1",
+      "title": "空集（恒假谓词、notMem_empty）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "知道空集成员恒假，从而把「含于空集」与「空集含于他集」化归为矛盾或空洞成立。"
+    },
+    {
+      "id": "kp.i1.inter",
+      "chapter": "I.1",
+      "title": "交集（逐点合取）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "把交集成员拆成合取再合回去，两边证据都不丢。"
+    },
+    {
+      "id": "kp.i1.union",
+      "chapter": "I.1",
+      "title": "并集（逐点析取、Or.elim）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把并集成员拆成析取并会分两支证同一目标，也能从任一支造出并集成员。"
+    },
+    {
+      "id": "kp.i1.sdiff",
+      "chapter": "I.1",
+      "title": "差集（A\\B = A ∧ ¬B）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把差集读成「属于前者且不属于后者」，并会用两个投影取证据。"
+    },
+    {
+      "id": "kp.i1.compl",
+      "chapter": "I.1",
+      "title": "补集（逐点否定）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "把补集读成逐点否定，并知道否定目标该怎样收尾。"
+    },
+    {
+      "id": "kp.i1.powerset",
+      "chapter": "I.1",
+      "title": "幂集（B ∈ 𝒫A ↔ B ⊆ A）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能把 `B ∈ 𝒫 A` 与 `B ⊆ A` 互相翻译，并在两种写法之间自由切换。"
+    },
+    {
+      "id": "kp.i1.singleton",
+      "chapter": "I.1",
+      "title": "单点集与二元对",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "会用单点集与二元对的成员判定造出或取出证据，并处理相关的相等搬运。"
+    },
+    {
+      "id": "kp.i1.univ",
+      "chapter": "I.1",
+      "title": "全集（恒真谓词）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 0,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "",
+      "keyPoint": "知道全集成员恒真，从而把带全集的交并化归。"
+    },
+    {
+      "id": "kp.i1.ext",
+      "chapter": "I.1",
+      "title": "外延性公理（Set.ext 的形状）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.mem"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "知道集合相等靠逐点 `↔` 再打包，能把双向包含合成相等。"
+    },
+    {
+      "id": "kp.i1.ext.use",
+      "chapter": "I.1",
+      "title": "用外延性证集合等式（双向包含套路）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.ext",
+        "kp.i1.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "拿到集合等式会拆成逐点 `↔` 分两个方向证，再用外延性收口。"
+    },
+    {
+      "id": "kp.i1.subset.algebra",
+      "chapter": "I.1",
+      "title": "包含的代数（传递/单调/分配律）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会把包含当可复合、可单调的关系用，并在并交上做分配。"
+    },
+    {
+      "id": "kp.i1.sdiff.algebra",
+      "chapter": "I.1",
+      "title": "差集与补集的代数（德摩根律 · 包含方向反转）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.sdiff",
+        "kp.i1.compl"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 2
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "能用补集把差集算成合取，并完成 De Morgan 与减法反变。"
+    },
+    {
+      "id": "kp.i1.classical",
+      "chapter": "I.1",
+      "title": "排中律与经典等价（可选边界）",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i1.compl"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能判断哪条等价在构造逻辑里证不出、需要排中律，并说清卡在哪一步。"
+    },
+    {
+      "id": "kp.i1.logic",
+      "chapter": "I.1",
+      "title": "逻辑工具（And/Or 的消去与构造）",
+      "kind": "technique",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会在合取上打包取支、在析取上分两支证同一目标。"
+    },
+    {
+      "id": "kp.i2.pair",
+      "chapter": "I.2",
+      "title": "序对（Prod.fst/snd、fst_snd_mk）",
+      "kind": "definition",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "会用投影与配对计算序对，并能从序对等式拆出分量等式。"
+    },
+    {
+      "id": "kp.i2.prod",
+      "chapter": "I.2",
+      "title": "笛卡尔积（成员刻画、与并交分配）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.pair"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把积成员拆成两个投影的合取，并处理积与并交的分配。"
+    },
+    {
+      "id": "kp.i2.rel",
+      "chapter": "I.2",
+      "title": "关系 = 二元谓词（Rel 三层拆解）",
+      "kind": "definition",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把关系当二元谓词：会三层拆解 `Rel α β` 与 `r a b`，并用外延性证关系相等。"
+    },
+    {
+      "id": "kp.i2.rel.inv",
+      "chapter": "I.2",
+      "title": "逆关系 r⁻¹",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "",
+      "keyPoint": "把逆关系看成交换两个槽位的谓词，并能把 `(r ⁻¹) b a` 与 `r a b` 互推。"
+    },
+    {
+      "id": "kp.i2.rel.comp",
+      "chapter": "I.2",
+      "title": "关系复合 r • s",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "把复合拆成「存在一个中间点」，会换证人与换序，并知道结合律为何要外延。"
+    },
+    {
+      "id": "kp.i2.rel.refl",
+      "chapter": "I.2",
+      "title": "自反 Reflexive",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "",
+      "keyPoint": "能从自反证据取出任意元素的自反性，也能判断何时自反不成立。"
+    },
+    {
+      "id": "kp.i2.rel.symm",
+      "chapter": "I.2",
+      "title": "对称 Symmetric",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "",
+      "keyPoint": "能沿对称性把关系两边对调，并识别空关系这类空洞成立的实例。"
+    },
+    {
+      "id": "kp.i2.rel.trans",
+      "chapter": "I.2",
+      "title": "传递 Transitive",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "",
+      "keyPoint": "会把两条关系链接成第三条，并会举反例否定传递性。"
+    },
+    {
+      "id": "kp.i2.rel.antisymm",
+      "chapter": "I.2",
+      "title": "反对称 Antisymmetric（序 vs 等价的分水岭）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "能用「双向压成相等」识别序关系，并用反例区分对称与反对称。"
+    },
+    {
+      "id": "kp.i2.order.partial",
+      "chapter": "I.2",
+      "title": "偏序 IsPartialOrder",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.rel.refl",
+        "kp.i2.rel.antisymm",
+        "kp.i2.rel.trans"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "能把偏序拆成三条性质，并分别取用自反、反对称、传递的证据。"
+    },
+    {
+      "id": "kp.i2.order.strict",
+      "chapter": "I.2",
+      "title": "严格序 IsStrictOrder",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.rel.trans"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "能把严格序读成非自反加传递，并知道反对称是多余条件。"
+    },
+    {
+      "id": "kp.i2.order.linear",
+      "chapter": "I.2",
+      "title": "全序 IsLinearOrder",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.order.partial"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能把全序读成偏序加可比性，并判断「相等那一支」何时多余。"
+    },
+    {
+      "id": "kp.i2.fun",
+      "chapter": "I.2",
+      "title": "函数观（α → β 是类型、f x : β）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把函数当类型 `α → β` 使用，并知道它与关系的区别在单值性。"
+    },
+    {
+      "id": "kp.i2.fun.comp",
+      "chapter": "I.2",
+      "title": "函数复合 g ∘ f（先 f 后 g）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会按「先内后外」复合函数，并算出复合后的定义域与陪域。"
+    },
+    {
+      "id": "kp.i2.fun.inj",
+      "chapter": "I.2",
+      "title": "单射 Injective",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "能从「输出相等」反推「输入相等」，并知道反方向不必写进定义。"
+    },
+    {
+      "id": "kp.i2.fun.surj",
+      "chapter": "I.2",
+      "title": "满射 Surjective",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "能给任意输出造出原像，并知道 `∃` 只保证存在不保证唯一。"
+    },
+    {
+      "id": "kp.i2.fun.bij",
+      "chapter": "I.2",
+      "title": "双射 Bijective",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun.inj",
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能把双射拆成单射加满射两半，并分别取用。"
+    },
+    {
+      "id": "kp.i2.fun.inverse",
+      "chapter": "I.2",
+      "title": "数据版逆（LeftInverse/RightInverse/Inverse）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i2.fun.inj",
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会用左逆、右逆证据把等式算回原样，并知道左逆给单射、右逆给满射。"
+    },
+    {
+      "id": "kp.i2.fun.boundary",
+      "chapter": "I.2",
+      "title": "满射可裂 ⇔ 选择公理（证不出）",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能识别「满射可裂」越界的那一步，并说明为什么本课证不出。"
+    },
+    {
+      "id": "kp.i2.logic",
+      "chapter": "I.2",
+      "title": "存在量词的构造与消去（∃ 工具）",
+      "kind": "technique",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会给存在式交证人，也能对任意证人消去存在式。"
+    },
+    {
+      "id": "kp.i3.image",
+      "chapter": "I.3",
+      "title": "像 f '' A（成员刻画）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把像成员拆成「存在一个原像」，并会用原像证回像成员。"
+    },
+    {
+      "id": "kp.i3.image.use",
+      "chapter": "I.3",
+      "title": "像的构造与消去（mem_image_intro/elim）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i3.image"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会用构造子造像、用消去子拆像，并知道消去时目标不能依赖证人。"
+    },
+    {
+      "id": "kp.i3.preimage",
+      "chapter": "I.3",
+      "title": "原像 f ⁻¹' B（成员刻画）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把原像成员直接算成一次函数应用，不需要存在量词。"
+    },
+    {
+      "id": "kp.i3.image.preimage.laws",
+      "chapter": "I.3",
+      "title": "像/原像与包含（image_subset_iff）",
+      "kind": "concept",
+      "prereq": [
+        "kp.i3.image",
+        "kp.i3.preimage"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会把像与原像的包含互相翻译，并知道原像保交补而像不保交。"
+    },
+    {
+      "id": "kp.i3.family",
+      "chapter": "I.3",
+      "title": "集族与广义并交（sUnion/sInter 成员）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.union",
+        "kp.i1.inter"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把广义并与广义交的成员分别读成存在与全称，并会用族成员作证据。"
+    },
+    {
+      "id": "kp.i3.family.image",
+      "chapter": "I.3",
+      "title": "像/原像与广义并交的分配律",
+      "kind": "technique",
+      "prereq": [
+        "kp.i3.family",
+        "kp.i3.image"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会把像与原像同广义并交交换，并说清交换失败的那一半。"
+    },
+    {
+      "id": "kp.i3.equiv",
+      "chapter": "I.3",
+      "title": "等势 Type.Equiv（互逆函数对）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.fun.bij"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "能交出一对互逆函数来证明等势，并知道它是数据而不是存在命题。"
+    },
+    {
+      "id": "kp.i3.equiv.algebra",
+      "chapter": "I.3",
+      "title": "等势的代数（自反/对称/传递/复合）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i3.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会用互逆对的对调、复合与反序来证等势的自反、对称、传递。"
+    },
+    {
+      "id": "kp.i3.cardinal",
+      "chapter": "I.3",
+      "title": "Cardinal.mk / sound / lift",
+      "kind": "definition",
+      "prereq": [
+        "kp.i3.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能从等势得到基数相等，也能从基数相等回到等势。"
+    },
+    {
+      "id": "kp.i3.le",
+      "chapter": "I.3",
+      "title": "势比较（⊆/InjOn 定义与自反传递）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i3.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "能把「`A` 不比 `B` 大」展开成存在单射，并只在 `Prop` 内部消去它。"
+    },
+    {
+      "id": "kp.i3.le.mono",
+      "chapter": "I.3",
+      "title": "势比较的单调性（幂集单调、搬运）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i3.le"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "会把同一把单射换定义域或陪域，并用幂集与复合搬运势比较。"
+    },
+    {
+      "id": "kp.i3.cantor",
+      "chapter": "I.3",
+      "title": "Cantor 定理（A ≺ 𝒫A）",
+      "kind": "concept",
+      "prereq": [
+        "kp.i1.powerset",
+        "kp.i3.le"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能用对角线造出逃出枚举的集合，从而说明幂集严格更大。"
+    },
+    {
+      "id": "kp.i3.cb",
+      "chapter": "I.3",
+      "title": "Cantor–Bernstein（经选择公理）",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i3.le"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能说清 Cantor–Bernstein 哪一步需要选择公理、零公理版本缺什么。"
+    },
+    {
+      "id": "kp.i3.pointwise",
+      "chapter": "I.3",
+      "title": "空集/子集的点态代数（空定义域边界）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.empty"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能处理空集这种退化情形：成员恒假、含于空集即矛盾。"
+    },
+    {
+      "id": "kp.i3.both",
+      "chapter": "I.3",
+      "title": "双向势比较何时升级为等势",
+      "kind": "concept",
+      "prereq": [
+        "kp.i3.le"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "能判断双向势比较何时直接装成等势、何时还差互逆律或 CB。"
+    },
+    {
+      "id": "kp.prep.ordinal",
+      "chapter": "I.6",
+      "title": "序数/传递集（预备）",
+      "kind": "prep",
+      "prereq": [
+        "kp.i2.order.partial"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 0
+        },
+        "target": 2
+      },
+      "note": "章节 I.6 展开后再细化",
+      "keyPoint": "能把序数与传递集当谓词用，并逐条取出传递、元素传递与良基证据。"
+    },
+    {
+      "id": "kp.prep.choice",
+      "chapter": "I.7",
+      "title": "选择公理（预备）",
+      "kind": "prep",
+      "prereq": [
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "章节 I.7 展开后再细化",
+      "keyPoint": "能识别哪一步在从 `Prop` 里取数据，从而知道它需要选择公理。"
+    }
+  ]
+}

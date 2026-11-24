@@ -1,0 +1,7362 @@
+{
+  "schema": "soko.choice-bank/1",
+  "title": "卷 I 集合论 · 选择题题库",
+  "version": 27,
+  "updated": "2026-11-22",
+  "policy": "每题的 answer 必须能由课程标准库或单元原文核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
+  "chapters": {
+    "I.1": "集合、子集与集合运算（单元①–④）",
+    "I.2": "序对、关系与函数（单元⑤–⑦）",
+    "I.3": "像、原像与基数（单元⑧–⑩）",
+    "I.4": "论域、悖论与综合（单元⑪–⑫）",
+    "I.5": "序关系与良序（单元⑬–⑭）",
+    "I.6": "序数（单元⑮–⑯）",
+    "I.7": "选择公理与 ZF（单元⑰–⑱）",
+    "I.8": "基数与基数算术（单元⑲–⑳）",
+    "I.9": "集族、广义并交与 n 元关系（单元㉑–㉓）",
+    "I.10": "关系闭包与等价关系（单元㉔–㉗）",
+    "I.11": "集合代数（单元㉘–㉜）",
+    "I.12": "幂集与函数空间（单元㉝–㉟）",
+    "I.13": "关系的代数（单元㊱–㊳）"
+  },
+  "questions": [
+    {
+      "id": "I.1.mem-1",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "level": 1,
+      "tags": [
+        "membership",
+        "unfold"
+      ],
+      "prompt": "已知 `h : a ∈ A`，要把它当成谓词直接作用在 `a` 上使用，`h` 应当被看作哪个命题？",
+      "options": [
+        "`a = A`",
+        "`A a`",
+        "`A ⊆ {a}`",
+        "`a → A`"
+      ],
+      "answer": 2,
+      "why": "集合的类型是 `α → Prop`，`∈` 只是把函数应用写短：`Set.mem a A` 就是 `A a`。",
+      "source": "lib/Set.sokonanoda:60 `Set.mem`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.subset-1",
+        "I.1.empty-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.mem"
+      ]
+    },
+    {
+      "id": "I.1.subset-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "subset",
+        "unfold"
+      ],
+      "prompt": "已知 `h : A ⊆ B`，要把它作用在具体元素 `x` 上得到 `x ∈ B`，展开后 `h` 前面的全称命题是什么？",
+      "options": [
+        "`∀ (x : α), x ∈ A → x ∈ B`",
+        "`∀ (x : α), x ∈ B → x ∈ A`",
+        "`∃ (x : α), x ∈ A ∧ x ∈ B`",
+        "`A = B`"
+      ],
+      "answer": 1,
+      "why": "子集的定义是一条全称箭头：`Set.subset_def`。证包含只需一个方向。",
+      "source": "lib/Set.sokonanoda:159 `Set.subset_def`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.subset-2",
+        "I.1.subset-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.subset"
+      ]
+    },
+    {
+      "id": "I.1.subset-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "subset",
+        "tactic"
+      ],
+      "prompt": "要证明 `A ⊆ B` 时，应当首先执行哪一步？",
+      "options": [
+        "`intro x`",
+        "`apply Set.ext`",
+        "`exact h`",
+        "`constructor`"
+      ],
+      "answer": 1,
+      "why": "`⊆` 展开是 `∀ x, …`，所以先 `intro x` 把「任意 x」拿进语境；`Set.ext` 是证相等的。",
+      "source": "lib/Set.sokonanoda:159",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.subset-1",
+        "I.1.subset-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.subset-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "subset",
+        "apply"
+      ],
+      "prompt": "已知 `h : A ⊆ B` 与 `ha : a ∈ A` 时，应当怎样得到 `a ∈ B`？",
+      "options": [
+        "`h a ha`",
+        "`ha`",
+        "`h ha`",
+        "`a ha`"
+      ],
+      "answer": 1,
+      "why": "`h` 是一台机器：喂它 `a : α` 再喂 `ha : a ∈ A`，吐出 `a ∈ B`。",
+      "source": "lib/Set.sokonanoda:159",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.subset-1",
+        "I.1.subset-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.empty-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "empty",
+        "unfold"
+      ],
+      "prompt": "已知 `h : a ∈ ∅`，要立刻得到矛盾，应当把 `h` 看成哪个命题？",
+      "options": [
+        "`False`",
+        "`True`",
+        "`a = a`",
+        "`¬ (a = a)`"
+      ],
+      "answer": 1,
+      "why": "空集定义就是恒假谓词：`Set.empty := fun x => False`，故 `a ∈ ∅ ↔ False`。",
+      "source": "lib/Set.sokonanoda:167 `Set.mem_empty_iff_false`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.empty-2",
+        "I.1.mem-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.empty"
+      ],
+      "math": "a\\in\\varnothing \\iff \\text{False}",
+      "formula": "a ∈ ∅ ⟺ False"
+    },
+    {
+      "id": "I.1.empty-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "empty",
+        "library"
+      ],
+      "prompt": "要证明 `a` 不属于空集，库引理 `Set.notMem_empty a` 直接交给你的命题是什么？",
+      "options": [
+        "`a ∈ ∅`",
+        "`¬ (a ∈ ∅)`",
+        "`a ∈ univ`",
+        "`False`"
+      ],
+      "answer": 2,
+      "why": "`notMem_empty` 把「空集里有东西」变成矛盾：`¬ (a ∈ ∅)`，即 `(a ∈ ∅) → False`。",
+      "source": "lib/Set.sokonanoda:175",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.empty-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.empty"
+      ]
+    },
+    {
+      "id": "I.1.inter-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 1,
+      "tags": [
+        "inter",
+        "unfold"
+      ],
+      "prompt": "已知 `h : x ∈ A ∩ B`，要分别取出 `x ∈ A` 与 `x ∈ B` 两份证据，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`A x ∧ B x`",
+        "`A x ∨ B x`",
+        "`A x ∧ ¬ B x`",
+        "`A x → B x`"
+      ],
+      "answer": 1,
+      "why": "交集是逐点合取：`Set.inter A B = fun x => A x ∧ B x`。",
+      "source": "lib/Set.sokonanoda:93 + 201 `Set.mem_inter_iff`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.mem-1",
+        "I.1.subset-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.inter"
+      ]
+    },
+    {
+      "id": "I.1.union-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 1,
+      "tags": [
+        "union",
+        "unfold"
+      ],
+      "prompt": "已知 `h : x ∈ A ∪ B`，要对两种来源分别证明同一个目标，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`A x ∨ B x`",
+        "`A x ∧ B x`",
+        "`¬ A x ∨ B x`",
+        "`A x → B x`"
+      ],
+      "answer": 1,
+      "why": "并集是逐点析取：`Set.union A B = fun x => A x ∨ B x`。",
+      "source": "lib/Set.sokonanoda:91 + 193 `Set.mem_union`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.mem-1",
+        "I.1.subset-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.union"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "sdiff",
+        "unfold"
+      ],
+      "prompt": "已知 `h : x ∈ A \\ B`，要拿到「属于 `A`」与「不属于 `B`」两份证据，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`A x ∧ ¬ B x`",
+        "`A x ∧ B x`",
+        "`A x ∨ ¬ B x`",
+        "`¬ A x ∧ B x`"
+      ],
+      "answer": 1,
+      "why": "差集是「在 A 里且不在 B 里」：`Set.sdiff A B = fun x => A x ∧ ¬ (B x)`。",
+      "source": "lib/Set.sokonanoda:95 + 209 `Set.mem_sdiff`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.mem-1",
+        "I.1.subset-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.sdiff"
+      ]
+    },
+    {
+      "id": "I.1.compl-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "compl",
+        "unfold"
+      ],
+      "prompt": "已知 `h : x ∈ Aᶜ`，要把它当作对 `x ∈ A` 的否定来用，`h` 应当被看成哪个命题？",
+      "options": [
+        "`¬ A x`",
+        "`A x`",
+        "`¬ (x = x)`",
+        "`A x ∧ True`"
+      ],
+      "answer": 1,
+      "why": "补集是「不在 A 里」：`Set.compl A = fun x => ¬ (A x)`。",
+      "source": "lib/Set.sokonanoda:97",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.mem-1",
+        "I.1.subset-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.compl"
+      ]
+    },
+    {
+      "id": "I.1.ext-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "extensionality",
+        "tactic"
+      ],
+      "prompt": "要证明两个集合相等 `A = B` 时，通常采用的标准做法是什么？",
+      "options": [
+        "`apply Set.ext`，再逐点证 `↔` 的两个方向",
+        "用 `rfl` 一步就能把两个集合相等证出来。",
+        "`apply Set.subset_def`",
+        "`constructor`"
+      ],
+      "answer": 1,
+      "why": "`Set.ext` 把「集合相等」换成「逐点互相推出」：`(∀ x, x ∈ A ↔ x ∈ B) → A = B`。",
+      "source": "lib/Set.sokonanoda:108 `Set.ext`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.ext-2",
+        "I.1.ext-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.ext.use"
+      ]
+    },
+    {
+      "id": "I.1.ext-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "extensionality",
+        "axiom"
+      ],
+      "prompt": "`Set.ext` 把「逐点等价」升级成「集合相等」，这条公理整体的蕴含形状是什么？",
+      "options": [
+        "`(∀ (x : α), x ∈ A ↔ x ∈ B) → A = B`",
+        "`A ⊆ B → A = B`",
+        "`A = B → ∀ (x : α), x ∈ A`",
+        "`(∀ (x : α), x ∈ A) → A = B`"
+      ],
+      "answer": 1,
+      "why": "`Set.ext : {α} → (A B : Set α) → (∀ x, A x ↔ B x) → A = B`——卷 I 的两条外延性公理之一。",
+      "source": "lib/Set.sokonanoda:108",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.ext-1",
+        "I.1.ext-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.ext"
+      ]
+    },
+    {
+      "id": "I.1.ext-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "extensionality",
+        "explain"
+      ],
+      "prompt": "为什么证集合相等要「两个方向」，而证 `A ⊆ B` 只要一个方向？",
+      "options": [
+        "因为相等靠外延性：逐点给出 `↔`（互相包含）；而 `⊆` 展开只是一条箭头（单方向）",
+        "因为 `refl` 只能证明自反性，无法展开出两个方向。",
+        "因为空集是特殊集合，它的成员判定与别的集合不同。",
+        "因为 `⊆` 本身就是双向关系，天然包含两个方向。"
+      ],
+      "answer": 1,
+      "why": "`Set.ext` 要求的是逐点 `Iff`（两个方向）；`⊆` 展开是 `∀ x, x ∈ A → x ∈ B`（一条箭头）。",
+      "source": "lib/Set.sokonanoda:108 与 159",
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.ext-1",
+        "I.1.ext-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.ext.use",
+        "kp.i1.ext"
+      ]
+    },
+    {
+      "id": "I.1.powerset-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 2,
+      "tags": [
+        "powerset"
+      ],
+      "prompt": "已知 `h : B ∈ 𝒫 A`，要把幂集成员换成一个可以直接展开的包含关系，它等价于哪个命题？",
+      "options": [
+        "`B ⊆ A`",
+        "`A ⊆ B`",
+        "`B = A`",
+        "`B ∩ A = ∅`"
+      ],
+      "answer": 1,
+      "why": "幂集是「A 的所有子集」：`Set.powerset A = fun B => B ⊆ A`。",
+      "source": "lib/Set.sokonanoda:99 + 217 `Set.mem_powerset_iff`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.powerset"
+      ]
+    },
+    {
+      "id": "I.1.singleton-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "singleton"
+      ],
+      "prompt": "已知 `h : x ∈ {a}`，要把它换成一个关于相等关系的命题，应当用哪个等价？",
+      "options": [
+        "`x = a`",
+        "`x ∈ A`",
+        "`x ≠ a`",
+        "`True`"
+      ],
+      "answer": 1,
+      "why": "单点集是「等于 a 的那些 x」：`Set.singleton a = fun x => x = a`。",
+      "source": "lib/Set.sokonanoda:74 + 182 `Set.mem_singleton_iff`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.singleton-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.singleton"
+      ]
+    },
+    {
+      "id": "I.1.singleton-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "singleton",
+        "refl"
+      ],
+      "prompt": "要证明 `a ∈ {a}` 时，关键使用的引理是什么？",
+      "options": [
+        "关键引理是 `Eq.refl a`，它直接给出自反的等式。",
+        "`Set.notMem_empty a`",
+        "`And.left`",
+        "`Or.inl`"
+      ],
+      "answer": 1,
+      "why": "`a ∈ {a}` 展开成 `a = a`，所以用自反性：库里 `mem_singleton_self` 的证明就是 `@Eq.refl.{1} α a`。",
+      "source": "lib/Set.sokonanoda:190",
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.singleton-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i1.singleton"
+      ]
+    },
+    {
+      "id": "I.1.pack-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "and",
+        "constructor"
+      ],
+      "prompt": "已知 `ha : a` 与 `hb : b`，要得到 `a ∧ b` 时应当选用下面哪个表达式？",
+      "options": [
+        "`And.intro ha hb`",
+        "`And.left ha`",
+        "`Or.inl ha`",
+        "`Iff.intro`"
+      ],
+      "answer": 1,
+      "why": "`∧` 的构造子是 `And.intro : a → b → a ∧ b`：两份证据装成一个合取。",
+      "source": "prelude `And.intro`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.logic"
+      ]
+    },
+    {
+      "id": "I.1.elim-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 2,
+      "tags": [
+        "or",
+        "elim"
+      ],
+      "prompt": "已知 `h : A ∨ B` 而要证明 `C` 时，应当选用哪一项？",
+      "options": [
+        "应当用 `Or.elim`，对两个来源各证一次 C。",
+        "`And.left h`",
+        "`Or.inl h`",
+        "`exact h`"
+      ],
+      "answer": 1,
+      "why": "`Or.elim : (A → C) → (B → C) → A ∨ B → C`——两个来源都要能到 C。",
+      "source": "prelude `Or.elim`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.logic"
+      ]
+    },
+    {
+      "id": "I.2.rel-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "rel",
+        "unfold"
+      ],
+      "prompt": "要把关系 `r : Rel α β` 当谓词来使用，`Rel α β` 实际上是什么类型的谓词？",
+      "options": [
+        "`α → β → Prop`",
+        "`α → β`",
+        "`Prop`",
+        "`α × β`"
+      ],
+      "answer": 1,
+      "why": "关系 = 二元谓词：`Rel A B := A → B → Prop`（库里与 `A → B → Prop` 是定义等式）。",
+      "source": "lib/Rel.sokonanoda:43",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.rel-2",
+        "I.2.rel-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i2.rel"
+      ]
+    },
+    {
+      "id": "I.2.rel-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "rel",
+        "apply"
+      ],
+      "prompt": "在 `r : Rel α β`、`a : α`、`b : β` 的语境下，表达式 `r a b` 的类型是什么？",
+      "options": [
+        "`Prop`",
+        "`β`",
+        "`α → β`",
+        "`Set β`"
+      ],
+      "answer": 1,
+      "why": "吃两个元素后吐一个命题：`r a b : Prop`（「a 与 b 有关系 r」这件事本身）。",
+      "source": "lib/Rel.sokonanoda:43",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.rel-1",
+        "I.2.rel-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i2.rel"
+      ]
+    },
+    {
+      "id": "I.2.rel-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "rel",
+        "partial-application"
+      ],
+      "prompt": "已知 `r : Rel α β` 时，表达式 `r a` 的类型是什么？",
+      "options": [
+        "它的类型是 `β → Prop`，相当于 β 的一个子集。",
+        "`Prop`",
+        "`β`",
+        "`Rel α β`"
+      ],
+      "answer": 1,
+      "why": "只喂第一个参数后剩下 `β → Prop`——就是 β 的子集（I.1 的集合观在 I.2 的复现）。",
+      "source": "lib/Rel.sokonanoda:43",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.rel-1",
+        "I.2.rel-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i2.rel"
+      ]
+    },
+    {
+      "id": "I.2.refl-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "relation-property",
+        "reflexive"
+      ],
+      "prompt": "已知 `h : Reflexive r`，要取某个具体元素 `a` 的自反证据，`h` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a : α), r a a`",
+        "`∀ (a b : α), r a b → r b a`",
+        "`∀ (a b c : α), r a b → r b c → r a c`",
+        "`∀ (a : α), ¬ (r a a)`"
+      ],
+      "answer": 1,
+      "why": "自反 = 每个元素与自己有关系。",
+      "source": "lib/Order.sokonanoda:49",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.symm-1",
+        "I.2.trans-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.rel.refl"
+      ]
+    },
+    {
+      "id": "I.2.symm-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "relation-property",
+        "symmetric"
+      ],
+      "prompt": "已知 `h : Symmetric r` 与 `r a b`，要把方向反过来，`h` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a b : α), r a b → r b a`",
+        "`∀ (a : α), r a a`",
+        "`∀ (a b : α), r a b → r b a → a = b`",
+        "`∀ (a b : α), r a b ∨ r b a`"
+      ],
+      "answer": 1,
+      "why": "对称 = 方向可以反。",
+      "source": "lib/Order.sokonanoda:57",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.refl-1",
+        "I.2.trans-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.2.trans-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "relation-property",
+        "transitive"
+      ],
+      "prompt": "已知 `h : Transitive r` 与 `r a b`、`r b c`，要得到 `r a c`，`h` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a b c : α), r a b → r b c → r a c`",
+        "`∀ (a : α), r a a`",
+        "`∀ (a b : α), r a b → r b a`",
+        "`∀ (a b : α), r a b ∨ r b a`"
+      ],
+      "answer": 1,
+      "why": "传递 = 两步合成一步。",
+      "source": "lib/Order.sokonanoda:65",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.refl-1",
+        "I.2.symm-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.rel.trans"
+      ]
+    },
+    {
+      "id": "I.2.antisymm-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "antisymmetric"
+      ],
+      "prompt": "已知 `h : Antisymmetric r` 且两个方向都成立，要压出 `a = b`，`h` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a b : α), r a b → r b a → a = b`",
+        "`∀ (a b : α), r a b → r b a`",
+        "`∀ (a : α), ¬ (r a a)`",
+        "`∀ (a b : α), r a b ∨ r b a`"
+      ],
+      "answer": 1,
+      "why": "反对称 = 两个方向都排得上就只能是同一个元素（序与等价的分水岭）。",
+      "source": "lib/Order.sokonanoda:61",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.refl-1",
+        "I.2.symm-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.rel.antisymm"
+      ]
+    },
+    {
+      "id": "I.2.partial-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "partial-order"
+      ],
+      "prompt": "要证明某个关系 `r` 是偏序 `IsPartialOrder r`，需要同时交出哪些性质？",
+      "options": [
+        "偏序要求关系同时满足自反、反对称与传递这三条性质。",
+        "偏序要求关系同时满足自反、对称与传递这三条性质。",
+        "偏序只要求关系同时满足非自反与传递这两条性质。",
+        "偏序只要求关系同时满足全与传递这两条性质。"
+      ],
+      "answer": 1,
+      "why": "偏序 = 自反 + 反对称 + 传递（`⊆` 是样板）。",
+      "source": "lib/Order.sokonanoda:76",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.strict-1",
+        "I.2.linear-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.order.partial"
+      ]
+    },
+    {
+      "id": "I.2.strict-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "strict-order"
+      ],
+      "prompt": "要证明某个关系是严格序 `IsStrictOrder r`，需要同时交出哪些性质？",
+      "options": [
+        "严格序要求关系同时满足非自反与传递这两条性质。",
+        "严格序要求关系同时满足自反、反对称与传递这三条性质。",
+        "严格序只要求关系同时满足反对称与传递这两条性质。",
+        "严格序只要求关系同时满足全与传递这两条性质。"
+      ],
+      "answer": 1,
+      "why": "严格序 = 非自反 + 传递（`<` 是样板；非自反已经够，不需要反对称）。",
+      "source": "lib/Order.sokonanoda:80",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.partial-1",
+        "I.2.linear-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.order.strict"
+      ]
+    },
+    {
+      "id": "I.2.linear-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "linear-order"
+      ],
+      "prompt": "全序 `IsLinearOrder r` 与偏序相比多了什么要求？下面哪一项完整描述了它的定义？",
+      "options": [
+        "全序要求关系是偏序，并且任意两个元素至少有一个方向可比。",
+        "全序要求关系同时满足自反、对称与传递这三条性质。",
+        "全序只要求关系同时满足非自反与传递这两条性质。",
+        "全序其实就是等价关系的另一个名字。"
+      ],
+      "answer": 1,
+      "why": "全序 = 偏序 + 全序性（Total：`∀ a b, r a b ∨ r b a`）。",
+      "source": "lib/Order.sokonanoda:84",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.partial-1",
+        "I.2.strict-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.order.linear"
+      ]
+    },
+    {
+      "id": "I.2.comp-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "compose"
+      ],
+      "prompt": "已知 `f : α → β` 与 `g : β → γ`，要把复合 `g ∘ f` 作用到具体输入上，展开后的函数是什么？",
+      "options": [
+        "展开后是函数 `fun x => g (f x)`，也就是先作用 f 再作用 g。",
+        "`fun x => f (g x)`",
+        "`fun x => g x`",
+        "`fun x => f x`"
+      ],
+      "answer": 1,
+      "why": "记法 `g ∘ f` 先作用 f 再作用 g：`Function.comp g f = fun x => g (f x)`。",
+      "source": "lib/Fun.sokonanoda:64 + `Function.comp_apply`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.inj-1",
+        "I.2.surj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.comp"
+      ]
+    },
+    {
+      "id": "I.2.inj-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 1,
+      "tags": [
+        "function",
+        "injective"
+      ],
+      "prompt": "已知 `inj : Injective f`，要由两份输出相等的证据得到输入相等，`inj` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (x y : α), f x = f y → x = y`",
+        "`∀ (y : β), ∃ (x : α), f x = y`",
+        "`∀ (x y : α), x = y → f x = f y`",
+        "`∀ (x : α), f x = x`"
+      ],
+      "answer": 1,
+      "why": "单射 = 不同输入不会撞到同一输出（输出层等式能拉回输入层）。",
+      "source": "lib/Fun.sokonanoda:78",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.comp-1",
+        "I.2.surj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.surj-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 1,
+      "tags": [
+        "function",
+        "surjective"
+      ],
+      "prompt": "已知 `surj : Surjective f`，要对任意输出 `y` 造出一个原像，`surj` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (y : β), ∃ (x : α), f x = y`",
+        "`∀ (x y : α), f x = f y → x = y`",
+        "`∃ (y : β), ∀ (x : α), f x = y`",
+        "`∀ (x : α), ∃ (y : β), f x = y`"
+      ],
+      "answer": 1,
+      "why": "满射 = 每个输出都有原像（交证人 x 和 f x = y 的证据）。",
+      "source": "lib/Fun.sokonanoda:83",
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.comp-1",
+        "I.2.inj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.surj"
+      ]
+    },
+    {
+      "id": "I.2.bij-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "bijective"
+      ],
+      "prompt": "要证明 `f` 是双射 `Bijective f`，需要同时交出哪些证据？",
+      "options": [
+        "要证明双射，需要同时交出单射与满射这两份证据。",
+        "要证明双射，只需交出单射与满射中的任意一份证据。",
+        "要证明双射，需要同时交出关系自反与传递这两份证据。",
+        "要证明双射，需要证明存在一对互逆函数。"
+      ],
+      "answer": 1,
+      "why": "双射 = 单射 ∧ 满射（一一对应）。",
+      "source": "lib/Fun.sokonanoda:86",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.comp-1",
+        "I.2.inj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.bij"
+      ]
+    },
+    {
+      "id": "I.2.inj-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "apply"
+      ],
+      "prompt": "已知 `inj : Injective f` 与 `h : f a = f b` 而要证明 `a = b` 时，应当选用下面哪个表达式？",
+      "options": [
+        "`inj a b h`",
+        "`h`",
+        "`Eq.refl`",
+        "`congrArg f h`"
+      ],
+      "answer": 1,
+      "why": "单射是把等式从输出层拉回输入层的工具：`inj a b : f a = f b → a = b`。",
+      "source": "lib/Fun.sokonanoda:78",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.comp-1",
+        "I.2.inj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.surj-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "apply"
+      ],
+      "prompt": "已知 `surj : Surjective f` 与 `y : β`，要得到 `∃ (x : α), f x = y` 时应当选用下面哪个表达式？",
+      "options": [
+        "`surj y`",
+        "`y`",
+        "`surj`",
+        "`Exists.intro y`"
+      ],
+      "answer": 1,
+      "why": "把 y 喂给满射，它交出一个证人 x 连同 `f x = y` 的证据。",
+      "source": "lib/Fun.sokonanoda:83",
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.comp-1",
+        "I.2.inj-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "kps": [
+        "kp.i2.fun.surj",
+        "kp.i2.logic"
+      ]
+    },
+    {
+      "id": "I.2.surj-split-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "choice",
+        "boundary"
+      ],
+      "prompt": "「满射可裂」这一命题（`Surjective f → ∃ g, RightInverse g f`）在本课程中能否得到证明？",
+      "options": [
+        "证不出来：它等价于选择公理，而本语言没有 Classical.choice",
+        "用 `Set.ext` 逐点展开就能把这个命题证出来。",
+        "由 `rfl` 直接就能得到这个命题。",
+        "由 `funext` 可以把这个命题推出来。"
+      ],
+      "answer": 1,
+      "why": "课程只立数据版逆（g 由调用者交出）；存在版需要选择公理，故意留作边界。",
+      "source": "units/I.2/unit07-functions.sokonanoda 文件头「第 6 题与选择公理」",
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.axiom-choice-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i2.fun.boundary",
+        "kp.i2.fun.surj"
+      ]
+    },
+    {
+      "id": "I.2.prod-1",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 2,
+      "tags": [
+        "product"
+      ],
+      "prompt": "已知 `h : p ∈ s ×ˢ t`，要分别拿到两个投影的成员证据，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`Prod.fst p ∈ s ∧ Prod.snd p ∈ t`",
+        "`p = s`",
+        "`s ⊆ t`",
+        "`s ∩ t ≠ ∅`"
+      ],
+      "answer": 1,
+      "why": "积集合的成员刻画：两个坐标各自满足（`Set.mem_prod_iff`）。",
+      "source": "lib/Prod.sokonanoda:88 `Set.mem_prod_iff`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i2.prod"
+      ]
+    },
+    {
+      "id": "I.3.image-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 1,
+      "tags": [
+        "image",
+        "unfold"
+      ],
+      "prompt": "已知 `h : y ∈ f '' A`，要取出某个原像 `x` 及其成员与等式证据，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`∃ (x : α), x ∈ A ∧ f x = y`",
+        "`∀ (x : α), x ∈ A → f x = y`",
+        "`y ∈ A`",
+        "`∃ (x : α), f x = y`"
+      ],
+      "answer": 1,
+      "why": "像 = 至少有一个 A 里的点被送到 y。",
+      "source": "lib/Image.sokonanoda:32 + 44 `Set.mem_image`",
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.image-2",
+        "I.3.image-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i3.image"
+      ]
+    },
+    {
+      "id": "I.3.image-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "construct"
+      ],
+      "prompt": "已知 `ha : a ∈ A`，要证明 `f a ∈ f '' A` 时关键使用的引理是什么？",
+      "options": [
+        "`Set.mem_image_intro f A (f a) a ha (Eq.refl (f a))`",
+        "`Set.mem_image_elim`",
+        "`Or.inl ha`",
+        "`And.intro ha`"
+      ],
+      "answer": 1,
+      "why": "像的构造子：给出证人 a、它属于 A 的证据、以及等式 `f a = y`（这里 y 就是 f a，所以用自反）。",
+      "source": "lib/Image.sokonanoda:98 `Set.mem_image_intro`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-1",
+        "I.3.image-3"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i3.image.use"
+      ]
+    },
+    {
+      "id": "I.3.image-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "preimage",
+        "iff"
+      ],
+      "prompt": "包含关系 `f '' A ⊆ B` 等价于哪个命题？",
+      "options": [
+        "`A ⊆ f ⁻¹' B`",
+        "`B ⊆ f '' A`",
+        "`A ⊆ B`",
+        "`f ⁻¹' B ⊆ A`"
+      ],
+      "answer": 1,
+      "why": "像落在 B 里 ⟺ A 里每个点都被送到 B 里（`Set.image_subset_iff`）。",
+      "source": "lib/Image.sokonanoda:82 `Set.image_subset_iff`",
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-1",
+        "I.3.image-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i3.image.preimage.laws",
+        "kp.i3.image",
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.preimage-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "preimage",
+        "unfold"
+      ],
+      "prompt": "已知 `h : x ∈ f ⁻¹' B`，要一步得到 `f x ∈ B`，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`f x ∈ B`",
+        "`x ∈ B`",
+        "`f '' B`",
+        "`x = f x`"
+      ],
+      "answer": 1,
+      "why": "原像 = 被送到 B 里的那些输入。",
+      "source": "lib/Image.sokonanoda:37 + 49 `Set.mem_preimage`",
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-3",
+        "I.1.mem-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.equiv-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "equipotent",
+        "cardinal"
+      ],
+      "prompt": "要证明 `Type.Equiv α β`（即 `A ≈ B` 的数据版），需要交出的那对互逆函数及两条逆律，用存在式整体写出来是什么？",
+      "options": [
+        "数据版的等势写成 `∃ f g, (∀ a, g (f a) = a) ∧ (∀ b, f (g b) = b)`。",
+        "`∃ f, Injective f`",
+        "`∃ f, Surjective f`",
+        "`α = β`"
+      ],
+      "answer": 1,
+      "why": "等势 = 存在一对互逆的函数（数据版双射）。",
+      "source": "lib/Cardinal.sokonanoda:39 `Type.Equiv`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i3.equiv"
+      ]
+    },
+    {
+      "id": "I.3.sunion-1",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "sunion",
+        "family"
+      ],
+      "prompt": "已知 `h : x ∈ Set.sUnion F`，要取出某个族成员及其证据，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`∃ (A : Set α), A ∈ F ∧ x ∈ A`",
+        "`∀ (A : Set α), A ∈ F → x ∈ A`",
+        "`x ∈ F`",
+        "`∃ (A : Set α), x ∈ A`"
+      ],
+      "answer": 1,
+      "why": "广义并 = 「存在一个 F 里的集合包含 x」。",
+      "source": "lib/SUnion.sokonanoda:28 + 35 `Set.mem_sUnion_iff`",
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.ordinal-1",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "level": 3,
+      "tags": [
+        "ordinal",
+        "definition"
+      ],
+      "prompt": "要证明某个 `x` 是序数（`IsOrdinal E x`），需要同时交出哪些内容？",
+      "options": [
+        "它要求 `x` 传递、每个元素也传递，以及 `E` 在 `x` 上良基，即 `IsWellFounded`。",
+        "它要求关系同时满足自反、对称与传递这三条性质。",
+        "它要求 `x` 是有限集合，并且 `E` 在 `x` 上是全序。",
+        "它要求存在一个从 `x` 到自然数的双射。"
+      ],
+      "answer": 1,
+      "why": "序数是「传递集 + 元素皆传递 + 良基」的谓词（Isabelle `Ord` 的逐条对应）。",
+      "source": "lib/Ordinal.sokonanoda:50",
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.ordtrans-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.prep.ordinal"
+      ]
+    },
+    {
+      "id": "I.3.ordtrans-1",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "level": 2,
+      "tags": [
+        "ordinal",
+        "transitive-set"
+      ],
+      "prompt": "已知 `h : IsTransitive E x`，要对具体元素 `y`、`z` 使用传递性，`h` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ y, E y x → ∀ z, E z y → E z x`",
+        "`∀ y, E y x`",
+        "`E x x`",
+        "`∀ y, ¬ (E y x)`"
+      ],
+      "answer": 1,
+      "why": "传递集 = x 的元素的元素还是 x 的元素。",
+      "source": "lib/Ordinal.sokonanoda:46",
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.ordinal-1"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.prep.ordinal"
+      ]
+    },
+    {
+      "id": "I.3.axiom-choice-1",
+      "chapter": "I.3",
+      "unit": "⑰ 选择公理",
+      "level": 3,
+      "tags": [
+        "choice",
+        "axiom"
+      ],
+      "prompt": "在选择公理这条线上，`choice` 为课程提供的核心能力是什么？",
+      "options": [
+        "它的能力是允许从非空集族中选出一个代表。",
+        "它的能力是证明空集存在。",
+        "它的能力是推出 `funext` 这条外延性原理。",
+        "它的能力是使所有集合都彼此等势。"
+      ],
+      "answer": 1,
+      "why": "`choice` 公理：对每个非空 fiber 挑一个点——它让「存在版」的很多陈述可证。",
+      "source": "lib/Choice.sokonanoda:46",
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.surj-split-1",
+        "I.1.ext-2"
+      ],
+      "prereq": [],
+      "kps": [
+        "kp.prep.choice"
+      ]
+    },
+    {
+      "id": "I.1.mem-2",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "level": 1,
+      "tags": [
+        "membership",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.mem-1"
+      ],
+      "prereq": [
+        "I.1.mem-1"
+      ],
+      "prompt": "命题 `a ∈ A` 本身的类型是什么？",
+      "options": [
+        "`Set α`",
+        "`α → Prop`",
+        "`Prop`",
+        "`α`"
+      ],
+      "answer": 3,
+      "why": "`Set.mem a A : Prop`——成员关系是一个命题；`α → Prop` 是集合 `A` 自己的类型，两者别混淆。",
+      "source": "lib/Set.sokonanoda:60 `Set.mem`",
+      "kps": [
+        "kp.i1.mem"
+      ]
+    },
+    {
+      "id": "I.1.empty-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "empty",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.empty-1"
+      ],
+      "prereq": [
+        "I.1.empty-1"
+      ],
+      "prompt": "要证明 `x ∈ Set.empty` 不成立，把 `Set.empty` 展开成谓词后得到的是哪个函数？",
+      "options": [
+        "`fun (x : α) => True`",
+        "`fun (x : α) => False`",
+        "`fun (x : α) => x = x`",
+        "`fun (x : α) => ¬ (x = x)`"
+      ],
+      "answer": 2,
+      "why": "空集是恒假谓词：`Set.empty α := fun (x : α) => False`，所以 `a ∈ ∅` 等价于 `False`（`Set.mem_empty_iff_false`）。",
+      "source": "lib/Set.sokonanoda:70 `Set.empty`",
+      "kps": [
+        "kp.i1.empty"
+      ]
+    },
+    {
+      "id": "I.1.singleton-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "singleton",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.singleton-1"
+      ],
+      "prereq": [
+        "I.1.singleton-1"
+      ],
+      "prompt": "已知 `h : x ∈ {a, b}`，要分两种情况处理（`x = a` 或 `x = b`），应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`x = a ∧ x = b`",
+        "`x = a ↔ x = b`",
+        "`x = a → x = b`",
+        "`x = a ∨ x = b`"
+      ],
+      "answer": 4,
+      "why": "二元集合字面量脱糖成 `Set.pair a b`，它的定义体就是逐点析取 `fun (x : α) => x = a ∨ x = b`。",
+      "source": "lib/Set.sokonanoda:76 `Set.pair`",
+      "kps": [
+        "kp.i1.singleton"
+      ]
+    },
+    {
+      "id": "I.1.subset-4",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "subset",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.subset-1"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "为什么 `A ⊆ A` 无需额外假设就成立？",
+      "options": [
+        "因为集合相等是自反的，直接 `rfl` 就能证明。",
+        "展开 `⊆` 后要证 `∀ (x : α), x ∈ A → x ∈ A`，把假设原样交还即可",
+        "因为 `A` 的元素个数有限，所以包含关系自动成立。",
+        "这个包含关系只有在 `A = ∅` 时才成立。"
+      ],
+      "answer": 2,
+      "why": "`Set.subset_def` 把包含换成逐点箭头；`A ⊆ A` 只需 `fun (x : α) (hx : x ∈ A) => hx`，不涉及集合相等（那才要 `Set.ext`）。",
+      "source": "lib/Set.sokonanoda:68 + 159 `Set.subset_def`",
+      "kps": [
+        "kp.i1.subset",
+        "kp.i1.subset.algebra"
+      ]
+    },
+    {
+      "id": "I.1.union-3",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 2,
+      "tags": [
+        "union",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.union-1"
+      ],
+      "prereq": [
+        "I.1.union-1"
+      ],
+      "prompt": "已知 `hb : x ∈ B`，要证 `x ∈ A ∪ B`，正确组合是？",
+      "options": [
+        "`Iff.mpr (Set.mem_union x A B) (Or.inl hb)`",
+        "`Iff.mp (Set.mem_union x A B) hb`",
+        "`Iff.mpr (Set.mem_union x A B) (Or.inr hb)`",
+        "`And.intro hb hb`"
+      ],
+      "answer": 3,
+      "why": "`Set.mem_union` 把 `x ∈ A ∪ B` 换成 `x ∈ A ∨ x ∈ B`；`hb : x ∈ B` 要用右支 `Or.inr`，左支 `Or.inl` 需要的是 `x ∈ A`。",
+      "source": "lib/Set.sokonanoda:193 `Set.mem_union`",
+      "kps": [
+        "kp.i1.union"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "sdiff",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.sdiff-1"
+      ],
+      "prompt": "已知 `h : x ∈ A \\ B`，要取出 `x ∈ A`，正确组合是？",
+      "options": [
+        "`And.left (Iff.mp (Set.mem_sdiff x A B) h)`",
+        "`And.right (Iff.mp (Set.mem_sdiff x A B) h)`",
+        "`Or.inl h`",
+        "`Iff.mp (Set.mem_inter_iff x A B) h`"
+      ],
+      "answer": 1,
+      "why": "`Set.mem_sdiff` 给出合取 `x ∈ A ∧ ¬ (x ∈ B)`；左支才是 `x ∈ A`，右支是「不在 B 里」。",
+      "source": "lib/Set.sokonanoda:209 `Set.mem_sdiff`",
+      "kps": [
+        "kp.i1.sdiff"
+      ]
+    },
+    {
+      "id": "I.1.powerset-2",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "powerset",
+        "empty",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.powerset-1"
+      ],
+      "prereq": [
+        "I.1.powerset-1",
+        "I.1.empty-1"
+      ],
+      "prompt": "为什么 `∅ ∈ 𝒫 A` 对任意 `A` 都成立，而不需要知道 `A` 里有什么？",
+      "options": [
+        "因为空集是每个集合的元素，所以它属于幂集。",
+        "因为 `𝒫 A` 一定非空，所以空集必然在其中。",
+        "这个结论只有在 `A = ∅` 时才成立。",
+        "由 `Set.mem_powerset_iff` 归约到 `∅ ⊆ A`；展开 `⊆` 后假设是 `x ∈ ∅`（即 `False`），从矛盾可推出 `x ∈ A`"
+      ],
+      "answer": 4,
+      "why": "`B ∈ 𝒫 A ↔ B ⊆ A`，取 `B = ∅` 后只需 `∅ ⊆ A`；`Set.mem_empty_iff_false` 把假设变成 `False`，再由 `False` 推出任意目标。",
+      "source": "lib/Set.sokonanoda:217 `Set.mem_powerset_iff` + 167 `Set.mem_empty_iff_false` + 159 `Set.subset_def`",
+      "kps": [
+        "kp.i1.powerset",
+        "kp.i1.empty"
+      ]
+    },
+    {
+      "id": "I.1.ext-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "extensionality",
+        "iff"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.ext-1"
+      ],
+      "prereq": [
+        "I.1.subset-1",
+        "I.1.ext-1"
+      ],
+      "prompt": "已知 `hAB : A ⊆ B` 与 `hBA : B ⊆ A`，要证 `A = B`，正确做法是？",
+      "options": [
+        "把 `hAB` 直接交给 `Set.ext A B` 就能完成证明。",
+        "先用两个子集假设逐点合成 `∀ (x : α), x ∈ A ↔ x ∈ B`，再交给 `Set.ext A B`",
+        "用 `Rel.ext` 逐点证明两个方向即可。",
+        "子集关系本身就是相等，直接 `exact hAB`"
+      ],
+      "answer": 2,
+      "why": "`Set.ext` 要的是逐点 `↔`；两个 `⊆` 各给一个方向，用 `fun x => Iff.intro (hAB x) (hBA x)` 合成后才是它的输入。",
+      "source": "lib/Set.sokonanoda:108 `Set.ext` + 159 `Set.subset_def`",
+      "kps": [
+        "kp.i1.ext.use",
+        "kp.i1.ext"
+      ]
+    },
+    {
+      "id": "I.2.refl-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "relation-property",
+        "reflexive"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.refl-1"
+      ],
+      "prereq": [
+        "I.2.refl-1"
+      ],
+      "prompt": "已知 `hr : Reflexive α r`，要得到 `r a a` 时应当选用下面哪个表达式？",
+      "options": [
+        "`hr a a`",
+        "`hr`",
+        "`hr a`",
+        "`r a a`"
+      ],
+      "answer": 3,
+      "why": "`Reflexive α r` 展开是 `∀ (a : α), r a a`，把元素 `a` 喂进去就得到结论 `r a a`。",
+      "source": "lib/Order.sokonanoda:49 `Reflexive`",
+      "kps": [
+        "kp.i2.rel.refl"
+      ]
+    },
+    {
+      "id": "I.2.partial-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "partial-order"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.partial-1"
+      ],
+      "prereq": [
+        "I.2.partial-1"
+      ],
+      "prompt": "已知 `h : IsPartialOrder α r`，要取出 `r a a` 这条自反证据时，库里的哪个取用子最合适？",
+      "options": [
+        "`partialOrder_refl α r h a`",
+        "`partialOrder_antisymm α r h a a`",
+        "`strictOrder_irrefl α r h a`",
+        "`linearOrder_total α r h a a`"
+      ],
+      "answer": 1,
+      "why": "`partialOrder_refl` 是「偏序 ⇒ 自反」的取用子，参数一次给全：`(α) (r) (h) (a)`，结论就是 `r a a`。",
+      "source": "lib/Order.sokonanoda:191 `partialOrder_refl`",
+      "kps": [
+        "kp.i2.order.partial",
+        "kp.i2.rel.refl"
+      ]
+    },
+    {
+      "id": "I.2.comp-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 1,
+      "tags": [
+        "function",
+        "compose"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.comp-1"
+      ],
+      "prompt": "要用 `Function.comp_apply g f x` 把 `(g ∘ f) x` 算开，它给出的等式是什么？",
+      "options": [
+        "`(g ∘ f) x = f (g x)`",
+        "`(g ∘ f) x = g x`",
+        "`(g ∘ f) x = f x`",
+        "`(g ∘ f) x = g (f x)`"
+      ],
+      "answer": 4,
+      "why": "复合的定义是「先 f 后 g」；`comp_apply` 是 `rfl` 级展开，把 `∘` 算成内层 `f`、外层 `g`。",
+      "source": "lib/Fun.sokonanoda:110 `Function.comp_apply`",
+      "kps": [
+        "kp.i2.fun.comp"
+      ]
+    },
+    {
+      "id": "I.2.inj-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "injective"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.inj-1"
+      ],
+      "prereq": [
+        "I.2.inj-1"
+      ],
+      "prompt": "`Injective f` 的定义 `∀ x y, f x = f y → x = y` 只写了这一个方向。为什么另一个方向 `x = y → f x = f y` 不必写进定义？",
+      "options": [
+        "因为 `f x = f y → x = y` 已经蕴含了 `x = y → f x = f y`。",
+        "因为 `x = y` 时把等式代进 `f` 是任何函数都成立的（等式搬运），单射独有的信息全在「输出相等拉回输入」这个方向",
+        "因为本课的等式都是 `Iff`，两个方向自动成立",
+        "因为定义里其实写的是 `↔`，只是书写时省略了一半"
+      ],
+      "answer": 2,
+      "why": "`x = y → f x = f y` 对每个函数都成立（沿等式替换参数），不含「不撞车」的信息；定义只保留反方向，正是单射的区别性条件。",
+      "source": "lib/Fun.sokonanoda:78 `Function.Injective`",
+      "kps": [
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.surj-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "surjective"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.surj-1"
+      ],
+      "prereq": [
+        "I.2.surj-1"
+      ],
+      "prompt": "比较两个定义：单射是 `f x = f y → x = y`，满射是 `∀ (y : β), ∃ (x : α), f x = y`。为什么满射不保证原像唯一？",
+      "options": [
+        "因为 `∃` 只要求「至少有一个」原像；唯一性要靠单射那一半（同一输出对应的两个输入必须相等）",
+        "因为满射的定义里漏写了 `∃!` 这个唯一性量词。",
+        "因为 `∀ y` 写在 `∃ x` 前面，量词顺序决定唯一性",
+        "因为满射的定义里没有出现等式 `f x = y`。"
+      ],
+      "answer": 1,
+      "why": "满射只管「每个输出都有原像」这半边；`∃` 不携带唯一性，原像唯一要由单射 `f x = f y → x = y` 提供。",
+      "source": "lib/Fun.sokonanoda:83 `Function.Surjective`（对照 78 行 `Function.Injective`）",
+      "kps": [
+        "kp.i2.fun.surj",
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.bij-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "bijective"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.bij-1"
+      ],
+      "prereq": [
+        "I.2.bij-1"
+      ],
+      "prompt": "已知 `h : Bijective α β f`，要拆出满射那一半时应当选用下面哪个表达式？",
+      "options": [
+        "`And.left h`",
+        "`And.right h`",
+        "`Or.inr h`",
+        "`Iff.mp h`"
+      ],
+      "answer": 2,
+      "why": "`Bijective` 是 `Injective ∧ Surjective`；左支是单射、右支是满射，`And.right` 取后者。",
+      "source": "lib/Fun.sokonanoda:123 `Function.bijective_def`",
+      "kps": [
+        "kp.i2.fun.bij",
+        "kp.i2.fun.surj"
+      ]
+    },
+    {
+      "id": "I.2.inv-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.2.comp-1"
+      ],
+      "prompt": "已知 `hinv : Function.LeftInverse α β g f`，要对具体 `x` 得到 `g (f x) = x`，它需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (y : β), f (g y) = y`",
+        "`∀ (x : α), f (g x) = x`",
+        "`∀ (x : α), g (f x) = x`",
+        "`g = f`"
+      ],
+      "answer": 3,
+      "why": "左逆 `g : β → α` 接在 `f` 后面要还原输入：`g (f x) = x`；`f (g y) = y` 是右逆那一半。",
+      "source": "lib/Fun.sokonanoda:91 `Function.LeftInverse`",
+      "kps": [
+        "kp.i2.fun.inverse"
+      ]
+    },
+    {
+      "id": "I.2.prod-2",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 2,
+      "tags": [
+        "product",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "已知 `h : p ∈ s ×ˢ t`，要取出 `Prod.fst A B p ∈ s`，正确组合是？",
+      "options": [
+        "`And.right (Iff.mp (Set.mem_prod_iff A B s t p) h)`",
+        "`Prod.fst_mk A B h`",
+        "`Iff.mp (Set.mem_prod_iff A B s t p)`",
+        "`And.left (Iff.mp (Set.mem_prod_iff A B s t p) h)`"
+      ],
+      "answer": 4,
+      "why": "`Set.mem_prod_iff` 给出 `Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t`；第一个坐标的证据是合取的左支。",
+      "source": "lib/Prod.sokonanoda:88 `Set.mem_prod_iff`",
+      "kps": [
+        "kp.i2.prod",
+        "kp.i2.pair"
+      ]
+    },
+    {
+      "id": "I.3.image-4",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.image-1"
+      ],
+      "prompt": "已知 `h : y ∈ f '' A`，要消去它拿到某个 `x` 满足 `x ∈ A` 与 `f x = y`，用库里哪条消去子？",
+      "options": [
+        "`Set.mem_image_intro f A y x hx hxy`",
+        "`Set.mem_image_elim f A y C h k`（`C` 是要证的目标，`k` 接收证人 `x` 与两份证据）",
+        "`Set.image_mono f A A`",
+        "`Set.mem_preimage_elim f B x h k`"
+      ],
+      "answer": 2,
+      "why": "`mem_image_elim` 是「从 `y ∈ f '' A` 拆出证人」的消去子；`mem_image_intro` 是反方向（造 `∃`），别用反。",
+      "source": "lib/Image.sokonanoda:103 `Set.mem_image_elim`",
+      "kps": [
+        "kp.i3.image.use"
+      ]
+    },
+    {
+      "id": "I.3.image-5",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "empty",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.image-1",
+        "I.1.empty-1"
+      ],
+      "prompt": "`f '' ∅ = ∅` 是空集等式。为什么这个证明不需要知道 `f` 的任何信息？",
+      "options": [
+        "因为空集的像是空集，而这是集合论的一条公理。",
+        "因为 `f` 从空集出发时一定是单射。",
+        "因为 `y ∈ f '' ∅` 展开是 `∃ (x : α), x ∈ ∅ ∧ f x = y`；`x ∈ ∅` 展开为 `False`，这样的证人不存在",
+        "因为 `Set.ext` 对空集并不适用。"
+      ],
+      "answer": 3,
+      "why": "像的成员是一个存在量化，而 `A = ∅` 时 `x ∈ ∅` 恒假（`Set.mem_empty_iff_false`）⇒ 存在量化的谓词恒假，与 `f` 的具体行为无关。",
+      "source": "lib/Image.sokonanoda:44 `Set.mem_image` + lib/Set.sokonanoda:167 `Set.mem_empty_iff_false`",
+      "kps": [
+        "kp.i3.image.use",
+        "kp.i3.pointwise"
+      ]
+    },
+    {
+      "id": "I.3.preimage-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 1,
+      "tags": [
+        "preimage",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.preimage-1"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "函数 `Set.preimage` 的定义体是什么？",
+      "options": [
+        "`fun (x : α) => B (f x)`（只有一个函数应用，没有存在量词）",
+        "`fun (x : α) => ∃ (y : β), B y ∧ f x = y`",
+        "`fun (y : β) => ∃ (x : α), B x ∧ f y = x`",
+        "`fun (x : α) => x ∈ B`"
+      ],
+      "answer": 1,
+      "why": "原像是回拉：把输入 `x` 先送进 `f`，再问 `f x` 是否在 `B` 里——定义体就是一次函数应用，没有 `∃`。",
+      "source": "lib/Image.sokonanoda:37 `Set.preimage`",
+      "kps": [
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.preimage-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "preimage",
+        "iff"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.preimage-1"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "已知 `h : x ∈ f ⁻¹' B`，要用 `Set.mem_preimage` 取出 `f x ∈ B` 时，正确的写法是什么？",
+      "options": [
+        "`Iff.mpr (Set.mem_preimage f B x) h`",
+        "`Iff.mp (Set.mem_preimage f B x) h`",
+        "`Set.mem_preimage_intro f B x h`",
+        "`Iff.mp (Set.mem_image f A x) h`"
+      ],
+      "answer": 2,
+      "why": "`Set.mem_preimage` 的类型是 `x ∈ f ⁻¹' B ↔ f x ∈ B`；从左边出发用 `Iff.mp`，`Iff.mpr` 是反方向。",
+      "source": "lib/Image.sokonanoda:49 `Set.mem_preimage`",
+      "kps": [
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.equiv-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "equipotent",
+        "cardinal"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "要把 `h : α ≈ β` 反过来得到 `β ≈ α`，`Type.Equiv.symm α β h` 需要的输入与返回类型是什么？",
+      "options": [
+        "`Type.Equiv α β → Type.Equiv α α`",
+        "`Type.Equiv α β → Type.Equiv α γ`",
+        "`Cardinal → Cardinal`",
+        "它接收并返回 `Type.Equiv α β → Type.Equiv β α`，把一对互逆函数对调。"
+      ],
+      "answer": 4,
+      "why": "等势是对称关系：`symm` 把 `h : Type.Equiv α β` 的互逆对 `f, g` 对调，得到 `Type.Equiv β α`。",
+      "source": "lib/Cardinal.sokonanoda:161 `Type.Equiv.symm`",
+      "kps": [
+        "kp.i3.equiv",
+        "kp.i3.equiv.algebra"
+      ]
+    },
+    {
+      "id": "I.3.equiv-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "equipotent",
+        "cardinal"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "由等式 `Cardinal.mk α = Cardinal.mk β` 能够推出哪个结论？",
+      "options": [
+        "`Type.Equiv α β`：只有等势的类型才会落在同一个基数里",
+        "可以推出 `α = β`，即两个类型逐字相同。",
+        "可以推出 `α` 与 `β` 都必须是有限类型。",
+        "什么也推不出：`Quot` 只是公理，商相等没有内容"
+      ],
+      "answer": 1,
+      "why": "`Cardinal.mk` 是 `Quot.mk`；`Cardinal.mk_inj` 用 `Quot.exact`（配三条等价律）把基数相等退回 `Type.Equiv α β`。",
+      "source": "lib/Cardinal.sokonanoda:215 `Cardinal.mk_inj`",
+      "kps": [
+        "kp.i3.equiv",
+        "kp.i3.cardinal"
+      ]
+    },
+    {
+      "id": "I.3.sinter-2",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "sinter",
+        "family",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.sunion-1"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "已知 `h : x ∈ Set.sInter α F`，要对任意族成员 `A` 得到 `x ∈ A`，应当先把 `h` 换成哪个命题？",
+      "options": [
+        "`∃ (A : Set α), A ∈ F ∧ x ∈ A`",
+        "`x ∈ F`",
+        "`∀ (A : Set α), A ∈ F → x ∈ A`",
+        "`∀ (A : Set α), x ∈ A`"
+      ],
+      "answer": 3,
+      "why": "广义交是逐成员全称：对族里每个 `A` 都要有 `x ∈ A`；带 `∃` 的那条是广义并。",
+      "source": "lib/SUnion.sokonanoda:43 `Set.mem_sInter_iff`",
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.sunion-2",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "sunion",
+        "family",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.sunion-1"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "已知 `h : x ∈ Set.sUnion F`，要取出某个 `A` 满足 `A ∈ F` 与 `x ∈ A`，用库里哪条消去子？",
+      "options": [
+        "`Set.mem_sUnion_intro α F A x hA hx`",
+        "用 `Set.mem_sUnion_elim α F x C h k`，其中 `k` 接收 `A` 及其两份证据。",
+        "`Set.mem_sInter_intro α F x h`",
+        "`Set.subset_sUnion α F A hA x hx`"
+      ],
+      "answer": 2,
+      "why": "`mem_sUnion_elim` 拆开广义并的存在量化；`mem_sUnion_intro` 与 `subset_sUnion` 都是反方向（往并里造成员）。",
+      "source": "lib/SUnion.sokonanoda:84 `Set.mem_sUnion_elim`",
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.ordinal-2",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "level": 3,
+      "tags": [
+        "ordinal",
+        "definition"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.ordinal-1"
+      ],
+      "prereq": [
+        "I.3.ordinal-1"
+      ],
+      "prompt": "`IsOrdinal α E x` 的第三个合取支是 `IsWellFounded α E`，这条良基性是否依赖于 `x`？",
+      "options": [
+        "依赖：每个序数 `x` 都自带一个不同的良基关系",
+        "这条良基性只对空序数 `IsZero` 才依赖。",
+        "依赖：定义里写的是 `IsWellFounded α E x`",
+        "不依赖：它谈的是整个论域上的关系 `E`，取用子 `ordinal_wellFounded` 的结论里根本没有 `x`"
+      ],
+      "answer": 4,
+      "why": "`IsOrdinal` 的三个合取支中前两支只谈 `x`，第三支 `IsWellFounded α E` 只谈 `E`（见 `ordinal_wellFounded` 的类型，结论不含 `x`）。",
+      "source": "lib/Ordinal.sokonanoda:50 `IsOrdinal` + 86 `ordinal_wellFounded`",
+      "kps": [
+        "kp.prep.ordinal"
+      ]
+    },
+    {
+      "id": "I.3.succ-2",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "level": 2,
+      "tags": [
+        "ordinal",
+        "definition"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.ordinal-1"
+      ],
+      "prereq": [
+        "I.3.ordinal-1"
+      ],
+      "prompt": "要证明 `y` 是 `x` 的后继 `IsSuccOf α E x y`，需要同时交出哪些条件？",
+      "options": [
+        "`IsOrdinal α E x ∧ ∀ (z : α), E z x ↔ (E z y ∨ z = y)`（x 是序数，且 x 的元素恰好是 y 的元素加上 y 自己）",
+        "`IsOrdinal α E y ∧ ∀ (z : α), E z y ↔ (E z x ∨ z = x)`",
+        "只需要交出 `E x y`，它表示 y 是 x 的元素。",
+        "`IsWellFounded α E ∧ E x y`"
+      ],
+      "answer": 1,
+      "why": "后继 `x = y ∪ {y}`：`x` 本身是序数，且 `z ∈ x` 恰好是「`z ∈ y` 或 `z = y`」；选项 2 把 `x`、`y` 写反了。",
+      "source": "lib/Ordinal.sokonanoda:55 `IsSuccOf`",
+      "kps": [
+        "kp.prep.ordinal"
+      ]
+    },
+    {
+      "id": "I.3.choice-3",
+      "chapter": "I.3",
+      "unit": "⑰ 选择公理",
+      "level": 3,
+      "tags": [
+        "choice",
+        "axiom"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.axiom-choice-1"
+      ],
+      "prereq": [
+        "I.3.axiom-choice-1"
+      ],
+      "prompt": "要用 `choice` 得到一个选择函数，它保证存在的那条存在式具体是什么？",
+      "options": [
+        "`∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y`",
+        "`∃ (x : α), x ∈ A`",
+        "`∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)`（得到选择函数）",
+        "`A = B`"
+      ],
+      "answer": 3,
+      "why": "`choice` 的形状是「前提 `∀ x ∈ A, ∃ y ∈ B, P x y` ⇒ 结论存在函数 `f`，在每个 `x` 上都选到合条件的 `y`」；选项 1 是把前提当结论。",
+      "source": "lib/Choice.sokonanoda:46 `choice`",
+      "kps": [
+        "kp.prep.choice"
+      ]
+    },
+    {
+      "id": "I.1.open-1",
+      "kind": "short",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "subset"
+      ],
+      "difficulty": -1.5,
+      "prompt": "用一句话解释：为什么证 `A ⊆ B` 只需要一个方向？",
+      "rubric": {
+        "minScore": 0.6,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "一条箭头",
+              "单方向",
+              "一个方向",
+              "只需要一个"
+            ],
+            "note": "⊆ 展开是一条箭头（∀x, x∈A→x∈B）"
+          },
+          {
+            "id": "p2",
+            "weight": 0.5,
+            "any": [
+              "∀",
+              "每个",
+              "任意",
+              "所有 x"
+            ],
+            "note": "它是对所有元素的全称结论"
+          }
+        ]
+      },
+      "reference": "`A ⊆ B` 展开是 `∀ (x : α), x ∈ A → x ∈ B`——一条箭头，只需单向推出。",
+      "why": "包含是单向箭头；相等才要两个方向（外延性）。",
+      "source": "lib/Set.sokonanoda:159",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.subset",
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.open-2",
+      "kind": "short",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "extensionality",
+        "sdiff"
+      ],
+      "difficulty": 0,
+      "prompt": "请用「外延性」解释：为什么证明 `A = B` 要逐点证两个方向，而证明 `A ⊆ B` 只需要一个方向？",
+      "rubric": {
+        "minScore": 0.6,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "外延",
+              "逐点",
+              "↔",
+              "互相包含",
+              "两个方向"
+            ],
+            "note": "相等靠外延性：逐点 ↔ / 互相包含"
+          },
+          {
+            "id": "p2",
+            "weight": 0.5,
+            "any": [
+              "⊆",
+              "包含",
+              "箭头",
+              "单向"
+            ],
+            "note": "⊆ 展开是一条箭头"
+          }
+        ]
+      },
+      "reference": "相等由外延性给出：∀x, x∈A ↔ x∈B（两个方向）；⊆ 展开只是 ∀x, x∈A → x∈B（一条箭头）。",
+      "why": "外延性是相等公理；⊆ 是单向箭头。",
+      "source": "lib/Set.sokonanoda:108 / :159",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.ext.use",
+        "kp.i1.ext"
+      ]
+    },
+    {
+      "id": "I.2.open-1",
+      "kind": "explain",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "relation-property",
+        "antisymmetric",
+        "order"
+      ],
+      "difficulty": 1.5,
+      "prompt": "为什么说“反对称”是“序”与“等价关系”的分水岭，能否各举一个例子说明？",
+      "rubric": {
+        "minScore": 0.7,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "反对称",
+              "a = b",
+              "相等"
+            ],
+            "note": "反对称：两个方向都有 ⇒ a = b"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "对称",
+              "等价",
+              "同余",
+              "后一类",
+              "不可互换"
+            ],
+            "note": "等价关系用对称（方向可反）"
+          },
+          {
+            "id": "p3",
+            "weight": 0.5,
+            "any": [
+              "≤",
+              "⊆",
+              "序",
+              "比较",
+              "大小"
+            ],
+            "note": "序的例子：≤ / ⊆"
+          },
+          {
+            "id": "p4",
+            "weight": 0.5,
+            "any": [
+              "=",
+              "同余",
+              "mod",
+              "同班",
+              "等价关系"
+            ],
+            "note": "等价的例子"
+          }
+        ]
+      },
+      "reference": "等价关系 = 自反+对称+传递（类内可互换、无先后）；偏序 = 自反+反对称+传递（有先后）。≤ 反对称；同余对称不反对称。",
+      "why": "把“对称”换成“反对称”，分类关系就变成比较关系。",
+      "source": "lib/Order.sokonanoda:57/61/76",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i2.rel.antisymm",
+        "kp.i2.order.partial",
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.2.open-2",
+      "kind": "short",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "strict-order"
+      ],
+      "difficulty": 0,
+      "prompt": "严格序为什么不需要“反对称”这一条？",
+      "rubric": {
+        "minScore": 0.6,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "非自反",
+              "自己和自己",
+              "a < a",
+              "不可比"
+            ],
+            "note": "非自反：∀a, ¬(r a a)"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "传递",
+              "推",
+              "矛盾"
+            ],
+            "note": "若有 a<b 且 b<a，传递得 a<a，与非自反矛盾"
+          }
+        ]
+      },
+      "reference": "严格序只有“非自反 + 传递”；若同时 a < b 与 b < a，传递性给 a < a，与非自反矛盾。",
+      "why": "非自反+传递已排除双向比较，所以不需要单独写反对称。",
+      "source": "lib/Order.sokonanoda:53/65/80",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i2.order.strict"
+      ]
+    },
+    {
+      "id": "I.3.open-1",
+      "kind": "explain",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "preimage"
+      ],
+      "difficulty": 1.5,
+      "prompt": "请解释 `y ∈ f '' A` 与 `x ∈ f ⁻¹' B` 的区别，并说明它们各自应当在什么时候用 `∃`、什么时候直接展开？",
+      "rubric": {
+        "minScore": 0.7,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "∃",
+              "存在",
+              "至少一个",
+              "有个 x"
+            ],
+            "note": "像：y ∈ f '' A ↔ ∃x, x∈A ∧ f x=y"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "f x ∈ B",
+              "直接",
+              "不用 ∃",
+              "f x"
+            ],
+            "note": "原像：x ∈ f ⁻¹' B ↔ f x ∈ B（无 ∃）"
+          },
+          {
+            "id": "p3",
+            "weight": 0.5,
+            "any": [
+              "构造",
+              "证人",
+              "给出 x",
+              "mem_image_intro"
+            ],
+            "note": "像的构造要交证人"
+          }
+        ]
+      },
+      "reference": "像：y ∈ f '' A ↔ ∃x, x∈A ∧ f x=y（要交证人）；原像：x ∈ f ⁻¹' B ↔ f x ∈ B（直接展开，无 ∃）。",
+      "why": "像天生是“存在”；原像是“把 f 作用一下看落点”。",
+      "source": "lib/Image.sokonanoda:32/37",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i3.image",
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.open-2",
+      "kind": "short",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "level": 2,
+      "tags": [
+        "equipotent"
+      ],
+      "difficulty": 0,
+      "prompt": "用一句话说明“两个集合等势（Type.Equiv）”是什么意思，需要交出什么数据？",
+      "rubric": {
+        "minScore": 0.6,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "互逆",
+              "双向",
+              "反函数",
+              "逆函数"
+            ],
+            "note": "存在一对互逆函数"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "f",
+              "g",
+              "数据",
+              "交出来",
+              "构造函数"
+            ],
+            "note": "数据版：要交出 f 和 g 以及两条逆律"
+          }
+        ]
+      },
+      "reference": "等势 = 存在 f : α → β 与 g : β → α，且 ∀a g(f a)=a、∀b f(g b)=b——一对互逆函数（数据版双射）。",
+      "why": "数据版等势：函数对由调用者交出来。",
+      "source": "lib/Cardinal.sokonanoda:39",
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i3.equiv"
+      ]
+    },
+    {
+      "id": "I.1.mem-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "level": 2,
+      "tags": [
+        "membership",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.mem-1",
+        "I.1.mem-2"
+      ],
+      "prereq": [
+        "I.1.mem-2"
+      ],
+      "prompt": "已知 `h : A a`（点名形式），要得到记法目标 `a ∈ A`，正确写法是？",
+      "options": [
+        "`Iff.mpr (demo_mem_def α a A) h`",
+        "`Iff.mp (demo_mem_def α a A) h`",
+        "`Iff.mpr (demo_subset_def α A A) h`",
+        "`Set.notMem_empty a`"
+      ],
+      "answer": 1,
+      "why": "`demo_mem_def` 的陈述是 `(a ∈ A) ↔ A a`；手上有右端 `A a`，要左端就用 `Iff.mpr`，`Iff.mp` 方向正好相反。",
+      "source": "units/I.1/unit01-sets-membership.sokonanoda:33",
+      "kps": [
+        "kp.i1.mem"
+      ]
+    },
+    {
+      "id": "I.1.subset-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "subset",
+        "antisymmetry",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.subset-1",
+        "I.1.subset-3"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "两个**不同**的集合能互相包含吗（`A ⊆ B` 且 `B ⊆ A`）？为什么？",
+      "options": [
+        "能，因为 `⊆` 是单向的，两个方向各说各话。",
+        "只有 `A = ∅` 时两个不同集合才能互相包含。",
+        "能，只要 `A` 与 `B` 的元素个数相同就可以。",
+        "不能：两条包含经 `Set.ext` 逐点合成 `↔`，立刻得到 `A = B`（`subset_antisymm`）"
+      ],
+      "answer": 4,
+      "why": "`subset_antisymm` 的形状就是 `A ⊆ B → B ⊆ A → A = B`：它是外延性的直接推论（逐点 `Iff.intro` 合成），所以互相包含不可能是两个不同集合。",
+      "source": "units/I.1/unit02-subsets-empty.sokonanoda:48",
+      "kps": [
+        "kp.i1.subset"
+      ]
+    },
+    {
+      "id": "I.1.subset-apply-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "subset",
+        "union",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.subset-2"
+      ],
+      "prereq": [
+        "I.1.subset-3"
+      ],
+      "prompt": "已知 `h1 : A ⊆ C`、`h2 : B ⊆ C`，要证 `A ∪ B ⊆ C`。intro 之后对 `x ∈ A ∪ B` 的正确处理是？",
+      "options": [
+        "直接把它交给 `h1` 就能收尾。",
+        "对 `A ∩ B` 用 `Set.mem_inter_iff` 拆开处理。",
+        "用 `Set.mem_union` 把它变成 `x ∈ A ∨ x ∈ B`，再 `Or.elim` 分两支分别交给 `h1` / `h2`",
+        "用 `Set.ext` 把目标换成集合相等。"
+      ],
+      "answer": 3,
+      "why": "`A ∪ B ⊆ C` 展开后得到 `x ∈ A ∪ B`；它是析取，要证同一个 `C`，必须两支各证一次——`h1 x hx` 与 `h2 x hx`（`union_subset_iff` 的构造方向）。",
+      "source": "units/I.1/unit66-subset-algebra.sokonanoda:87",
+      "kps": [
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.subset-apply-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "subset",
+        "inter",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.subset-2"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "要证明 `A ⊆ B ∩ C` 时，`subset_inter_iff` 说明它等价于哪个命题？",
+      "options": [
+        "`B ⊆ A ∧ C ⊆ A`",
+        "它等价于 `A ⊆ B ∧ A ⊆ C`，也就是两条包含都要证。",
+        "`A ⊆ B ∨ A ⊆ C`",
+        "`A ∩ B ⊆ C`"
+      ],
+      "answer": 2,
+      "why": "`subset_inter_iff` 的形状是 `(A ⊆ B ∩ C) ↔ (A ⊆ B ∧ A ⊆ C)`：进交等于两条包含都成立，不是析取。",
+      "source": "units/I.1/unit03-union-inter-powerset.sokonanoda:136",
+      "kps": [
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.subset-apply-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "subset",
+        "subset-chain",
+        "apply"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.subset-3"
+      ],
+      "prereq": [
+        "I.1.open-1"
+      ],
+      "prompt": "已知 `h1 : A ⊆ B`、`h2 : B ⊆ C`，要证 `A ⊆ C`。为什么不能写 `h2 h1`（把 `h1` 直接当实参）？",
+      "options": [
+        "`h1`、`h2` 的类型是包含命题（`Set.subset α …`），不是元素证据；要对每个 `x : α` 显式复合：先 `h1 x hx` 得 `x ∈ B`，再 `h2 x (…)`",
+        "可以写 `h2 h1`，因为 `⊆` 本身就是函数。",
+        "因为 `⊆` 是传递的，直接 `rfl` 就能证明。",
+        "因为 `h1` 只在 `A` 非空时才能使用。"
+      ],
+      "answer": 1,
+      "why": "`⊆` 展开是 `∀ x, x ∈ A → x ∈ B`，`h1` 还没吃元素。`subset_trans` 的证明就是显式复合 `fun (x : α) (hx : x ∈ A) => h2 x (h1 x hx)`。",
+      "source": "units/I.1/unit02-subsets-empty.sokonanoda:37",
+      "kps": [
+        "kp.i1.subset.apply"
+      ]
+    },
+    {
+      "id": "I.1.inter-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 2,
+      "tags": [
+        "inter",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.inter-1"
+      ],
+      "prereq": [
+        "I.1.inter-1"
+      ],
+      "prompt": "已知 `ha : x ∈ A`、`hb : x ∈ B`，要证 `x ∈ A ∩ B`，正确组合是？",
+      "options": [
+        "`Iff.mp (Set.mem_inter_iff x A B) ha`",
+        "`Or.inl ha`",
+        "`And.left hb`",
+        "`Iff.mpr (Set.mem_inter_iff x A B) (And.intro ha hb)`"
+      ],
+      "answer": 4,
+      "why": "交集成员是合取：`Set.mem_inter_iff` 把 `x ∈ A ∩ B` 换成 `x ∈ A ∧ x ∈ B`；两份证据用 `And.intro` 装起来，再用 `Iff.mpr` 折回目标。",
+      "source": "lib/Set.sokonanoda:201",
+      "kps": [
+        "kp.i1.inter"
+      ]
+    },
+    {
+      "id": "I.1.inter-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "inter",
+        "subset",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.inter-1"
+      ],
+      "prereq": [
+        "I.1.inter-1"
+      ],
+      "prompt": "为什么 `A ∩ B ⊆ A` 恒成立（不需要额外假设）？",
+      "options": [
+        "因为 `A ∩ B` 与 `A` 的元素个数相同，所以包含成立。",
+        "因为交集可交换，即 `A ∩ B = B ∩ A`。",
+        "展开后假设是 `x ∈ A ∩ B`；由 `Set.mem_inter_iff` 拆成 `x ∈ A ∧ x ∈ B`，`And.left` 拿到的恰好是要证的 `x ∈ A`",
+        "要先用 `Set.ext` 证出 `A ∩ B = A`。"
+      ],
+      "answer": 3,
+      "why": "`⊆` 只需一个方向；`Set.mem_inter_iff` 把「在交里」拆成两条证据，左支就是目标，所以 `And.left` 一步到位（`inter_subset_left`）。",
+      "source": "units/I.1/unit03-union-inter-powerset.sokonanoda:113",
+      "kps": [
+        "kp.i1.inter"
+      ]
+    },
+    {
+      "id": "I.1.union-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 2,
+      "tags": [
+        "union",
+        "subset",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.union-1"
+      ],
+      "prereq": [
+        "I.1.union-1"
+      ],
+      "prompt": "要证 `A ⊆ A ∪ B`：intro x hx 之后目标是 `x ∈ A ∪ B`。下一步正确写法是？",
+      "options": [
+        "`Iff.mpr (Set.mem_union x A B) (Or.inr hx)`",
+        "`Iff.mpr (Set.mem_union x A B) (Or.inl hx)`",
+        "`Iff.mp (Set.mem_union x A B) hx`",
+        "`And.intro hx hx`"
+      ],
+      "answer": 2,
+      "why": "`hx : x ∈ A` 落在析取的左支，所以用 `Or.inl`；`Or.inr` 要的是 `x ∈ B` 的证据。",
+      "source": "units/I.1/unit03-union-inter-powerset.sokonanoda:87",
+      "kps": [
+        "kp.i1.union"
+      ]
+    },
+    {
+      "id": "I.1.union-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "union",
+        "idempotent",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.union-1"
+      ],
+      "prereq": [
+        "I.1.union-3"
+      ],
+      "prompt": "为什么 `A ∪ A = A`（并的幂等律）成立？",
+      "options": [
+        "逐点看 `x ∈ A ∪ A ↔ x ∈ A ∨ x ∈ A`；两支给的证据相同，`Or.elim` 两支都交出 `x ∈ A`，反方向用 `Or.inl`——逐点 `↔` 成立",
+        "因为并集只保并、不保交，所以这个等式成立。",
+        "因为 `A ∪ A` 是 `A` 的超集，而超集必须相等",
+        "这个等式只有在 `A = ∅` 时才成立。"
+      ],
+      "answer": 1,
+      "why": "并是逐点析取：`x ∈ A ∨ x ∈ A` 与 `x ∈ A` 等值（两支同源）；再用外延性打包成集合等式（`union_inter_idem` 的并那一半）。",
+      "source": "units/I.1/unit04-extensionality-identities.sokonanoda:109",
+      "kps": [
+        "kp.i1.union"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 1,
+      "tags": [
+        "sdiff",
+        "library",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.sdiff-1"
+      ],
+      "prompt": "要把差集成员判定写成一条可双向使用的等价式，`Set.mem_sdiff a A B` 给出的那条等价式是什么？",
+      "options": [
+        "`a ∈ A \\ B ↔ (a ∈ A ∨ a ∈ B)`",
+        "`a ∈ A \\ B ↔ ¬ (a ∈ A ∧ a ∈ B)`",
+        "`a ∈ A \\ B ↔ (a ∈ B ∧ ¬ (a ∈ A))`",
+        "`a ∈ A \\ B ↔ (a ∈ A ∧ ¬ (a ∈ B))`"
+      ],
+      "answer": 4,
+      "why": "差集是「在 A 里且不在 B 里」：`Set.mem_sdiff` 把成员判定摊成 `a ∈ A ∧ ¬ (a ∈ B)`。",
+      "source": "lib/Set.sokonanoda:209",
+      "kps": [
+        "kp.i1.sdiff"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "sdiff",
+        "empty",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.sdiff-2"
+      ],
+      "prereq": [
+        "I.1.sdiff-1"
+      ],
+      "prompt": "为什么 `A \\ A = ∅`？",
+      "options": [
+        "因为 `A \\ A` 里最多只有一个元素。",
+        "因为差集可交换，即 `A \\ A = A \\ A`。",
+        "`x ∈ A \\ A` 展开是 `x ∈ A ∧ ¬ (x ∈ A)`：同一命题与其否定并存，用 `And.right` 与 `And.left` 直接得到 `False`；所以没有元素，再用外延/空集成员判定得等式",
+        "要先假设 `A` 是有限集合才能证明。"
+      ],
+      "answer": 3,
+      "why": "差集逐点是 `A x ∧ ¬ (A x)`，恒假 ⇒ `A \\ A` 没有成员；`demo_sdiff_self` 用 `Set.ext` 把这个逐点矛盾打包成 `A \\ A = ∅`。",
+      "source": "units/I.1/unit04-extensionality-identities.sokonanoda:65",
+      "kps": [
+        "kp.i1.sdiff"
+      ]
+    },
+    {
+      "id": "I.1.compl-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 1,
+      "tags": [
+        "compl",
+        "unfold",
+        "library"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.compl-1"
+      ],
+      "prereq": [
+        "I.1.compl-1"
+      ],
+      "prompt": "已知 `h : a ∈ Aᶜ`，要把它变成对 `a ∈ A` 的否定，`demo_mem_compl` 给出的等价式是什么？",
+      "options": [
+        "`a ∈ Aᶜ ↔ a ∈ A`",
+        "`a ∈ Aᶜ ↔ ¬ (a ∈ A)`",
+        "`a ∈ Aᶜ ↔ True`",
+        "`a ∈ Aᶜ ↔ a ∈ ∅`"
+      ],
+      "answer": 2,
+      "why": "补集定义是逐点否定：`Set.compl A = fun x => ¬ (A x)`，所以 `a ∈ Aᶜ` 就是 `¬ (a ∈ A)`。",
+      "source": "units/I.1/unit60-compl-algebra.sokonanoda:35",
+      "kps": [
+        "kp.i1.compl"
+      ]
+    },
+    {
+      "id": "I.1.compl-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "compl",
+        "inter",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.compl-1"
+      ],
+      "prereq": [
+        "I.1.compl-1"
+      ],
+      "prompt": "为什么 `Aᶜ ⊆ (A ∩ B)ᶜ`（De Morgan 的上半）成立？",
+      "options": [
+        "给 `h : x ∈ Aᶜ`（即 `¬ (x ∈ A)`）；若 `x ∈ A ∩ B`，由 `And.left` 得 `x ∈ A`，与 `h` 矛盾，所以 `x ∈ (A ∩ B)ᶜ`",
+        "因为 `A ⊆ A ∩ B`，取补之后包含方向就反过来了。",
+        "因为交集是可交换的运算。",
+        "要先用排中律判断 `x ∈ B`，否则就证不出来。"
+      ],
+      "answer": 1,
+      "why": "`x ∈ (A ∩ B)ᶜ` 即 `¬ (x ∈ A ∧ x ∈ B)`；只用左支 `And.left` 与 `¬ (x ∈ A)` 就能冲突——这条方向是构造性的，不需要排中律。",
+      "source": "units/I.1/unit60-compl-algebra.sokonanoda:80",
+      "kps": [
+        "kp.i1.compl"
+      ],
+      "math": "A^{\\complement}\\subseteq (A\\cap B)^{\\complement}",
+      "formula": "Aᶜ ⊆ (A ∩ B)ᶜ"
+    },
+    {
+      "id": "I.1.powerset-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 1,
+      "tags": [
+        "powerset",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.powerset-1"
+      ],
+      "prereq": [
+        "I.1.powerset-1"
+      ],
+      "prompt": "`𝒫 A`（即 `Set.powerset A`）本身的类型是 `Set (Set α)`。那么，`𝒫 A` 的一个**元素**（也就是 `B ∈ 𝒫 A` 里的那个 `B`）应当被看成什么类型的对象？",
+      "options": [
+        "类型 `α` 的元素：它和 `A` 里的成员是同一类东西。",
+        "类型 `Prop` 的命题：它是「`x` 属于 `A`」这样一条命题。",
+        "类型 `Set (Set α)`：它是幂集本身，而不是幂集的元素。",
+        "类型 `Set α`：它是 `A` 的一个子集（`B ⊆ A`）。"
+      ],
+      "answer": 4,
+      "why": "`Set.powerset A : Set (Set α)`，所以 `𝒫 A` 的**元素**是 `Set α` 的对象，即 `A` 的子集（这也正是 `B ∈ 𝒫 A ↔ B ⊆ A` 的内容）。`Set (Set α)` 是 `𝒫 A` **整体**的类型，不是它元素的类型。",
+      "source": "lib/Set.sokonanoda:99 · units/I.1/unit03-union-inter-powerset.sokonanoda:150",
+      "kps": [
+        "kp.i1.powerset"
+      ]
+    },
+    {
+      "id": "I.1.singleton-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 1,
+      "tags": [
+        "singleton",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.singleton-1"
+      ],
+      "prereq": [
+        "I.1.singleton-1"
+      ],
+      "prompt": "要证明 `x ∈ Set.singleton a`，把单点集展开成谓词后得到的是哪个函数？",
+      "options": [
+        "`fun (x : α) => a = x`",
+        "`fun (x : α) => True`",
+        "`fun (x : α) => x = a`",
+        "`fun (x : α) => x = x`"
+      ],
+      "answer": 3,
+      "why": "单点集是「等于 a 的那些 x」：`Set.singleton a = fun (x : α) => x = a`；`a = x` 虽然逻辑上等价，但不是定义体。",
+      "source": "lib/Set.sokonanoda:74",
+      "kps": [
+        "kp.i1.singleton"
+      ]
+    },
+    {
+      "id": "I.1.singleton-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "singleton",
+        "subset",
+        "iff"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.singleton-1",
+        "I.1.subset-1"
+      ],
+      "prereq": [
+        "I.1.singleton-2",
+        "I.1.subset-1"
+      ],
+      "prompt": "为什么 `{a} ⊆ A` 与 `a ∈ A` 等价？",
+      "options": [
+        "因为 `{a}` 只有一个元素，所以两个集合直接相等",
+        "→：`a ∈ {a}`（`Set.mem_singleton_self`），交给 `h : {a} ⊆ A` 即得；←：给 `x ∈ {a}`，用 `Set.mem_singleton_iff` 得 `x = a`，沿等式把 `a ∈ A` 搬成 `x ∈ A`",
+        "因为单点集是空集的一个特例。",
+        "只有 `A = {a}` 时这个等价才成立。"
+      ],
+      "answer": 2,
+      "why": "`singleton_subset_iff` 就是这条双向：包含方向拿 `a` 自己的成员证据喂 `h`，反方向用单点集的成员判定把任意 `x` 化归成 `a`。",
+      "source": "units/I.1/unit01-sets-membership.sokonanoda:81",
+      "kps": [
+        "kp.i1.singleton"
+      ]
+    },
+    {
+      "id": "I.1.univ-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 1,
+      "tags": [
+        "univ",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [
+        "I.1.mem-1"
+      ],
+      "prompt": "要证明 `x ∈ Set.univ` 不需要任何信息，因为展开后它是哪个恒真谓词？",
+      "options": [
+        "`fun (x : α) => True`",
+        "`fun (x : α) => False`",
+        "`fun (x : α) => x = x`",
+        "`fun (x : α) => ¬ (x = x)`"
+      ],
+      "answer": 1,
+      "why": "全集是恒真谓词：`Set.univ α := fun (x : α) => True`，所以 `a ∈ univ` 恒成立（`Set.mem_univ`）。注意 `univ` 没有记法，点名写 `@Set.univ α`。",
+      "source": "lib/Set.sokonanoda:72",
+      "kps": [
+        "kp.i1.univ"
+      ]
+    },
+    {
+      "id": "I.1.univ-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "univ",
+        "inter",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.inter-1"
+      ],
+      "prereq": [
+        "I.1.mem-1"
+      ],
+      "prompt": "为什么 `A ∩ univ = A`？",
+      "options": [
+        "因为 `univ` 是最大的集合，交上它当然变大",
+        "因为 `A ⊆ univ`，所以 `A ∩ univ = univ`。",
+        "这个等式只有在 `A` 非空时才成立。",
+        "逐点 `x ∈ A ∩ univ ↔ (x ∈ A ∧ x ∈ univ)`，而 `x ∈ univ` 恒真（`Set.mem_univ`），合取只剩 `x ∈ A`；再用外延性打包"
+      ],
+      "answer": 4,
+      "why": "`univ` 是恒真谓词：合取里的 `True` 支不提供任何信息；`inter_univ_eq` 就按这条逐点 `↔` 证。",
+      "source": "units/I.1/unit61-ext-packing.sokonanoda:120",
+      "kps": [
+        "kp.i1.univ"
+      ]
+    },
+    {
+      "id": "I.1.ext-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 1,
+      "tags": [
+        "extensionality",
+        "axiom"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.1.ext-2"
+      ],
+      "prereq": [
+        "I.1.ext-1"
+      ],
+      "prompt": "本课程没有把集合相等写成构造，而是把 `Set.ext` 直接当作出发点；因此它属于下面哪一类陈述？",
+      "options": [
+        "它是一条可以由 `rfl` 证明的定理。",
+        "它是一条由 `funext` 与 `propext` 推出的定理。",
+        "它是一条公理，与 `Rel.ext` 并列为卷 I 仅有的两条外延性公理。",
+        "它只是一条记法声明，并不产生命题。"
+      ],
+      "answer": 3,
+      "why": "本语言没有 `propext`/`funext`，所以集合相等只能就地取公理：`Set.ext : (∀ x, x ∈ A ↔ x ∈ B) → A = B`（lib/Set 注释明说与 `Rel.ext` 是仅有的两条外延性公理）。",
+      "source": "lib/Set.sokonanoda:108",
+      "kps": [
+        "kp.i1.ext"
+      ]
+    },
+    {
+      "id": "I.1.ext-use-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "extensionality",
+        "union",
+        "empty"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.ext-1"
+      ],
+      "prereq": [
+        "I.1.ext-1"
+      ],
+      "prompt": "要证明 `A ∪ ∅ = A` 时，应用 `Set.ext` 之后对固定 `x` 的逐点目标是什么？",
+      "options": [
+        "`x ∈ A ∪ ∅ → x ∈ A`，单向的箭头就足够了。",
+        "`x ∈ A ∪ ∅ ↔ x ∈ A`",
+        "`A ⊆ A ∪ ∅`",
+        "`A = A`"
+      ],
+      "answer": 2,
+      "why": "`Set.ext` 要的是逐点 `↔`：→ 支对 `Or` 分情况（`∅` 支用 `False.elim`），← 支用 `Or.inl`（`union_empty` 的证法）。",
+      "source": "units/I.1/unit04-extensionality-identities.sokonanoda:153",
+      "kps": [
+        "kp.i1.ext.use"
+      ]
+    },
+    {
+      "id": "I.1.subset-algebra-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "subset",
+        "transitive"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.subset-4"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "已知 `h1 : A ⊆ B`、`h2 : B ⊆ C`，要用库里哪条直接得到 `A ⊆ C`？",
+      "options": [
+        "`subset_trans α A B C h1 h2`",
+        "`subset_refl α A`",
+        "`subset_antisymm α A C h1 h2`",
+        "`union_subset_iff α A B C h1 h2`"
+      ],
+      "answer": 1,
+      "why": "`subset_trans` 就是包含的传递律，参数一次给全 `(α) (A) (B) (C) (h1) (h2)`；`subset_antisymm` 要的是两条反向包含。",
+      "source": "units/I.1/unit66-subset-algebra.sokonanoda:56",
+      "kps": [
+        "kp.i1.subset.algebra"
+      ]
+    },
+    {
+      "id": "I.1.subset-algebra-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "subset",
+        "inter",
+        "monotone"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.subset-4"
+      ],
+      "prereq": [
+        "I.1.inter-1"
+      ],
+      "prompt": "已知 `h1 : A ⊆ C` 与 `h2 : B ⊆ D`，要证明 `A ∩ B ⊆ C ∩ D` 时关键使用的引理是什么？",
+      "options": [
+        "对 `x ∈ A ∩ B` 用 `Or.elim` 分成两支处理。",
+        "直接用 `subset_trans` 把 `h1`、`h2` 串起来",
+        "先证出 `A = C` 与 `B = D` 这两个等式。",
+        "对 `x ∈ A ∩ B` 用 `And.left` / `And.right` 拆成两支，分别经 `h1`、`h2` 送到 `C`、`D`，再 `And.intro` 装回（`inter_subset_inter`）"
+      ],
+      "answer": 4,
+      "why": "交的成员是合取：拆开各走一条包含，再装回合取；`inter_subset_inter` 就是这条单调性。",
+      "source": "units/I.1/unit66-subset-algebra.sokonanoda:80",
+      "kps": [
+        "kp.i1.subset.algebra"
+      ]
+    },
+    {
+      "id": "I.1.subset-algebra-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "subset",
+        "union",
+        "elim"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.union-1"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "已知 `h1 : A ⊆ C`、`h2 : B ⊆ C`，要证 `A ∪ B ⊆ C`。为什么这里必须对来源分情况？",
+      "options": [
+        "因为 `Or.elim` 可以一次证完两支，不需要分情况",
+        "因为并集是可交换的运算。",
+        "因为 `A ∪ B ⊆ C` 等价于 `A ⊆ C ∧ B ⊆ C`（`union_subset_iff`），而 `x ∈ A ∪ B` 有两个来源，必须对两支各证一次同一个目标",
+        "因为 `⊆` 的展开本身就是一条析取。"
+      ],
+      "answer": 3,
+      "why": "泛性质：`A ∪ B ⊆ C ↔ A ⊆ C ∧ B ⊆ C`；有了两条包含，遇到 `x ∈ A ∨ x ∈ B` 就分两支分别喂给 `h1` / `h2`。",
+      "source": "units/I.1/unit03-union-inter-powerset.sokonanoda:101",
+      "kps": [
+        "kp.i1.subset.algebra"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-algebra-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "sdiff",
+        "compl",
+        "inter"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.compl-1"
+      ],
+      "prompt": "为什么 `A \\ B = A ∩ Bᶜ`（逐点链）？",
+      "options": [
+        "因为 `A \\ B ⊆ A` 且 `A ∩ Bᶜ ⊆ A`，两条包含方向一致",
+        "`x ∈ A \\ B ↔ x ∈ A ∧ ¬ (x ∈ B)`（`Set.mem_sdiff`），而 `¬ (x ∈ B) ↔ x ∈ Bᶜ`（补集展开），再套 `Set.mem_inter_iff` 就是 `x ∈ A ∩ Bᶜ`",
+        "因为差集可交换，即 `A \\ B = B \\ A`。",
+        "因为 `Bᶜ` 是空集，所以两边相等。"
+      ],
+      "answer": 2,
+      "why": "差集是「A 且非 B」，交是「A 且 Bᶜ」，两句话逐点相同：`mem_sdiff_compl` 就是这么证的。",
+      "source": "units/I.1/unit58-sdiff-algebra.sokonanoda:79",
+      "kps": [
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-algebra-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "compl",
+        "subset",
+        "contravariant"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.compl-1"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "已知 `h : A ⊆ B`，在用 intro 开始证明 `Bᶜ ⊆ Aᶜ` 之后，手里的假设与目标分别是什么？",
+      "options": [
+        "假设 `x ∈ Bᶜ`（即 `¬ (x ∈ B)`），目标 `x ∈ Aᶜ`（即 `¬ (x ∈ A)`）：给 `x ∈ A` 后经 `h` 得 `x ∈ B`，与假设矛盾",
+        "假设 `x ∈ B`，目标 `x ∈ A`：直接套 `h`",
+        "假设 `x ∈ Aᶜ`，目标 `x ∈ Bᶜ`：直接套 `h`",
+        "假设 `x ∈ A`，目标 `x ∈ B`：取补后方向不变"
+      ],
+      "answer": 1,
+      "why": "取补**反变**：`A ⊆ B` 推出 `Bᶜ ⊆ Aᶜ`（`compl_subset_of_subset`）；方向与 `h` 相反，靠矛盾证。",
+      "source": "units/I.1/unit60-compl-algebra.sokonanoda:74",
+      "kps": [
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-algebra-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "sdiff",
+        "union",
+        "demorgan"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.union-1"
+      ],
+      "prompt": "为什么 `A \\ (B ∪ C)` 与 `(A \\ B) ∩ (A \\ C)` 逐点等价？",
+      "options": [
+        "因为 `A \\ (B ∪ C)` 一定等于空集。",
+        "因为差集与并集可交换：`A \\ (B ∪ C) = (A \\ B) ∪ (A \\ C)`",
+        "要先用排中律，否则拆不开 `¬ (x ∈ B ∪ C)`",
+        "`¬ (x ∈ B ∪ C)` 拆成 `¬ (x ∈ B) ∧ ¬ (x ∈ C)`；于是左边展开为 `x ∈ A ∧ (¬B ∧ ¬C)`，右边展开为 `(x ∈ A ∧ ¬B) ∧ (x ∈ A ∧ ¬C)`——合取可以重复与重组，两者等价"
+      ],
+      "answer": 4,
+      "why": "德摩根 `¬ (P ∨ Q) ↔ ¬ P ∧ ¬ Q` 是构造性的（不需排中律）；两边都是「A 且不在 B 且不在 C」的不同括号写法（`mem_sdiff_union`）。",
+      "source": "units/I.1/unit58-sdiff-algebra.sokonanoda:94",
+      "kps": [
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-algebra-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "sdiff",
+        "subset",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.subset-1"
+      ],
+      "prompt": "为什么 `A \\ B ⊆ A \\ (B \\ C)`（「减得更多 ⇒ 留得更多」）？",
+      "options": [
+        "因为 `B \\ C ⊆ B`，所以 `A \\ (B \\ C) ⊆ A \\ B`，方向反过来也一样",
+        "因为差集两次会抵消：`A \\ (B \\ C) = A \\ B \\ C`",
+        "给 `x ∈ A \\ B`，得 `x ∈ A` 与 `¬ (x ∈ B)`；要证 `x ∉ B \\ C`，假设 `x ∈ B \\ C` 则 `And.left` 给出 `x ∈ B`，与上一条矛盾",
+        "因为 `C` 是空集，所以包含关系成立。"
+      ],
+      "answer": 3,
+      "why": "要证「x 不在 B \\ C 里」就假设它在：`B \\ C` 的成员必在 `B` 里，与 `A \\ B` 给出的「不在 B」冲突；`sdiff_sdiff_subset` 就是这条。",
+      "source": "units/I.1/unit59-sdiff-algebra2.sokonanoda:93",
+      "kps": [
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.sdiff-algebra-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "sdiff",
+        "empty",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.empty-1"
+      ],
+      "prompt": "证 `A \\ A = ∅` 时，逐点目标 `x ∈ A \\ A ↔ x ∈ ∅` 的**左到右**支为什么是 `False.elim`？",
+      "options": [
+        "因为 `∅` 是空集，所以左边也是空集。",
+        "因为左边展开是 `x ∈ A ∧ ¬ (x ∈ A)`：从合取里同时拿到命题与它的否定，已经矛盾，任何目标都能证",
+        "因为 `False.elim` 可以证明任何集合相等。",
+        "因为 `x ∈ A \\ A` 本身就等于 `True`。"
+      ],
+      "answer": 2,
+      "why": "`Set.mem_sdiff` 把假设拆成 `x ∈ A` 与 `¬ (x ∈ A)`；`And.right` 作用在 `And.left` 上就是 `False`，再用 `False.elim` 交出任意目标（`sdiff_self_eq_empty`）。",
+      "source": "units/I.1/unit61-ext-packing.sokonanoda:102",
+      "kps": [
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.classical-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "classical",
+        "logic",
+        "axiom"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.1.compl-1"
+      ],
+      "prompt": "需要靠分情况证明经典命题时，`Classical.em P` 交给你的命题是哪一个？",
+      "options": [
+        "它给出的命题是 `P ∨ ¬ P`，也就是排中律。",
+        "`¬ ¬ P`",
+        "`P → P`",
+        "`False`"
+      ],
+      "answer": 1,
+      "why": "`Classical.em : (p : Prop) → Or p (Not p)`：排中律以 prelude 公理的形式给出（`demo_em` 就是它的直接应用）。",
+      "source": "units/I.1/unit104-classical.sokonanoda:31",
+      "kps": [
+        "kp.i1.classical"
+      ]
+    },
+    {
+      "id": "I.1.classical-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "classical",
+        "sdiff",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.sdiff-1",
+        "I.1.subset-1"
+      ],
+      "prompt": "经典线开启后，下面哪条**之前证不出、现在能证**（见 `subset_of_sdiff_empty`）？",
+      "options": [
+        "`∅ ⊆ A`",
+        "`A ⊆ A`",
+        "`A ∩ B ⊆ A`",
+        "`A \\ B = ∅ → A ⊆ B`"
+      ],
+      "answer": 4,
+      "why": "它是经典等价：给 `x ∈ A` 要证 `x ∈ B`，否定支 `¬ (x ∈ B)` 会造出 `x ∈ A \\ B` 与空集矛盾——分情况要靠排中律/双重否定消去；`subset_of_sdiff_empty` 用 `Classical.byContradiction` 证。",
+      "source": "units/I.1/unit104-classical.sokonanoda:59",
+      "kps": [
+        "kp.i1.classical"
+      ]
+    },
+    {
+      "id": "I.1.classical-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "classical",
+        "logic",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.1.elim-1"
+      ],
+      "prompt": "在交出 `em_cases P Q h1 h2` 的两个前提 `h1 : P → Q` 与 `h2 : ¬ P → Q` 之后，结论是什么？",
+      "options": [
+        "`P`",
+        "`P ∨ ¬ P`",
+        "`Q`",
+        "`False`"
+      ],
+      "answer": 3,
+      "why": "`em_cases` 按排中律对 `P` 分情况，两支都到同一个 `Q`：它把「`Classical.em` + `Or.elim`」收成一条小引理。",
+      "source": "units/I.1/unit104-classical.sokonanoda:43",
+      "kps": [
+        "kp.i1.classical"
+      ]
+    },
+    {
+      "id": "I.1.logic-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "logic",
+        "demorgan",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.elim-1"
+      ],
+      "prereq": [
+        "I.1.elim-1"
+      ],
+      "prompt": "下面哪条是**构造性德摩根**（不需要排中律就能证）？",
+      "options": [
+        "`(P → Q) ↔ (¬ P ∨ Q)`",
+        "`¬ (P ∨ Q) ↔ (¬ P ∧ ¬ Q)`",
+        "`¬ ¬ P → P`",
+        "`P ∨ ¬ P`"
+      ],
+      "answer": 2,
+      "why": "`¬ (P ∨ Q)` 的两个方向都只是拆/造析取与合取，不用分情况决定 `P`；而 1、3、4 都需要排中律/双重否定消去（`not_or_iff` 是构造性德摩根）。",
+      "source": "units/I.1/unit105-classical-laws.sokonanoda:48",
+      "kps": [
+        "kp.i1.logic"
+      ]
+    },
+    {
+      "id": "I.1.logic-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "logic",
+        "classical",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.elim-1"
+      ],
+      "prereq": [
+        "I.1.pack-1"
+      ],
+      "prompt": "`¬ (P ∧ Q) → (¬ P ∨ ¬ Q)` 为什么需要排中律？",
+      "options": [
+        "因为它要决定 `P` 是否成立：若 `P` 成立，则由 `¬ (P ∧ Q)` 得 `¬ Q`；若 `P` 不成立，直接得 `¬ P`——两支靠 `Classical.em` 分开",
+        "因为 `¬ (P ∧ Q)` 等价于 `¬ P ∨ ¬ Q`，直接用 `Iff.mp` 即可",
+        "因为 `Or` 的交换律本身就需要排中律。",
+        "这个命题不需要排中律，因为它是构造性的。"
+      ],
+      "answer": 1,
+      "why": "前提只告诉你「P 与 Q 不同时成立」，并不告诉你哪一支失败；必须按 `P` 分情况（`not_and_imp` 的证明就是 `em_cases P (¬ P ∨ ¬ Q) …`）。",
+      "source": "units/I.1/unit105-classical-laws.sokonanoda:58",
+      "kps": [
+        "kp.i1.logic"
+      ]
+    },
+    {
+      "id": "I.1.mix-1",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "extensionality",
+        "sdiff",
+        "empty"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.sdiff-1",
+        "I.1.ext-1"
+      ],
+      "prereq": [
+        "I.1.sdiff-1",
+        "I.1.ext-1"
+      ],
+      "prompt": "要证 `A \\ ∅ = A`：外延之后逐点目标是 `x ∈ A \\ ∅ ↔ x ∈ A`。左到右支靠什么拆？右到左支还要补哪条否定？",
+      "options": [
+        "左到右用 `And.right`；右到左交 `x ∈ A` 与 `x ∈ ∅`",
+        "两个方向都直接用 `Or.elim` 处理。",
+        "左到右用 `Set.ext`；右到左用 `Or.inl`",
+        "左到右用 `And.left`；右到左交 `x ∈ A` 与 `¬ (x ∈ ∅)`——后者由 `Set.mem_empty_iff_false` 得 `False`，`False` 前可证任意否定"
+      ],
+      "answer": 4,
+      "why": "差集到 `A` 只取左支；而造差集需要「在 A 且不在 ∅」——`x ∈ ∅` 展开为 `False`，用 `fun h => False.elim h` 补出否定。`sdiff_empty_eq` 就是这条。",
+      "source": "units/I.1/unit61-ext-packing.sokonanoda:92",
+      "kps": [
+        "kp.i1.ext.use",
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.1.mix-2",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "powerset",
+        "inter"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.powerset-1",
+        "I.1.inter-1"
+      ],
+      "prereq": [
+        "I.1.inter-1",
+        "I.1.powerset-1"
+      ],
+      "prompt": "`A ∩ B ∈ 𝒫 A` 成立吗？理由是什么？",
+      "options": [
+        "不成立，因为 `𝒫 A` 里只装 `A` 本身。",
+        "它成立当且仅当 `B ⊆ A`，否则不成立。",
+        "成立：由 `X ∈ 𝒫 A ↔ X ⊆ A`，要证的就是 `A ∩ B ⊆ A`，这正是交的左投影（`inter_subset_left`）。",
+        "成立，因为此时有 `A ∩ B = A`。"
+      ],
+      "answer": 3,
+      "why": "`Set.mem_powerset_iff A (A ∩ B)` 把目标换成 `A ∩ B ⊆ A`，这条由 `inter_subset_left` 直接给出，不需要 `B ⊆ A`。注意幂集的成员判据对任意 `X` 都成立：`X ∈ 𝒫 A ↔ X ⊆ A`。",
+      "source": "lib/Set.sokonanoda:217 + units/I.1/unit03-union-inter-powerset.sokonanoda:113",
+      "kps": [
+        "kp.i1.powerset",
+        "kp.i1.inter"
+      ]
+    },
+    {
+      "id": "I.1.mix-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "classical",
+        "logic",
+        "iff"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.elim-1"
+      ],
+      "prereq": [
+        "I.1.elim-1"
+      ],
+      "prompt": "`(P → Q) ↔ (¬ P ∨ Q)` 的从左到右方向为什么必须请出排中律 `Classical.em`？",
+      "options": [
+        "因为可以从 `h : P → Q` 直接构造出 `¬ P ∨ Q`，排中律只是让证明更短。",
+        "因为要决定用哪个构造子：由 `Classical.em P` 得到 `P ∨ ¬ P`，`P` 成立时走 `Or.inr (h hp)`，`P` 不成立时走 `Or.inl hnp`。",
+        "因为 `∨` 的交换律本身要靠排中律才成立。",
+        "因为 `P → Q` 与 `¬ P ∨ Q` 展开后是同一个谓词，`rfl` 就能过。"
+      ],
+      "answer": 2,
+      "why": "`¬ P ∨ Q` 的两个构造子必须**选一个**：要么手里有 `P`，要么手里有 `¬ P`。只有 `h : P → Q` 时两条都拿不到，所以这一步在构造主义下证不出来（它等价于排中律的一个实例）。`Classical.em P : P ∨ ¬ P` 正好补上这个「决定」，再 `Or.elim` 分两种情况收尾。注意 `P → Q` 与 `¬ P ∨ Q` 不是同一个谓词，`rfl` 过不了。",
+      "source": "units/I.1/unit104-classical.sokonanoda:31 · prelude/Prelude.sokonanoda:32",
+      "kps": [
+        "kp.i1.classical",
+        "kp.i1.logic"
+      ]
+    },
+    {
+      "id": "I.1.mix-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "level": 3,
+      "tags": [
+        "union",
+        "sdiff",
+        "subset"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.union-1",
+        "I.1.sdiff-1"
+      ],
+      "prereq": [
+        "I.1.union-1",
+        "I.1.sdiff-1"
+      ],
+      "prompt": "为什么 `(A ∪ B) \\ B ⊆ A`（而 `= A` 是**假**的）？",
+      "options": [
+        "给 `x ∈ (A ∪ B) \\ B`：得 `x ∈ A ∪ B` 与 `¬ (x ∈ B)`；对并分两支——`x ∈ B` 那支与否定冲突（`False.elim`），只剩 `x ∈ A`。等号不成立：取 `A = B = univ`（论域取 `Nat`）时左边 `∅`、右边 `univ`",
+        "因为差集对并分配：`(A ∪ B) \\ B = (A \\ B) ∪ (B \\ B) = A`",
+        "因为 `B \\ B = B`，所以两个集合相等。",
+        "因为 `A` 与 `B` 的并再减掉 `B` 不会变小。"
+      ],
+      "answer": 1,
+      "why": "`mem_union_sdiff` 的证明就是 `Or.elim` + 与 `¬ (x ∈ B)` 冲突；等号的反例由 `union_sdiff_univ_ne_univ`（`A = B = univ`，论域 `Nat`）给出——A 与 B 相交时 A 的元素被一起抹掉。",
+      "source": "units/I.1/unit58-sdiff-algebra.sokonanoda:124",
+      "kps": [
+        "kp.i1.union",
+        "kp.i1.sdiff"
+      ]
+    },
+    {
+      "id": "I.1.mix-5",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 2,
+      "tags": [
+        "subset",
+        "inter",
+        "extensionality"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.subset-3"
+      ],
+      "prereq": [
+        "I.1.subset-1",
+        "I.1.ext-1"
+      ],
+      "prompt": "已知 `h : A ⊆ B`，要证明 `A ∩ B = A` 时，外延后逐点目标 `x ∈ A ∩ B ↔ x ∈ A` 的两个方向各应当交出什么证据？",
+      "options": [
+        "→ 用 `And.right`；← 交 `hx` 与 `hx`",
+        "从左到右应当用 `h`，从右到左应当用 `Or.inl`。",
+        "两个方向都直接 `rfl` 就够了。",
+        "→ 用 `And.left`；← 交 `hx : x ∈ A` 与 `h x hx : x ∈ B`（`And.intro`）"
+      ],
+      "answer": 4,
+      "why": "`A ∩ B = A` 的逐点：→ 交的成员取左支就够了；← 要造交，需要 `x ∈ A` 与 `x ∈ B`，后者正由 `h` 把 `x ∈ A` 送一程得到（`inter_eq_left_of_subset`）。",
+      "source": "units/I.1/unit62-ext-consequences.sokonanoda:90",
+      "kps": [
+        "kp.i1.subset.apply",
+        "kp.i1.ext.use"
+      ]
+    },
+    {
+      "id": "I.1.mix-6",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "level": 3,
+      "tags": [
+        "singleton",
+        "empty",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.1.singleton-1",
+        "I.1.empty-1"
+      ],
+      "prereq": [
+        "I.1.singleton-1",
+        "I.1.empty-1"
+      ],
+      "prompt": "为什么 `{a} ≠ ∅`？",
+      "options": [
+        "因为 `∅` 不是一个集合。",
+        "因为单点集里有两个元素。",
+        "假设 `{a} = ∅`，把 `a ∈ {a}`（`Set.mem_singleton_self`）沿等式搬到 `a ∈ ∅`，与 `Set.notMem_empty a` 矛盾；所以不相等",
+        "因为 `a = a`，所以 `{a}` 一定有元素。"
+      ],
+      "answer": 3,
+      "why": "「不相等」展开是「相等 → False」：等式搬运把单点集的成员证据送到空集，而空集没有成员——`singleton_ne_empty` 的证明正是这条。",
+      "source": "units/I.1/unit02-subsets-empty.sokonanoda:117",
+      "kps": [
+        "kp.i1.singleton",
+        "kp.i1.empty"
+      ]
+    },
+    {
+      "id": "I.1.mix-7",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "compl",
+        "union",
+        "subset"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.compl-1"
+      ],
+      "prereq": [
+        "I.1.compl-1",
+        "I.1.union-1"
+      ],
+      "prompt": "要证明 `(A ∪ B)ᶜ ⊆ Aᶜ`，在用 intro 从 `x ∈ (A ∪ B)ᶜ` 得到 `¬ (x ∈ A ∪ B)` 之后，若又给 `hx : x ∈ A`，应当怎么收尾？",
+      "options": [
+        "直接 `exact hx` 就能把目标证完。",
+        "`Or.inl hx` 给出 `x ∈ A ∪ B`，与 `¬ (x ∈ A ∪ B)` 冲突，再用 `False.elim` / 把矛盾交给否定目标",
+        "用 `Set.mem_union` 反向：`Iff.mpr` 把 `x ∈ A ∪ B` 变成 `x ∈ A ∨ x ∈ B`",
+        "用 `And.intro hx hx` 把两份证据装起来。"
+      ],
+      "answer": 2,
+      "why": "目标 `x ∈ Aᶜ` 是 `¬ (x ∈ A)`：给它 `hx`，`Or.inl hx` 造出 `x ∈ A ∪ B`，与手里的否定冲突（`inter_compl_subset` 的证明就是造 `Or.inl` 再打）。",
+      "source": "units/I.1/unit60-compl-algebra.sokonanoda:86",
+      "kps": [
+        "kp.i1.compl",
+        "kp.i1.sdiff.algebra"
+      ]
+    },
+    {
+      "id": "I.2.fun-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 1,
+      "tags": [
+        "function",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "已知 `f : α → β` 与 `g : β → γ`，表达式 `Function.comp g f`（即 `g ∘ f`）的类型是什么？",
+      "options": [
+        "`α → γ`",
+        "`β → γ`",
+        "`α → β`",
+        "`Prop`"
+      ],
+      "answer": 1,
+      "why": "复合先作用 `f : α → β` 再作用 `g : β → γ`，两头合起来是 `α → γ`（`def Function.comp` 的签名就是这个）。",
+      "source": "lib/Fun.sokonanoda:64",
+      "kps": [
+        "kp.i2.fun"
+      ]
+    },
+    {
+      "id": "I.2.fun-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "single-valued"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.comp-1"
+      ],
+      "prompt": "单元⑦ 的演示 `demo_graph_single_valued` 表明，把函数 `f : α → β` 看成关系时它满足哪条性质？",
+      "options": [
+        "对称性：`f x = y` 推出 `f y = x`",
+        "传递性：`f x = y` 与 `f y = z` 推出 `f x = z`",
+        "自反性：`f x = x` 对每个 `x` 都成立。",
+        "单值性：`f x = y` 与 `f x = z` 推出 `y = z`"
+      ],
+      "answer": 4,
+      "why": "同一个输入只有一个输出：两条 `f x = …` 的等式经 `Eq.symm`/`Eq.trans` 直接接出 `y = z`（演示的证明就是 `Eq.trans (Eq.symm hxy) hxz`）。",
+      "source": "units/I.2/unit07-functions.sokonanoda:81",
+      "kps": [
+        "kp.i2.fun"
+      ]
+    },
+    {
+      "id": "I.2.fun-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "rel",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.comp-1"
+      ],
+      "prompt": "本课程把函数写成**类型** `α → β` 而不是「满足单值性的序对集合」，这样做的直接好处是什么？",
+      "options": [
+        "可以直接用 `funext` 证明两个函数相等。",
+        "函数从此不能再与关系互相转换。",
+        "类型层直接保证全域与单值：每个 `x : α` 恰好有一个 `f x : β`，复合与应用都是语言原语",
+        "`α → β` 与 `Rel α β` 会变成同一个类型。"
+      ],
+      "answer": 3,
+      "why": "`Rel α β` 是任意二元谓词（`A → B → Prop`），对全域/单值都没有约束；写成类型 `α → β` 时这两条由类型系统直接给出，不需要额外条件。",
+      "source": "lib/Rel.sokonanoda:43 + units/I.2/unit07-functions.sokonanoda:81",
+      "kps": [
+        "kp.i2.fun"
+      ]
+    },
+    {
+      "id": "I.2.inv-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "inverse",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.inv-2"
+      ],
+      "prereq": [
+        "I.2.inv-2"
+      ],
+      "prompt": "已知 `hinv : Function.RightInverse α β g f`，要对具体 `y` 得到 `f (g y) = y`，它需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (x : α), g (f x) = x`",
+        "`∀ (y : β), f (g y) = y`",
+        "`∀ (x : α), f (g x) = x`",
+        "`f = g`"
+      ],
+      "answer": 2,
+      "why": "右逆 `g : β → α` 先作用、`f` 后收尾：`f (g y) = y`；`g (f x) = x` 是左逆那一半（对照 `I.2.inv-2`）。",
+      "source": "lib/Fun.sokonanoda:96",
+      "kps": [
+        "kp.i2.fun.inverse"
+      ]
+    },
+    {
+      "id": "I.2.inv-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "inverse",
+        "injective"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.inv-2"
+      ],
+      "prereq": [
+        "I.2.inv-2"
+      ],
+      "prompt": "为什么「左逆 ⇒ 单射」（`leftInverse_injective`）？",
+      "options": [
+        "设 `h : ∀ (x : α), g (f x) = x`；若 `f x = f y`，把等式送进 `g` 得 `g (f x) = g (f y)`，再用 `h` 把两端算回 `x`、`y`",
+        "因为左逆 `g` 本身就是一个单射。",
+        "因为 `f` 的像里元素互不相同。",
+        "要先用选择公理从 `g` 里取出原像。"
+      ],
+      "answer": 1,
+      "why": "单射要 `f x = f y → x = y`：`congrArg g` 把等式抬到 `g` 层，左逆律 `g (f x) = x`、`g (f y) = y` 再把两端算回去，`Eq.trans`/`Eq.symm` 串联。",
+      "source": "units/I.2/unit07-functions.sokonanoda:137",
+      "kps": [
+        "kp.i2.fun.inverse"
+      ]
+    },
+    {
+      "id": "I.2.logic-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "logic",
+        "exists",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.2.surj-2"
+      ],
+      "prompt": "已知 `w : α` 与 `hw : p w`，要证明 `∃ (x : α), p x` 时应当选用下面哪个表达式？",
+      "options": [
+        "`Exists.elim w hw`",
+        "`And.intro w hw`",
+        "`Or.inl hw`",
+        "`Exists.intro w hw`"
+      ],
+      "answer": 4,
+      "why": "`∃` 的构造子是 `Exists.intro`：交一个证人 `w` 与一份「`p w` 成立」的证据；`Exists.elim` 是反方向（消去）。",
+      "source": "lib/Exists.sokonanoda:89",
+      "kps": [
+        "kp.i2.logic"
+      ]
+    },
+    {
+      "id": "I.2.logic-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "logic",
+        "exists",
+        "elim"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.surj-2"
+      ],
+      "prereq": [
+        "I.2.surj-2"
+      ],
+      "prompt": "已知 `h : ∃ (x : α), p x`，要证 `Q`，正确做法是？",
+      "options": [
+        "用 `Exists.intro` 交出一个证人即可。",
+        "直接 `exact h`，因为 `h` 的类型就是 `Q`",
+        "用 `Exists.elim h (fun (x : α) (hx : p x) => …)`：对**任意**见证 `x` 与它的证据都要能证出 `Q`",
+        "对 `h` 用 `And.left` 把 `x` 取出来。"
+      ],
+      "answer": 3,
+      "why": "消去 `∃` 要证「结论与证人无关」：`Exists.elim` 把证人 `x` 与 `hx : p x` 交给你的函数，函数返回的 `Q` 不能依赖 `x`（本语言 `Exists.rec` 的 motive 只在 `Prop`）。",
+      "source": "lib/Exists.sokonanoda:95",
+      "kps": [
+        "kp.i2.logic"
+      ]
+    },
+    {
+      "id": "I.2.antisymm-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "relation-property",
+        "antisymmetric",
+        "symmetric"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.antisymm-1"
+      ],
+      "prereq": [
+        "I.2.antisymm-1"
+      ],
+      "prompt": "「对称」与「反对称」这两种关系性质的区别是什么？",
+      "options": [
+        "对称说 `r a b` 与 `r b a` 同时成立，反对称说两者都不成立",
+        "对称把 `r a b` 变成 `r b a`；反对称则把「两个方向都成立」压成 `a = b`",
+        "对称只对空关系成立，而反对称只对全关系成立。",
+        "两者其实是同一性质的两个不同名字。"
+      ],
+      "answer": 2,
+      "why": "`Symmetric` 是 `r a b → r b a`（方向可反）；`Antisymmetric` 是 `r a b → r b a → a = b`（双向都排得上就只能是同一个元素）。",
+      "source": "lib/Order.sokonanoda:57 + 61",
+      "kps": [
+        "kp.i2.rel.antisymm"
+      ],
+      "math": "\\text{Symmetric}:\\ r\\,a\\,b\\to r\\,b\\,a \\qquad \\text{Antisymmetric}:\\ r\\,a\\,b\\to r\\,b\\,a\\to a=b",
+      "formula": "对称：r a b ⟹ r b a　｜　反对称：r a b ⟹ r b a ⟹ a = b"
+    },
+    {
+      "id": "I.2.antisymm-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "antisymmetric",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.antisymm-1"
+      ],
+      "prereq": [
+        "I.2.antisymm-1"
+      ],
+      "prompt": "已知 `h : Antisymmetric α r`、`hab : r a b` 与 `hba : r b a`，要得到 `a = b` 时应当选用下面哪个表达式？",
+      "options": [
+        "`h a b hab hba`",
+        "`h a b hba hab`",
+        "`h hab hba`",
+        "`hba`"
+      ],
+      "answer": 1,
+      "why": "`Antisymmetric α r` 展开是 `∀ a b, r a b → r b a → a = b`：先喂两个元素，再按顺序喂两个方向的证据。",
+      "source": "lib/Order.sokonanoda:61",
+      "kps": [
+        "kp.i2.rel.antisymm"
+      ]
+    },
+    {
+      "id": "I.2.rel-comp-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "rel",
+        "compose",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "已知 `h : (r • s) a c`，要把复合拆成「存在一个中间点」，`Rel.comp r s` 的定义体展开后是哪个函数？",
+      "options": [
+        "`fun (a : A) (c : C) => ∀ (b : B), r a b ∧ s b c`",
+        "`fun (a : A) (c : C) => r a c ∧ s a c`",
+        "`fun (b : B) (c : C) => r b c`",
+        "`fun (a : A) (c : C) => ∃ (b : B), r a b ∧ s b c`"
+      ],
+      "answer": 4,
+      "why": "复合 = 存在一个中间点 `b`，先走 `r` 再走 `s`（与 Mathlib `Relation.comp` 同款）。",
+      "source": "lib/Rel.sokonanoda:64",
+      "kps": [
+        "kp.i2.rel.comp"
+      ]
+    },
+    {
+      "id": "I.2.rel-comp-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "rel",
+        "compose",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "已知 `h : (r • s) a c`，使用 `Rel.comp_apply` 之后能够得到哪个命题？",
+      "options": [
+        "`∃ (b : B), s a b ∧ r b c`",
+        "`r a c ∨ s a c`",
+        "`∃ (b : B), r a b ∧ s b c`",
+        "`∀ (b : B), r a b`"
+      ],
+      "answer": 3,
+      "why": "`Rel.comp_apply r s a c` 的类型是 `(r • s) a c ↔ ∃ b, r a b ∧ s b c`；`Iff.mp` 一发就把复合拆成存在式。",
+      "source": "lib/Rel.sokonanoda:87",
+      "kps": [
+        "kp.i2.rel.comp"
+      ]
+    },
+    {
+      "id": "I.2.rel-comp-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "rel",
+        "compose",
+        "extensionality"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "关系复合的结合律 `r • (s • t) = (r • s) • t` 为什么不能只靠 `rfl`，而要用 `Rel.ext`？",
+      "options": [
+        "因为 `rfl` 只能证 `=` 的自反性，对任何等式都不够",
+        "两边展开后都是「∃ 两个证人」但**证人的出现顺序**不同（先 b 后 c vs 先 c 后 b），不是同一个 λ；只能逐对 `(a, d)` 证 `↔`，再用 `Rel.ext` 升成关系相等",
+        "因为复合不可结合，这个命题其实是假的。",
+        "因为 `Rel.ext` 能直接算出 `∃` 的证人。"
+      ],
+      "answer": 2,
+      "why": "`(r • (s • t)) a d` 是 `∃ b, r a b ∧ (∃ c, s b c ∧ t c d)`，右边是 `∃ c, (∃ b, r a b ∧ s b c) ∧ t c d`；交换证人顺序不是定义等式，要逐对 `↔` + `Rel.ext`。",
+      "source": "lib/Rel.sokonanoda:78 + units/I.2/unit06-relations.sokonanoda:98",
+      "kps": [
+        "kp.i2.rel.comp"
+      ]
+    },
+    {
+      "id": "I.2.fun-boundary-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "inverse",
+        "unfold"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.inv-2"
+      ],
+      "prereq": [
+        "I.2.inv-2"
+      ],
+      "prompt": "本课把「互逆」写成数据版定义：`Function.Inverse α β f g` 展开后是什么形式的合取？",
+      "options": [
+        "`Function.LeftInverse α β g f ∧ Function.RightInverse α β g f`",
+        "`Function.LeftInverse α β g f ∨ Function.RightInverse α β g f`",
+        "`Function.Injective α β f`",
+        "`f = g`"
+      ],
+      "answer": 1,
+      "why": "双边逆 = 左逆 ∧ 右逆；注意 `Inverse` 是**数据版**：`g` 是参数，不是被存在量词选出来的。",
+      "source": "lib/Fun.sokonanoda:101",
+      "kps": [
+        "kp.i2.fun.inverse"
+      ]
+    },
+    {
+      "id": "I.2.comp-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "compose",
+        "injective"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.comp-2"
+      ],
+      "prereq": [
+        "I.2.comp-2"
+      ],
+      "prompt": "已知 `hf : Injective f` 与 `hg : Injective g`，要证明 `g ∘ f` 单射时关键步骤是什么？",
+      "options": [
+        "先对等式两边作用 `f`，再用 `hg` 处理。",
+        "对 `x` 与 `y` 分别使用 `hf`。",
+        "用 `hg` 直接得到 `x = y`。",
+        "先用 `hg` 把 `g (f x) = g (f y)` 拉回 `f x = f y`，再用 `hf` 拉回 `x = y`"
+      ],
+      "answer": 4,
+      "why": "复合的等式是 `g (f x) = g (f y)`：外层 `g` 的单射先剥一层得到 `f x = f y`，内层 `f` 的单射再剥一层（`injective_comp` 的证明就是 `hf x y (hg (f x) (f y) h)`）。",
+      "source": "units/I.2/unit07-functions.sokonanoda:115",
+      "kps": [
+        "kp.i2.fun.comp"
+      ]
+    },
+    {
+      "id": "I.2.comp-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "compose",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.comp-2"
+      ],
+      "prompt": "为什么 `h ∘ (g ∘ f) = (h ∘ g) ∘ f` 用 `Eq.refl` 就能证？",
+      "options": [
+        "因为函数相等总是定义上的等式。",
+        "因为 `f`、`g`、`h` 都是单射。",
+        "复合只是 λ 的包装；两边按定义展开（delta/beta）后是同一个项 `fun (x : α) => h (g (f x))`，不需要 `funext`",
+        "因为 `funext` 在本课中可用。"
+      ],
+      "answer": 3,
+      "why": "`Function.comp` 的定义体是 `fun x => g (f x)`，所以三重复合的两边都归约到同一个 λ；本课没有 `funext`，函数等式只能这样靠定义展开证（`comp_assoc` 的证明就是 `@Eq.refl`）。",
+      "source": "units/I.2/unit07-functions.sokonanoda:107",
+      "kps": [
+        "kp.i2.fun.comp"
+      ]
+    },
+    {
+      "id": "I.2.linear-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "order",
+        "linear-order",
+        "total"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.linear-1"
+      ],
+      "prereq": [
+        "I.2.linear-1"
+      ],
+      "prompt": "要在全序里比较任意两个元素，`Total α r` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a : α), r a a`",
+        "`∀ (a b : α), r a b ∨ r b a`",
+        "`∀ (a b : α), r a b → r b a`",
+        "`∃ (a b : α), r a b`"
+      ],
+      "answer": 2,
+      "why": "全 = 任意两个元素至少有一个方向可比（注意它**不含** `a = b` 那一支：偏序的自反已经保证自比）。",
+      "source": "lib/Order.sokonanoda:70",
+      "kps": [
+        "kp.i2.order.linear"
+      ]
+    },
+    {
+      "id": "I.2.linear-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "order",
+        "linear-order",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.linear-1"
+      ],
+      "prereq": [
+        "I.2.linear-1"
+      ],
+      "prompt": "为什么全序的「全」性质不需要写成 `r a b ∨ r b a ∨ a = b`？",
+      "options": [
+        "偏序自带自反，`a = b` 时 `r a a` 已成立，所以 `a = b` 那一支是多余的。",
+        "因为 `a = b` 永远不成立。",
+        "因为 `∨` 只能容纳两支。",
+        "因为反对称会把 `a = b` 变成 `a ≠ b`。"
+      ],
+      "answer": 1,
+      "why": "`IsLinearOrder = IsPartialOrder ∧ Total`，偏序含 `Reflexive`；`a = b` 时把 `r a a` 代进去就落在 `r a b`/`r b a` 上。",
+      "source": "lib/Order.sokonanoda:70 + 84",
+      "kps": [
+        "kp.i2.order.linear"
+      ]
+    },
+    {
+      "id": "I.2.partial-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "order",
+        "partial-order"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.partial-1"
+      ],
+      "prereq": [
+        "I.2.partial-1"
+      ],
+      "prompt": "`⊆` 是本课程里哪一个序类的样板？",
+      "options": [
+        "它是严格序的样板，而严格序要求非自反与传递。",
+        "它是全序的样板，而全序要求偏序再加上全。",
+        "它是等价关系的样板，而等价关系要求自反、对称与传递。",
+        "它是偏序的样板，而偏序要求自反、反对称与传递。"
+      ],
+      "answer": 4,
+      "why": "`⊆` 自反、反对称（互相包含 ⇒ 相等）、传递，正是偏序的样板；`<` 才是严格序的样板。",
+      "source": "lib/Order.sokonanoda:76",
+      "kps": [
+        "kp.i2.order.partial"
+      ]
+    },
+    {
+      "id": "I.2.strict-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "order",
+        "strict-order",
+        "irreflexive"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.strict-1"
+      ],
+      "prereq": [
+        "I.2.strict-1"
+      ],
+      "prompt": "要排除 `r a a` 成立，`Irreflexive α r` 需要被看成哪个全称命题？",
+      "options": [
+        "`∀ (a : α), r a a`",
+        "`∀ (a b : α), r a b → r b a`",
+        "`∀ (a : α), ¬ (r a a)`",
+        "`∀ (a b : α), r a b → r b a → a = b`"
+      ],
+      "answer": 3,
+      "why": "非自反 = 没有元素与自己有关系（`<` 有、`≤` 没有）；严格序 = 非自反 + 传递，不需要反对称。",
+      "source": "lib/Order.sokonanoda:53",
+      "kps": [
+        "kp.i2.order.strict"
+      ]
+    },
+    {
+      "id": "I.2.strict-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "order",
+        "strict-order",
+        "unfold"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.strict-1"
+      ],
+      "prereq": [
+        "I.2.strict-1"
+      ],
+      "prompt": "表达式 `strictOf α r a b`（把非严格序的「相等那一份」切掉）等价于哪个命题？",
+      "options": [
+        "`r a b ∨ a = b`",
+        "`r a b ∧ a ≠ b`",
+        "`r a b → a = b`",
+        "`¬ (r a b)`"
+      ],
+      "answer": 2,
+      "why": "`strictOf r := fun a b => r a b ∧ a ≠ b`；`nonstrictOf` 是对偶方向：`r a b ∨ a = b`。",
+      "source": "lib/Order.sokonanoda:242",
+      "kps": [
+        "kp.i2.order.strict"
+      ]
+    },
+    {
+      "id": "I.2.pair-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 1,
+      "tags": [
+        "pair",
+        "prod"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "库中表达式 `Prod.fst A B (@prod_mk A B a b)` 的计算结果是什么？",
+      "options": [
+        "`a`",
+        "`b`",
+        "`@prod_mk A B a b`",
+        "`Prod.snd A B (@prod_mk A B a b)`"
+      ],
+      "answer": 1,
+      "why": "投影算在构造子上就还原（`Prod.fst_mk` 是 `rfl` 级展开）：第一个投影给第一个坐标 `a`。",
+      "source": "lib/Prod.sokonanoda:59",
+      "kps": [
+        "kp.i2.pair"
+      ]
+    },
+    {
+      "id": "I.2.pair-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 3,
+      "tags": [
+        "pair",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "配对定理 `(a, b) = (a', b') → a = a' ∧ b = b'` 的证明关键件是什么？",
+      "options": [
+        "对等式的两边分别用 `And.left` 与 `And.right`。",
+        "对 `a` 与 `b` 各做一次 `rfl` 就够了。",
+        "用 `Prod.eta` 把两个序对都拆成投影。",
+        "把等式沿 `Prod.fst` / `Prod.snd` 搬运（`congrArg`），再用 `Prod.fst_mk` / `Prod.snd_mk` 算掉投影"
+      ],
+      "answer": 4,
+      "why": "等式沿函数搬运保持相等：`fst` 把 `(a,b)=(a',b')` 变成 `a = fst (a',b') = a'`；`snd` 同理——`prod_mk_inj` 就是这么证的。",
+      "source": "units/I.2/unit05-pairs-products.sokonanoda:85",
+      "kps": [
+        "kp.i2.pair"
+      ]
+    },
+    {
+      "id": "I.2.prod-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 1,
+      "tags": [
+        "product",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "要从 `Set.prod s t` 里取元素，`s ×ˢ t` 的元素应当被看成什么类型的对象？",
+      "options": [
+        "它应当被看成 `A` 的一个元素。",
+        "它应当被看成 `B` 的一个元素。",
+        "它应当被看成 `Prod A B`，也就是一个序对。",
+        "`Set A`"
+      ],
+      "answer": 3,
+      "why": "`Set.prod A B s t : Set (Prod A B)`：积集合装的是序对，成员的刻画按两个投影分别给（`Set.mem_prod_iff`）。",
+      "source": "lib/Prod.sokonanoda:74",
+      "kps": [
+        "kp.i2.prod"
+      ]
+    },
+    {
+      "id": "I.2.prod-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 3,
+      "tags": [
+        "product",
+        "union",
+        "distributive"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "为什么积对并分配：`s ×ˢ (t ∪ u) = (s ×ˢ t) ∪ (s ×ˢ u)`？",
+      "options": [
+        "因为 `×ˢ` 对 `∪` 可交换：`s ×ˢ (t ∪ u) = (t ∪ u) ×ˢ s`",
+        "逐点：`p ∈ s ×ˢ (t ∪ u) ↔ fst p ∈ s ∧ snd p ∈ t ∪ u`；把 `snd p ∈ t ∪ u` 拆成析取后，用合取对析取的分配把 `∧` 分进两支，反方向再按两支分别装回",
+        "因为 `t ∪ u` 的元素个数等于 `t` 与 `u` 的个数之和。",
+        "因为积集合的成员是一个合取，而合取永远满足分配律"
+      ],
+      "answer": 2,
+      "why": "积的成员刻画是 `fst ∈ s ∧ snd ∈ …`；`snd p ∈ t ∪ u` 用 `Set.mem_union` 拆成析取，再在合取里分情况（`mem_prod_union_iff`）。",
+      "source": "units/I.2/unit75-prod-distrib.sokonanoda:72",
+      "kps": [
+        "kp.i2.prod"
+      ]
+    },
+    {
+      "id": "I.2.rel-inv-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "rel",
+        "inverse",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "已知 `h : (r ⁻¹) b a`，要把逆关系展开回 `r a b`，`Rel.inv r` 的定义体是哪个函数？",
+      "options": [
+        "`fun (b : B) (a : A) => r a b`",
+        "`fun (a : A) (b : B) => r a b`",
+        "`fun (b : B) (a : A) => r b a`",
+        "`fun (a : A) (b : B) => ¬ (r a b)`"
+      ],
+      "answer": 1,
+      "why": "逆关系就是「把两个参数对调」：`Rel.inv r` 的定义体是 `fun b => fun a => r a b`。",
+      "source": "lib/Rel.sokonanoda:46",
+      "kps": [
+        "kp.i2.rel.inv"
+      ]
+    },
+    {
+      "id": "I.2.rel-inv-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "rel",
+        "inverse",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "已知 `h : (r ⁻¹) b a`，使用 `Rel.inv_apply` 之后能够得到哪个命题？",
+      "options": [
+        "`r b a`",
+        "`∃ (b : B), r a b`",
+        "`¬ (r a b)`",
+        "`r a b`"
+      ],
+      "answer": 4,
+      "why": "`Rel.inv_apply r b a` 的类型是 `(r ⁻¹) b a ↔ r a b`；逆把 `(b, a)` 换回 `(a, b)`。",
+      "source": "lib/Rel.sokonanoda:84",
+      "kps": [
+        "kp.i2.rel.inv"
+      ]
+    },
+    {
+      "id": "I.2.bij-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 1,
+      "tags": [
+        "function",
+        "bijective",
+        "elim"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.2.bij-1"
+      ],
+      "prereq": [
+        "I.2.bij-2"
+      ],
+      "prompt": "库中引理 `Function.bijective_def` 说明 `Bijective` 是合取，要用它取出**单射**那一半时应当选用下面哪个表达式？",
+      "options": [
+        "`And.right`",
+        "`Or.inl`",
+        "`And.left`",
+        "`Iff.mp`"
+      ],
+      "answer": 3,
+      "why": "`Bijective = Injective ∧ Surjective`：左支单射、右支满射（取右支看 `I.2.bij-2` 的 `And.right`）。",
+      "source": "lib/Fun.sokonanoda:123",
+      "kps": [
+        "kp.i2.fun.bij"
+      ]
+    },
+    {
+      "id": "I.2.bij-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "bijective",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.bij-1"
+      ],
+      "prereq": [
+        "I.2.bij-1"
+      ],
+      "prompt": "`bijective_iff_inverse` 为什么要求把 `g : β → α` 与右逆证据 `hg` 先作为参数交进来？",
+      "options": [
+        "因为 `g` 可以直接由 `f` 计算出来。",
+        "因为有数据版才有 Iff：存在版「双射 ⇒ ∃ g, Inverse f g」要从每个输出挑一个原像，等价于选择公理，本课证不出",
+        "因为本课讨论的函数都是单射。",
+        "因为 `Inverse` 是析取，必须知道是哪一支"
+      ],
+      "answer": 2,
+      "why": "`bijective_iff_inverse f g hg : Bijective f ↔ Inverse f g`——`g` 与 `hg` 是调用者交出的数据；存在版逆函数需要选择公理（满射可裂），是选择公理边界。",
+      "source": "units/I.2/unit07-functions.sokonanoda:157",
+      "kps": [
+        "kp.i2.fun.bij"
+      ],
+      "plain": "人话版：数学家写「f 是双射 ⇔ 存在 g 是 f 的逆」。但本课不能这么写——「存在 g」只能证明有这么个东西，拿不出具体的 g（要拿需要选择公理）。所以本课把 g 和逆的证据变成你要交进来的参数：你先给 g、再给证据，然后证明等价。",
+      "math": "\\text{Bijective}(f)\\iff \\exists g,\\ \\text{Inverse}(f,g)\\quad\\text{vs}\\quad \\text{Bijective}(f)\\iff \\text{Inverse}(f,g)\\ (\\text{g 作为参数})",
+      "formula": "双射(f) ⟺ 存在 g，Inverse(f, g)　｜　本课：双射(f) ⟺ Inverse(f, g)（g 作为参数交进来）"
+    },
+    {
+      "id": "I.2.inj-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "injective",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.inj-2"
+      ],
+      "prereq": [
+        "I.2.inj-2"
+      ],
+      "prompt": "已知 `h : Injective f` 与 `hne : x ≠ y`，要证 `f x ≠ f y`，正确做法是？",
+      "options": [
+        "反设 `f x = f y`，由单射得 `x = y`，与 `hne` 矛盾",
+        "直接 `exact hne` 就可以收尾。",
+        "对 `hne` 用 `congrArg f` 处理这个目标。",
+        "用 `h` 把 `f x ≠ f y` 直接变成 `x ≠ y`。"
+      ],
+      "answer": 1,
+      "why": "单射是「输出相等 ⇒ 输入相等」；要证两个输出不相等，就假设它们相等、用单射拉回输入层，再与输入不等矛盾（单射的逆否用法）。",
+      "source": "lib/Fun.sokonanoda:78",
+      "kps": [
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.rel-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "rel",
+        "extensionality",
+        "axiom"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-3"
+      ],
+      "prompt": "`Rel.ext` 把「逐点等价」升级成「关系相等」，这条公理整体的蕴含形状是什么？",
+      "options": [
+        "`r = s → ∀ (a : A) (b : B), r a b`",
+        "`(∀ (a : A), r a a) → r = s`",
+        "`r a b → s a b`",
+        "`(∀ (a : A) (b : B), r a b ↔ s a b) → r = s`"
+      ],
+      "answer": 4,
+      "why": "与 `Set.ext` 同族：把「逐点 `↔`」升级成「关系相等」；本课只有这两条外延性公理（`Rel.ext` 与 `Set.ext`）。",
+      "source": "lib/Rel.sokonanoda:78",
+      "kps": [
+        "kp.i2.rel"
+      ]
+    },
+    {
+      "id": "I.2.trans-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "transitive",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.trans-1"
+      ],
+      "prereq": [
+        "I.2.trans-1"
+      ],
+      "prompt": "已知 `ht : Transitive α r`、`hab : r a b` 与 `hbc : r b c`，要得到 `r a c` 时应当选用下面哪个表达式？",
+      "options": [
+        "`ht a c b hab hbc`",
+        "`ht hab hbc`",
+        "`ht a b c hab hbc`",
+        "`hbc`"
+      ],
+      "answer": 3,
+      "why": "`Transitive α r` 展开是 `∀ a b c, r a b → r b c → r a c`：三个元素按顺序喂，再喂两条证据。",
+      "source": "lib/Order.sokonanoda:65",
+      "kps": [
+        "kp.i2.rel.trans"
+      ]
+    },
+    {
+      "id": "I.2.symm-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "symmetric",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.symm-1"
+      ],
+      "prereq": [
+        "I.2.symm-1"
+      ],
+      "prompt": "已知 `hs : Symmetric α r` 与 `h : r a b`，要得到 `r b a` 时应当选用下面哪个表达式？",
+      "options": [
+        "`hs b a h`",
+        "`hs a b h`",
+        "`hs h`",
+        "`h`"
+      ],
+      "answer": 2,
+      "why": "`Symmetric α r` 展开是 `∀ a b, r a b → r b a`：先给两个元素（顺序与原关系一致），再给它那条证据。",
+      "source": "lib/Order.sokonanoda:57",
+      "kps": [
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.2.fun-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "rel",
+        "compose"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.comp-1"
+      ],
+      "prereq": [
+        "I.2.comp-1"
+      ],
+      "prompt": "为什么「函数复合 `g ∘ f`」与「关系复合 `r • s`」的写法不同？",
+      "options": [
+        "函数复合直接套用（每个输入唯一输出，`fun x => g (f x)`）；关系复合要存在量化（`∃` 中间点，因为关系可能多值或缺值）",
+        "两者完全一样，`•` 只是 `∘` 的别名。",
+        "函数复合需要选择公理，而关系复合不需要。",
+        "关系复合不可结合，所以两者写法不同。"
+      ],
+      "answer": 1,
+      "why": "`Function.comp` 的定义体是 `fun x => g (f x)`（应用即定义等式）；`Rel.comp r s` 的定义体是 `fun a c => ∃ b, r a b ∧ s b c`——单值性让函数复合不必写出 `∃`。",
+      "source": "lib/Fun.sokonanoda:64 + lib/Rel.sokonanoda:64",
+      "kps": [
+        "kp.i2.fun"
+      ],
+      "plain": "为什么本课要求你先把逆函数 g 和「它是逆」的证据交进来，而不是直接说「存在一个 g」？因为「存在某个 g」这种说法只能证明有，却拿不出具体对象；要从「存在」里取出具体的 g，需要选择公理（本课没有）。所以本课把它写成「你给我 g 和证据，我来证等价」。"
+    },
+    {
+      "id": "I.2.inv-5",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "inverse",
+        "surjective"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.inv-2"
+      ],
+      "prereq": [
+        "I.2.inv-2"
+      ],
+      "prompt": "`surjective_of_rightInverse` 说明若 `g` 是 `f` 的右逆则 `f` 是满射；在这个结论下，给 `y : β` 时应当取什么作为原像？",
+      "options": [
+        "取 `f y` 作原像，证据是 `Eq.refl`。",
+        "任取一个 `x : α` 作原像即可。",
+        "取 `y` 自己作原像即可。",
+        "取 `g y` 作原像，证据是右逆律 `f (g y) = y`。"
+      ],
+      "answer": 4,
+      "why": "右逆律 `h y : f (g y) = y` 正好就是「`g y` 被送到 `y`」的证据，所以 `Exists.intro (g y) (h y)` 直接给出满射。",
+      "source": "units/I.2/unit07-functions.sokonanoda:145",
+      "kps": [
+        "kp.i2.fun.inverse"
+      ]
+    },
+    {
+      "id": "I.2.logic-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "logic",
+        "quantifier",
+        "exists"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.surj-2"
+      ],
+      "prereq": [
+        "I.2.surj-2"
+      ],
+      "prompt": "`swap_exists_forall` 说明量词换序的哪个方向恒真？",
+      "options": [
+        "`(∀ (x : α), ∃ (y : β), P x y) → ∃ (y : β), ∀ (x : α), P x y`",
+        "量词换序的两个方向都恒真。",
+        "`(∃ (y : β), ∀ (x : α), P x y) → ∀ (x : α), ∃ (y : β), P x y`",
+        "量词换序的两个方向都不恒真。"
+      ],
+      "answer": 3,
+      "why": "同一个证人 `y` 若对所有 `x` 都合用，当然可以换成逐点取它；反方向不成立（`swap_converse_false` 用 `Set Nat` 上的反例给出）。",
+      "source": "units/I.2/unit07-functions.sokonanoda:194",
+      "kps": [
+        "kp.i2.logic"
+      ]
+    },
+    {
+      "id": "I.2.antisymm-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "partial-order",
+        "antisymmetric"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.partial-2"
+      ],
+      "prereq": [
+        "I.2.partial-2"
+      ],
+      "prompt": "已知 `h : IsPartialOrder α r`、`hab : r a b` 与 `hba : r b a`，要得到 `a = b` 时，库里的哪个取用子最合适？",
+      "options": [
+        "`partialOrder_refl α r h a`",
+        "`partialOrder_antisymm α r h a b hab hba`",
+        "`partialOrder_trans α r h a b a hab hba`",
+        "`strictOrder_irrefl α r h a`"
+      ],
+      "answer": 2,
+      "why": "`partialOrder_antisymm` 是「偏序 ⇒ 反对称」的取用子，参数一次给全 `(α) (r) (h) (a) (b)`，结论是 `r a b → r b a → a = b`。",
+      "source": "lib/Order.sokonanoda:195",
+      "kps": [
+        "kp.i2.rel.antisymm"
+      ]
+    },
+    {
+      "id": "I.2.fun-boundary-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "inverse",
+        "boundary"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.surj-split-1"
+      ],
+      "prereq": [
+        "I.2.inv-2"
+      ],
+      "prompt": "`Function.Inverse α β f g` 里的 `g` 是**参数**而不是 `∃` 量化出来的。这属于？",
+      "options": [
+        "数据版逆：逆函数由调用者交出，本课只验证它是双边逆",
+        "它属于存在版逆，因为本课悄悄用了选择公理。",
+        "它属于定义版逆，因为 `g` 由 `f` 计算得到。",
+        "错误写法，应该写成 `∃ (g : β → α), …`"
+      ],
+      "answer": 1,
+      "why": "`Inverse α β f g : Prop` 把 `g` 放在参数位；存在版 `∃ g, Inverse f g`（满射可裂）等价于选择公理，本课证不出，所以只立数据版。",
+      "source": "lib/Fun.sokonanoda:101",
+      "kps": [
+        "kp.i2.fun.boundary"
+      ]
+    },
+    {
+      "id": "I.2.partial-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "partial-order",
+        "projection"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.partial-2"
+      ],
+      "prereq": [
+        "I.2.partial-2"
+      ],
+      "prompt": "已知 `h : IsPartialOrder α r`、`hab : r a b` 与 `hbc : r b c`，要得到 `r a c` 时，库里的哪个取用子最合适？",
+      "options": [
+        "`partialOrder_antisymm α r h a b hab hbc`",
+        "`linearOrder_total α r h a c`",
+        "`subset_trans α A B C hab hbc`",
+        "`partialOrder_trans α r h a b c hab hbc`"
+      ],
+      "answer": 4,
+      "why": "`partialOrder_trans` 是「偏序 ⇒ 传递」的取用子：`(α) (r) (h) (a) (b) (c)`，再接两条证据。",
+      "source": "lib/Order.sokonanoda:199",
+      "kps": [
+        "kp.i2.order.partial"
+      ]
+    },
+    {
+      "id": "I.2.inj-5",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "injective",
+        "compose"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.inj-2"
+      ],
+      "prereq": [
+        "I.2.inj-2"
+      ],
+      "prompt": "`injective_of_comp_injective` 说 `g ∘ f` 单射 ⇒ `f` 单射。为什么这里**不需要** `g` 单射？",
+      "options": [
+        "因为 `g` 一定是单射。",
+        "因为 `g` 的陪域只有一个元素。",
+        "把 `f x = f y` 抬过 `g` 只需等式搬运（`congrArg g`），不要求 `g` 不撞车；单射性只从复合那一层把等式拉回 `x = y`",
+        "因为单射的复合等价于两个函数都单射。"
+      ],
+      "answer": 3,
+      "why": "`h : Injective (g ∘ f)` 给的是 `(g ∘ f) x = (g ∘ f) y → x = y`；`f x = f y` 经 `congrArg g` 得到复合层等式，直接交给 `h`——`g` 在别处是否撞车无关。",
+      "source": "units/I.2/unit07-functions.sokonanoda:166",
+      "kps": [
+        "kp.i2.fun.inj"
+      ]
+    },
+    {
+      "id": "I.2.surj-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "surjective",
+        "compose"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.surj-3"
+      ],
+      "prereq": [
+        "I.2.surj-2"
+      ],
+      "prompt": "`surjective_comp`（满射的复合仍满射）的证明思路是什么？",
+      "options": [
+        "给 `z : γ` 之后，直接取 `x := z` 当原像。",
+        "给 `z : γ`：由 `hg` 取 `y` 使 `g y = z`，再由 `hf` 取 `x` 使 `f x = y`；于是 `(g ∘ f) x = z`（`congrArg g` + `Eq.trans`）",
+        "因为复合是单射，所以它当然也是满射。",
+        "用选择公理从 `γ` 里选出原像。"
+      ],
+      "answer": 2,
+      "why": "满射要逐 `z` 造证人：两次 `Exists.elim` 拆出 `y`、`x` 与两条等式，再用 `Eq.trans (congrArg g hx) hy` 把 `g (f x)` 接到 `z`。",
+      "source": "units/I.2/unit07-functions.sokonanoda:124",
+      "kps": [
+        "kp.i2.fun.surj"
+      ]
+    },
+    {
+      "id": "I.2.symm-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "relation-property",
+        "symmetric",
+        "empty"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.symm-1"
+      ],
+      "prereq": [
+        "I.2.symm-1"
+      ],
+      "prompt": "空关系 `EmptyRelation` 为什么是对称的？",
+      "options": [
+        "对称要 `r a b → r b a`；`EmptyRelation` 对任何 `a b` 都是 `False`，前提永不成立，蕴含空洞成立",
+        "因为空关系本身满足自反性。",
+        "因为空关系里只有一对元素。",
+        "因为空关系本身就是一个等价关系。"
+      ],
+      "answer": 1,
+      "why": "`EmptyRelation A := fun a b => False`：对称的证明就是 `intro a b h; exact h`——从假前提出发，目标 `r b a` 也是 `False`，交还假设即可。",
+      "source": "units/I.2/unit06-relations.sokonanoda:69",
+      "kps": [
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.2.trans-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "relation-property",
+        "transitive",
+        "counterexample"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.trans-1"
+      ],
+      "prereq": [
+        "I.2.trans-1"
+      ],
+      "prompt": "`nearStep`（ℕ 上「相差不超过 1」）满足自反与对称但不传递，其反例的关键一步是什么？",
+      "options": [
+        "反例的关键一步是 `nearStep 0 0` 并不成立。",
+        "反例的关键一步是 `nearStep 0 1` 成立而 `nearStep 1 0` 不成立。",
+        "反例的关键一步是 `nearStep` 在空类型上不成立。",
+        "`nearStep 0 1` 与 `nearStep 1 2` 成立，但 `nearStep 0 2` 不成立（0 与 2 相差 2）"
+      ],
+      "answer": 4,
+      "why": "传递要求 `nearStep 0 1 → nearStep 1 2 → nearStep 0 2`；最后一项展开是 `0 = 2 ∨ 1 = 2 ∨ 0 = 3`，三个析取项都被 `Nat.zero_ne_succ`/`Nat.succ.inj` 否掉。",
+      "source": "units/I.2/unit06-relations.sokonanoda:208",
+      "kps": [
+        "kp.i2.rel.trans"
+      ]
+    },
+    {
+      "id": "I.2.linear-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 2,
+      "tags": [
+        "order",
+        "linear-order",
+        "projection"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.linear-1"
+      ],
+      "prereq": [
+        "I.2.linear-1"
+      ],
+      "prompt": "已知 `h : IsLinearOrder α r`，要取出 `r a b ∨ r b a` 时，库里的哪个取用子最合适？",
+      "options": [
+        "`linearOrder_def α r h`",
+        "`partialOrder_refl α r h a`",
+        "`linearOrder_total α r h a b`",
+        "`wellOrder_linear α r h`"
+      ],
+      "answer": 3,
+      "why": "`linearOrder_total` 是「全序 ⇒ 全」的取用子：参数 `(α) (r) (h) (a) (b)`，结论就是 `r a b ∨ r b a`。",
+      "source": "lib/Order.sokonanoda:211",
+      "kps": [
+        "kp.i2.order.linear"
+      ]
+    },
+    {
+      "id": "I.2.rel-comp-4",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "rel",
+        "compose",
+        "monotone"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "复合对两个因子都单调（`Rel.comp_mono`）：为什么从 `(r • s) a c` 到 `(r' • s') a c` 需要两条单调假设 `hr`、`hs`？",
+      "options": [
+        "因为 `r` 与 `s` 必须是同一个关系。",
+        "`(r • s) a c` 拆开是 `∃ b, r a b ∧ s b c`；同一个证人 `b` 上的两个合取支分别要用 `hr a b` 与 `hs b c` 各抬一层",
+        "因为复合不可结合，所以需要额外的假设。",
+        "因为 `r'`、`s'` 必须与 `r`、`s` 相等"
+      ],
+      "answer": 2,
+      "why": "逐点蕴含分别作用在两个坐标上：`Exists.elim` 拆出 `b` 与 `r a b ∧ s b c`，`hr a b (And.left …)`、`hs b c (And.right …)` 各得一份，再 `Exists.intro b` 装回。",
+      "source": "lib/Rel.sokonanoda:218",
+      "kps": [
+        "kp.i2.rel.comp"
+      ]
+    },
+    {
+      "id": "I.2.prod-5",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "level": 3,
+      "tags": [
+        "product",
+        "empty",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.prod-1"
+      ],
+      "prereq": [
+        "I.2.prod-1"
+      ],
+      "prompt": "为什么 `p ∈ s ×ˢ ∅` 不可能？",
+      "options": [
+        "`Set.mem_prod_iff` 给出 `snd p ∈ ∅`，与 `Set.notMem_empty` 矛盾",
+        "因为 `s` 可能是空集。",
+        "因为 `×ˢ` 这个运算不交换。",
+        "因为 `p` 的类型不是 `Prod A B`。"
+      ],
+      "answer": 1,
+      "why": "积的成员刻画要求两个坐标都在各自的集合里；第二个坐标要落在 `∅` 里，而空集没有成员（`not_mem_prod_empty`）。",
+      "source": "units/I.2/unit75-prod-distrib.sokonanoda:90",
+      "kps": [
+        "kp.i2.prod"
+      ]
+    },
+    {
+      "id": "I.2.mix-1",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "rel",
+        "inverse",
+        "compose"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.rel-1"
+      ],
+      "prereq": [
+        "I.2.rel-1"
+      ],
+      "prompt": "`(r • s) ⁻¹` 与 `s ⁻¹ • r ⁻¹` 之间是什么关系？",
+      "options": [
+        "它们一般相等但当且仅当 `r`、`s` 都是函数",
+        "两者相等，即 `(r • s) ⁻¹ = r ⁻¹ • s ⁻¹`，复合顺序不变。",
+        "两者之间没有任何关系。",
+        "逐点等价（因此作为关系相等）：`(r • s) ⁻¹ c a ↔ ∃ b, s b c ∧ r a b`，与 `s ⁻¹ • r ⁻¹` 展开后是同一个存在式——逆复合要反序"
+      ],
+      "answer": 4,
+      "why": "`inv_comp_apply` 给出 `(r • s) ⁻¹ c a ↔ (s ⁻¹ • r ⁻¹) c a`：逆把「先 r 后 s」变成「先逆 s 后逆 r」。",
+      "source": "lib/Rel.sokonanoda:430",
+      "kps": [
+        "kp.i2.rel.inv",
+        "kp.i2.rel.comp"
+      ]
+    },
+    {
+      "id": "I.2.mix-2",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "relation-property",
+        "antisymmetric",
+        "symmetric"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.antisymm-1"
+      ],
+      "prereq": [
+        "I.2.symm-1",
+        "I.2.antisymm-1"
+      ],
+      "prompt": "如果一个关系同时**对称**又**反对称**，能够推出哪个结论？",
+      "options": [
+        "这个关系一定是等价关系。",
+        "这个关系一定是空关系。",
+        "对任意 `a b`：`r a b` 时由对称得 `r b a`，再由反对称得 `a = b`——即关系落在相等关系里（`r a b → a = b`）",
+        "这个关系一定满足自反性。"
+      ],
+      "answer": 3,
+      "why": "`Symmetric` 把 `r a b` 反成 `r b a`，`Antisymmetric` 再把双向压成 `a = b`；两条一合，任何相关的两个元素只能相等。",
+      "source": "lib/Order.sokonanoda:57 + 61",
+      "kps": [
+        "kp.i2.rel.antisymm",
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.2.mix-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 2,
+      "tags": [
+        "function",
+        "rel",
+        "concept"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.2.rel-3"
+      ],
+      "prereq": [
+        "I.2.rel-3"
+      ],
+      "prompt": "「函数是关系，但关系不一定是函数」，这个区别在类型上应当如何表述？",
+      "options": [
+        "`Rel α β` 与 `α → β` 是同一个类型，只是名字不同",
+        "`Rel α β` 是任意二元谓词 `α → β → Prop`（可多值或缺值）；函数是类型 `α → β`，每个输入恰好一个输出——把函数当关系要额外读出单值性",
+        "关系一定是函数，而函数不一定是关系。",
+        "`Rel α β` 要求每个 `a` 都存在一个 `b`。"
+      ],
+      "answer": 2,
+      "why": "`Rel A B := A → B → Prop` 对输出不做任何约束；`α → β` 是函数类型，应用 `f x` 唯一——单值性（`demo_graph_single_valued`）从函数侧白拿、从关系侧要额外证明。",
+      "source": "lib/Rel.sokonanoda:43 + units/I.2/unit07-functions.sokonanoda:81",
+      "kps": [
+        "kp.i2.fun",
+        "kp.i2.rel"
+      ]
+    },
+    {
+      "id": "I.3.image-family-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "family",
+        "sunion"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "命题 `y ∈ f '' (⋃₀ F)` 等价于哪个命题？",
+      "options": [
+        "`∃ (A : Set α), A ∈ F ∧ y ∈ (f '' A)`",
+        "`∀ (A : Set α), A ∈ F → y ∈ (f '' A)`",
+        "`∃ (x : α), x ∈ (⋃₀ F)`",
+        "它等价于 `y ∈ f '' A` 对某个固定选定的 `A` 成立。"
+      ],
+      "answer": 1,
+      "why": "像与广义并交换：先像后并，等价于「族里某个成员的像」（`mem_image_sUnion_iff`）。",
+      "source": "units/I.3/unit73-image-families.sokonanoda:118",
+      "kps": [
+        "kp.i3.family.image"
+      ]
+    },
+    {
+      "id": "I.3.image-family-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "family",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-2"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "已知 `hA : A ∈ F` 与 `hy : y ∈ f '' A`，要证明 `y ∈ f '' (⋃₀ F)` 时关键件是什么？",
+      "options": [
+        "直接 `exact hy`，因为 `A ⊆ ⋃₀ F` 自动成立",
+        "用 `Set.mem_image_elim` 拆 `hy`，再用 `Set.mem_union` 分情况",
+        "对 `F` 用 `Set.ext` 逐点证明两个集合相等。",
+        "从 `hy` 拆出证人 `x ∈ A` 且 `f x = y`；由 `hA`、`x ∈ A` 得 `x ∈ ⋃₀ F`（`Set.mem_sUnion_intro`）；再用 `Set.mem_image_intro` 以同一个 `x` 造像"
+      ],
+      "answer": 4,
+      "why": "像的构造要求提交一个落在 `⋃₀ F` 里的原像 `x`；`x ∈ A ∈ F` 正好给出（`mem_image_sUnion_of_mem_image`）。",
+      "source": "units/I.3/unit73-image-families.sokonanoda:88",
+      "kps": [
+        "kp.i3.family.image"
+      ]
+    },
+    {
+      "id": "I.3.image-family-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "family",
+        "sinter",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.sinter-2"
+      ],
+      "prompt": "为什么 `f '' (⋂₀ F)` **含于**每个 `f '' A`（`A ∈ F`），但反方向一般不成立？",
+      "options": [
+        "因为交比并小，所以像也一定更小。",
+        "因为 `f` 被假设为单射。",
+        "若 `y ∈ f '' (⋂₀ F)`，其原像 `x` 在交里、因而在每个 `A` 里，故 `y ∈ f '' A`；反过来，`y` 在不同 `f '' A` 里可以由**不同**的原像产生，未必能取成同一个 `x`",
+        "反方向其实也成立，只是本课程没有证明。"
+      ],
+      "answer": 3,
+      "why": "像只传递「存在一个原像」：交的成员要同一个 `x` 同时属于所有 `A`，而各个 `f '' A` 的证人可以各不相同（`mem_image_sInter_of_mem` 只给单向）。",
+      "source": "units/I.3/unit73-image-families.sokonanoda:149",
+      "kps": [
+        "kp.i3.family.image"
+      ]
+    },
+    {
+      "id": "I.3.le-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "le",
+        "definition"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "势比较命题 `A ≼ B`（`Set.Le`）的定义是什么？",
+      "options": [
+        "`∃ (f : α → β), Function.Surjective α β f`",
+        "`∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B`（存在把 `A` 单射进 `B` 的映射）",
+        "`∀ (x : α), x ∈ A → x ∈ B`",
+        "`A = B`"
+      ],
+      "answer": 2,
+      "why": "势比较 = 「存在单射」：`Set.Le α β A B := ∃ f, Set.InjOn f A ∧ Set.MapsTo f A B`（注意它是 `Prop`）。",
+      "source": "lib/Equiv.sokonanoda:169",
+      "kps": [
+        "kp.i3.le"
+      ]
+    },
+    {
+      "id": "I.3.le-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "elim"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `h : A ≼ B`，用 `Set.Le.elim` 拆开后应当交出什么？",
+      "options": [
+        "一把 `f : α → β`、它在 `A` 上的单射证据、以及它把 `A` 送进 `B` 的证据",
+        "应当交出两把互逆映射与两条互逆律。",
+        "应当交出一个 `A` 的元素。",
+        "应当交出 `A ⊆ B` 的证据。"
+      ],
+      "answer": 1,
+      "why": "`Set.Le.elim α β A B C h k` 把「存在单射」拆开：`f` 只在 `k` 里使用、不外泄，`k` 同时拿到单射与落点两份证据。",
+      "source": "lib/Equiv.sokonanoda:190",
+      "kps": [
+        "kp.i3.le"
+      ]
+    },
+    {
+      "id": "I.3.le-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "construct"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `f : α → β`、`hinj : Set.InjOn α β f A` 与 `hmap : Set.MapsTo α β f A B`，要证明 `A ≼ B` 时应当选用下面哪个表达式？",
+      "options": [
+        "`Set.Le.elim α β A B (A ≼ B) h k`",
+        "`Set.Le.refl α A`",
+        "`Set.Equiv.mk α β A B f g hf hg hgf hfg`",
+        "`Set.Le.intro α β A B f hinj hmap`"
+      ],
+      "answer": 4,
+      "why": "`Set.Le.intro` 是打包子：交一把映射与「单射」「落点」两份证据，再经 `Set.le_def` 折回 `≼`。",
+      "source": "lib/Equiv.sokonanoda:181",
+      "kps": [
+        "kp.i3.le"
+      ]
+    },
+    {
+      "id": "I.3.le-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "boundary",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "为什么 `A ≼ B` 定义为**存在命题**（`Prop`），而不是像 `A ≈ B` 那样把映射对作为数据交出来？",
+      "options": [
+        "因为 `≼` 是等价关系，所以必须写成 `Prop`",
+        "因为所有函数类型都落在 `Prop` 里。",
+        "因为 `≼` 只需要「存在一把单射」；从 `∃` 里把函数取出来（Type 层）要选择公理/大消去，本课做不到，所以只留 `Prop`，用 `Set.Le.elim` 在 `Prop` 内部消费",
+        "因为 `≈` 比 `≼` 更弱一些。"
+      ],
+      "answer": 3,
+      "why": "`≈` 是数据版（一对映射 + 四条条件），`≼` 是存在版；取数据要越过 `∃ : Prop`（撞 G-58），所以 `≼` 只断言存在、只能 `elim` 进 `Prop`。",
+      "source": "lib/Equiv.sokonanoda:169 + lib/Equiv.sokonanoda:190",
+      "kps": [
+        "kp.i3.le"
+      ]
+    },
+    {
+      "id": "I.3.le-mono-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "monotone"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `hAA : A' ⊆ A` 与 `h : A ≼ B`，要证 `A' ≼ B`，用库里哪条？",
+      "options": [
+        "`Set.Le.mono_right α β A B B' h hBB`",
+        "`Set.Le.mono α β A A' B hAA h`",
+        "`Set.Le.trans α β γ A B C h h2`",
+        "`Set.Le.of_subset α A B hAA`"
+      ],
+      "answer": 2,
+      "why": "`Set.Le.mono` 把同一把单射**限制到更小的定义域**：`A' ⊆ A` 时 `InjOn f A'` 与 `MapsTo f A' B` 都自动成立。",
+      "source": "lib/Equiv.sokonanoda:304",
+      "kps": [
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.le-mono-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "monotone"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `h : A ≼ B` 与 `hBB : B ⊆ B'`，要证 `A ≼ B'`，用库里哪条？",
+      "options": [
+        "`Set.Le.mono_right α β A B B' h hBB`",
+        "`Set.Le.mono α β A A' B hAA h`",
+        "`Set.Le.refl α A`",
+        "`Set.Le.powerset α β A B h`"
+      ],
+      "answer": 1,
+      "why": "`Set.Le.mono_right` 把同一把单射的**陪域放大**：`B ⊆ B'` 时落点条件变弱，单射性不变。",
+      "source": "lib/Equiv.sokonanoda:319",
+      "kps": [
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.le-mono-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "subset",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "为什么 `A ⊆ B` 能直接得到 `A ≼ B`？",
+      "options": [
+        "因为包含关系本身就是势比较的定义。",
+        "要先证出双向包含才能得到 `≼`。",
+        "要用选择公理从 `B` 里选出一个元素。",
+        "取恒等映射 `fun x => x`：它在 `A` 上显然单射，而 `x ∈ A ⇒ x ∈ B` 正是包含关系给的条件"
+      ],
+      "answer": 4,
+      "why": "`Set.Le.of_subset` 的证人就是恒等映射：单射是 `fun x _ y _ hxy => hxy`，落点条件就是 `h x hx`。",
+      "source": "lib/Equiv.sokonanoda:314",
+      "kps": [
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.both-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "le",
+        "both",
+        "elim"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `h : LeOn α β A B ∧ LeOn β α B A`，要用取用子 `leOn_both_forward` 取出其中的前一半 `LeOn α β A B`，应当选用下面哪一个证明步骤？",
+      "options": [
+        "用 `And.right h` 取出合取的右支，得到 `LeOn β α B A`",
+        "它把 `h` 直接当作 `A ≈ B` 的证明交出去。",
+        "用 `And.left h` 取出合取的左支，得到 `LeOn α β A B`",
+        "先 `intro x` 引入元素，再对 `h` 做处理"
+      ],
+      "answer": 3,
+      "why": "`leOn_both_forward` 要证的就是 `LeOn α β A B`，而 `h` 的类型是 `LeOn α β A B ∧ LeOn β α B A`，所以把 `h` 交给 `And.left` 即可。后一半由 `leOn_both_backward` 用 `And.right` 取出。",
+      "source": "units/I.3/unit103-leOn-both.sokonanoda:58",
+      "kps": [
+        "kp.i3.both"
+      ],
+      "formula": "LeOn α β A B ∧ LeOn β α B A　⟹　LeOn α β A B"
+    },
+    {
+      "id": "I.3.both-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "both",
+        "subset"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "由 `A ⊆ B` 与 `B ⊆ A` 能直接得到哪个结论？",
+      "options": [
+        "可以直接得到 `A ≈ B`，由 `Set.Equiv.mk` 一步装出。",
+        "可以直接得到 `A ≼ B ∧ B ≼ A`，两个方向各用恒等映射与 `leOn_of_subset`。",
+        "`𝒫 A ≼ 𝒫 B`",
+        "什么也得不到，还要先给出单射才行。"
+      ],
+      "answer": 2,
+      "why": "`leOn_of_subset_both` 用两次 `leOn_of_subset`：包含直接给势比较（恒等映射），不需要先造互逆对。",
+      "source": "units/I.3/unit102-subset-antisymm.sokonanoda:63",
+      "kps": [
+        "kp.i3.both"
+      ]
+    },
+    {
+      "id": "I.3.both-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "both",
+        "cantor-bernstein",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "「双向 `≼` **再加**两条互逆律 ⇒ `≈`」在本课能直接证明，而 CB 本体（不带互逆律）却要走单元112 加选择公理，两者的区别是什么？",
+      "options": [
+        "有互逆律时可直接用 `Set.Equiv.mk` 把 f、g 与四条条件装成 `≈`；CB 要从两把单射**造出**互逆对，而 `≼` 是 ∃-命题取不出映射（G-58），单元112 只能用关系版图 + `choice` 把双射取出来",
+        "两者没有区别，其实是同一回事。",
+        "CB 的证明不需要选择公理，本课只是偷懒而已。",
+        "因为有了互逆律之后反而更难证明。"
+      ],
+      "answer": 1,
+      "why": "`equiv_of_leOn_both_with_inv` 的六实参正好是 `Set.Equiv.mk` 的输入（零试错）；CB 的难点是「从单射造互逆对」，本课经 `choice`（unit112 文件头如实标注这是偏离）。",
+      "source": "units/I.3/unit103-leOn-both.sokonanoda:69 + units/I.3/unit112-cantor-bernstein.sokonanoda:245",
+      "kps": [
+        "kp.i3.both"
+      ]
+    },
+    {
+      "id": "I.3.cantor-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "cantor",
+        "definition"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "单元10 的 `cantor` 定理用对角线证明了关于 `α` 与 `𝒫 α` 的哪个结论？",
+      "options": [
+        "`(@Set.univ α) ≈ (@Set.univ (Set α))`",
+        "`∀ (f : α → Set α), Function.Injective f`",
+        "`𝒫 α ⊆ α`",
+        "`¬ ((@Set.univ α) ≈ (@Set.univ (Set α)))`说明`α`与`𝒫 α`不等势。"
+      ],
+      "answer": 4,
+      "why": "Cantor 定理：一个集合与它的幂集不可能等势。",
+      "source": "units/I.3/unit10-cantor.sokonanoda:137",
+      "kps": [
+        "kp.i3.cantor"
+      ]
+    },
+    {
+      "id": "I.3.cantor-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "cantor",
+        "diagonal"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "对角线集 `D := fun (y : α) => ¬ (f y y)`；为什么它不在枚举 `f` 的像里（即 `¬ (D = f x)`）？",
+      "options": [
+        "因为 `D` 是空集，所以它不在像里。",
+        "因为 `f` 是一个单射。",
+        "若 `D = f x`，逐点看 `x`：`x ∈ D ↔ ¬ (f x x)`，而等式把 `x ∈ D` 变成 `f x x`，得到 `f x x` 与其否定并存",
+        "因为 `D` 的元素个数比 `f x` 更多。"
+      ],
+      "answer": 3,
+      "why": "`congrArg (fun A => A x)` 把 `D = f x` 变成 `D x = f x x`；而 `D x` 按定义就是 `¬ (f x x)`，于是 `¬ (f x x)` 与 `f x x` 同时成立，矛盾（`demo_diag`）。",
+      "source": "units/I.3/unit10-cantor.sokonanoda:85",
+      "kps": [
+        "kp.i3.cantor"
+      ]
+    },
+    {
+      "id": "I.3.cantor-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "cantor",
+        "surjective",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "Cantor 定理 `¬ (univ α ≈ univ (Set α))` 与哪条关于满射的否定等价？",
+      "options": [
+        "它等价于不存在单射 `α → Set α`。",
+        "它等价于不存在满射 `α → Set α`，即 `no_surjection_powerset`。",
+        "它等价于存在满射 `Set α → α`。",
+        "它等价于 `α` 是空集。"
+      ],
+      "answer": 2,
+      "why": "有满射 `f : α → Set α` 就能用对角线造出逃出像的 `D`；所以「不存在等势」与「不存在满射」是同一边界（`no_surjection_powerset`）。",
+      "source": "units/I.3/unit10-cantor.sokonanoda:159",
+      "kps": [
+        "kp.i3.cantor"
+      ]
+    },
+    {
+      "id": "I.3.cb-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "cb",
+        "boundary",
+        "definition"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "要调用 `cantor_bernstein` 证明 `A ≈ B`，你需要先准备好关于 `f`、`g` 的哪些前提？",
+      "options": [
+        "四条：`Set.MapsTo f A B`、`Set.MapsTo g B A`、`Set.InjOn f A`、`Set.InjOn g B`（两把映射各带落点与单射）",
+        "只需要 `A ≼ B` 与 `B ≼ A` 两个存在命题。",
+        "还需要两条互逆律 `Set.LeftInvOn` 与 `Set.RightInvOn`。",
+        "`A = B`"
+      ],
+      "answer": 1,
+      "why": "本课把 CB 写成**数据版**：f、g 与它们的落点/单射条件都是显式参数（`cantor_bernstein … hfB hgA hf_inj hg_inj : A ≈ B`），因为存在版要把映射从 `≼` 里取出来。",
+      "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:245",
+      "kps": [
+        "kp.i3.cb"
+      ]
+    },
+    {
+      "id": "I.3.cb-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "cb",
+        "boundary",
+        "choice"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "本课的 Cantor–Bernstein 为什么**经选择公理**？",
+      "options": [
+        "因为两条单射本身就是选择函数。",
+        "因为 `≈` 的定义里含有 `choice`。",
+        "因为 `Set.ext` 是一条公理。",
+        "装配双射那步要「全 + 单值」的关系**取出成函数**（Type 层），这要 `choice`；标准 CB 数学上不需要选择，本课零公理版本还缺 G-6 一族"
+      ],
+      "answer": 4,
+      "why": "单元112 的三段造法以关系版图收尾：关系是全且单值的，但它的函数形式要 `choice` 取出（文件头如实标注这是偏离）；零公理版本要 `Exists`→`Type` 的安全消去，仍 open。",
+      "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:245 + lib/Choice.sokonanoda:46",
+      "kps": [
+        "kp.i3.cb"
+      ]
+    },
+    {
+      "id": "I.3.equiv-algebra-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "equiv",
+        "algebra",
+        "trans"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-2"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "要把两条等势 `α ≈ β` 与 `β ≈ γ` 接起来，`Type.Equiv.trans h₁ h₂` 接收与返回的类型分别是什么？",
+      "options": [
+        "`Type.Equiv α β → Type.Equiv β α`",
+        "`Cardinal → Cardinal`",
+        "该函数的类型是 `Type.Equiv α β → Type.Equiv β γ → Type.Equiv α γ`。",
+        "`α = β`"
+      ],
+      "answer": 3,
+      "why": "等势的传递律：`h₁ : α ≈ β`、`h₂ : β ≈ γ` 给出 `α ≈ γ`（`Type.Equiv.trans`，复合律 `Type.Equiv.comp` 的打包）。",
+      "source": "lib/Cardinal.sokonanoda:202",
+      "kps": [
+        "kp.i3.equiv.algebra"
+      ]
+    },
+    {
+      "id": "I.3.equiv-algebra-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "level": 2,
+      "tags": [
+        "equiv",
+        "algebra",
+        "symm"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-2"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "把 `A ≈ B` 反过来证成 `B ≈ A` 时，应当使用什么工具？",
+      "options": [
+        "用 `Set.Le.trans` 与 `Set.Le.refl` 这两个引理。",
+        "用 `Set.Equiv.elim` 拆出 `f, g` 与四条条件，再用 `Set.Equiv.mk` 以 `g, f` 与对调后的互逆律重新装",
+        "用 `Set.ext` 逐点证明两个集合相等。",
+        "用 `Set.mem_image` 直接交换两个集合。"
+      ],
+      "answer": 2,
+      "why": "数据版等势的对称律要把「去的映射」与「回的映射」对调、左逆与右逆也对调；拆用 `elim`、装用 `mk`（单元⑨ 的 `Set.Equiv.symm`）。",
+      "source": "units/I.3/unit09-equinumerosity.sokonanoda:122",
+      "kps": [
+        "kp.i3.equiv.algebra"
+      ]
+    },
+    {
+      "id": "I.3.equiv-algebra-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "level": 3,
+      "tags": [
+        "equiv",
+        "algebra",
+        "refl",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "为什么 `A ≈ A` 的证明要交出**两把**映射与**四条**条件？",
+      "options": [
+        "因为 `Set.Equiv` 是数据版等势：把 `f`、`g` 与两条 `MapsTo`、两条互逆律都装进嵌套 `∃`/`∧`；自反时 `f`、`g` 都取恒等，四条条件退化为恒等式",
+        "因为等势要求这两个集合相等。",
+        "因为 `≈` 是析取，必须选其中一支。",
+        "因为 `f` 与 `g` 必须是两个不同的函数。"
+      ],
+      "answer": 1,
+      "why": "`Set.Equiv` 的定义就是六件数据的打包（`Set.Equiv.mk` 的六实参）；`Set.Equiv.refl` 用两次恒等映射 + `fun x hx => hx` 证四条。",
+      "source": "units/I.3/unit09-equinumerosity.sokonanoda:57",
+      "kps": [
+        "kp.i3.equiv.algebra"
+      ]
+    },
+    {
+      "id": "I.3.image-preimage-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 1,
+      "tags": [
+        "preimage",
+        "inter",
+        "laws"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.image-3"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "原像保交这一性质指出 `f ⁻¹' (B ∩ C)` 等于哪个集合？",
+      "options": [
+        "`(f ⁻¹' B) ∪ (f ⁻¹' C)`",
+        "`f '' (B ∩ C)`",
+        "`(f ⁻¹' B) \\ (f ⁻¹' C)`",
+        "`(f ⁻¹' B) ∩ (f ⁻¹' C)`"
+      ],
+      "answer": 4,
+      "why": "`x ∈ f ⁻¹' (B ∩ C) ↔ f x ∈ B ∩ C ↔ f x ∈ B ∧ f x ∈ C`，正是右边两个原像的交（`preimage_inter`）。",
+      "source": "units/I.3/unit08-images-preimages.sokonanoda:86",
+      "kps": [
+        "kp.i3.image.preimage.laws"
+      ]
+    },
+    {
+      "id": "I.3.image-preimage-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "preimage",
+        "compl",
+        "laws"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-3"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "为什么原像与补交换：`f ⁻¹' (Bᶜ) = (f ⁻¹' B)ᶜ`？",
+      "options": [
+        "因为补集本身是空集。",
+        "因为 `f` 是一个双射。",
+        "逐点展开：`x ∈ f ⁻¹' (Bᶜ) ↔ f x ∈ Bᶜ ↔ ¬ (f x ∈ B) ↔ ¬ (x ∈ f ⁻¹' B) ↔ x ∈ (f ⁻¹' B)ᶜ`",
+        "要对 `f` 使用选择公理。"
+      ],
+      "answer": 3,
+      "why": "原像的定义就是一次函数应用，补集是逐点否定：两层展开后两边逐点相同（`preimage_compl`）。",
+      "source": "units/I.3/unit08-images-preimages.sokonanoda:78",
+      "kps": [
+        "kp.i3.image.preimage.laws"
+      ]
+    },
+    {
+      "id": "I.3.cardinal-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "cardinal",
+        "definition"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-3"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "要把「等势」变成可比较的对象，`Cardinal` 是如何通过对类型取商构造出来的？",
+      "options": [
+        "它被构造成自然数的一个子集。",
+        "`Type.Equiv` 在类型上的商（`Quot`）：`Cardinal := Quot (fun α β => Type.Equiv α β)`",
+        "它被构造成集合的幂集。",
+        "它被构造成一个函数类型。"
+      ],
+      "answer": 2,
+      "why": "基数是**类型的商**：等势的类型落在同一个基数里（`Cardinal := Quot Type.Equiv`）。",
+      "source": "lib/Cardinal.sokonanoda:73",
+      "kps": [
+        "kp.i3.cardinal"
+      ]
+    },
+    {
+      "id": "I.3.cardinal-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "cardinal",
+        "sound"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-3"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "`Cardinal.sound` 说明：若 `h : Type.Equiv α β` 成立，则可以得到哪个结论？",
+      "options": [
+        "`Cardinal.mk α = Cardinal.mk β`",
+        "`α = β`",
+        "`Cardinal.mk α ≠ Cardinal.mk β`",
+        "`Type.Equiv β α`"
+      ],
+      "answer": 1,
+      "why": "`Quot.sound` 的直接实例：等势的类型有相同基数（`Cardinal.sound`）。",
+      "source": "lib/Cardinal.sokonanoda:82",
+      "kps": [
+        "kp.i3.cardinal"
+      ]
+    },
+    {
+      "id": "I.3.pointwise-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "pointwise",
+        "empty",
+        "subset"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-5"
+      ],
+      "prereq": [
+        "I.3.preimage-2"
+      ],
+      "prompt": "已知 `h : A ⊆ ∅`，要证「`A` 没有成员」，正确步骤是？",
+      "options": [
+        "应当直接 `exact h` 收尾。",
+        "应当对 `A` 用 `Set.ext` 展开。",
+        "应当用 `Set.mem_univ` 来处理。",
+        "给 `x : α` 与 `hx : x ∈ A`；由 `h` 得 `x ∈ ∅`，再由 `Set.mem_empty_iff_false` 把它变成 `False`"
+      ],
+      "answer": 4,
+      "why": "含于空集 = 点态为假：`subset_empty_elim` 把 `h` 用在 `x` 上，再用空集成员判定收尾。",
+      "source": "units/I.3/unit101-empty-subset.sokonanoda:40",
+      "kps": [
+        "kp.i3.pointwise"
+      ]
+    },
+    {
+      "id": "I.3.family-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 1,
+      "tags": [
+        "family",
+        "sunion",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.sunion-1"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "要用广义并 `Set.sUnion α F` 表达「存在族成员包含 `x`」，`F` 必须是什么类型的一族集合？",
+      "options": [
+        "`Set α`",
+        "`α → Prop`",
+        "它必须是一族集合，类型为 `Set (Set α)`，即 `α` 的子集之族。",
+        "`α`"
+      ],
+      "answer": 3,
+      "why": "广义并要求 `F` 是一族集合：`F : Set (Set α)`，成员条件是「存在 `A ∈ F` 使 `x ∈ A`」。",
+      "source": "lib/SUnion.sokonanoda:28",
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.family-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 3,
+      "tags": [
+        "family",
+        "sinter",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.sinter-2"
+      ],
+      "prereq": [
+        "I.3.sinter-2"
+      ],
+      "prompt": "为什么 `⋂₀ F ⊆ A` 对每个 `A ∈ F` 都成立，而反方向 `A ⊆ ⋂₀ F` 一般情况下不成立？",
+      "options": [
+        "因为交比并要大一些。",
+        "广义交的成员是「对族里每个成员都成立」：任给 `x ∈ ⋂₀ F`，取 `A ∈ F` 即得 `x ∈ A`；反过来要 `x` 同时属于**所有**成员，只属于一个 `A` 不够",
+        "因为 `F` 一定非空。",
+        "反方向其实恒成立。"
+      ],
+      "answer": 2,
+      "why": "`⋂₀ F` 的成员条件是逐成员全称；`sInter_subset` 只需对给定的 `A ∈ F` 用一次这条全称，反方向需要所有成员的证据。",
+      "source": "lib/SUnion.sokonanoda:60",
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.image-6",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "monotone"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.image-1"
+      ],
+      "prompt": "已知 `h : A ⊆ B`，要证 `f '' A ⊆ f '' B`，用库里哪条最直接？",
+      "options": [
+        "`Set.image_mono f A B h`",
+        "`Set.image_subset_iff f A B`",
+        "`Set.mem_preimage f B x`",
+        "`Set.image_injOn f A h`"
+      ],
+      "answer": 1,
+      "why": "像的单调性：`A ⊆ B` 时同一个 `f` 的像也逐点包含（`image_mono`，L2 层的库引理）。",
+      "source": "lib/Image.sokonanoda:69",
+      "kps": [
+        "kp.i3.image"
+      ]
+    },
+    {
+      "id": "I.3.image-family-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "preimage",
+        "family",
+        "sunion"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.sunion-1"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "原像与广义并也交换：命题 `x ∈ f ⁻¹' (⋃₀ F)` 等价于哪个命题？",
+      "options": [
+        "`∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A)`",
+        "`x ∈ ⋃₀ F`",
+        "`f x ∈ F`",
+        "`∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)`"
+      ],
+      "answer": 4,
+      "why": "原像把 `f x` 送进广义并，等价于送进族里某个成员（`mem_preimage_sUnion_iff`）。",
+      "source": "units/I.3/unit74-preimage-families.sokonanoda:106",
+      "kps": [
+        "kp.i3.family.image"
+      ]
+    },
+    {
+      "id": "I.3.le-mono-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "powerset",
+        "monotone"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "`A ≼ B` 能否推出 `𝒫 A ≼ 𝒫 B`？用库里哪条？",
+      "options": [
+        "不能，因为幂集会反转方向。",
+        "能，但是必须用选择公理。",
+        "能：`Set.Le.powerset α β A B h`，证人取 `S ↦ f '' S`（像集映射在 `𝒫 A` 上单射、并把 `𝒫 A` 送进 `𝒫 B`）",
+        "只能得到 `𝒫 A ⊆ 𝒫 B` 这个包含关系。"
+      ],
+      "answer": 3,
+      "why": "从单射 `f` 造 `𝒫` 上的映射 `S ↦ f '' S`：像集相等 + 单射 ⇒ `S = T`（`Set.image_injOn`），落点由 `MapsTo` 给（`Set.image_mapsTo_powerset`）。",
+      "source": "lib/Equiv.sokonanoda:369",
+      "kps": [
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.cb-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "cb",
+        "boundary",
+        "explain"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "CB 本体的**零公理版本**在本课为什么还没做出来？",
+      "options": [
+        "因为集合论里的 CB 定理其实是假的。",
+        "需要把 `Exists` 里的数据安全地消去到 `Type`（G-6 一族，仍 open）；本课只能经 `choice` 取出双射，或像单元103 那样把互逆律当前提",
+        "因为 `≼` 不是传递的关系。",
+        "因为证明它需要排中律。"
+      ],
+      "answer": 2,
+      "why": "本课 `≼` 是 `∃`-命题、`≈` 是数据；CB 要从两个 `∃` 里取出映射并拼成互逆对——这正是 G-6 挡住的消去，所以单元112 走了 choice。",
+      "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:245 + units/I.3/unit103-leOn-both.sokonanoda:69",
+      "kps": [
+        "kp.i3.cb"
+      ]
+    },
+    {
+      "id": "I.3.image-preimage-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "inter",
+        "counterexample"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-4"
+      ],
+      "prereq": [
+        "I.3.image-1"
+      ],
+      "prompt": "为什么**像**只保并、不保交？",
+      "options": [
+        "`f '' (A ∩ B) ⊆ f '' A ∩ f '' B` 只有单向；反方向要求同一个 `y` 在 `A`、`B` 里的原像能取成同一个 `x`，一般做不到（例如把两点都送到同一点的 `f1`：`f1 '' ({aa}∩{bb}) = ∅`，而 `f1 ''{aa} ∩ f1 ''{bb} = {aa}`）",
+        "因为交比并小，所以像只会更小一些。",
+        "因为像会把所有元素都送到同一个点。",
+        "其实像保交，只是本课程没有证明。"
+      ],
+      "answer": 1,
+      "why": "像的成员是「存在一个原像」：两个像各自的原像可能不同；反例用的是常值映射 `f1` 与两个单点集的交（`image_inter_subset` / `not_image_inter_eq_image_inter`）。",
+      "source": "units/I.3/unit08-images-preimages.sokonanoda:252 + units/I.3/unit08-images-preimages.sokonanoda:285",
+      "kps": [
+        "kp.i3.image.preimage.laws"
+      ]
+    },
+    {
+      "id": "I.3.pointwise-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "pointwise",
+        "empty",
+        "image"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-5"
+      ],
+      "prereq": [
+        "I.3.image-5"
+      ],
+      "prompt": "为什么 `∅ ⊆ A` 对任何 `A` 都成立（这也解释了为什么 `f '' ∅ = ∅` 不需知道 `f`）？",
+      "options": [
+        "因为空集是每个集合的元素。",
+        "因为 `A` 一定非空。",
+        "要用排中律分情况讨论。",
+        "给 `x ∈ ∅`：空集没有成员，`x ∈ ∅` 展开就是 `False`，从矛盾用 `False.elim` 得到 `x ∈ A`；像那边是同理的「存在一个 `x ∈ ∅` 的证人」不可能"
+      ],
+      "answer": 4,
+      "why": "空集的成员判定是恒假：含于任何集合都是空洞蕴含（`empty_subset`）；`f '' ∅ = ∅` 则是存在量化的谓词恒假。",
+      "source": "units/I.3/unit101-empty-subset.sokonanoda:56 + lib/Image.sokonanoda:44",
+      "kps": [
+        "kp.i3.pointwise"
+      ]
+    },
+    {
+      "id": "I.3.image-7",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "elim"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-4"
+      ],
+      "prereq": [
+        "I.3.image-2"
+      ],
+      "prompt": "已知 `h : y ∈ f '' A`，要用 `Set.mem_image_elim` 消去它，需要交出的函数 `k` 吃的是什么？",
+      "options": [
+        "它只吃一个 `y : β`。",
+        "它只吃一个 `A : Set α`。",
+        "一个原像 `x : α`、`x ∈ A` 的证据、以及 `f x = y` 的证据；返回要证的目标 `C`",
+        "它吃一个 `∃` 式命题。"
+      ],
+      "answer": 3,
+      "why": "`Set.mem_image_elim f A y C h k` 把像里的存在式拆开：`k` 在「任意证人 `x`、`x ∈ A`、`f x = y`」下证 `C`（`C` 必须与证人无关）。",
+      "source": "lib/Image.sokonanoda:103",
+      "kps": [
+        "kp.i3.image.use"
+      ]
+    },
+    {
+      "id": "I.3.image-family-5",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "preimage",
+        "family",
+        "sinter"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.sinter-2"
+      ],
+      "prereq": [
+        "I.3.sinter-2"
+      ],
+      "prompt": "原像与广义**交**也交换：命题 `x ∈ f ⁻¹' (⋂₀ F)` 等价于哪个命题？",
+      "options": [
+        "`∃ (A : Set β), A ∈ F ∧ x ∈ (f ⁻¹' A)`",
+        "`∀ (A : Set β), A ∈ F → x ∈ (f ⁻¹' A)`",
+        "它等价于 `f x ∈ ⋂₀ F` 与 `x ∈ ⋂₀ F` 同时成立。",
+        "`∀ (A : Set β), x ∈ (f ⁻¹' A)`"
+      ],
+      "answer": 2,
+      "why": "原像保交（全保）：`f x` 属于每个 `A`，等价于 `x` 属于每个 `f ⁻¹' A`（`mem_preimage_sInter_iff`）。",
+      "source": "units/I.3/unit74-preimage-families.sokonanoda:146",
+      "kps": [
+        "kp.i3.family.image"
+      ]
+    },
+    {
+      "id": "I.3.le-5",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "refl",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "为什么 `Set.Le.refl`（`A ≼ A`）不需要选择公理？",
+      "options": [
+        "因为证人恒等映射是**明确给出**的：`f := fun x => x`，单射与落点都用 `fun x hx => hx` 直接证，全程没有从 `∃` 里取东西",
+        "因为在这个情形里 `A` 是空集。",
+        "因为 `Set.InjOn` 本身就是一条公理。",
+        "因为 `≼` 反过来定义了 `=` 这个关系。"
+      ],
+      "answer": 1,
+      "why": "`Set.Le.refl` 用 `Set.Le.intro` + 恒等映射：`∃ f` 的证人是我们自己写出来的，不是从别处「选」出来的，所以零公理。",
+      "source": "lib/Equiv.sokonanoda:297",
+      "kps": [
+        "kp.i3.le"
+      ]
+    },
+    {
+      "id": "I.3.le-mono-5",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "mapsTo",
+        "compose"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "`MapsTo` 在复合下封闭：已知 `hf : Set.MapsTo f A B` 与 `hg : Set.MapsTo g B C`，要证明 `Set.MapsTo (fun x => g (f x)) A C` 时关键件是什么？",
+      "options": [
+        "先对 `x` 用 `hg`，再用 `hf` 处理。",
+        "用 `Set.mem_image_elim` 把 `x` 拆开。",
+        "直接 `exact hf` 就能证完。",
+        "给 `x ∈ A`，先用 `hf` 得 `f x ∈ B`，再用 `hg` 得 `g (f x) ∈ C`"
+      ],
+      "answer": 4,
+      "why": "落点条件按点走：`hg (f x) (hf x hx)` 就是 `g (f x) ∈ C`（`mapsTo_comp` 的证明）。",
+      "source": "units/I.3/unit96-le-on.sokonanoda:71",
+      "kps": [
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.both-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "le",
+        "both",
+        "equiv-mk"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "把「双向 `≼` + 互逆律」装成 `A ≈ B` 时，`Set.Equiv.mk` 需要的六样实参是什么？",
+      "options": [
+        "需要两把映射与两条等式 `f = g`。",
+        "需要四条包含关系。",
+        "两把映射 `f`、`g`，两条落点条件 `Set.MapsTo f A B` / `Set.MapsTo g B A`，两条互逆律 `Set.LeftInvOn g f A` / `Set.RightInvOn f g B`",
+        "需要一个证人 `x ∈ A` 与一个 `y ∈ B`。"
+      ],
+      "answer": 3,
+      "why": "`Set.Equiv.mk` 的参数顺序是 `f g hf hg hgf hfg`（对照 `Set.Equiv` 的嵌套 `∃`/`∧` 结构）；前两把是映射，后四样是「去、回、左逆、右逆」。",
+      "source": "lib/Equiv.sokonanoda:139",
+      "kps": [
+        "kp.i3.both"
+      ]
+    },
+    {
+      "id": "I.3.cantor-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "cantor",
+        "powerset",
+        "nat"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "把 Cantor 定理实例化到 `ℕ`，`powerset_nat_not_countable` 给出的关于 `ℕ` 与 `𝒫 ℕ` 的结论是什么？",
+      "options": [
+        "`¬ ((@Set.univ Nat) ≈ (@Set.univ Nat))`",
+        "`¬ ((@Set.univ Nat) ≈ (@Set.univ (Set Nat)))`",
+        "`(@Set.univ (Set Nat)) ≈ (@Set.univ Nat)`",
+        "`Set.Countable (Set Nat)`"
+      ],
+      "answer": 2,
+      "why": "把 Cantor 定理实例化到 `Nat`：`ℕ` 与 `𝒫 ℕ` 不等势（`powerset_nat_not_countable`），`Set.Countable` 在本单元还是练习、不作为前提。",
+      "source": "units/I.3/unit10-cantor.sokonanoda:150",
+      "kps": [
+        "kp.i3.cantor"
+      ]
+    },
+    {
+      "id": "I.3.cb-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "cb",
+        "fixpoint"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "单元112 里链核 `C₀ = ⋂₀ (cbFix …)` 的作用是什么？",
+      "options": [
+        "把 `A` 分成「走 `f`」与「走 `g`」两半，使拼接出的关系既全又单值（不动点 `K(C₀) = C₀` 是全部功夫所在）",
+        "它的作用是把 `A` 变成空集。",
+        "它的作用是证明 `f = g`。",
+        "它的作用是从 `A` 里取出一个元素。"
+      ],
+      "answer": 1,
+      "why": "`cbC0` 是 `cbFix` 族的交（最小不动点）：`C₀` 内走 `f`、`C₀` 外走 `g` 拼出双射的版图（`cbK`/`cbFix`/`cbC0` 三条定义 + `cbC0_in_fix`）。",
+      "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:48",
+      "kps": [
+        "kp.i3.cb"
+      ]
+    },
+    {
+      "id": "I.3.equiv-algebra-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "equiv",
+        "algebra",
+        "comp"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-2"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "`Type.Equiv.comp` 的输入是两对互逆函数 `(f₁, g₁)` 与 `(f₂, g₂)`，它输出的互逆对是什么？",
+      "options": [
+        "`(f₁ ∘ f₂, g₂ ∘ g₁)`",
+        "`(f₁, g₂)`",
+        "`(g₁, f₂)`",
+        "`(f₂ ∘ f₁, g₁ ∘ g₂)`（去的复合、回的反序复合）"
+      ],
+      "answer": 4,
+      "why": "两条等价复合时，`α → β → γ` 用 `f₂ ∘ f₁`；反向 `γ → β → α` 必须**反序**用 `g₁ ∘ g₂` 才能还原（`Type.Equiv.comp`）。",
+      "source": "lib/Cardinal.sokonanoda:190",
+      "kps": [
+        "kp.i3.equiv.algebra"
+      ]
+    },
+    {
+      "id": "I.3.image-preimage-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "union",
+        "laws"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-1"
+      ],
+      "prereq": [
+        "I.3.image-4"
+      ],
+      "prompt": "为什么 `f '' (A ∪ B) = f '' A ∪ f '' B`（像保并）？",
+      "options": [
+        "因为像会把并集压成一个点。",
+        "因为 `f` 必须是单射。",
+        "两个方向都逐点分情况：→ 从 `y ∈ f '' (A ∪ B)` 拆出原像 `x`，把 `x ∈ A ∪ B` 拆成两支、分别放进左右像；← 对 `y ∈ f '' A ∪ f '' B` 分两支，各自由原像放进 `A ∪ B` 的对应支",
+        "像其实不保并，只保持单向包含。"
+      ],
+      "answer": 3,
+      "why": "像的成员是一个存在式，并在原像侧展开为 `x ∈ A ∨ x ∈ B`：两边都按析取分情况、各自组装（`image_union` 的证明就是两次 `Or.elim` + `Set.mem_image_intro`/`Set.mem_image_elim`）。",
+      "source": "units/I.3/unit08-images-preimages.sokonanoda:98",
+      "kps": [
+        "kp.i3.image.preimage.laws"
+      ]
+    },
+    {
+      "id": "I.3.cardinal-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 1,
+      "tags": [
+        "cardinal",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.equiv-3"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "要把一个类型送进基数，`Cardinal.mk` 的定义域与值域分别是什么？",
+      "options": [
+        "`Cardinal → Type`",
+        "它的类型是 `Type → Cardinal`，把类型送到它的基数。",
+        "`Type → Prop`",
+        "`Cardinal → Cardinal`"
+      ],
+      "answer": 2,
+      "why": "`Cardinal.mk α` 是类型 `α` 的基数（`Quot.mk` 的实例），所以它是从类型到商类型的函数。",
+      "source": "lib/Cardinal.sokonanoda:77",
+      "kps": [
+        "kp.i3.cardinal"
+      ]
+    },
+    {
+      "id": "I.3.family-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "level": 1,
+      "tags": [
+        "family",
+        "sunion",
+        "library"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.sunion-1"
+      ],
+      "prereq": [
+        "I.3.sunion-1"
+      ],
+      "prompt": "`Set.mem_sUnion_iff` 把广义并成员整体换成的等价式是什么形状？",
+      "options": [
+        "`x ∈ ⋃₀ F ↔ ∃ (A : Set α), A ∈ F ∧ x ∈ A`",
+        "`x ∈ ⋃₀ F ↔ ∀ (A : Set α), A ∈ F → x ∈ A`",
+        "`x ∈ ⋃₀ F ↔ x ∈ F`",
+        "`x ∈ ⋃₀ F ↔ F = ∅`"
+      ],
+      "answer": 1,
+      "why": "广义并 = 存在一个族成员包含 `x`；全称那条是广义交（`Set.mem_sInter_iff`）。",
+      "source": "lib/SUnion.sokonanoda:35",
+      "kps": [
+        "kp.i3.family"
+      ]
+    },
+    {
+      "id": "I.3.mix-1",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 2,
+      "tags": [
+        "image",
+        "preimage",
+        "laws"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.image-3"
+      ],
+      "prereq": [
+        "I.3.preimage-1"
+      ],
+      "prompt": "已知 `h : f '' A ⊆ B`，要证 `A ⊆ f ⁻¹' B`，正确做法是？",
+      "options": [
+        "直接 `exact h` 就能得到目标。",
+        "对 `f` 用 `Set.mem_image_intro` 造像。",
+        "用 `Set.ext` 证两个集合相等。",
+        "`Set.image_subset_iff f A B` 的 `Iff.mp` 给出 `A ⊆ f ⁻¹' B`。"
+      ],
+      "answer": 4,
+      "why": "`image_subset_iff : f '' A ⊆ B ↔ A ⊆ f ⁻¹' B`；目标正是右边，`Iff.mp` 一发即得（成员层面就是「每个原像都被送进 B」）。",
+      "source": "lib/Image.sokonanoda:82",
+      "kps": [
+        "kp.i3.image.preimage.laws",
+        "kp.i3.preimage"
+      ]
+    },
+    {
+      "id": "I.3.mix-2",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 2,
+      "tags": [
+        "le",
+        "monotone",
+        "trans"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.equiv-1"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "已知 `hAB : A ≼ B` 与 `hBC : B ⊆ C`，要证明 `A ≼ C` 时可以走哪些等价的路线？",
+      "options": [
+        "可以走 `Set.Le.mono` 与 `Set.Le.refl` 这条路。",
+        "可以走 `Set.Le.powerset` 与 `Set.Le.elim` 这条路。",
+        "`Set.Le.mono_right α β A B C hAB hBC`，或 `Set.Le.trans` 配 `Set.Le.of_subset`（`B ≼ C`）",
+        "只有一条路，就是先证 `A = B`。"
+      ],
+      "answer": 3,
+      "why": "右边单调可以直接用；也可以先由包含得 `B ≼ C`（恒等映射），再用 `≼` 的传递律——两条都是把同一把单射的陪域放大。",
+      "source": "lib/Equiv.sokonanoda:319 + lib/Equiv.sokonanoda:314",
+      "kps": [
+        "kp.i3.le",
+        "kp.i3.le.mono"
+      ]
+    },
+    {
+      "id": "I.3.mix-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "level": 3,
+      "tags": [
+        "cantor",
+        "cardinal"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.equiv-3"
+      ],
+      "prereq": [
+        "I.3.equiv-1"
+      ],
+      "prompt": "结合 Cantor 定理，等式 `Cardinal.mk α = Cardinal.mk (Set α)` 是否成立？",
+      "options": [
+        "它成立，因为两边都是类型。",
+        "不成立：若成立，由 `Cardinal.mk_inj` 得 `Type.Equiv α (Set α)`（即 `univ α ≈ univ (Set α)`），与 Cantor 定理矛盾",
+        "它成立当且仅当 `α` 是有限类型。",
+        "Cantor 定理与基数无关，所以推不出来。"
+      ],
+      "answer": 2,
+      "why": "`Cardinal.mk_inj` 把基数相等退回等势；而 Cantor 定理说 `α` 与 `𝒫 α` 不等势，所以两个基数不同。",
+      "source": "lib/Cardinal.sokonanoda:215 + units/I.3/unit10-cantor.sokonanoda:137",
+      "kps": [
+        "kp.i3.cantor",
+        "kp.i3.cardinal"
+      ]
+    },
+    {
+      "id": "I.3.ordinal-3",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "序数预备",
+      "level": 1,
+      "tags": [
+        "ordinal",
+        "prep",
+        "type"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.ordinal-1"
+      ],
+      "prereq": [
+        "I.3.ordtrans-1"
+      ],
+      "prompt": "序数在本课程里写成**谓词**：`IsOrdinal α E x` 返回的是什么？",
+      "options": [
+        "它返回 `Prop`，也就是一条关于 `x` 的命题。",
+        "它返回 `Type`，也就是一个新的类型。",
+        "它返回 `α → α`，也就是一个函数。",
+        "它返回 `Set α`，也就是一个集合。"
+      ],
+      "answer": 1,
+      "why": "`IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop`——序数不是新类型，而是论域里的谓词；写成谓词也避免了「全体序数是集合」的困境。",
+      "source": "lib/Ordinal.sokonanoda:50",
+      "kps": [
+        "kp.prep.ordinal"
+      ]
+    },
+    {
+      "id": "I.3.choice-4",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "level": 1,
+      "tags": [
+        "choice",
+        "prep",
+        "nonempty"
+      ],
+      "difficulty": -1.5,
+      "variants": [
+        "I.3.axiom-choice-1"
+      ],
+      "prereq": [
+        "I.3.axiom-choice-1"
+      ],
+      "prompt": "要说明一个类型非空（`Nonempty α`），需要交出的是什么存在式命题？",
+      "options": [
+        "`∀ (a : α), a = a`",
+        "`α → Prop`",
+        "`Set α`",
+        "`∃ (a : α), a = a`（类型里有一个元素）"
+      ],
+      "answer": 4,
+      "why": "`Nonempty α : Prop := ∃ (a : α), a = a`——「非空」被编码成「存在一个元素」，注意它落在 `Prop`。",
+      "source": "lib/Choice.sokonanoda:34",
+      "kps": [
+        "kp.prep.choice"
+      ]
+    },
+    {
+      "id": "I.3.choice-5",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "level": 2,
+      "tags": [
+        "choice",
+        "prep",
+        "nonempty",
+        "apply"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.3.axiom-choice-1"
+      ],
+      "prereq": [
+        "I.3.axiom-choice-1"
+      ],
+      "prompt": "已知 `h : Nonempty α`，使用 `nonempty_def` 之后能够得到哪个命题？",
+      "options": [
+        "`∀ (a : α), a = a`",
+        "它给出一个可直接拿去用的元素 `a : α`。",
+        "`∃ (a : α), a = a`",
+        "`False`"
+      ],
+      "answer": 3,
+      "why": "`nonempty_def α : Nonempty α ↔ ∃ (a : α), a = a`，`Iff.mp` 把非空换成存在式；但**不能**顺手从 `∃` 里把元素取出来用（数据消去不可用）。",
+      "source": "lib/Choice.sokonanoda:37",
+      "kps": [
+        "kp.prep.choice"
+      ]
+    },
+    {
+      "id": "I.3.choice-6",
+      "kind": "choice",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "level": 3,
+      "tags": [
+        "choice",
+        "prep",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.choice-3"
+      ],
+      "prereq": [
+        "I.3.choice-3"
+      ],
+      "prompt": "本课为什么从 `choice` 的结论里**取不出**选择函数（即不做 `Classical.choose` 那一层）？",
+      "options": [
+        "因为选择公理本身是假的。",
+        "`choice` 的结论是 `∃ (f : α → β), …`，落在 `Prop`；从 `∃` 里取出函数属于大数据消去（G-58 不可用），所以要用时只能**直接继续应用** `choice`",
+        "因为 `α → β` 不是一个类型。",
+        "因为 `Exists.elim` 会丢掉存在式里的证人。"
+      ],
+      "answer": 2,
+      "why": "`axiom choice : … → ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)`；`Exists.rec` 的 motive 只在 `Prop`，所以本版不定义 `Classical.choose`，把 `choice` 的 `∃` 继续在 `Prop` 里消费。",
+      "source": "lib/Choice.sokonanoda:46",
+      "kps": [
+        "kp.prep.choice"
+      ]
+    },
+    {
+      "id": "I.1.open-3",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 2,
+      "tags": [
+        "sdiff",
+        "compl",
+        "extensionality"
+      ],
+      "difficulty": 0.0,
+      "variants": [
+        "I.1.sdiff-2"
+      ],
+      "prereq": [
+        "I.1.sdiff-1",
+        "I.1.ext-1"
+      ],
+      "prompt": "下面哪个集合等式**不需要**外延性公理，`rfl` 一步就能证出来？",
+      "reference": "逐点链：`x ∈ A \\ B ↔ x ∈ A ∧ ¬ (x ∈ B)`（`Set.mem_sdiff`）`↔ x ∈ A ∧ x ∈ Bᶜ`（补集展开）`↔ x ∈ A ∩ Bᶜ`（`Set.mem_inter_iff`）。对每个 `x` 得到 `↔` 之后，用 `Set.ext`（外延性公理）打包成集合等式——`mem_sdiff_compl` 的证法。",
+      "why": "`A \\ B` 展开是 `fun x => A x ∧ ¬ (B x)`；`A ∩ Bᶜ` 展开是 `fun x => A x ∧ ¬ (B x)`——两边是**同一个谓词**，所以定义上相等，`rfl` 直接过（本课程内核实测接受）。而 `A ∪ ∅ = A` 之类要处理 `Or`/空集，必须走 `Set.ext` 逐点证 `↔`。",
+      "source": "lib/Set.sokonanoda:95 · :160（真内核实测：rfl 通过）",
+      "kps": [
+        "kp.i1.sdiff.algebra",
+        "kp.i1.ext.use"
+      ],
+      "options": [
+        "`A \\ B = A ∩ Bᶜ`：两边展开逐点都是 `A x ∧ ¬ (B x)`，是同一个谓词。",
+        "`A ∪ ∅ = A`：右边只有一个集合，左边有两个。",
+        "`A \\ ∅ = A`：差集要去掉空集，必须逐点分情况。",
+        "`A ∩ univ = A`：交集要拆出两份证据，必须用外延性。"
+      ],
+      "answer": 1
+    },
+    {
+      "id": "I.2.open-3",
+      "kind": "short",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 3,
+      "tags": [
+        "relation-property",
+        "reflexive",
+        "counterexample"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.2.refl-1",
+        "I.2.symm-1"
+      ],
+      "prereq": [
+        "I.2.refl-1",
+        "I.2.symm-1"
+      ],
+      "prompt": "「对称 + 传递」能否推出「自反」，若不能请给出反例并说明为什么两条前提在该反例上仍然成立？",
+      "rubric": {
+        "minScore": 0.75,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 0.5,
+            "any": [
+              "不能",
+              "推不出",
+              "不成立"
+            ],
+            "note": "结论：推不出自反"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "空关系",
+              "emptyrelation",
+              "空的关系"
+            ],
+            "note": "反例：非空论域（如 Nat）上的空关系"
+          },
+          {
+            "id": "p3",
+            "weight": 1,
+            "any": [
+              "空洞",
+              "前提永不成立",
+              "永远不成立",
+              "没有一对",
+              "false"
+            ],
+            "note": "对称/传递都是「若有 r a b 则…」的箭头，空关系使前提永假"
+          },
+          {
+            "id": "p4",
+            "weight": 1,
+            "any": [
+              "自反",
+              "r a a",
+              "reflexive",
+              "自己有关系"
+            ],
+            "note": "自反要求对每个 a 都有 r a a；空关系给不出"
+          }
+        ]
+      },
+      "reference": "推不出。反例：取非空类型（如 `Nat`）上的空关系 `EmptyRelation`——它没有任何一对元素相关，所以「对称」「传递」都是空洞成立；但自反要求每个 `a` 满足 `r a a`，空关系给不出，所以不成立（`not_symm_trans_implies_refl`）。",
+      "why": "两条前提都是「若有 r a b 则…」的箭头，空关系让前提永假；自反不是箭头，而是对每个 a 的断言。",
+      "source": "units/I.2/unit06-relations.sokonanoda:218 + lib/Order.sokonanoda:49 + lib/Order.sokonanoda:329",
+      "kps": [
+        "kp.i2.rel.refl",
+        "kp.i2.rel.symm"
+      ]
+    },
+    {
+      "id": "I.3.open-3",
+      "kind": "explain",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "level": 3,
+      "tags": [
+        "image",
+        "preimage",
+        "laws"
+      ],
+      "difficulty": 1.5,
+      "variants": [
+        "I.3.image-3"
+      ],
+      "prereq": [
+        "I.3.image-1",
+        "I.3.preimage-1"
+      ],
+      "prompt": "请综合解释 `f '' A ⊆ B ↔ A ⊆ f ⁻¹' B` 为什么成立、它怎样把「像的包含」翻译成「原像的包含」，以及为什么原像能保并、交、补而像只保并、不保交？",
+      "rubric": {
+        "minScore": 0.75,
+        "points": [
+          {
+            "id": "p1",
+            "weight": 1,
+            "any": [
+              "没有存在",
+              "没有量词",
+              "无 ∃",
+              "函数应用",
+              "直接展开",
+              "f x ∈ b"
+            ],
+            "note": "原像是一句话：x ∈ f ⁻¹' B ↔ f x ∈ B（无 ∃）"
+          },
+          {
+            "id": "p2",
+            "weight": 1,
+            "any": [
+              "存在量词",
+              "∃ x",
+              "证人",
+              "只保并",
+              "不保交",
+              "原像不同"
+            ],
+            "note": "像是存在量化；不同像的证人可能不同，所以只保并"
+          },
+          {
+            "id": "p3",
+            "weight": 1,
+            "any": [
+              "image_subset_iff",
+              "等价",
+              "双向",
+              "每个 x",
+              "逐点"
+            ],
+            "note": "引理内容：f '' A ⊆ B ↔ 每个 x ∈ A 都有 f x ∈ B"
+          },
+          {
+            "id": "p4",
+            "weight": 0.5,
+            "any": [
+              "转成",
+              "翻译",
+              "换成",
+              "点态",
+              "先转",
+              "换成原像"
+            ],
+            "note": "用途：把含 ∃ 的像问题转成无 ∃ 的点态/原像问题"
+          }
+        ]
+      },
+      "reference": "`f '' A ⊆ B` 展开是「每个 `y ∈ f '' A` 都落在 `B`」；而 `y ∈ f '' A` 有一个原像 `x ∈ A` 且 `f x = y`，所以这与「每个 `x ∈ A` 都有 `f x ∈ B`」等价，后者正是 `A ⊆ f ⁻¹' B`（`image_subset_iff`）。用途：像的包含问题（带 `∃`）可以先翻译成原像的包含（无 `∃`），变成逐点问题。原像 `x ∈ f ⁻¹' B ↔ f x ∈ B` 是纯函数应用，所以并、交、补逐点全保；像 `y ∈ f '' A ↔ ∃ x, x ∈ A ∧ f x = y` 带存在量化——并的证明把 `x ∈ A ∪ B` 拆成两支各自造像，但交的反方向要求同一个 `y` 的两个原像取成同一个 `x`，一般做不到（常值映射 `f1` 的反例：`f1 '' ({aa} ∩ {bb}) = ∅` 而 `f1 ''{aa} ∩ f1''{bb} = {aa}`）。",
+      "why": "命题结构决定保运算的强度：原像是函数应用（无 ∃，全保），像是存在量化（有 ∃，只保并）；`image_subset_iff` 则把像的包含翻译成点态/原像的包含。",
+      "source": "lib/Image.sokonanoda:32 + lib/Image.sokonanoda:37 + lib/Image.sokonanoda:82 + units/I.3/unit08-images-preimages.sokonanoda:252",
+      "kps": [
+        "kp.i3.image.preimage.laws",
+        "kp.i3.image"
+      ]
+    },
+    {
+      "id": "I.2.fun-boundary-3",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "level": 3,
+      "tags": [
+        "function",
+        "surjective",
+        "boundary",
+        "choice"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [
+        "I.2.surj-split-1",
+        "I.2.fun-boundary-1"
+      ],
+      "prompt": "若在 I.2 里试图把「满射 ⇒ 存在右逆」这一命题证出来，会精确卡在哪一步、为什么？",
+      "options": [
+        "它卡在单射性上，因为满射不够强，连一个原像都找不到。",
+        "卡在「把逐点存在打包成函数」这一步：这需要选择公理，而 I.2 还没有引入它",
+        "它卡在复合的写法上，因为 `g ∘ f` 无法展开。",
+        "卡在等式的对称性：`f (g y) = y` 不能反向使用"
+      ],
+      "answer": 2,
+      "why": "满射给的是 `∀ y, ∃ x, f x = y`，是逐点存在；要得到一条函数 `g` 同时为每个 `y` 选出一个原像，就必须把「逐点存在」打包成「存在一条函数」——这正是选择公理做的事。所以在本课的 I.2（选择公理尚未引入）这一步越界，无法证出。",
+      "source": "lib/Choice.sokonanoda:38 axiom choice · units/I.2/unit07-functions.sokonanoda:52",
+      "kps": [
+        "kp.i2.fun.boundary"
+      ]
+    },
+    {
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "tags": [
+        "membership",
+        "set"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.i1.mem"
+      ],
+      "sequence": "kp.i1.mem",
+      "id": "I.1.mem-s1",
+      "level": 1,
+      "cognitiveStep": 1,
+      "prompt": "`Set α` 本身的类型是什么？也就是说，集合被定义成了什么？",
+      "options": [
+        "一个内建的原始类型，元素由 `∈` 内建给出。",
+        "`α → Prop`，即「一个元素，对应一个命题」。",
+        "`α × Prop` 这样的序对类型。",
+        "`Prop` 本身。"
+      ],
+      "answer": 2,
+      "why": "`def Set (α : Type) : Type := α → Prop`：集合就是「给我一个元素，我告诉你它是否属于我」的函数。",
+      "source": "lib/Set.sokonanoda:56",
+      "seqIndex": 1,
+      "seqTotal": 5
+    },
+    {
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "tags": [
+        "membership",
+        "set"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [
+        "I.1.mem-s1"
+      ],
+      "kps": [
+        "kp.i1.mem"
+      ],
+      "sequence": "kp.i1.mem",
+      "id": "I.1.mem-s2",
+      "level": 1,
+      "cognitiveStep": 2,
+      "prompt": "已知 `h : a ∈ A`，要把它当成谓词直接作用在 `a` 上使用，应当把 `h` 看成哪个命题？",
+      "options": [
+        "`a = A`",
+        "`A a`",
+        "`A ⊆ {a}`",
+        "`a → A`"
+      ],
+      "answer": 2,
+      "why": "`a ∈ A` 就是 `A a` 的记法：`∈` 只是把函数应用写短（`demo_mem_def` 给出 `(a ∈ A) ↔ A a`）。",
+      "source": "units/I.1/unit01-sets-membership.sokonanoda:33",
+      "seqIndex": 2,
+      "seqTotal": 5
+    },
+    {
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "tags": [
+        "membership",
+        "set"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.1.mem-s2"
+      ],
+      "kps": [
+        "kp.i1.mem"
+      ],
+      "sequence": "kp.i1.mem",
+      "id": "I.1.mem-s3",
+      "level": 2,
+      "cognitiveStep": 2,
+      "prompt": "上一题你把 `h : a ∈ A` 看成了 `A a`。反过来，已知 `h : A a`、目标是 `a ∈ A`，正确写法是哪一个？",
+      "options": [
+        "`Iff.mpr (demo_mem_def α a A) h`",
+        "`Iff.mp (demo_mem_def α a A) h`",
+        "`Iff.mpr (demo_subset_def α A A) h`",
+        "`Set.notMem_empty a`"
+      ],
+      "answer": 1,
+      "why": "`demo_mem_def` 的陈述是 `(a ∈ A) ↔ A a`；手上是右端 `A a`，要到左端就用 `Iff.mpr`（`Iff.mp` 方向相反）。",
+      "source": "units/I.1/unit01-sets-membership.sokonanoda:33",
+      "seqIndex": 3,
+      "seqTotal": 5
+    },
+    {
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "tags": [
+        "membership",
+        "set"
+      ],
+      "difficulty": 0.0,
+      "variants": [],
+      "prereq": [
+        "I.1.mem-s3"
+      ],
+      "kps": [
+        "kp.i1.mem"
+      ],
+      "sequence": "kp.i1.mem",
+      "id": "I.1.mem-s4",
+      "level": 2,
+      "cognitiveStep": 3,
+      "prompt": "已知 `h : a ∈ A`，要证明 `a ∈ A ∧ a ∈ A`，正确做法是什么？",
+      "options": [
+        "把同一个 `h` 交给 `And.intro` 两次，因为两个合取支是同一个命题。",
+        "先用 `And.left` 取出左支，再用 `And.right` 取右支。",
+        "用 `Or.inl h` 放进合取。",
+        "先 `intro` 一个元素，再 `exact h`。"
+      ],
+      "answer": 1,
+      "why": "两个合取支都是 `a ∈ A`，同一份证据可以重复使用（`And.intro h h`）；合取是「两份证据」，不是「两个不同的命题」。",
+      "source": "prelude/Prelude.sokonanoda:10",
+      "seqIndex": 4,
+      "seqTotal": 5
+    },
+    {
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "tags": [
+        "membership",
+        "set"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [
+        "I.1.mem-s4"
+      ],
+      "kps": [
+        "kp.i1.mem"
+      ],
+      "sequence": "kp.i1.mem",
+      "id": "I.1.mem-s5",
+      "level": 3,
+      "cognitiveStep": 3,
+      "prompt": "为什么不能把 `a ∈ A` 当成「`A` 这个集合对象内部有个成员表，`a` 在表里」来理解？",
+      "options": [
+        "因为 `Set α` 被定义成 `α → Prop`，成员关系是「函数在 `a` 上取到的命题」，没有成员表这种东西。",
+        "因为 `a ∈ A` 的类型是 `Prop`，而 `A` 的类型是 `Type`，两者不能相提并论。",
+        "因为集合只能是空集或全集。",
+        "因为 `∈` 是内建符号，数学上不解释。"
+      ],
+      "answer": 1,
+      "why": "集合 = 谓词；`a ∈ A` 是把谓词 `A` 作用到 `a` 上得到的一个命题。理解成「成员表」会让你在后面把 `A ⊆ B` 当成元素比较，而不是逐点箭头。",
+      "source": "lib/Set.sokonanoda:56 · docs/design/course-stdlib.md",
+      "seqIndex": 5,
+      "seqTotal": 5
+    }
+  ]
+}

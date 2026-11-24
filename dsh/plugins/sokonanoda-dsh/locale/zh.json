@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "sokonanoda 语言服务（DSH）",
+    "description": "统一插件：做题类消息由本地课程引擎在 llm/stream 里直接作答（无需切换模型、无需独立进程）；learn-card / Lean 围栏由客户端渲染成卡片与高亮，纯展示、交互仍靠打字。配置、做题记录与历史在 ~/.dsh/state/sokonanoda-dsh/，不写进项目仓库。"
+  }
+}

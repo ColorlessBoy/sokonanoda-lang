@@ -1,0 +1,8 @@
+# sokonanoda-dsh: one Host row (fast path + in-process quiz service) plus one
+# Client half (fence cards + Lean highlighting). No separate quiz-proxy process,
+# no `quiz-auto` model provider, no per-feature plugin rows.
+- insert:
+    - id: sokonanoda-dsh
+      name: sokonanoda-dsh
+      config:
+        enabled: true

@@ -1,0 +1,614 @@
+{
+  "schema": "soko.lessons/1",
+  "version": 3,
+  "updated": "2026-11-22",
+  "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
+  "lessons": [
+    {
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "goal": "学完这一单元，你能够处理：隶属即谓词（a ∈ A ↔ A a）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i1.mem",
+          "title": "隶属即谓词（a ∈ A ↔ A a）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "集合的类型是 `α → Prop`，`∈` 只是把函数应用写短：`Set.mem a A` 就是 `A a`。",
+      "cards": [],
+      "questionTotal": 3,
+      "sources": [
+        "lib/Set.sokonanoda:60",
+        "units/I.1/unit01-sets-membership.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "goal": "学完这一单元，你能够处理：子集定义与展开（⊆ 是一条箭头）；证⊆ / 用⊆（intro x、h a ha）；空集（恒假谓词、notMem_empty）；单点集与二元对；包含的代数（传递/单调/分配律）；用外延性证集合等式（双向包含套路）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i1.subset",
+          "title": "子集定义与展开（⊆ 是一条箭头）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.subset.apply",
+          "title": "证⊆ / 用⊆（intro x、h a ha）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.empty",
+          "title": "空集（恒假谓词、notMem_empty）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.singleton",
+          "title": "单点集与二元对",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.subset.algebra",
+          "title": "包含的代数（传递/单调/分配律）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.ext.use",
+          "title": "用外延性证集合等式（双向包含套路）",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "空集定义就是恒假谓词：`Set.empty := fun x => False`，故 `a ∈ ∅ ↔ False`。",
+      "cards": [
+        {
+          "id": "set-ext",
+          "title": "集合相等 · Set.ext",
+          "oneLiner": "集合相等靠外延性：逐点给出 `↔`（互相包含）。"
+        }
+      ],
+      "questionTotal": 22,
+      "sources": [
+        "lib/Set.sokonanoda:159",
+        "lib/Set.sokonanoda:167",
+        "lib/Set.sokonanoda:175",
+        "lib/Set.sokonanoda:190"
+      ]
+    },
+    {
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "goal": "学完这一单元，你能够处理：交集（逐点合取）；并集（逐点析取、Or.elim）；幂集（B ∈ 𝒫A ↔ B ⊆ A）；逻辑工具（And/Or 的消去与构造）；空集（恒假谓词、notMem_empty）；全集（恒真谓词）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i1.inter",
+          "title": "交集（逐点合取）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.union",
+          "title": "并集（逐点析取、Or.elim）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.powerset",
+          "title": "幂集（B ∈ 𝒫A ↔ B ⊆ A）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.logic",
+          "title": "逻辑工具（And/Or 的消去与构造）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.empty",
+          "title": "空集（恒假谓词、notMem_empty）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.univ",
+          "title": "全集（恒真谓词）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.sdiff",
+          "title": "差集（A\\B = A ∧ ¬B）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "交集是逐点合取：`Set.inter A B = fun x => A x ∧ B x`。",
+      "cards": [
+        {
+          "id": "or-elim",
+          "title": "析取消去 · Or.elim",
+          "oneLiner": "`A ∨ B` 要证 `C`：两个来源各证一次 `C`，然后交给 `Or.elim`。"
+        }
+      ],
+      "questionTotal": 15,
+      "sources": [
+        "lib/Set.sokonanoda:193",
+        "lib/Set.sokonanoda:201",
+        "lib/Set.sokonanoda:217",
+        "lib/Set.sokonanoda:72"
+      ]
+    },
+    {
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "goal": "学完这一单元，你能够处理：差集（A\\B = A ∧ ¬B）；补集（逐点否定）；用外延性证集合等式（双向包含套路）；外延性公理（Set.ext 的形状）；逻辑工具（And/Or 的消去与构造）；差集与补集的代数（De Morgan、减法反变）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i1.sdiff",
+          "title": "差集（A\\B = A ∧ ¬B）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.compl",
+          "title": "补集（逐点否定）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.ext.use",
+          "title": "用外延性证集合等式（双向包含套路）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.ext",
+          "title": "外延性公理（Set.ext 的形状）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i1.logic",
+          "title": "逻辑工具（And/Or 的消去与构造）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.sdiff.algebra",
+          "title": "差集与补集的代数（德摩根律 · 包含方向反转）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i1.classical",
+          "title": "排中律与经典等价（可选边界）",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "补集定义是逐点否定：`Set.compl A = fun x => ¬ (A x)`，所以 `a ∈ Aᶜ` 就是 `¬ (a ∈ A)`。",
+      "cards": [
+        {
+          "id": "set-ext",
+          "title": "集合相等 · Set.ext",
+          "oneLiner": "集合相等靠外延性：逐点给出 `↔`（互相包含）。"
+        },
+        {
+          "id": "or-elim",
+          "title": "析取消去 · Or.elim",
+          "oneLiner": "`A ∨ B` 要证 `C`：两个来源各证一次 `C`，然后交给 `Or.elim`。"
+        }
+      ],
+      "questionTotal": 29,
+      "sources": [
+        "lib/Set.sokonanoda:108",
+        "lib/Set.sokonanoda:209",
+        "lib/Set.sokonanoda:95",
+        "lib/Set.sokonanoda:97"
+      ]
+    },
+    {
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "goal": "学完这一单元，你能够处理：关系 = 二元谓词（Rel 三层拆解）；自反 Reflexive；对称 Symmetric；传递 Transitive；反对称 Antisymmetric（序 vs 等价的分水岭）；偏序 IsPartialOrder。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i2.rel",
+          "title": "关系 = 二元谓词（Rel 三层拆解）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel.refl",
+          "title": "自反 Reflexive",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel.symm",
+          "title": "对称 Symmetric",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel.trans",
+          "title": "传递 Transitive",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel.antisymm",
+          "title": "反对称 Antisymmetric（序 vs 等价的分水岭）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.order.partial",
+          "title": "偏序 IsPartialOrder",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.order.strict",
+          "title": "严格序 IsStrictOrder",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.order.linear",
+          "title": "全序 IsLinearOrder",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.rel.comp",
+          "title": "关系复合 r • s",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel.inv",
+          "title": "逆关系 r⁻¹",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "`Symmetric` 是 `r a b → r b a`（方向可反）；`Antisymmetric` 是 `r a b → r b a → a = b`（双向都排得上就只能是同一个元素）。",
+      "cards": [
+        {
+          "id": "is-strict-order",
+          "title": "严格序 · IsStrictOrder",
+          "oneLiner": "严格序 = 自己和自己不可比 + 传递；样板是 `<`。"
+        },
+        {
+          "id": "rel",
+          "title": "关系 · Rel",
+          "oneLiner": "关系 = 二元谓词：`Rel α β` 与 `α → β → Prop` 是同一个东西。"
+        }
+      ],
+      "questionTotal": 38,
+      "sources": [
+        "lib/Order.sokonanoda:191",
+        "lib/Order.sokonanoda:195",
+        "lib/Order.sokonanoda:199",
+        "lib/Order.sokonanoda:211"
+      ]
+    },
+    {
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "goal": "学完这一单元，你能够处理：函数复合 g ∘ f（先 f 后 g）；单射 Injective；满射 Surjective；双射 Bijective；存在量词的构造与消去（∃ 工具）；满射可裂 ⇔ 选择公理（证不出）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i2.fun.comp",
+          "title": "函数复合 g ∘ f（先 f 后 g）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i2.fun.inj",
+          "title": "单射 Injective",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.fun.surj",
+          "title": "满射 Surjective",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.fun.bij",
+          "title": "双射 Bijective",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i2.logic",
+          "title": "存在量词的构造与消去（∃ 工具）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i2.fun.boundary",
+          "title": "满射可裂 ⇔ 选择公理（证不出）",
+          "kind": "boundary"
+        },
+        {
+          "id": "kp.i2.fun.inverse",
+          "title": "数据版逆（LeftInverse/RightInverse/Inverse）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i2.fun",
+          "title": "函数观（α → β 是类型、f x : β）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.rel",
+          "title": "关系 = 二元谓词（Rel 三层拆解）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "`Bijective = Injective ∧ Surjective`：左支单射、右支满射（取右支看 `I.2.bij-2` 的 `And.right`）。",
+      "cards": [
+        {
+          "id": "rel",
+          "title": "关系 · Rel",
+          "oneLiner": "关系 = 二元谓词：`Rel α β` 与 `α → β → Prop` 是同一个东西。"
+        },
+        {
+          "id": "injective",
+          "title": "单射 · Injective",
+          "oneLiner": "单射 = 不同输入不会撞到同一个输出。"
+        }
+      ],
+      "questionTotal": 32,
+      "sources": [
+        "lib/Exists.sokonanoda:89",
+        "lib/Exists.sokonanoda:95",
+        "lib/Fun.sokonanoda:101",
+        "lib/Fun.sokonanoda:110"
+      ]
+    },
+    {
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "goal": "学完这一单元，你能够处理：笛卡尔积（成员刻画、与并交分配）；序对（Prod.fst/snd、fst_snd_mk）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i2.prod",
+          "title": "笛卡尔积（成员刻画、与并交分配）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i2.pair",
+          "title": "序对（Prod.fst/snd、fst_snd_mk）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "投影算在构造子上就还原（`Prod.fst_mk` 是 `rfl` 级展开）：第一个投影给第一个坐标 `a`。",
+      "cards": [],
+      "questionTotal": 7,
+      "sources": [
+        "lib/Prod.sokonanoda:59",
+        "lib/Prod.sokonanoda:74",
+        "lib/Prod.sokonanoda:88",
+        "units/I.2/unit05-pairs-products.sokonanoda:85"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "goal": "学完这一单元，你能够处理：像 f '' A（成员刻画）；像的构造与消去（mem_image_intro/elim）；像/原像与包含（image_subset_iff）；原像 f ⁻¹' B（成员刻画）；空集/子集的点态代数（空定义域边界）；像/原像与广义并交的分配律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.image",
+          "title": "像 f '' A（成员刻画）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.image.use",
+          "title": "像的构造与消去（mem_image_intro/elim）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i3.image.preimage.laws",
+          "title": "像/原像与包含（image_subset_iff）",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i3.preimage",
+          "title": "原像 f ⁻¹' B（成员刻画）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.pointwise",
+          "title": "空集/子集的点态代数（空定义域边界）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i3.family.image",
+          "title": "像/原像与广义并交的分配律",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "像 = 至少有一个 A 里的点被送到 y。",
+      "cards": [],
+      "questionTotal": 24,
+      "sources": [
+        "lib/Image.sokonanoda:103",
+        "lib/Image.sokonanoda:32",
+        "lib/Image.sokonanoda:32/37",
+        "lib/Image.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "goal": "学完这一单元，你能够处理：等势 Type.Equiv（互逆函数对）；等势的代数（自反/对称/传递/复合）；Cardinal.mk / sound / lift；势比较（⊆/InjOn 定义与自反传递）；势比较的单调性（幂集单调、搬运）；双向势比较何时升级为等势。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.equiv",
+          "title": "等势 Type.Equiv（互逆函数对）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.equiv.algebra",
+          "title": "等势的代数（自反/对称/传递/复合）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i3.cardinal",
+          "title": "Cardinal.mk / sound / lift",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.le",
+          "title": "势比较（⊆/InjOn 定义与自反传递）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.le.mono",
+          "title": "势比较的单调性（幂集单调、搬运）",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i3.both",
+          "title": "双向势比较何时升级为等势",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i3.cantor",
+          "title": "Cantor 定理（A ≺ 𝒫A）",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i3.cb",
+          "title": "Cantor–Bernstein（经选择公理）",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "`leOn_both_forward h` 就是 `And.left h`：双向势比较的前一半（后一半是 `leOn_both_backward` 的 `And.right`）。",
+      "cards": [
+        {
+          "id": "inverse",
+          "title": "逆函数 · LeftInverse / RightInverse / Inverse",
+          "oneLiner": "右逆 = 先 g 再 f 回到 y（f ∘ g = id）；左逆 = 先 f 再 g 回到 x（g ∘ f = id）。"
+        },
+        {
+          "id": "equiv",
+          "title": "等势 · Type.Equiv 与三条定律",
+          "oneLiner": "两个类型等势 = 存在一对互逆函数；三条定律：refl（自己）、symm（对调）、trans（串联）。"
+        }
+      ],
+      "questionTotal": 32,
+      "sources": [
+        "lib/Cardinal.sokonanoda:161",
+        "lib/Cardinal.sokonanoda:190",
+        "lib/Cardinal.sokonanoda:202",
+        "lib/Cardinal.sokonanoda:215"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "goal": "学完这一单元，你能够处理：集族与广义并交（sUnion/sInter 成员）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.family",
+          "title": "集族与广义并交（sUnion/sInter 成员）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "广义并要求 `F` 是一族集合：`F : Set (Set α)`，成员条件是「存在 `A ∈ F` 使 `x ∈ A`」。",
+      "cards": [],
+      "questionTotal": 6,
+      "sources": [
+        "lib/SUnion.sokonanoda:28",
+        "lib/SUnion.sokonanoda:35",
+        "lib/SUnion.sokonanoda:43",
+        "lib/SUnion.sokonanoda:60"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "goal": "学完这一单元，你能够处理：序数/传递集（预备）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.ordinal",
+          "title": "序数/传递集（预备）",
+          "kind": "prep"
+        }
+      ],
+      "intuition": "传递集 = x 的元素的元素还是 x 的元素。",
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "lib/Ordinal.sokonanoda:46",
+        "lib/Ordinal.sokonanoda:50",
+        "lib/Ordinal.sokonanoda:55"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑰ 选择公理",
+      "goal": "学完这一单元，你能够处理：选择公理（预备）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.choice",
+          "title": "选择公理（预备）",
+          "kind": "prep"
+        }
+      ],
+      "intuition": "`choice` 公理：对每个非空 fiber 挑一个点——它让「存在版」的很多陈述可证。",
+      "cards": [],
+      "questionTotal": 2,
+      "sources": [
+        "lib/Choice.sokonanoda:46"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "goal": "学完这一单元，你能够处理：等势 Type.Equiv（互逆函数对）；等势的代数（自反/对称/传递/复合）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.equiv",
+          "title": "等势 Type.Equiv（互逆函数对）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i3.equiv.algebra",
+          "title": "等势的代数（自反/对称/传递/复合）",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "数据版等势的对称律要把「去的映射」与「回的映射」对调、左逆与右逆也对调；拆用 `elim`、装用 `mk`（单元⑨ 的 `Set.Equiv.symm`）。",
+      "cards": [
+        {
+          "id": "equiv",
+          "title": "等势 · Type.Equiv 与三条定律",
+          "oneLiner": "两个类型等势 = 存在一对互逆函数；三条定律：refl（自己）、symm（对调）、trans（串联）。"
+        }
+      ],
+      "questionTotal": 3,
+      "sources": [
+        "lib/Cardinal.sokonanoda:39",
+        "units/I.3/unit09-equinumerosity.sokonanoda:122",
+        "units/I.3/unit09-equinumerosity.sokonanoda:57"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "序数预备",
+      "goal": "学完这一单元，你能够处理：序数/传递集（预备）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.ordinal",
+          "title": "序数/传递集（预备）",
+          "kind": "prep"
+        }
+      ],
+      "intuition": "`IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop`——序数不是新类型，而是论域里的谓词；写成谓词也避免了「全体序数是集合」的困境。",
+      "cards": [],
+      "questionTotal": 1,
+      "sources": [
+        "lib/Ordinal.sokonanoda:50"
+      ]
+    },
+    {
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "goal": "学完这一单元，你能够处理：选择公理（预备）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.choice",
+          "title": "选择公理（预备）",
+          "kind": "prep"
+        }
+      ],
+      "intuition": "`Nonempty α : Prop := ∃ (a : α), a = a`——「非空」被编码成「存在一个元素」，注意它落在 `Prop`。",
+      "cards": [],
+      "questionTotal": 3,
+      "sources": [
+        "lib/Choice.sokonanoda:34",
+        "lib/Choice.sokonanoda:37",
+        "lib/Choice.sokonanoda:46"
+      ]
+    }
+  ]
+}
