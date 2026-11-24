@@ -1,0 +1,428 @@
+-- RatEqBool.sokonanoda —— 有理数的**可计算相等**与**全商函数**（L2）
+--
+-- 动机：A0 的差商要在每个 `x` 上给出 `(F x - F c)/(x - c)`。`ratQuot`
+-- （`lib/RatDivExist`）已经能从「除数的代表元非零」这个**证明**里取出商，
+-- 但把「分母是不是零」当成一个**可计算的判断**时，还需要一样东西：
+-- 一个返回 `Bool` 的相等判别，这样「分母为零 / 不为零」的分支就是
+-- `Bool.rec`（可计算），而不是对 `Prop` 做 `if`（本语言没有 `if`，
+-- 也没有排中律的可计算版本）。
+--
+-- 本文件交付：
+--   · `natEq` + `natEq_iff` —— ℕ 的可计算相等（本语言没有 `Nat.beq`）；
+--   · `pairEq` + `pairEq_iff` —— `Prod Nat Nat` 的可计算相等（逐坐标）；
+--   · `intRepEq` + `intRepEq_iff` —— 整数代表元的相等**按交叉和**判
+--     （`intRel` 就是「交叉和相等」，不是逐坐标相等）；
+--   · `ratEq` + `ratEq_iff` —— 有理代表元的相等，判据正是 `ratRel`
+--     （两个分子分别乘上对方的分母后，交叉和相等）；
+--   · `ratQuotTotal` —— **全商函数**：分母判为零时给 `ratZeroRep`，
+--     否则给 `ratQuot`；并证明 `ratQuotTotal_mul`（非零时仍满足商的性质）；
+--   · 附带 `ratQuotTotal_zero` / `ratQuotTotal_eq` 两条计算引理与
+--     `ratInvTotal` / `ratInvTotal_mul`（全倒数函数）。
+--
+-- 边界：只做「代表元层的可计算判别 + 全函数包装」；不构造商类型
+-- `Rat` 上的运算，也不新增公理（`Exists.choose` 仍来自 `lib/Choice`，
+-- 由 `lib/RatDivExist` 间接引入）。
+
+import lib.RatDivExist
+
+-- ─────────────────────────────────────────────────────────────
+-- 1. `Bool` 的两个构造子可区分
+-- ─────────────────────────────────────────────────────────────
+-- 本语言的递归子原来只有 Prop 动机（台账 G-58，0.81.0 起从期望类型推断
+-- 宇宙层级），所以「在 `true` 上真、在 `false` 上假」的谓词如今写得出来。
+-- 它是下面一切 `= Bool.false ⇒ ¬…` 的收口件。
+
+def boolDisc (b : Bool) : Prop :=
+  Bool.rec.{1} (fun (_ : Bool) => Prop) True False b
+
+theorem bool_true_ne_false (h : Bool.true = Bool.false) : False :=
+  @Eq.subst.{1} Bool boolDisc Bool.true Bool.false h True.intro
+
+theorem bool_false_ne_true (h : Bool.false = Bool.true) : False :=
+  @Eq.subst.{1} Bool boolDisc Bool.true Bool.false
+    (@Eq.symm.{1} Bool Bool.false Bool.true h) True.intro
+
+-- `t ≠ true ⇒ t = false`（`Bool` 只有两个值：用递归子把假设放进动机里）。
+theorem bool_false_of_ne_true (t : Bool) (h : t = Bool.true → False) :
+    t = Bool.false :=
+  Bool.rec
+    (fun (s : Bool) => (s = Bool.true → False) → s = Bool.false)
+    (fun (h1 : Bool.true = Bool.true → False) =>
+      False.elim (h1 (@Eq.refl.{1} Bool Bool.true)))
+    (fun (_ : Bool.false = Bool.true → False) =>
+      @Eq.refl.{1} Bool Bool.false)
+    t h
+
+-- ─────────────────────────────────────────────────────────────
+-- 2. `Bool` 的合取（组合两个可计算判别）
+-- ─────────────────────────────────────────────────────────────
+
+def andB (x y : Bool) : Bool :=
+  match x with
+  | Bool.true => y
+  | Bool.false => Bool.false
+
+theorem andB_intro (x y : Bool) (hx : x = Bool.true) (hy : y = Bool.true) :
+    andB x y = Bool.true :=
+  @Eq.subst.{1} Bool
+    (fun (s : Bool) => andB s y = Bool.true)
+    Bool.true x (@Eq.symm.{1} Bool x Bool.true hx) hy
+
+-- `andB x y = true ⇒ x = true ∧ y = true`：把假设放进动机，两个分支各自
+-- 归约（`andB true y` 定义性等于 `y`，`andB false y` 定义性等于 `false`）。
+theorem andB_true (x y : Bool) :
+    andB x y = Bool.true → x = Bool.true ∧ y = Bool.true :=
+  Bool.rec
+    (fun (s : Bool) => andB s y = Bool.true → s = Bool.true ∧ y = Bool.true)
+    (fun (h : andB Bool.true y = Bool.true) =>
+      And.intro (@Eq.refl.{1} Bool Bool.true) h)
+    (fun (h : andB Bool.false y = Bool.true) =>
+      False.elim (bool_false_ne_true h))
+    x
+
+-- ─────────────────────────────────────────────────────────────
+-- 3. ℕ 的可计算相等
+-- ─────────────────────────────────────────────────────────────
+-- 本语言没有 `Nat.beq`，所以按**一个参数**做结构递归：
+--   · `natEqBase b`  —— `a = 0` 的情形（再看 `b`）；
+--   · `natEqStep` —— `a = succ n` 的情形（返回一个「对 `b` 的函数」，
+--     这样递归调用可以作用在 `b` 的前驱上，即 `natEq n m`）。
+-- 结果类型是函数 `Nat → Bool`，所以这里必须写 `Nat.rec.{1}`（默认是 Prop 动机）。
+
+def natEqBase (b : Nat) : Bool :=
+  Nat.rec (fun (_ : Nat) => Bool) Bool.true
+    (fun (m : Nat) (_ : Bool) => Bool.false) b
+
+def natEqStep (n : Nat) (ih : Nat → Bool) (b : Nat) : Bool :=
+  Nat.rec (fun (_ : Nat) => Bool) Bool.false
+    (fun (m : Nat) (_ : Bool) => ih m) b
+
+def natEq (a b : Nat) : Bool :=
+  Nat.rec.{1} (fun (_ : Nat) => Nat → Bool) natEqBase natEqStep a b
+
+-- 反身性：`natEq a a` 对 `a` 归纳；后继情形的两边定义性归约成 `natEq n n`。
+theorem natEq_refl (a : Nat) : natEq a a = Bool.true :=
+  Nat.rec
+    (fun (n : Nat) => natEq n n = Bool.true)
+    (@Eq.refl.{1} Bool Bool.true)
+    (fun (n : Nat) (ih : natEq n n = Bool.true) => ih)
+    a
+
+-- 相等 ⇒ 判别为真（沿等式搬运反身性）。
+theorem natEq_eq (a b : Nat) (h : a = b) : natEq a b = Bool.true :=
+  @Eq.subst.{1} Nat
+    (fun (x : Nat) => natEq a x = Bool.true)
+    a b h (natEq_refl a)
+
+-- `a = 0` 的情形：`b` 必须是 0（`b = succ m` 时判别定义性等于 `false`）。
+theorem natEq_zero (b : Nat) (h : natEq Nat.zero b = Bool.true) :
+    b = Nat.zero :=
+  Nat.rec
+    (fun (m : Nat) => natEq Nat.zero m = Bool.true → m = Nat.zero)
+    (fun (_ : natEq Nat.zero Nat.zero = Bool.true) =>
+      @Eq.refl.{1} Nat Nat.zero)
+    (fun (m : Nat)
+         (_ : natEq Nat.zero m = Bool.true → m = Nat.zero)
+         (h0 : natEq Nat.zero (Nat.succ m) = Bool.true) =>
+      False.elim (bool_false_ne_true h0))
+    b h
+
+-- `a = succ n` 的情形：`b = 0` 不可能；`b = succ m` 时化归到归纳假设 `ih m`。
+theorem natEq_succ (n : Nat)
+    (ih : ∀ (b : Nat), natEq n b = Bool.true → n = b)
+    (b : Nat) (h : natEq (Nat.succ n) b = Bool.true) :
+    Nat.succ n = b :=
+  Nat.rec
+    (fun (m : Nat) => natEq (Nat.succ n) m = Bool.true → Nat.succ n = m)
+    (fun (h0 : natEq (Nat.succ n) Nat.zero = Bool.true) =>
+      False.elim (bool_false_ne_true h0))
+    (fun (m : Nat)
+         (_ : natEq (Nat.succ n) m = Bool.true → Nat.succ n = m)
+         (h0 : natEq (Nat.succ n) (Nat.succ m) = Bool.true) =>
+      congrArg.{1} Nat.succ (ih m h0))
+    b h
+
+-- 判别为真 ⇒ 相等（对 `a` 归纳，`b` 在动机里）。
+theorem natEq_true (a b : Nat) (h : natEq a b = Bool.true) : a = b :=
+  Nat.rec
+    (fun (n : Nat) => ∀ (b : Nat), natEq n b = Bool.true → n = b)
+    (fun (b : Nat) (h0 : natEq Nat.zero b = Bool.true) =>
+      @Eq.symm.{1} Nat b Nat.zero (natEq_zero b h0))
+    (fun (n : Nat)
+         (ih : ∀ (b : Nat), natEq n b = Bool.true → n = b) =>
+      natEq_succ n ih)
+    a b h
+
+theorem natEq_iff (a b : Nat) : natEq a b = Bool.true ↔ a = b :=
+  Iff.intro (natEq_true a b) (natEq_eq a b)
+
+-- ─────────────────────────────────────────────────────────────
+-- 4. `Prod Nat Nat` 的可计算相等（逐坐标）
+-- ─────────────────────────────────────────────────────────────
+-- 序对相等只需要两个坐标分别相等：`Prod` 是单构造子归纳块，η 律
+-- （`⟨p.1, p.2⟩ = p`）由内核直接给（`@Eq.refl` 即可判），所以从两个坐标的
+-- 相等拼回序对的相等只要一条 `prod_congr`。
+
+theorem prod_eta (p : Prod Nat Nat) :
+    @prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p) = p :=
+  @Eq.refl.{1} (Prod Nat Nat) p
+
+theorem prod_congr (a b a' b' : Nat) (h1 : a = a') (h2 : b = b') :
+    @prod_mk Nat Nat a b = @prod_mk Nat Nat a' b' :=
+  @Eq.trans.{1} (Prod Nat Nat)
+    (@prod_mk Nat Nat a b)
+    (@prod_mk Nat Nat a' b)
+    (@prod_mk Nat Nat a' b')
+    (congrArg.{1} (fun (x : Nat) => @prod_mk Nat Nat x b) h1)
+    (congrArg.{1} (fun (y : Nat) => @prod_mk Nat Nat a' y) h2)
+
+def pairEq (p q : Prod Nat Nat) : Bool :=
+  andB (natEq (Prod.fst Nat Nat p) (Prod.fst Nat Nat q))
+       (natEq (Prod.snd Nat Nat p) (Prod.snd Nat Nat q))
+
+theorem pairEq_refl (p : Prod Nat Nat) : pairEq p p = Bool.true :=
+  andB_intro
+    (natEq (Prod.fst Nat Nat p) (Prod.fst Nat Nat p))
+    (natEq (Prod.snd Nat Nat p) (Prod.snd Nat Nat p))
+    (natEq_refl (Prod.fst Nat Nat p))
+    (natEq_refl (Prod.snd Nat Nat p))
+
+theorem pairEq_eq (p q : Prod Nat Nat) (h : p = q) :
+    pairEq p q = Bool.true :=
+  @Eq.subst.{1} (Prod Nat Nat)
+    (fun (z : Prod Nat Nat) => pairEq p z = Bool.true)
+    p q h (pairEq_refl p)
+
+theorem pairEq_true (p q : Prod Nat Nat) (h : pairEq p q = Bool.true) :
+    p = q :=
+  And.elim
+    (fun (h1 : natEq (Prod.fst Nat Nat p) (Prod.fst Nat Nat q) = Bool.true) =>
+      fun (h2 : natEq (Prod.snd Nat Nat p) (Prod.snd Nat Nat q) = Bool.true) =>
+        @Eq.trans.{1} (Prod Nat Nat) p
+          (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+          q
+          (@Eq.trans.{1} (Prod Nat Nat) p
+            (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+            (@prod_mk Nat Nat (Prod.fst Nat Nat q) (Prod.snd Nat Nat q))
+            (@Eq.symm.{1} (Prod Nat Nat)
+              (@prod_mk Nat Nat (Prod.fst Nat Nat p) (Prod.snd Nat Nat p))
+              p (prod_eta p))
+            (prod_congr
+              (Prod.fst Nat Nat p) (Prod.snd Nat Nat p)
+              (Prod.fst Nat Nat q) (Prod.snd Nat Nat q)
+              (natEq_true (Prod.fst Nat Nat p) (Prod.fst Nat Nat q) h1)
+              (natEq_true (Prod.snd Nat Nat p) (Prod.snd Nat Nat q) h2)))
+          (prod_eta q))
+    (andB_true
+      (natEq (Prod.fst Nat Nat p) (Prod.fst Nat Nat q))
+      (natEq (Prod.snd Nat Nat p) (Prod.snd Nat Nat q)) h)
+
+theorem pairEq_iff (p q : Prod Nat Nat) :
+    pairEq p q = Bool.true ↔ p = q :=
+  Iff.intro (pairEq_true p q) (pairEq_eq p q)
+
+-- ─────────────────────────────────────────────────────────────
+-- 5. 整数代表元的可计算相等（按交叉和判）
+-- ─────────────────────────────────────────────────────────────
+-- `intRel p q` 的定义就是「交叉和相等」：
+-- `p.1 + q.2 = q.1 + p.2`，所以判别只要对这两个 ℕ 用 `natEq`。
+
+def intRepEq (p q : Prod Nat Nat) : Bool :=
+  natEq
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+
+theorem intRepEq_iff (p q : Prod Nat Nat) :
+    intRepEq p q = Bool.true ↔ intRel p q :=
+  natEq_iff
+    (Nat.add (Prod.fst Nat Nat p) (Prod.snd Nat Nat q))
+    (Nat.add (Prod.fst Nat Nat q) (Prod.snd Nat Nat p))
+
+-- ─────────────────────────────────────────────────────────────
+-- 6. 有理代表元的可计算相等
+-- ─────────────────────────────────────────────────────────────
+-- `ratRel x y` 的定义就是：把两个分子分别乘上**对方的分母**之后，两个整数
+-- 代表元按交叉和相等。所以判别只需对那两个乘积用 `intRepEq`。
+
+def ratEq (x y : ratRep) : Bool :=
+  intRepEq
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+
+theorem ratEq_iff (x y : ratRep) : ratEq x y = Bool.true ↔ ratRel x y :=
+  intRepEq_iff
+    (mulRep (numOf x) (den (denOf y)))
+    (mulRep (numOf y) (den (denOf x)))
+
+theorem ratEq_refl (x : ratRep) : ratEq x x = Bool.true :=
+  Iff.mpr (ratEq_iff x x) (ratRel_refl x)
+
+-- 判别为真 ⇒ 代表元等价。
+theorem ratEq_true (x y : ratRep) (h : ratEq x y = Bool.true) :
+    ratRel x y :=
+  Iff.mp (ratEq_iff x y) h
+
+-- 判别为假 ⇒ 代表元不等价：反设「等价」就从 `ratEq_iff` 得到 `= true`，
+-- 与 `= false` 一起给出 `false = true`，由 `bool_false_ne_true` 收口。
+theorem ratEq_false (x y : ratRep) (h : ratEq x y = Bool.false) :
+    ¬ ratRel x y :=
+  fun (hr : ratRel x y) =>
+    bool_false_ne_true
+      (@Eq.trans.{1} Bool Bool.false (ratEq x y) Bool.true
+        (@Eq.symm.{1} Bool (ratEq x y) Bool.false h)
+        (Iff.mpr (ratEq_iff x y) hr))
+
+-- 反过来：不等价 ⇒ 判别为假（`Bool` 只有两个值）。
+theorem ratEq_false_of_not (x y : ratRep) (h : ¬ ratRel x y) :
+    ratEq x y = Bool.false :=
+  bool_false_of_ne_true (ratEq x y)
+    (fun (h1 : ratEq x y = Bool.true) =>
+      h (Iff.mp (ratEq_iff x y) h1))
+
+-- 可计算性的读数：两个都代表 1 的**不同代表元**判别为真，而 1 与 0
+-- 判别为假。两条都是 `@Eq.refl`，即**由内核归约**判出来的（Bool 真的在算）。
+theorem demo_ratEq_one_true :
+    ratEq (qrep 1 Nat.zero Nat.zero) (qrep 2 1 Nat.zero) = Bool.true :=
+  @Eq.refl.{1} Bool Bool.true
+
+theorem demo_ratEq_one_false :
+    ratEq (qrep 1 Nat.zero Nat.zero) (qrep 1 1 Nat.zero) = Bool.false :=
+  @Eq.refl.{1} Bool Bool.false
+
+-- ─────────────────────────────────────────────────────────────
+-- 7. 全商函数
+-- ─────────────────────────────────────────────────────────────
+-- 用 `Bool.rec` 把「判别值」消去，并把**等式本身**放进动机里，于是 `false`
+-- 分支手里就有 ``ratEq d 0 = false``，可以交给 `ratEq_false` 造出
+-- ``¬ ratRel d 0``（`ratQuot` 需要的那个证明）。这是本文件的关键一步：
+-- 分支不是对 `Prop` 做 `if`，而是对 `Bool` 做递归子消去（可计算）。
+
+def ratQuotTotalGo (n d : ratRep) :
+    (t : Bool) → ratEq d ratZeroRep = t → ratRep :=
+  Bool.rec.{1}
+    (fun (s : Bool) => ratEq d ratZeroRep = s → ratRep)
+    (fun (_ : ratEq d ratZeroRep = Bool.true) => ratZeroRep)
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      ratQuot n d (ratEq_false d ratZeroRep h))
+
+def ratQuotTotal (n d : ratRep) : ratRep :=
+  ratQuotTotalGo n d (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep))
+
+-- 主义务（一般形）：把判别值 `t` 固定成 `false` 之后，消去式就归约到
+-- `ratQuot n d (…)`，商的性质由 `ratQuot_mul` 直接给出；`t = true` 时
+-- 假设 `t = false` 自相矛盾（`bool_true_ne_false`）。
+theorem ratQuotTotalGo_mul (n d : ratRep) :
+    ∀ (t : Bool) (h : ratEq d ratZeroRep = t), t = Bool.false →
+      ratRel (ratMulRep (ratQuotTotalGo n d t h) d) n :=
+  Bool.rec
+    (fun (s : Bool) =>
+      ∀ (h : ratEq d ratZeroRep = s), s = Bool.false →
+        ratRel (ratMulRep (ratQuotTotalGo n d s h) d) n)
+    (fun (h : ratEq d ratZeroRep = Bool.true) =>
+      fun (hs : Bool.true = Bool.false) =>
+        False.elim (bool_true_ne_false hs))
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      fun (_ : Bool.false = Bool.false) =>
+        ratQuot_mul n d (ratEq_false d ratZeroRep h))
+
+theorem ratQuotTotal_mul (n d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ratRel (ratMulRep (ratQuotTotal n d) d) n :=
+  ratQuotTotalGo_mul n d (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep))
+    (ratEq_false_of_not d ratZeroRep hd)
+
+-- 两条计算引理（一般形 + 实例）：判别为真时全商函数就是零，
+-- 判别为假时它就是 `ratQuot`（证明项由证明无关性对齐）。
+theorem ratQuotTotalGo_true (n d : ratRep) :
+    ∀ (t : Bool) (h : ratEq d ratZeroRep = t), t = Bool.true →
+      ratQuotTotalGo n d t h = ratZeroRep :=
+  Bool.rec
+    (fun (s : Bool) =>
+      ∀ (h : ratEq d ratZeroRep = s), s = Bool.true →
+        ratQuotTotalGo n d s h = ratZeroRep)
+    (fun (h : ratEq d ratZeroRep = Bool.true) =>
+      fun (_ : Bool.true = Bool.true) =>
+        @Eq.refl.{1} ratRep ratZeroRep)
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      fun (hs : Bool.false = Bool.true) =>
+        False.elim (bool_false_ne_true hs))
+
+theorem ratQuotTotal_zero (n d : ratRep) (h : ratEq d ratZeroRep = Bool.true) :
+    ratQuotTotal n d = ratZeroRep :=
+  ratQuotTotalGo_true n d (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep)) h
+
+theorem ratQuotTotalGo_eq (n d : ratRep) :
+    ∀ (t : Bool) (h : ratEq d ratZeroRep = t) (ht : t = Bool.false),
+      ratQuotTotalGo n d t h =
+        ratQuot n d
+          (ratEq_false d ratZeroRep
+            (@Eq.trans.{1} Bool (ratEq d ratZeroRep) t Bool.false h ht)) :=
+  Bool.rec
+    (fun (s : Bool) =>
+      ∀ (h : ratEq d ratZeroRep = s) (ht : s = Bool.false),
+        ratQuotTotalGo n d s h =
+          ratQuot n d
+            (ratEq_false d ratZeroRep
+              (@Eq.trans.{1} Bool (ratEq d ratZeroRep) s Bool.false h ht)))
+    (fun (h : ratEq d ratZeroRep = Bool.true) =>
+      fun (hs : Bool.true = Bool.false) =>
+        False.elim (bool_true_ne_false hs))
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      fun (_ : Bool.false = Bool.false) =>
+        @Eq.refl.{1} ratRep
+          (ratQuot n d (ratEq_false d ratZeroRep h)))
+
+theorem ratQuotTotal_eq (n d : ratRep) (h : ratEq d ratZeroRep = Bool.false) :
+    ratQuotTotal n d = ratQuot n d (ratEq_false d ratZeroRep h) :=
+  ratQuotTotalGo_eq n d (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep)) h
+
+-- ─────────────────────────────────────────────────────────────
+-- 8. 全倒数函数（与全商同构）
+-- ─────────────────────────────────────────────────────────────
+
+def ratInvTotalGo (d : ratRep) :
+    (t : Bool) → ratEq d ratZeroRep = t → ratRep :=
+  Bool.rec.{1}
+    (fun (s : Bool) => ratEq d ratZeroRep = s → ratRep)
+    (fun (_ : ratEq d ratZeroRep = Bool.true) => ratOneRep)
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      ratInv d (ratEq_false d ratZeroRep h))
+
+def ratInvTotal (d : ratRep) : ratRep :=
+  ratInvTotalGo d (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep))
+
+theorem ratInvTotal_mul (d : ratRep) (hd : ¬ ratRel d ratZeroRep) :
+    ratRel (ratMulRep (ratInvTotal d) d) ratOneRep :=
+  Bool.rec
+    (fun (s : Bool) =>
+      ∀ (h : ratEq d ratZeroRep = s), s = Bool.false →
+        ratRel (ratMulRep (ratInvTotalGo d s h) d) ratOneRep)
+    (fun (h : ratEq d ratZeroRep = Bool.true) =>
+      fun (hs : Bool.true = Bool.false) =>
+        False.elim (bool_true_ne_false hs))
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      fun (_ : Bool.false = Bool.false) =>
+        ratInv_mul d (ratEq_false d ratZeroRep h))
+    (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep))
+    (ratEq_false_of_not d ratZeroRep hd)
+
+theorem ratInvTotal_zero (d : ratRep) (h : ratEq d ratZeroRep = Bool.true) :
+    ratInvTotal d = ratOneRep :=
+  Bool.rec
+    (fun (s : Bool) =>
+      ∀ (h : ratEq d ratZeroRep = s), s = Bool.true →
+        ratInvTotalGo d s h = ratOneRep)
+    (fun (h : ratEq d ratZeroRep = Bool.true) =>
+      fun (_ : Bool.true = Bool.true) =>
+        @Eq.refl.{1} ratRep ratOneRep)
+    (fun (h : ratEq d ratZeroRep = Bool.false) =>
+      fun (hs : Bool.false = Bool.true) =>
+        False.elim (bool_false_ne_true hs))
+    (ratEq d ratZeroRep)
+    (@Eq.refl.{1} Bool (ratEq d ratZeroRep))
+    h
