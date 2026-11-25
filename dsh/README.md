@@ -136,6 +136,8 @@ cd dsh/plugins/sokonanoda-dsh && node test/run.mjs
 - **卡片**：快路径回复里的 ```learn-card 围栏被客户端渲染成 question / knowledge /
   lesson / **progress（进展热点）** 卡片；```lean / ```sokonanoda 渲染成高亮代码。
   题目卡含选择题与问答题（问答题直接打字判分）；「不懂」出知识讲解卡；进展热点卡含连对/正确率/覆盖/章节进度/单元掌握热力与建议关注；快路径卡片右上角有 `⚡ 快思考` 小标记。
+  当前题未作答时「下一题 / 继续」重发当前题（「换一题 / 再来一题」才推进）；
+  「上一题 / 回看刚才那题」出只读回顾卡（正确答案绿色高亮 + 解析，不计分、不推进）。
 - **显式开关**：快思考**默认关闭**，只在学习会话里执行 `/sokonanoda-fast-think on` 后才接管
   （`/sokonanoda-fast-think off` 关闭，`status` 查看）。开关按 session 持久化在
   `~/.dsh/state/sokonanoda-dsh/sessions.json`，普通会话不会触发。

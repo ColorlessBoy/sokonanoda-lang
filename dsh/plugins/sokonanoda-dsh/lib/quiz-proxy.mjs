@@ -47,6 +47,7 @@ const LETTER_RE = /^\s*([A-Da-d])\s*$/;
 const START_RE = /^\s*(?:开始做题|练几题|出题|下一题|下一道|继续|换一题|换一道|再来一题|再来一道|next)\s*[!！。.~～?？]*\s*$/i;
 const LETTER_LOOSE_RE = /(?:^|[^A-Za-z])(?:选|答案|我选|choose|answer)?\s*[:：]?\s*[（(\[【]?\s*([A-Da-d])\s*[）)\]】]?\s*(?:[.。、)）]|$)/;
 const CJK_LETTERS = { 甲: 'A', 乙: 'B', 丙: 'C', 丁: 'D' };
+const BACK_RE = /^\s*(?:上一题|上一道(?:题)?|回上一题|回到上一题|回到上一道(?:题)?|回到刚才(?:那|这)道题|回到刚才的题|刚才那题|刚才那道题|刚才的题|回看(?:一下)?(?:刚才)?(?:那题|那道题|上一题)?|重看(?:一下)?(?:上一题)?)(?:了|吧|啊|呢|\?|？|。|!|！)*\s*$/i;
 const SKIP_RE = /^(?:我会了|懂了不用做|太简单|跳过(?:这个|本)?知识点|跳过)$/;
 const MAP_RE = /^\s*(?:(?:学习)?地图|我在哪(?:里|儿)?|到哪(?:了|儿)?|进度|学到哪|还有多少|学习概况|学习进度|学习进展|看看?进度|看下进度)(?:了|啦|呀|呢)?\s*[!！。.?？~～]*\s*$/i;
 const EXPLAIN_RE = /^(?:我)?(?:不懂|不会|不明白|不知道|看不懂|没懂|不理解|讲讲|讲一下|讲解|解释(?:一下)?|知识卡|卡片|帮我讲(?:讲|解)?|这题(?:是)?(?:什么|怎么)|为什么这题)(?:这题|一下|下|吧|啊|呢|\?|？|。|!|！)*$/;
@@ -1592,6 +1593,7 @@ async function cardNextQuestion(app, stateFile, stateKey, { advance, noLesson = 
         kind: question.kind || 'choice',
       });
       rememberQuestionHandle(app, stateKey, question); // I2：屏幕上的题 = qid+nonce
+      rememberRecentQuestion(app, stateKey, question, step.position || null);
       return { blocks, question, position: step.position || null };
     }
     if (step.kind === 'card') {
@@ -1641,7 +1643,24 @@ function cardReplyFromNext(app, stateKey, stateFile, next, leadingText, kind, he
 }
 
 /** 「开始做题 / 下一题」：发一张卡片；content 留空（或只带知识卡原文）。 */
-async function cardNextFlow(app, stateKey, stateFile, noLesson = false) {
+async function cardNextFlow(app, stateKey, stateFile, noLesson = false, force = false) {
+  const state = readStateJson(stateFile) || {};
+  const currentQid = typeof state.issued_qid === 'string' && state.issued_qid !== '' ? state.issued_qid : '';
+  const history = Array.isArray(state.history) ? state.history : [];
+  const currentAnswered = currentQid !== ''
+    && history.some((entry) => entry && entry.qid === currentQid);
+  /* 只要当前 issued 题还没作答，普通「下一题」就重发它，不推进。
+   * 中间聊 bug、看知识卡、隔多少页都不影响；明确想跳题用「换一题 / 再来一题」。 */
+  if (currentQid !== '' && currentAnswered !== true && force !== true) {
+    const current = await cardNextQuestion(app, stateFile, stateKey, { advance: false, noLesson: true });
+    if (current && current.question) {
+      return cardReplyFromNext(
+        app, stateKey, stateFile, current,
+        '这道题还没作答；先完成它，或者回「换一题」跳过。',
+        'next', '📝 当前题',
+      );
+    }
+  }
   const next = await cardNextQuestion(app, stateFile, stateKey, {
     advance: fs.existsSync(stateFile),
     noLesson,
@@ -1985,12 +2004,120 @@ async function cardAnswerFromToolFlow(app, stateKey, stateFile, cardAnswer) {
   return reply;
 }
 
+/** 记下最近发出的题目对象（回看用；引擎状态里的 last_decision 在校准阶段没有 continuity）。 */
+function rememberRecentQuestion(app, stateKey, question, position) {
+  if (!question || typeof question.id !== 'string' || question.id === '') return;
+  const list = app.recentQuestions.get(stateKey) || [];
+  const last = list[list.length - 1];
+  if (!last || last.qid !== question.id) {
+    list.push({ qid: question.id, question, position: position || null, at: Date.now() });
+    if (list.length > 16) list.splice(0, list.length - 16);
+    app.recentQuestions.set(stateKey, list);
+  }
+}
+
+/** 懒加载静态题库（回看卡用；不额外起一次 engine）。 */
+function questionBankOf(app) {
+  if (app.questionBank !== undefined) return app.questionBank;
+  try {
+    const dataDir = typeof process.env.SK_KNOWLEDGE_DIR === 'string' && process.env.SK_KNOWLEDGE_DIR !== ''
+      ? process.env.SK_KNOWLEDGE_DIR
+      : path.join(app.repoRoot, 'courses', 'set-theory', 'knowledge', 'data');
+    const raw = JSON.parse(fs.readFileSync(path.join(dataDir, 'questions.json'), 'utf8'));
+    const byId = new Map();
+    for (const question of Array.isArray(raw) ? raw : raw.questions || []) {
+      if (question && typeof question.id === 'string') byId.set(question.id, question);
+    }
+    app.questionBank = { byId };
+  } catch {
+    app.questionBank = null;
+  }
+  return app.questionBank;
+}
+
+/**
+ * 「上一题 / 回看刚才那题」：只读回顾，不判分、不推进 issued、不写 history。
+ * 优先用 engine 的 last_decision.probe.continuity.prevQid（当前题之前的题），
+ * 再退化为内存里的最近发题栈，最后退化为最近一条 history 的 qid。
+ */
+async function cardReviewFlow(app, stateKey, stateFile) {
+  const state = readStateJson(stateFile) || {};
+  const issued = typeof state.issued_qid === 'string' ? state.issued_qid : '';
+  const continuity = state.last_decision && state.last_decision.probe
+    && state.last_decision.probe.continuity && typeof state.last_decision.probe.continuity === 'object'
+    ? state.last_decision.probe.continuity
+    : null;
+  const recent = app.recentQuestions.get(stateKey) || [];
+  const recentOf = (qid) => {
+    if (typeof qid !== 'string' || qid === '') return null;
+    for (let index = recent.length - 1; index >= 0; index -= 1) {
+      if (recent[index].qid === qid) return recent[index];
+    }
+    return null;
+  };
+  const bank = questionBankOf(app);
+  const fromBank = (qid) => (bank !== null && typeof qid === 'string' && qid !== ''
+    ? bank.byId.get(qid)
+    : undefined);
+
+  let qid = continuity && typeof continuity.prevQid === 'string' ? continuity.prevQid : '';
+  let stacked = recentOf(qid);
+  let question = stacked !== null ? stacked.question : fromBank(qid);
+
+  if (!question) {
+    /* 没有 continuity（校准/自适应出题），或它指向的题已不在内存栈。 */
+    for (let index = recent.length - 1; index >= 0; index -= 1) {
+      const entry = recent[index];
+      if (entry.qid !== issued) {
+        qid = entry.qid;
+        stacked = entry;
+        question = entry.question;
+        break;
+      }
+    }
+  }
+  if (!question) {
+    const history = Array.isArray(state.history) ? state.history : [];
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const candidate = history[index] && typeof history[index].qid === 'string' ? history[index].qid : '';
+      if (candidate === '' || candidate === issued) continue;
+      stacked = recentOf(candidate);
+      question = stacked !== null ? stacked.question : fromBank(candidate);
+      if (question) { qid = candidate; break; }
+    }
+  }
+  if (!question) {
+    return { kind: 'review', text: '还没有可以回看的题；先做题吧。', toolCall: null };
+  }
+
+  const toolCall = buildLearnQuestionCard(question, null);
+  let args = null;
+  try { args = JSON.parse(toolCall.function.arguments); } catch { args = null; }
+  if (args !== null && args.payload && typeof args.payload === 'object') {
+    args.payload.review = true;
+    if (Number.isInteger(question.answer) && question.answer >= 1 && question.answer <= 4) {
+      args.payload.correctKey = 'ABCD'[question.answer - 1];
+    }
+    if (typeof question.why === 'string' && question.why !== '') args.payload.why = question.why;
+    if (typeof question.source === 'string' && question.source !== '') args.payload.source = question.source;
+    toolCall.function.arguments = JSON.stringify(args);
+  }
+  return {
+    kind: 'review',
+    text: '回看上一题（不计分、不推进）：',
+    toolCall,
+  };
+}
+
 async function cardFastReply(app, fingerprint, fast, requestHandle = null) {
   const stateKey = stateKeyOf(app, fingerprint);
   const stateFile = stateFileOf(app, fingerprint);
   if (fast.type === 'explain') return cardExplainFlow(app, stateKey, stateFile);
   if (fast.type === 'map') return cardMapFlow(app, stateKey, stateFile);
-  if (fast.type === 'next') return cardNextFlow(app, stateKey, stateFile, fast.noLesson === true);
+  if (fast.type === 'next') {
+    return cardNextFlow(app, stateKey, stateFile, fast.noLesson === true, fast.forceNext === true);
+  }
+  if (fast.type === 'back') return cardReviewFlow(app, stateKey, stateFile);
   return cardAnswerByLetterFlow(app, stateKey, stateFile, fast.letter, requestHandle);
 }
 
@@ -2024,6 +2151,9 @@ async function fastReply(app, fingerprint, fast, rawText, requestHandle = null) 
     });
     return { kind: 'next', text: blocks.join('\n\n') };
   }
+  if (fast.type === 'back') {
+    return cardReviewFlow(app, stateKeyOf(app, fingerprint), stateFileOf(app, fingerprint));
+  }
   if (fast.type === 'skip') return skipFlow(app, stateFile, fingerprint);
   if (fast.type === 'map') return mapReply(app, stateFile);
   if (fast.type === 'explain') return explainReply(app, stateFile);
@@ -2040,8 +2170,12 @@ export function classifyFast(model, lastUserText) {
     /* 「下一题 / 换一题」= 我就要题：跳过教学环节与 primer 卡；
      * 「开始做题 / 继续」= 允许先上课（教学环节是设计的一部分）。 */
     const wantsQuestion = /下一题|下一道|换一题|换一道|再来一题|再来一道/.test(normalized);
-    return { type: 'next', noLesson: wantsQuestion };
+    /* 「换一题 / 再来一题」= 明确放弃当前题；普通「下一题 / 继续」在当前题
+     * 还没作答时只重发当前题（见 cardNextFlow）。 */
+    const forceNext = /换一题|换一道|再来一题|再来一道/.test(normalized);
+    return { type: 'next', noLesson: wantsQuestion, forceNext };
   }
+  if (BACK_RE.test(normalized)) return { type: 'back' };
   if (SKIP_RE.test(normalized)) return { type: 'skip' };
   if (MAP_RE.test(normalized)) return { type: 'map' };
   if (EXPLAIN_RE.test(normalized)) return { type: 'explain' };
@@ -2779,6 +2913,9 @@ export function createQuizProxy(options = {}) {
     cardSeqs: new Map(),
     locks: new Map(),
     issuedKinds: new Map(),
+    /* stateKey → 最近发出的题目对象（回看用；引擎状态里的 last_decision 在
+     * calibration 阶段没有 continuity.prevQid）。 */
+    recentQuestions: new Map(),
     log: typeof options.log === 'function' ? options.log : defaultLogger,
   };
 

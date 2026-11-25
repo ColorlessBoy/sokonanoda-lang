@@ -405,6 +405,24 @@ test('question fence stays display-only without input actions', () => {
   expect(quietOptions[0].props.onClick === undefined, 'no inputActions => no click handler')
 })
 
+test('review question card highlights the correct option and disables answering', () => {
+  const review = Object.assign({}, QUESTION, { review: true, correctKey: 'B', why: '自反是每个元素与自己有关系。' })
+  const view = render(LearnCardFence(fenceProps('question', review, {
+    inputActions: { setDraft: () => {}, submit: () => {} },
+    useInput: () => ({ phase: 'plain', draft: '' }),
+  })))
+  const options = byClass(view, 'dslc-opt')
+  expect(options.length === 4, 'review card must still show its four options')
+  expect(byClass(view, 'dslc-opt-correct').length === 1, 'review card must mark exactly one correct option')
+  expect(textOf(view).includes('回看') && textOf(view).includes('正确答案 B'), 'review note missing')
+  expect(textOf(view).includes('不计分'), 'review note must say it is not graded')
+  expect(textOf(view).includes('自反是每个元素与自己有关系。'), 'review must show the why explanation')
+  expect(options.every((option) => option.props.onClick === undefined), 'review options must not be clickable')
+  expect(byClass(view, 'dslc-opt-skip').length === 0, 'review card must not offer 我不知道')
+  expect(cardCss.includes('.dslc-opt-correct{'), 'correct-option CSS rule missing')
+  expect(cardCss.includes('.dslc-review{'), 'review CSS rule missing')
+})
+
 test('knowledge and progress cards stay non-interactive', () => {
   for (const [kind, payload] of [['knowledge', KNOWLEDGE], ['progress', PROGRESS]]) {
     const view = render(LearnCardFence(fenceProps(kind, payload, {

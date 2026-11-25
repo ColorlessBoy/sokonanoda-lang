@@ -97,6 +97,9 @@ window.__ModuleLoader__.load({
       '.dslc-options{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none;min-width:0}',
       '.dslc-opt{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:start;column-gap:10px;width:100%;max-width:100%;min-width:0;min-height:48px;box-sizing:border-box;padding:10px 12px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:10px;background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:inherit;overflow-wrap:anywhere}',
       '.dslc-opt-skip{border-style:dashed;background:transparent}',
+      '.dslc-opt-correct{border:1px solid var(--dsw-alias-state-success-primary,#0f7b4a);background:rgba(15,123,74,.10)}',
+      '.dslc-review{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border-radius:8px;background:rgba(127,127,127,.06)}',
+      '.dslc-review-note{margin:0;font-size:12.5px;font-weight:600;color:var(--dsw-alias-state-success-primary,#0f7b4a)}',
       '.dslc-skip-options{margin-top:-4px}',
       '.dslc-letter{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:50%;background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;font-weight:700;line-height:1}',
       '.dslc-opttext{min-width:0;font-size:14px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}',
@@ -213,6 +216,7 @@ window.__ModuleLoader__.load({
       fastBadge: '快思考',
       openAnswerHint: '直接在输入框写下你的回答，不用选字母。',
       dontKnowLabel: '我不知道',
+      whyLabel: '解析',
     }
 
     const en = {
@@ -242,6 +246,7 @@ window.__ModuleLoader__.load({
       fastBadge: 'fast path',
       openAnswerHint: 'Type your answer in the composer — no letter needed.',
       dontKnowLabel: "I don't know",
+      whyLabel: 'Why',
     }
 
     /* -------------------------------------------------------------- helpers */
@@ -444,6 +449,9 @@ window.__ModuleLoader__.load({
       list: { display: 'flex', flexDirection: 'column', gap: '6px', margin: 0, padding: 0, listStyle: 'none' },
       option: { display: 'grid', gridTemplateColumns: '26px minmax(0,1fr)', alignItems: 'start', columnGap: '10px', width: '100%', maxWidth: '100%', minWidth: 0, minHeight: '48px', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid rgba(127,127,127,0.28)', borderRadius: '10px', background: 'rgba(127,127,127,0.08)', overflowWrap: 'anywhere' },
       optionSkip: { borderStyle: 'dashed', background: 'transparent' },
+      optionCorrect: { border: '1px solid var(--dsw-alias-state-success-primary,#0f7b4a)', background: 'rgba(15,123,74,0.10)' },
+      review: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px 10px', borderRadius: '8px', background: 'rgba(127,127,127,0.06)' },
+      reviewNote: { margin: 0, fontSize: '12.5px', fontWeight: 600, color: 'var(--dsw-alias-state-success-primary,#0f7b4a)' },
       optionSkipMuted: { opacity: 0.55 },
       letter: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '26px', height: '26px', boxSizing: 'border-box', border: '1px solid rgba(127,127,127,0.32)', borderRadius: '50%', background: 'rgba(127,127,127,0.12)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', fontWeight: 700, lineHeight: 1 },
       opttext: { minWidth: 0, fontSize: '14px', lineHeight: 1.5, overflowWrap: 'anywhere', wordBreak: 'break-word' },
@@ -530,8 +538,11 @@ window.__ModuleLoader__.load({
       const plain = textOf(payload.plain)
       const options = normalizeOptions(payload.options)
       const questionKind = textOf(payload.questionKind)
+      const review = payload.review === true
+      const correctKey = textOf(payload.correctKey)
+      const reviewWhy = textOf(payload.why)
       const open = options.length === 0 && questionKind !== '' && questionKind !== 'choice'
-      const clickable = typeof onPick === 'function'
+      const clickable = !review && typeof onPick === 'function'
       const openHint = open
         ? h('p', { className: 'dslc-open-hint', key: 'open-hint', style: S.openHint },
           t !== undefined && typeof t === 'function' ? t('openAnswerHint', '直接在输入框写下你的回答，不用选字母。') : '直接在输入框写下你的回答，不用选字母。')
@@ -542,9 +553,10 @@ window.__ModuleLoader__.load({
         openHint,
         options.length > 0
           ? h('ul', { className: 'dslc-options', key: 'options', style: S.list }, options.map((option, index) => {
-            const active = clickable && picked === null
+            const active = clickable && picked === null && !review
+            const isCorrect = review && correctKey !== '' && option.key === correctKey
             return h('li', {
-              className: 'dslc-opt',
+              className: isCorrect ? 'dslc-opt dslc-opt-correct' : 'dslc-opt',
               key: 'option-' + index,
               'data-letter': option.key,
               'data-pickable': active ? '1' : undefined,
@@ -552,9 +564,11 @@ window.__ModuleLoader__.load({
               role: active ? 'button' : undefined,
               tabIndex: active ? 0 : undefined,
               'aria-label': active ? '发送选项 ' + option.key : undefined,
-              style: picked === option.key
-                ? Object.assign({}, S.option, S.optionPick, S.optionPicked)
-                : active ? Object.assign({}, S.option, S.optionPick) : S.option,
+              style: isCorrect
+                ? Object.assign({}, S.option, S.optionCorrect)
+                : picked === option.key
+                  ? Object.assign({}, S.option, S.optionPick, S.optionPicked)
+                  : active ? Object.assign({}, S.option, S.optionPick) : S.option,
               onClick: active ? () => onPick(option.key) : undefined,
               onKeyDown: active ? (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -567,7 +581,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dslc-opttext', style: S.opttext }, inlineNodes(option.text)))
           }))
           : null,
-        options.length > 0 && typeof onSkip === 'function'
+        options.length > 0 && !review && typeof onSkip === 'function'
           ? h('ul', { className: 'dslc-options dslc-skip-options', key: 'skip', style: S.list }, [
             h('li', {
               className: 'dslc-opt dslc-opt-skip',
@@ -592,6 +606,16 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dslc-opttext', style: S.opttext },
               t !== undefined && typeof t === 'function' ? t('dontKnowLabel', '我不知道') : '我不知道')),
           ])
+          : null,
+        review
+          ? h('div', { className: 'dslc-review', key: 'review', style: S.review },
+            h('p', { className: 'dslc-review-note', style: S.reviewNote },
+              '回看 · ' + (correctKey !== '' ? '正确答案 ' + correctKey : '开放题') + '（不计分）'),
+            reviewWhy !== ''
+              ? h('p', { className: 'dslc-plain', style: S.plain },
+                (t !== undefined && typeof t === 'function' ? t('whyLabel', '解析') : '解析') + '：',
+                inlineNodes(reviewWhy))
+              : null)
           : null,
       ])
     }
@@ -860,7 +884,8 @@ window.__ModuleLoader__.load({
       const t = makeT(props)
       /* 卡片选项可直接发送字母：走和打字完全相同的 composer 提交路径。 */
       const inputActions = isRecord(props) ? props.inputActions : undefined
-      const canSend = card.kind === 'question' && picked === null
+      const isReviewCard = isRecord(card.payload) && card.payload.review === true
+      const canSend = card.kind === 'question' && !isReviewCard && picked === null
         && inputActions !== undefined
         && typeof inputActions.setDraft === 'function'
         && typeof inputActions.submit === 'function'
