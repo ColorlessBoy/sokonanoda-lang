@@ -1,20 +1,14 @@
-## 当前快照（2026-11-25 · C9.1）
+## 当前快照（2026-11-25 · C7b 卷 III capstone）
+分析课 **175/175** 单元（新增单元174 区间切分引擎、单元175 卷 III capstone，`lib/IntegralCatValue` 56 条 checked）；切分引擎、前缀/后缀、非负 ⇒ 面积值不下降、可积性相加均进库。边界（明说）：完整区间可加性还缺「替换切点」的端点引擎；通用原函数版 Newton–Leibniz 与 Rolle/中值定理在 `ratRep` 层**不成立**（反例见 `courses/analysis/README.md` 单元175 条目），是数学边界而非待办。判据：`check.py --json` 0 rejected / 0 solutions_open / 0 lib_open（175 单元），`notation-lint --root courses/analysis` rc 0，`docs-lint` rc 0。
+
+## C7b 切分引擎与 capstone（2026-11-25 · #97）
+- 引擎：`lib/IntegralCatValue`（56 条 checked）——`cutHead`/`cutTail`（在 c 处插入切点）、`cutHead_isPartition`/`cutTail_isPartition`、台阶搬运、`cutStepSum`（矩形和沿切开精确相加）、`prefixPart`/`suffixPart`、`sub_add_gap`、`hasIntegral_le_of_nonneg_right`（非负 ⇒ 面积值不下降）、`integrable_cat`（可积性沿切点相加）。
+- 单元：174（9 题，解答 9 checked / 0 open）、175（5 题，解答 5 checked / 0 open；卷 III capstone「面积函数的画像」：可导 · 值唯一 · 不降 + 常值曲线可算读数）。
+- 边界：完整区间可加性（任意分割的上下和都被 `I1+I2` 夹住）还缺「切点只差一个代表元时替换切点」的端点替换引擎；Newton–Leibniz 通用版与 Rolle/中值定理在有理代表元层不成立（√2 两侧 0/1；`(x²−2)²−3(x−1)` 在 [1,2] 上端点相等而导数无有理零点）——这是数学边界，不是漏做。不新增公理，未改 kernel/front。
+
+## C9.1 题库规格与知识点注册（2026-11-25 · issue #99）
 C9.1（issue #99）落盘 `knowledge/SCHEMA.md`（choice/KP schema 规格与批次 checklist）；
 I.4–I.13 注册 107 新 KP + 2 既有 prep = 109（课程共 161），14 批 B5–B18、bank 目标 493；
 `validate.py` 新增 keyPoint/prereq 无环/lessons 同步判据（反向验证能咬住 2 条历史漂移）。
 现状：validate OK；coverage **预期红 107**（新 KP 无题，C9.2 补）；selftest/simulate/
 notation-lint 绿；text_audit 仅 1 条既有 card.item。逐章表见 `CONTENT-PLAN.md` §0.1/§2.1。
-
-## C9 题目集数据集 P0（2026-11-24 · issue #96）
-- 结构：`model.py` 唯一解析器（课程清单 v1/v2、画布、解答）；`build.py` / `check.py` / `compose.py` 共用。记录带稳定 ID `<course>/[<chapter>/]<unit-stem>/<name>`、`prompt`/`hints`/`template`/`solution`/`source` 映射；匿名 `example` 用 `example-N`。
-- 读数：quick-start 66 / 11 单元；set-theory 910 / 112；analysis 1032 / 173；190 道旧练习无 hint 照实记录；`build.py --json` 给出每门课计数与字节数。
-- 边界：不改课程源与 kernel/front 判定；选择题层（P2）与插件接线（P3）未做，见 #96 阶段表。
-
-## M6：QA / 文档 / 站点 / 发布（2026-11-21 · issue #22）
-M1–M5 完成、分析课 171/171 单元；全量课程门禁 457 目标 / 4512 checked / 0 rejected；站点 `check-site.py` 10/10（`--browser` 12/12）；Arena 门禁经 PR #92 修复后在 `8d4167f5` PASS。书页 v3 与双语范围待用户拍板。
-
-## 发版 0.99.0（2026-11-23 · M6 收口）
-`scripts/bump.py 0.99.0` 写四处版本 + 3 个课程清单 + 站点数据；发布内容 = M1–M6 加 LKA 门禁修复；书页 v3/双语仍留 #22 后续。
-
-## FTC 补证（2026-11-24 · issue #21 后续）
-通用原函数版在 `ratRep` 层不成立（√2 两侧 0/1 反例：F′=0 但 F(b)−F(a)=1≠∫f=0）。用户拍板 B：加 `Exists.choose` 与倒数/商库，做面积函数这一半。已证 `lib/IntegralFTC.integral_hasDerivAt`（52 条 checked，含无除法差界与斜率极限）；单元172（9/9）与单元173（4/4）进课程。边界：通用原函数版仍不成立；见 PR #107。

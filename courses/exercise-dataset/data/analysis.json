@@ -3,14 +3,14 @@
   "course": "analysis",
   "title": "从集合论到实分析",
   "generated_by": "courses/exercise-dataset/build.py",
-  "source_fingerprint": "sha256:5e4d2de64f5ffe51e3f3a337e6bc45098982eb2c9cf51bffc3a6e88280ee5037",
+  "source_fingerprint": "sha256:37746dbc021b982c9ee5f31aa9558909cb892746224a54ed849e071e50885f2d",
   "counts": {
-    "units": 173,
-    "units_with_exercises": 173,
-    "exercises": 1032,
-    "hints": 3039,
-    "solutions": 1032,
-    "prompt": 778
+    "units": 175,
+    "units_with_exercises": 175,
+    "exercises": 1046,
+    "hints": 3081,
+    "solutions": 1046,
+    "prompt": 787
   },
   "units": [
     {
@@ -1915,6 +1915,28 @@
       "file": "courses/analysis/units/III.9/unit173-ftc1.sokonanoda",
       "exercises": 4,
       "hints": 12
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": 174,
+      "title": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "title_en": "Unit 174 — The Cut Engine: Inserting a Cut Point, Prefix/Suffix Partitions, and Monotonicity of the Integral Value",
+      "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+      "exercises": 9,
+      "hints": 27
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": 175,
+      "title": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "title_en": "Unit 175 — Volume III Capstone: The Profile of the Area Function — Differentiable, Unique, Nondecreasing",
+      "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+      "exercises": 5,
+      "hints": 15
     }
   ],
   "exercises": [
@@ -49858,6 +49880,792 @@
       "solution_source": {
         "file": "courses/analysis/units/solutions/III.9/unit173-ftc1-solution.sokonanoda",
         "line": 47
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_cutHead_point",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_cutHead_point",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "单元174 区间切分引擎与面积值的单调性",
+      "prompt": "单元174 区间切分引擎与面积值的单调性\n\n面积值夹在**每一个**分割的上下和之间。要在 c 处把 [a,b] 切成 [a,c] 与 [c,b]，就得回答一个问题：任意一个 [a,b] 的分割，不一定在 c 处有切点。 本单元补上这一刀：在 c 处**插入**一个切点。插入时继承原来那一段的台阶 高度，于是矩形和一字不差——`(c - x_k) + (x_{k+1} - c) = x_{k+1} - x_k`。 若 c 本来就是切点，直接把分割截成前缀与后缀，和按索引拆开。\n\n切开的用处是「拼」：把 [a,b] 分割的两半各自交给两块面积值的条件，就能把 整段的下和压在 I1 + I2 之下。本单元先做最容易的那一半——曲线非负时， 右边一块的下和不会为负，于是面积值沿右端点**不下降**；再把可积性沿切点 相加（两个半区可积则整段可积）。\n\n边界：切分引擎到位，但「任意分割的上下和都被 I1+I2 夹住」（完整的区间 可加性）还需要一条「切点只差一个代表元时替换切点」的引理，本单元不做。\n\n函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。\n\n一、插入切点：两半的读数",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "前半的切点序就是 `cutHead` 的点函数；`catFun_left` 直接给出左半读数。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`partPoint (cutHead k c p) i = partPoint p i`（i ≤ k）。"
+        },
+        {
+          "label": "关键件",
+          "body": "cutHead_point。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_cutHead_point (k : Nat) (c : ratRep) (p : Partition) (i : Nat)\n    (hi : LeNat (Nat.succ i) (Nat.succ k)) :\n    partPoint (cutHead k c p) i = partPoint p i :=\n  sorry",
+      "solution": "theorem u174_cutHead_point (k : Nat) (c : ratRep) (p : Partition) (i : Nat)\n    (hi : LeNat (Nat.succ i) (Nat.succ k)) :\n    partPoint (cutHead k c p) i = partPoint p i :=\n  cutHead_point k c p i hi",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 46
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_cutHead_partition",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_cutHead_partition",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "u174_cutHead_partition",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "左端是 a、右端是 c，相邻切点在原来的分割里严格上升，接缝用 `p k < c`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`IsPartition a c (cutHead k c p)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "cutHead_isPartition。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_cutHead_partition (a b c : ratRep) (p : Partition) (k : Nat)\n    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))\n    (hlt : ratLtRep (partPoint p k) c) :\n    IsPartition a c (cutHead k c p) :=\n  sorry",
+      "solution": "theorem u174_cutHead_partition (a b c : ratRep) (p : Partition) (k : Nat)\n    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))\n    (hlt : ratLtRep (partPoint p k) c) :\n    IsPartition a c (cutHead k c p) :=\n  cutHead_isPartition a b c p k hp hk hlt",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 54
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 34
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_cutTail_partition",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_cutTail_partition",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "u174_cutTail_partition",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "左端是 c、右端是 b，内部各段回到原来的段上，接缝用 `c < p (k+1)`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`IsPartition c b (cutTail k m c p)`（段数写成 `succ k + m`）。"
+        },
+        {
+          "label": "关键件",
+          "body": "cutTail_isPartition。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_cutTail_partition (a b c : ratRep) (p : Partition) (k m : Nat)\n    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)\n    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :\n    IsPartition c b (cutTail k m c p) :=\n  sorry",
+      "solution": "theorem u174_cutTail_partition (a b c : ratRep) (p : Partition) (k m : Nat)\n    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)\n    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :\n    IsPartition c b (cutTail k m c p) :=\n  cutTail_isPartition a b c p k m hp hn hlt",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 63
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 41
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_cutStepSum",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_cutStepSum",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "二、矩形和沿切开精确相加",
+      "prompt": "二、矩形和沿切开精确相加",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "前 k 项两边相同；接缝那一段一分为二，`(c-x_k)+(x_{k+1}-c)` 按分配律收回原来的宽；后面 m 项逐项对齐。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratRel (stepSum p cs) (stepSum (cutHead …) cs + stepSum (cutTail …) (cs ∘ (+k)))`。"
+        },
+        {
+          "label": "关键件",
+          "body": "cutStepSum。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_cutStepSum (a b c : ratRep) (p : Partition) (k m : Nat)\n    (cs : Nat → ratRep) (hn : partCount p = Nat.add (Nat.succ k) m) :\n    ratRel (stepSum p cs)\n      (ratAddRep (stepSum (cutHead k c p) cs)\n        (stepSum (cutTail k m c p)\n          (fun (j : Nat) => cs (Nat.add k j)))) :=\n  sorry",
+      "solution": "theorem u174_cutStepSum (a b c : ratRep) (p : Partition) (k m : Nat)\n    (cs : Nat → ratRep) (hn : partCount p = Nat.add (Nat.succ k) m) :\n    ratRel (stepSum p cs)\n      (ratAddRep (stepSum (cutHead k c p) cs)\n        (stepSum (cutTail k m c p)\n          (fun (j : Nat) => cs (Nat.add k j)))) :=\n  cutStepSum a b c p k m cs hn",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 76
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 48
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_prefix_sum",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_prefix_sum",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "u174_prefix_sum",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "前缀的切点是原分割的前 j 个，段相同，矩形和就是前 j 项的有限和。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`stepSum (prefixPart j p) l = sumTo (stepTerm p l) j`。"
+        },
+        {
+          "label": "关键件",
+          "body": "prefixPart_stepSum。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_prefix_sum (p : Partition) (j : Nat) (l : Nat → ratRep) :\n    stepSum (prefixPart j p) l = sumTo (stepTerm p l) j :=\n  sorry",
+      "solution": "theorem u174_prefix_sum (p : Partition) (j : Nat) (l : Nat → ratRep) :\n    stepSum (prefixPart j p) l = sumTo (stepTerm p l) j :=\n  prefixPart_stepSum p j l",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 87
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 57
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_lower_pin",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_lower_pin",
+      "anonymous": false,
+      "exercise_no": 6,
+      "title": "三、非负曲线：面积值沿右端点不下降",
+      "prompt": "三、非负曲线：面积值沿右端点不下降",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "任取 [a,c] 的下和 L1，在 [c,b] 上用两切点分割、零台阶得到一个不小于零的下和；把两块用 `catPartition` 拼起来，整段的下和就是 L1 加零，面积值 I 压在它上面。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratLeRep L1 I`。"
+        },
+        {
+          "label": "关键件",
+          "body": "lower_sum_le_of_nonneg_right。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_lower_pin (a b c : ratRep) (f : ratRep → ratRep) (I : ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (h : HasIntegral a b f I)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x))\n    (p1 : Partition) (L1 : ratRep) (hp1 : IsPartition a c p1)\n    (hL1 : LowerSum a c p1 f L1) :\n    ratLeRep L1 I :=\n  sorry",
+      "solution": "theorem u174_lower_pin (a b c : ratRep) (f : ratRep → ratRep) (I : ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (h : HasIntegral a b f I)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x))\n    (p1 : Partition) (L1 : ratRep) (hp1 : IsPartition a c p1)\n    (hL1 : LowerSum a c p1 f L1) :\n    ratLeRep L1 I :=\n  lower_sum_le_of_nonneg_right a b c f I hac hcb h hf p1 L1 hp1 hL1",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 98
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 62
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_nonneg_nondec",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_nonneg_nondec",
+      "anonymous": false,
+      "exercise_no": 7,
+      "title": "u174_nonneg_nondec",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "上一条把每个 [a,c] 的下和压住；再用可积性取上下和相差 ε 的分割，I1 不超过上和，于是 I1−I 被压到 ε 以下。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratLeRep I1 I`。"
+        },
+        {
+          "label": "关键件",
+          "body": "hasIntegral_le_of_nonneg_right。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_nonneg_nondec (a b c : ratRep) (f : ratRep → ratRep)\n    (I1 I : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (h1 : HasIntegral a c f I1) (h : HasIntegral a b f I)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :\n    ratLeRep I1 I :=\n  sorry",
+      "solution": "theorem u174_nonneg_nondec (a b c : ratRep) (f : ratRep → ratRep)\n    (I1 I : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (h1 : HasIntegral a c f I1) (h : HasIntegral a b f I)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :\n    ratLeRep I1 I :=\n  hasIntegral_le_of_nonneg_right a b c f I1 I hac hcb h1 h hf",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 109
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 71
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/u174_integrable_cat",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "u174_integrable_cat",
+      "anonymous": false,
+      "exercise_no": 8,
+      "title": "四、可积性沿切点相加",
+      "prompt": "四、可积性沿切点相加",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "ε 折半，两个半区各取缝隙更小的分割，用 `catPartition` 接起来；两个缝隙相加仍小于 ε。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`Integrable a b f`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integrable_cat。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u174_integrable_cat (a b c : ratRep) (f : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (h1 : Integrable a c f) (h2 : Integrable c b f) :\n    Integrable a b f :=\n  sorry",
+      "solution": "theorem u174_integrable_cat (a b c : ratRep) (f : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (h1 : Integrable a c f) (h2 : Integrable c b f) :\n    Integrable a b f :=\n  integrable_cat a b c f hac hcb h1 h2",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 123
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 79
+      }
+    },
+    {
+      "id": "analysis/III.9/unit174-cut-engine/demo_u174_mono_const",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+      "unit_index": 174,
+      "kind": "theorem",
+      "name": "demo_u174_mono_const",
+      "anonymous": false,
+      "exercise_no": 9,
+      "title": "demo_u174_mono_const",
+      "prompt": "",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "常值曲线 k ≥ 0 处处非负；把两条常值面积值读数喂给「非负 ⇒ 不下降」，得到 k(c−a) ≤ k(b−a)。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratLeRep (k·(c−a)) (k·(b−a))`。"
+        },
+        {
+          "label": "关键件",
+          "body": "hasIntegral_le_of_nonneg_right · hasIntegral_const。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.RatAbsOrder",
+        "import lib.Cauchy",
+        "import lib.RatSub",
+        "import lib.RatRing",
+        "import lib.Bounded",
+        "import lib.MaxOn",
+        "import lib.Integral",
+        "import lib.IntegralCat",
+        "import lib.IntegralCatPart",
+        "import lib.IntegralRect",
+        "import lib.IntegralStep",
+        "import lib.IntegralSum",
+        "import lib.IntegralValue",
+        "import lib.IntegralSign",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem demo_u174_mono_const (a b c k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :\n    ratLeRep (ratMulRep k (ratSubRep c a))\n      (ratMulRep k (ratSubRep b a)) :=\n  sorry",
+      "solution": "theorem demo_u174_mono_const (a b c k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :\n    ratLeRep (ratMulRep k (ratSubRep c a))\n      (ratMulRep k (ratSubRep b a)) :=\n  hasIntegral_le_of_nonneg_right a b c (fun (_ : ratRep) => k)\n    (ratMulRep k (ratSubRep c a)) (ratMulRep k (ratSubRep b a))\n    hac hcb (hasIntegral_const a c k hac)\n    (hasIntegral_const a b k (ratLtRep_trans a c b hac hcb))\n    (fun (_ : ratRep) => hk)",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit174-cut-engine.sokonanoda",
+        "line": 132
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit174-cut-engine-solution.sokonanoda",
+        "line": 86
+      }
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function/u175_deriv",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "unit_index": 175,
+      "kind": "theorem",
+      "name": "u175_deriv",
+      "anonymous": false,
+      "exercise_no": 1,
+      "title": "单元175 卷 III capstone：面积函数的画像",
+      "prompt": "单元175 卷 III capstone：面积函数的画像\n\n到这里，卷 III 的四样东西都已经就位：极限（III.1–III.5）、连续与微分 （III.6–III.7）、Riemann 积分与面积值（III.8–III.9）。本单元把它们串成 一条完整的路径——给一条一致连续的曲线 f，取它在 [a,x] 上的面积值 F x， 问 F 到底是一个什么样的函数。\n\n三个回答： · 可导：F 在区间内部每一点可导，且 F′(c) 就是曲线的高度 f c（单元173 的 FTC 第一部分，引擎在 `lib/IntegralFTC`）； · 唯一：面积值至多一个（单元167），所以「F」不是随手挑的读数； · 不降：曲线非负时，F 沿右端点不下降（单元174 的切分引擎 + 符号）， 这是「积分保持序」的第一个完整实例。\n\n合起来就是一张画像：F 可导、值唯一、单调方向由曲线的符号决定。粗体字里 唯一缺的是连续性——它要处理「两个切点只差一个代表元」的端点替换，留作 下一批内容；本单元不假装已经有它。\n\n边界：不证 Newton–Leibniz 的通用原函数版（在有理代表元层不成立），也不证 Rolle / 中值定理（同一层不成立，反例写在 `README.md` 的边界里）。\n\n函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。\n\n一、可导：面积函数的导数是曲线的高度",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "这就是单元173 的 FTC 第一部分；直接把区间条件、一致连续与面积值假设交给 `integral_hasDerivAt`。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`HasDerivAt F c (f c)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_hasDerivAt。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u175_deriv (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →\n      HasIntegral a x f (F x)) :\n    HasDerivAt F c (f c) :=\n  sorry",
+      "solution": "theorem u175_deriv (a c b : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →\n      HasIntegral a x f (F x)) :\n    HasDerivAt F c (f c) :=\n  integral_hasDerivAt a c b f F hac hcb huc hF",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+        "line": 43
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit175-capstone-area-function-solution.sokonanoda",
+        "line": 20
+      }
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function/u175_value_unique",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "unit_index": 175,
+      "kind": "theorem",
+      "name": "u175_value_unique",
+      "anonymous": false,
+      "exercise_no": 2,
+      "title": "二、唯一：面积值至多一个",
+      "prompt": "二、唯一：面积值至多一个",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "两个候选都夹在每一个分割的上下和之间；可积性给一个缝隙任意小的分割，把它俩同时夹住，差为 0。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratRel (F c) I2`。"
+        },
+        {
+          "label": "关键件",
+          "body": "hasIntegral_unique。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u175_value_unique (a c : ratRep) (f : ratRep → ratRep)\n    (I1 I2 : ratRep) (h1 : HasIntegral a c f I1)\n    (h2 : HasIntegral a c f I2) :\n    ratRel I1 I2 :=\n  sorry",
+      "solution": "theorem u175_value_unique (a c : ratRep) (f : ratRep → ratRep)\n    (I1 I2 : ratRep) (h1 : HasIntegral a c f I1)\n    (h2 : HasIntegral a c f I2) :\n    ratRel I1 I2 :=\n  hasIntegral_unique a c f I1 I2 h1 h2",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+        "line": 57
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit175-capstone-area-function-solution.sokonanoda",
+        "line": 28
+      }
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function/u175_mono",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "unit_index": 175,
+      "kind": "theorem",
+      "name": "u175_mono",
+      "anonymous": false,
+      "exercise_no": 3,
+      "title": "三、不降：曲线非负时面积函数单调",
+      "prompt": "三、不降：曲线非负时面积函数单调",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "把整段 [a,x] 在 c 处切开：非负性给「右半的下和不小于零」，拼起来压住左半的下和，再用可积性收紧。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`ratLeRep (F c) (F x)`（c < x < b）。"
+        },
+        {
+          "label": "关键件",
+          "body": "hasIntegral_le_of_nonneg_right。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u175_mono (a c b x : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcx : ratLtRep c x) (hxb : ratLtRep x b)\n    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b →\n      HasIntegral a y f (F y))\n    (hf : ∀ (y : ratRep), ratLeRep ratZeroRep (f y)) :\n    ratLeRep (F c) (F x) :=\n  sorry",
+      "solution": "theorem u175_mono (a c b x : ratRep) (f F : ratRep → ratRep)\n    (hac : ratLtRep a c) (hcx : ratLtRep c x) (hxb : ratLtRep x b)\n    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b →\n      HasIntegral a y f (F y))\n    (hf : ∀ (y : ratRep), ratLeRep ratZeroRep (f y)) :\n    ratLeRep (F c) (F x) :=\n  hasIntegral_le_of_nonneg_right a x c f (F c) (F x)\n    hac hcx (hF c hac (ratLtRep_trans c x b hcx hxb))\n    (hF x (ratLtRep_trans a c x hac hcx) hxb) hf",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+        "line": 70
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit175-capstone-area-function-solution.sokonanoda",
+        "line": 35
+      }
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function/u175_profile",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "unit_index": 175,
+      "kind": "theorem",
+      "name": "u175_profile",
+      "anonymous": false,
+      "exercise_no": 4,
+      "title": "四、画像：三件事合成一条定理",
+      "prompt": "四、画像：三件事合成一条定理",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "三件分别由 `u175_deriv`、`u175_value_unique`（用 `hF c` 与 `hI2`）、`u175_mono`（对每个 x）给出，用 `And.intro` 叠起来。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧ (∀ x, c<x<b → F c ≤ F x)`。"
+        },
+        {
+          "label": "关键件",
+          "body": "u175_deriv · u175_value_unique · u175_mono。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem u175_profile (a c b : ratRep) (f F : ratRep → ratRep)\n    (I2 : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →\n      HasIntegral a x f (F x))\n    (hI2 : HasIntegral a c f I2)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :\n    HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧\n      (∀ (x : ratRep), ratLtRep c x → ratLtRep x b →\n        ratLeRep (F c) (F x)) :=\n  sorry",
+      "solution": "theorem u175_profile (a c b : ratRep) (f F : ratRep → ratRep)\n    (I2 : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)\n    (huc : UniformlyContinuous f)\n    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →\n      HasIntegral a x f (F x))\n    (hI2 : HasIntegral a c f I2)\n    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :\n    HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧\n      (∀ (x : ratRep), ratLtRep c x → ratLtRep x b →\n        ratLeRep (F c) (F x)) :=\n  And.intro\n    (u175_deriv a c b f F hac hcb huc hF)\n    (And.intro\n      (u175_value_unique a c f (F c) I2\n        (hF c hac hcb) hI2)\n      (fun (x : ratRep) (hcx : ratLtRep c x)\n          (hxb : ratLtRep x b) =>\n        u175_mono a c b x f F hac hcx hxb hF hf))",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+        "line": 85
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit175-capstone-area-function-solution.sokonanoda",
+        "line": 46
+      }
+    },
+    {
+      "id": "analysis/III.9/unit175-capstone-area-function/demo_u175_const",
+      "course": "analysis",
+      "chapter": "III.9",
+      "chapter_title": "综合、读证明、小项目",
+      "unit": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+      "unit_index": 175,
+      "kind": "theorem",
+      "name": "demo_u175_const",
+      "anonymous": false,
+      "exercise_no": 5,
+      "title": "五、可算读数：常值曲线",
+      "prompt": "五、可算读数：常值曲线",
+      "hints": [
+        {
+          "label": "思路",
+          "body": "常值 k 一致连续、在每个 [a,x] 上面积值是 k(x−a)；导数由 FTC 第一部分给出，不降由单元174 的常值读数给出。"
+        },
+        {
+          "label": "目标形态",
+          "body": "`HasDerivAt (fun x => k·(x−a)) c k ∧ k·(c−a) ≤ k·(b−a)`（k ≥ 0）。"
+        },
+        {
+          "label": "关键件",
+          "body": "integral_hasDerivAt · hasIntegral_const · hasIntegral_le_of_nonneg_right。"
+        }
+      ],
+      "imports": [
+        "import lib.Rat",
+        "import lib.RatOrder",
+        "import lib.RatAbs",
+        "import lib.Cauchy",
+        "import lib.Uniform",
+        "import lib.Deriv",
+        "import lib.Integral",
+        "import lib.IntegralValue",
+        "import lib.IntegralSlope",
+        "import lib.IntegralFTC",
+        "import lib.IntegralCatValue"
+      ],
+      "template": "theorem demo_u175_const (a c b k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :\n    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k ∧\n      ratLeRep (ratMulRep k (ratSubRep c a))\n        (ratMulRep k (ratSubRep b a)) :=\n  sorry",
+      "solution": "theorem demo_u175_const (a c b k : ratRep) (hac : ratLtRep a c)\n    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :\n    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k ∧\n      ratLeRep (ratMulRep k (ratSubRep c a))\n        (ratMulRep k (ratSubRep b a)) :=\n  And.intro\n    (integral_hasDerivAt a c b (fun (_ : ratRep) => k)\n      (fun (x : ratRep) => ratMulRep k (ratSubRep x a))\n      hac hcb (uniformlyContinuous_const k)\n      (fun (x : ratRep) (_hx : ratLtRep a x) (hxb : ratLtRep x b) =>\n        hasIntegral_const a x k _hx))\n    (hasIntegral_le_of_nonneg_right a b c (fun (_ : ratRep) => k)\n      (ratMulRep k (ratSubRep c a)) (ratMulRep k (ratSubRep b a))\n      hac hcb (hasIntegral_const a c k hac)\n      (hasIntegral_const a b k (ratLtRep_trans a c b hac hcb))\n      (fun (_ : ratRep) => hk))",
+      "source": {
+        "file": "courses/analysis/units/III.9/unit175-capstone-area-function.sokonanoda",
+        "line": 104
+      },
+      "solution_source": {
+        "file": "courses/analysis/units/solutions/III.9/unit175-capstone-area-function-solution.sokonanoda",
+        "line": 66
       }
     }
   ]
