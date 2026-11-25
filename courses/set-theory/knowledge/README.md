@@ -8,12 +8,13 @@
 | 路径 | 作用 |
 |---|---|
 | `DESIGN.md` | **三层自适应系统设计**（L1 交互 / L2 调度 / L3 维护）+ 阶段验收 |
-| `data/knowledge-points.json` | **知识点注册表**（`soko.knowledge-points/1`；kind/chapter/prereq/`saturation.min,target` 四件套） |
+| `SCHEMA.md` | **题库/知识点 schema 的可执行规格与 checklist**（字段、约束、source 规则、批次流程） |
+| `data/knowledge-points.json` | **知识点注册表**（`soko.knowledge-points/1`；kind/chapter/prereq/`saturation.min,target`/keyPoint） |
 | `data/questions.json` | 题库（`soko.choice-bank/1`；choice/short/explain/proof；含 difficulty/variants/prereq/**kps**） |
 | `data/cards.json` | 知识卡（`soko.knowledge-cards/1`；含 tags/prereq） |
 | `data/params.json` | L2 调度参数（`soko.learn-params/1`：eta/权重/阈值） |
 | `engine.py` | **L2 引擎**：掌握度（Elo）+ 推荐式召回 + 去重/变式/复习/知识卡触发；含 `selftest`/`simulate` |
-| `validate.py` | 三份数据的结构自检（含交叉引用、权重和、参数范围、**每题 kps 引用/章节归属**），退出码 1 = 不合格 |
+| `validate.py` | 三份数据的结构自检（含交叉引用、权重和、参数范围、**每题 kps 引用/章节归属**、**KP keyPoint/prereq 无环**、**lessons 同步**），退出码 1 = 不合格 |
 | `coverage.py` | **知识点 × 题目覆盖门禁**：按 `saturation` 逐 KP 算红/黄/绿 + 章节汇总 + `reports/coverage-<时间>.json`；有红 exit 1 |
 | `CONTENT-PLAN.md` | 覆盖计划：实测缺口、题量估算、分阶段批次与第一批题目清单 |
 | `verify_batch.py` | 批次验收：结构/source 行号逐条核验 + 内存注入预测覆盖变化（不改仓库） |

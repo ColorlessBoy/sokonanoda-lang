@@ -195,6 +195,8 @@ for kp_index, kp in enumerate(kp_list):
     elif isinstance(minimum, dict) and isinstance(minimum.get("L1"), int):
         if sum(minimum.get(lv, 0) for lv in KP_SAT_LEVELS) > target:
             fail(kp_at + ": saturation.min sums above target")
+    if not isinstance(kp.get("keyPoint"), str) or not kp["keyPoint"].strip():
+        fail(kp_at + ": keyPoint missing")
 # prereq 交叉引用（知识点之间）
 for kp_id, kp in kp_by_id.items():
     for ref in kp.get("prereq") or []:
@@ -202,6 +204,24 @@ for kp_id, kp in kp_by_id.items():
             fail("knowledge-point " + repr(kp_id) + ": prereq refs unknown id " + repr(ref))
         if ref == kp_id:
             fail("knowledge-point " + repr(kp_id) + ": prereq refs itself")
+
+# prereq 必须成 DAG：环会让“先学什么”失去意义
+visit_state = {}
+def visit_kp(kp_id, path):
+    state = visit_state.get(kp_id)
+    if state == 1:
+        fail("knowledge-point " + repr(kp_id) + ": prereq cycle " + " -> ".join(path + [kp_id]))
+        return
+    if state == 2:
+        return
+    visit_state[kp_id] = 1
+    for ref in (kp_by_id.get(kp_id) or {}).get("prereq") or []:
+        if ref in kp_by_id:
+            visit_kp(ref, path + [kp_id])
+    visit_state[kp_id] = 2
+for kp_id in kp_by_id:
+    if visit_state.get(kp_id, 0) == 0:
+        visit_kp(kp_id, [])
 
 # ---------- 每题的 kps 引用（一题可挂多个；≥2 个算综合题） ----------
 integration_by_chapter = {}
@@ -238,6 +258,66 @@ for q in questions:
                 fail("question " + repr(q.get("id")) + ": " + key + " refs unknown id " + repr(ref))
             if ref == q.get("id"):
                 fail("question " + repr(q.get("id")) + ": " + key + " refs itself")
+
+# ---------- lessons 与 KP/题目的隐藏同步（C9.1） ----------
+# lessons.json 复制了 KP 的 title/kind 与每单元 questionTotal；它不在任何门禁里
+# 检查过，实测会漂（2026-11-24：2/15 条 questionTotal 已漂）。这里把同步钉死。
+lessons_data = json.loads((ROOT / "data" / "lessons.json").read_text(encoding="utf-8"))
+if lessons_data.get("schema") != "soko.lessons/1":
+    fail("lessons.json: schema")
+lessons = lessons_data.get("lessons") or []
+if not isinstance(lessons, list) or not lessons:
+    fail("lessons.json: lessons missing")
+else:
+    qcount_by_unit = {}
+    for q in questions:
+        key = (q.get("chapter"), q.get("unit"))
+        qcount_by_unit[key] = qcount_by_unit.get(key, 0) + 1
+    lesson_units = {(lesson.get("chapter"), lesson.get("unit")) for lesson in lessons if isinstance(lesson, dict)}
+    for chapter, unit in qcount_by_unit:
+        if (chapter, unit) not in lesson_units:
+            fail("question unit " + repr((chapter, unit)) + ": no lesson for this unit")
+    lesson_kp_ids = set()
+    for lesson_index, lesson in enumerate(lessons):
+        if not isinstance(lesson, dict):
+            fail("lessons[%d]: not an object" % lesson_index)
+            continue
+        unit = lesson.get("unit")
+        at = "lessons[%d]" % lesson_index + ((" (" + unit + ")") if isinstance(unit, str) and unit else "")
+        chapter = lesson.get("chapter")
+        if chapter not in chapters:
+            fail(at + ": unknown chapter " + repr(chapter))
+        if not isinstance(unit, str) or not unit.strip():
+            fail(at + ": unit missing")
+        for key in ("goal", "intuition"):
+            if not isinstance(lesson.get(key), str) or not lesson[key].strip():
+                fail(at + ": " + key + " missing")
+        actual = qcount_by_unit.get((chapter, unit), 0)
+        question_total = lesson.get("questionTotal")
+        if not isinstance(question_total, int) or isinstance(question_total, bool) or question_total < 0:
+            fail(at + ": questionTotal must be a non-negative int")
+        elif question_total != actual:
+            fail(at + ": questionTotal=%d but questions.json has %d" % (question_total, actual))
+        points = lesson.get("knowledgePoints")
+        if not isinstance(points, list) or not points:
+            fail(at + ": knowledgePoints missing")
+            continue
+        for point in points:
+            if not isinstance(point, dict) or not isinstance(point.get("id"), str):
+                fail(at + ": knowledgePoints entries need {id,title,kind}")
+                continue
+            kp = kp_by_id.get(point["id"])
+            if kp is None:
+                fail(at + ": unknown knowledge-point " + repr(point["id"]))
+                continue
+            lesson_kp_ids.add(point["id"])
+            if point.get("title") != kp.get("title"):
+                fail(at + ": " + point["id"] + " title drifted from registry")
+            if point.get("kind") != kp.get("kind"):
+                fail(at + ": " + point["id"] + " kind drifted from registry")
+    for kp_id in kp_by_id:
+        if kp_id not in lesson_kp_ids:
+            fail("knowledge-point " + repr(kp_id) + ": not referenced by any lesson")
 
 # ---------- 调度参数 ----------
 params_data = json.loads((ROOT / "data" / "params.json").read_text(encoding="utf-8"))
@@ -319,6 +399,7 @@ print("  lemmas: %d" % lemma_count)
 print("  knowledge-points: %d 个（%s）" % (len(kp_by_id), ", ".join(
     "%s:%d" % (chapter, sum(1 for kp in kp_by_id.values() if kp.get("chapter") == chapter))
     for chapter in sorted({kp.get("chapter") for kp in kp_by_id.values()}))))
+print("  lessons: %d 条（KP title/kind 与 questionTotal 已同步）" % len(lessons))
 print("  kps refs: %d 个（综合题 %d 道：%s）" % (
     sum(len(q.get("kps") or []) for q in questions),
     sum(integration_by_chapter.values()),

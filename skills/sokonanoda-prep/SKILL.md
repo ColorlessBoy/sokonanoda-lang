@@ -20,11 +20,13 @@ description: Curriculum preparation (备课) role for sokonanoda — audit and i
 ## 1. 先读什么
 
 1. `courses/set-theory/knowledge/README.md`——数据职责、工作流、约定；
-2. `courses/set-theory/knowledge/CONTENT-PLAN.md`——当前实测缺口、批次与题量估算；
-3. `courses/set-theory/knowledge/DESIGN.md`——知识点/饱和/调度语义；
-4. `data/knowledge-points.json`、`questions.json`、`cards.json`、`lessons.json`、`params.json`；
-5. `courses/set-theory/README.md` 与 `docs/design/course-stdlib.md`——课程标准库边界；
-6. `AGENTS.md` 硬规则 3 与 `docs/design/notation-subset.md`——课程记法约束。
+2. `courses/set-theory/knowledge/SCHEMA.md`——**可执行规格**（choice/KP 字段、约束、
+   source 规则、批次 checklist）；写/改数据前先读；
+3. `courses/set-theory/knowledge/CONTENT-PLAN.md`——当前实测缺口、批次与题量估算；
+4. `courses/set-theory/knowledge/DESIGN.md`——知识点/饱和/调度语义；
+5. `data/knowledge-points.json`、`questions.json`、`cards.json`、`lessons.json`、`params.json`；
+6. `courses/set-theory/README.md` 与 `docs/design/course-stdlib.md`——课程标准库边界；
+7. `AGENTS.md` 硬规则 3 与 `docs/design/notation-subset.md`——课程记法约束。
 
 ## 2. 基线审计（只读）
 
