@@ -643,4 +643,11 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 （`lib/**`、`units/**`、`sokonanoda.toml`、`tools/check.py`），题库数据不再让缓存落冷。
 **预防**：只改题库数据的内容 PR 必须能复用 main 的课程产物缓存；job 超时要 ≥ 冷跑实测 + 余量。
 
+## 2026-11-26 · run 45758658018（`077d0e4`）：`spaced_out_edits_are_not_debounced` 偶发红（复跑绿）
+
+**事实**：3 刀期望各编一次、实测 2（`crates/lsp/tests/lsp_debounce_burst.rs:127`）；同 run 其余 34 job 全绿。
+**定性**：时序测试对 runner 负载敏感；本 PR 只改题库/CI/文档，lsp 与 `unit08` 输入未变 ⇒ `--failed` 复跑 attempt 2 通过。
+**预防**：这类"等诊断回来再敲"的对照臂按偶发处理——先取 `cargo-test-log` 看断言，再 `--failed` 复跑；同一轮连续两次红才按真回归查。
+**修复**：无代码改动（复跑即绿）。
+
 ## 更早条目（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）
