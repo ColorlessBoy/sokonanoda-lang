@@ -1,7 +1,7 @@
 {
   "schema": "soko.knowledge-cards/1",
   "title": "卷 I–III 知识卡片库（集合论 / 分析）",
-  "version": 9,
+  "version": 10,
   "updated": "2026-11-26",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
@@ -778,6 +778,215 @@
         "quantifier",
         "exists",
         "forall"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "cardinal-le",
+      "kicker": "卷 I · I.8 基数",
+      "title": "基数比较 · ≼",
+      "oneLiner": "`A ≼ B` 就是「存在从 `A` 到 `B` 的单射」，它是不比 `B` 大这条断言。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Set.InjOn (α β : Type) (f : α → β) (A : Set α) : Prop :=\n  ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y\n\ndef Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B"
+      },
+      "sections": [
+        {
+          "heading": "三个层次",
+          "kind": "table",
+          "columns": [
+            "写法",
+            "它是什么",
+            "读法"
+          ],
+          "rows": [
+            [
+              "`A ≼ B`",
+              "「存在单射」的命题",
+              "`A` 不比 `B` 大"
+            ],
+            [
+              "`A ≈ B`",
+              "一对互逆映射的打包",
+              "`A` 与 `B` 等势，比 `≼` 更强"
+            ],
+            [
+              "`A ⊆ B`",
+              "逐点蕴含",
+              "每个 `A` 的点都在 `B` 里，可由恒等映射给出 `A ≼ B`"
+            ]
+          ]
+        },
+        {
+          "heading": "常见误区",
+          "kind": "list",
+          "items": [
+            "把 `A ≼ ∅` 读成「`A` 与 `∅` 等势」——它只说明 `A` 没有元素。",
+            "以为 `≼` 能给出一把可用的映射——它只是存在命题，取出映射要额外的选择原则。",
+            "把 `≼` 与 `⊆` 混为一谈——包含能给出 `≼`，反过来一般不行。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "证 `A ≼ B`：给出映射、`Set.InjOn` 与 `Set.MapsTo` 三条即可。",
+            "用 `A ≼ B`：用 `Set.Le.elim` 拆出映射与两条条件，映射只在证明内部可用。"
+          ]
+        }
+      ],
+      "source": "lib/Equiv.sokonanoda:154 / :169 / :102",
+      "tags": [
+        "cardinal-le",
+        "le-empty",
+        "cardinal-arithmetic"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "continuum-hypothesis",
+      "kicker": "卷 I · I.8 基数",
+      "title": "连续统假设 · CH",
+      "oneLiner": "CH 说没有严格介于 `ℕ` 与 `𝒫 ℕ` 之间的基数，本课只陈述并展开它。",
+      "definition": {
+        "lang": "lean",
+        "code": "def CH : Prop :=\n  ∀ (X : Set (Set Nat)), (@Set.univ Nat) ≼ X →\n    (@Set.univ Nat) ≈ X ∨ X ≈ (𝒫 (@Set.univ Nat))"
+      },
+      "sections": [
+        {
+          "heading": "陈述拆解",
+          "kind": "list",
+          "items": [
+            "`CH` 是一个 `def`，展开后得到一条对 `X : Set (Set Nat)` 的 `∀` 命题。",
+            "前提 `univ ≼ X` 表示 `X` 不比 `ℕ` 小。",
+            "结论是两个析取支：`X` 与 `ℕ` 等势，或 `X` 与 `𝒫 ℕ` 等势。"
+          ]
+        },
+        {
+          "heading": "边界",
+          "kind": "list",
+          "items": [
+            "CH 的独立性需要模型论与力迫法，本课既不证明也不否证它。",
+            "本课用 `≼` 与 `≈` 陈述，不用 `ℵ`，因为序数线仍在内核墙后。"
+          ]
+        },
+        {
+          "heading": "相关定理",
+          "kind": "list",
+          "items": [
+            "`cantor_no_le` 给出 `¬ (𝒫 ℕ ≼ ℕ)`，用的是 `cantorDiagonal` 构造。",
+            "单点版 `diagonal` 只得到 `f {n} ≠ n`，载不动 Cantor 定理。"
+          ]
+        }
+      ],
+      "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:10 / :28 / :75",
+      "tags": [
+        "continuum-hypothesis",
+        "diagonal",
+        "cardinal-le"
+      ],
+      "prereq": [
+        "cardinal-le"
+      ]
+    },
+    {
+      "id": "sunion-sinter",
+      "kicker": "卷 I · I.9 集族",
+      "title": "广义并交 · ⋃₀ / ⋂₀",
+      "oneLiner": "广义并是存在量化，广义交是全称量化；族变大时并变大、交变小。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Set.sUnion (α : Type) (F : Set (Set α)) : Set α :=\n  fun (x : α) => ∃ (A : Set α), A ∈ F ∧ x ∈ A\n\ndef Set.sInter (α : Type) (F : Set (Set α)) : Set α :=\n  fun (x : α) => ∀ (A : Set α), A ∈ F → x ∈ A"
+      },
+      "sections": [
+        {
+          "heading": "两条刻画",
+          "kind": "table",
+          "columns": [
+            "目标",
+            "等价于",
+            "量词"
+          ],
+          "rows": [
+            [
+              "`⋃₀ F ⊆ B`",
+              "每个 `A ∈ F` 都有 `A ⊆ B`",
+              "存在：见证逐个验证"
+            ],
+            [
+              "`B ⊆ ⋂₀ F`",
+              "每个 `A ∈ F` 都有 `B ⊆ A`",
+              "全称：约束逐个满足"
+            ]
+          ]
+        },
+        {
+          "heading": "单调方向",
+          "kind": "list",
+          "items": [
+            "`F ⊆ G` 时 `⋃₀ F ⊆ ⋃₀ G`：并随族变大而变大。",
+            "`F ⊆ G` 时 `⋂₀ G ⊆ ⋂₀ F`：交随族变大而变小。"
+          ]
+        },
+        {
+          "heading": "空族",
+          "kind": "list",
+          "items": [
+            "空族的并是空集：没有成员可以当见证。",
+            "空族的交退化成全集，所以 `⋂₀ F ⊆ ⋃₀ F` 必须假设 `F` 非空。"
+          ]
+        }
+      ],
+      "source": "lib/SUnion.sokonanoda:32 / :35",
+      "tags": [
+        "family",
+        "sUnion",
+        "sInter"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "set-pi",
+      "kicker": "卷 I · I.9 集族",
+      "title": "广义积 · Set.pi",
+      "oneLiner": "`Set.pi ι α A` 是「每个坐标都落在对应因子里」的函数集合。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=\n  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i"
+      },
+      "sections": [
+        {
+          "heading": "成员条件",
+          "kind": "list",
+          "items": [
+            "`f ∈ Set.pi ι α A` 展开为 `∀ i, f i ∈ A i`，逐坐标都要满足。",
+            "取用子 `Set.mem_pi_elim` 从成员证据得到单个坐标的成员关系。",
+            "构造子 `Set.mem_pi_intro` 把逐坐标条件装成积的成员。"
+          ]
+        },
+        {
+          "heading": "结构",
+          "kind": "list",
+          "items": [
+            "积对族单调：逐坐标包含 `A i ⊆ B i` 给出 `pi A ⊆ pi B`。",
+            "某个因子为空就使积为空，因为那个坐标无处可落。",
+            "`pi (A ∩ B)` 与 `pi A ∩ pi B` 互相包含，作为集合相等。"
+          ]
+        },
+        {
+          "heading": "选择公理",
+          "kind": "list",
+          "items": [
+            "「每个因子非空 ⇒ 积非空」要用 `choice` 同时为所有坐标挑元素。",
+            "去掉选择公理后它不可证，因为逐坐标存在不给出统一的函数。"
+          ]
+        }
+      ],
+      "source": "lib/SUnion.sokonanoda:115 / units/I.9/unit23-products.sokonanoda:172",
+      "tags": [
+        "pi",
+        "product",
+        "choice"
       ],
       "prereq": []
     },

@@ -1,7 +1,7 @@
 {
   "schema": "soko.choice-bank/1",
   "title": "卷 I–III 选择题题库（集合论 / 分析）",
-  "version": 33,
+  "version": 34,
   "updated": "2026-11-26",
   "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
@@ -498,7 +498,7 @@
       ],
       "answer": 1,
       "why": "`∧` 的构造子是 `And.intro : a → b → a ∧ b`：两份证据装成一个合取。",
-      "source": "prelude `And.intro`",
+      "source": "units/I.1/unit04-extensionality-identities.sokonanoda:74",
       "difficulty": 0.0,
       "variants": [],
       "prereq": [],
@@ -524,7 +524,7 @@
       ],
       "answer": 1,
       "why": "`Or.elim : (A → C) → (B → C) → A ∨ B → C`——两个来源都要能到 C。",
-      "source": "prelude `Or.elim`",
+      "source": "units/I.1/unit04-extensionality-identities.sokonanoda:80",
       "difficulty": 0.0,
       "variants": [],
       "prereq": [],
@@ -1041,7 +1041,7 @@
       ],
       "answer": 1,
       "why": "课程只立数据版逆（g 由调用者交出）；存在版需要选择公理，故意留作边界。",
-      "source": "units/I.2/unit07-functions.sokonanoda 文件头「第 6 题与选择公理」",
+      "source": "units/I.2/unit07-functions.sokonanoda:63",
       "difficulty": 1.5,
       "variants": [
         "I.3.axiom-choice-1"
@@ -2930,7 +2930,7 @@
       ],
       "answer": 4,
       "why": "`Set.powerset A : Set (Set α)`，所以 `𝒫 A` 的**元素**是 `Set α` 的对象，即 `A` 的子集（这也正是 `B ∈ 𝒫 A ↔ B ⊆ A` 的内容）。`Set (Set α)` 是 `𝒫 A` **整体**的类型，不是它元素的类型。",
-      "source": "lib/Set.sokonanoda:99 · units/I.1/unit03-union-inter-powerset.sokonanoda:150",
+      "source": "lib/Set.sokonanoda:99 · units/I.1/unit03-union-inter-powerset.sokonanoda:59",
       "kps": [
         "kp.i1.powerset"
       ]
@@ -3632,7 +3632,7 @@
       ],
       "answer": 2,
       "why": "`¬ P ∨ Q` 的两个构造子必须**选一个**：要么手里有 `P`，要么手里有 `¬ P`。只有 `h : P → Q` 时两条都拿不到，所以这一步在构造主义下证不出来（它等价于排中律的一个实例）。`Classical.em P : P ∨ ¬ P` 正好补上这个「决定」，再 `Or.elim` 分两种情况收尾。注意 `P → Q` 与 `¬ P ∨ Q` 不是同一个谓词，`rfl` 过不了。",
-      "source": "units/I.1/unit104-classical.sokonanoda:31 · prelude/Prelude.sokonanoda:32",
+      "source": "units/I.1/unit104-classical.sokonanoda:31",
       "kps": [
         "kp.i1.classical",
         "kp.i1.logic"
@@ -7322,7 +7322,7 @@
       ],
       "answer": 1,
       "why": "两个合取支都是 `a ∈ A`，同一份证据可以重复使用（`And.intro h h`）；合取是「两份证据」，不是「两个不同的命题」。",
-      "source": "prelude/Prelude.sokonanoda:10",
+      "source": "units/I.1/unit03-union-inter-powerset.sokonanoda:126",
       "seqIndex": 4,
       "seqTotal": 5
     },
@@ -7358,6 +7358,1103 @@
       "source": "lib/Set.sokonanoda:56 · docs/design/course-stdlib.md",
       "seqIndex": 5,
       "seqTotal": 5
+    },
+    {
+      "id": "I.1.classical-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 3,
+      "tags": [
+        "classical",
+        "logic",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : ¬ (∀ (x : α), ¬ (P x))`，要得到 `∃ (x : α), P x`，为什么必须请出 `Classical.byContradiction`？",
+      "options": [
+        "因为前提只否定「所有点都否定」这一全称命题，要跨过双重否定才能得到存在的肯定点。",
+        "因为 `Exists.intro` 需要先用 `Classical.em` 造出一个具体的见证，否则交不出见证。",
+        "因为全称命题在构造性逻辑里不能当作函数来应用，只能靠经典逻辑展开。",
+        "因为 `P x` 是命题而不是数据，命题不能放进存在量词，必须先经典地转成数据。"
+      ],
+      "answer": 1,
+      "why": "前提等价于 `¬ ¬ (∃ (x : α), P x)`：`∀ (x : α), ¬ (P x)` 正是「不存在 `P` 的点」。要从双重否定里取出见证，就得做一次双重否定消去，这恰是 `Classical.byContradiction` 提供的。`Exists.intro` 只负责把已经拿到的见证装成存在命题，它本身不产生见证。",
+      "source": "units/I.1/unit104-classical.sokonanoda:65 · units/I.1/unit104-classical.sokonanoda:33",
+      "kps": [
+        "kp.i1.classical"
+      ]
+    },
+    {
+      "id": "I.1.compl-4",
+      "kind": "choice",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "level": 1,
+      "tags": [
+        "compl",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : ¬ (a ∈ A)`，要得到 `a ∈ Aᶜ`，正确的一步是下面哪一个？",
+      "options": [
+        "先用 `Classical.em (a ∈ A)` 分成两种情况，两种都要证。",
+        "直接把 `h` 交出去：`a ∈ Aᶜ` 展开后就是 `¬ (a ∈ A)`。",
+        "用 `Iff.mp` 把 `h` 送进 `a ∈ Aᶜ ↔ ¬ (a ∈ A)` 这个等价式。",
+        "先证明 `a ∈ A`，再用补集刻画把这条肯定命题转成否定。"
+      ],
+      "answer": 2,
+      "why": "补集是逐点否定：`a ∈ Aᶜ` 与 `¬ (a ∈ A)` 定义上就是同一个命题，所以拿到 `h : ¬ (a ∈ A)` 后直接返回即可。`Iff.mp` 的方向是从左到右，用它反而要先把 `a ∈ Aᶜ` 造出来。这道题不需要排中律，补集的取用子也不需要任何额外引理。",
+      "source": "units/I.1/unit60-compl-algebra.sokonanoda:58",
+      "kps": [
+        "kp.i1.compl"
+      ]
+    },
+    {
+      "id": "I.2.partial-5",
+      "kind": "choice",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "level": 1,
+      "tags": [
+        "order",
+        "partial-order",
+        "projection"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : IsPartialOrder α r`，要从 `h` 里取出「反对称」那条性质，下面哪种写法是正确的？",
+      "options": [
+        "`And.left h`",
+        "`And.right h`",
+        "`And.left (And.right h)`",
+        "`And.right (And.right h)`"
+      ],
+      "answer": 3,
+      "why": "`IsPartialOrder` 展开成右结合的合取：`Reflexive ∧ (Antisymmetric ∧ Transitive)`。所以 `And.left h` 是自反、`And.right h` 是「反对称 ∧ 传递」，再取一次 `And.left` 才落到反对称。`And.right (And.right h)` 取的是传递，不是反对称。",
+      "source": "lib/Order.sokonanoda:76 · lib/Order.sokonanoda:61",
+      "kps": [
+        "kp.i2.order.partial"
+      ]
+    },
+    {
+      "id": "I.8.le-empty-1",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "level": 2,
+      "tags": [
+        "cardinal-le",
+        "le-empty",
+        "boundary"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : A ≼ ∅`，要证明 `A` 的每个元素都不可能存在，正确的路线是哪一个？",
+      "options": [
+        "拆出满射与它的原像条件，用原像把 `∅` 的元素送回来。",
+        "先由 `h` 得到等式 `A = ∅`，再沿等式把 `x ∈ A` 搬成 `x ∈ ∅`。",
+        "先由 `h` 得到双射与逆映射，再用逆映射说明 `A` 没有元素。",
+        "拆出单射与落点条件，把 `x ∈ A` 送到 `x ∈ ∅`，再用空集没有元素收尾。"
+      ],
+      "answer": 4,
+      "why": "`A ≼ ∅` 是存在命题，拆出来是一把在 `A` 上单射、落在 `∅` 里的映射 `f`。若 `x ∈ A`，落点条件给出 `f x ∈ ∅`，而空集没有元素，矛盾。它拆不出 `A = ∅` 这个等式，也给不出逆映射。",
+      "source": "units/I.8/unit19-cardinal-le.sokonanoda:141",
+      "kps": [
+        "kp.i8.le.empty"
+      ]
+    },
+    {
+      "id": "I.8.le-empty-2",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "level": 3,
+      "tags": [
+        "cardinal-le",
+        "le-empty",
+        "submodel"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "`A ≼ ∅` 与 `A = ∅` 在强度上是什么关系？",
+      "options": [
+        "两者等价：`A ≼ ∅` 给出 `A ⊆ ∅`，加上 `∅ ⊆ A` 就能用外延性得到 `A = ∅`。",
+        "`A = ∅` 更强，因为等势还要求两个方向都有单射。",
+        "`A ≼ ∅` 更强，因为它给出了一把从 `A` 到 `∅` 的具体函数。",
+        "两者互不可推，因为 `≼` 只谈基数而 `=` 谈元素。"
+      ],
+      "answer": 1,
+      "why": "`∅ ⊆ A` 对任何 `A` 都成立，只要再从 `A ≼ ∅` 得到 `A ⊆ ∅`，两个包含就凑成 `A = ∅`。反过来 `A = ∅` 时，恒等映射就给出 `∅ ≼ ∅`。等势要求的是一对互逆映射，因此两个方向都有单射，比这里的逐点论证更强。",
+      "source": "units/I.8/unit19-cardinal-le.sokonanoda:149 · units/I.8/unit19-cardinal-le.sokonanoda:69",
+      "kps": [
+        "kp.i8.le.empty"
+      ]
+    },
+    {
+      "id": "I.8.le-empty-3",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "level": 2,
+      "tags": [
+        "cardinal-le",
+        "le-empty",
+        "library"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : A ≼ ∅`，要直接得到 `A ⊆ ∅`，调用库里哪条引理最省事？",
+      "options": [
+        "`le_empty`：它把 `A ≼ ∅` 转成「`A` 没有元素」这个全称命题。",
+        "`subset_of_le_empty`：它把 `A ≼ ∅` 直接转成 `A ⊆ ∅`。",
+        "`subset_le`：它把 `A ⊆ ∅` 转成 `A ≼ ∅`，方向正好相反。",
+        "`le_trans`：它把两个基数比较接起来，得到 `A ≼ A`。"
+      ],
+      "answer": 2,
+      "why": "`subset_of_le_empty` 的签名正是 `A ≼ ∅ → A ⊆ ∅`，一步到位。`le_empty` 给的是逐点形式（每个 `x` 都不在 `A` 里），要用它还得再过一次包含展开；`subset_le` 的方向反了，`le_trans` 则需要另一个中间集合。",
+      "source": "units/I.8/unit19-cardinal-le.sokonanoda:149 · units/I.8/unit19-cardinal-le.sokonanoda:141",
+      "kps": [
+        "kp.i8.le.empty"
+      ]
+    },
+    {
+      "id": "I.8.prod-1",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 1,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "membership"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "对 `p : Prod A B`，`p ∈ (s ×ˢ t)` 展开成「两个坐标各自落在对应集合里」时，正确的写法是哪一个？",
+      "options": [
+        "`Prod.fst A B p ∈ t ∧ Prod.snd A B p ∈ s`",
+        "`p ∈ s ∧ p ∈ t`",
+        "`Prod.fst A B p ∈ s ∧ Prod.snd A B p ∈ t`",
+        "`Prod.fst A B p ∈ s ∨ Prod.snd A B p ∈ t`"
+      ],
+      "answer": 3,
+      "why": "积的成员刻画是 `Set.mem_prod_iff`：`p ∈ s ×ˢ t ↔ fst p ∈ s ∧ snd p ∈ t`。第一坐标落在第一个因子、第二坐标落在第二个因子，顺序不能对调。合取也不能换成析取，因为「两个坐标都在」才是成员条件。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:37 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:71",
+      "kps": [
+        "kp.i8.prod"
+      ]
+    },
+    {
+      "id": "I.8.prod-2",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 2,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "projection"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `hp : p ∈ (s ×ˢ t)`，要取出 `Prod.fst A B p ∈ s`，正确的组合是哪一个？",
+      "options": [
+        "`And.right (Iff.mp (Set.mem_prod_iff A B s t p) hp)`",
+        "`And.left (Iff.mpr (Set.mem_prod_iff A B s t p) hp)`",
+        "`Iff.mp (Set.mem_prod_iff A B s t p) (And.left hp)`",
+        "`And.left (Iff.mp (Set.mem_prod_iff A B s t p) hp)`"
+      ],
+      "answer": 4,
+      "why": "`Set.mem_prod_iff` 的正向 `Iff.mp` 把成员证据变成合取 `fst p ∈ s ∧ snd p ∈ t`，第一坐标用 `And.left` 取。`And.right` 取到的是第二坐标，`Iff.mpr` 方向反了，它要的输入是合取。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:37 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:71",
+      "kps": [
+        "kp.i8.prod"
+      ]
+    },
+    {
+      "id": "I.8.prod-3",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 2,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "subset"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `hs : s ⊆ s'` 与 `ht : t ⊆ t'`，要证 `(s ×ˢ t) ⊆ (s' ×ˢ t')`，证明里最关键的一步是什么？",
+      "options": [
+        "把 `p` 的两个投影分别用 `hs`、`ht` 送进 `s'`、`t'`，再按成员刻画装回积。",
+        "先把两个积都写成幂集的元素，再用幂集的单调性传递包含。",
+        "只取 `p` 的第一坐标送进 `s'`，第二坐标由积的定义自动成立。",
+        "用 `Set.ext` 把两个积都展开成外延形式，再比较两个方向。"
+      ],
+      "answer": 1,
+      "why": "积的成员条件是两个坐标各自落在对应因子里，而 `hs`、`ht` 恰好分别管第一、第二坐标。把这两个结果按成员刻画的反方向装回去，就得到 `p ∈ s' ×ˢ t'`。结论本身就是一条 `⊆`，不需要双向包含。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:101 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:37",
+      "kps": [
+        "kp.i8.prod"
+      ]
+    },
+    {
+      "id": "I.8.prod-4",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 3,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "为什么 `(s ×ˢ t) ⊆ (s' ×ˢ t')` 不能反推出 `s ⊆ s'` 与 `t ⊆ t'`？",
+      "options": [
+        "因为积的成员刻画只能从坐标读出成员关系，不能从积反读因子。",
+        "因为 `t` 为空时积也为空，包含关系空真，却推不出 `s` 的任何信息。",
+        "因为 `⊆` 在积上会反向，只能得到 `s' ⊆ s` 与 `t' ⊆ t`。",
+        "因为积只保留两个坐标的合取，析取信息在构造时已经丢失了。"
+      ],
+      "answer": 2,
+      "why": "取 `t = ∅` 时 `s ×ˢ t` 是空集，包含关系空真，但 `s` 与 `s'` 可以任意。所以要反过来推因子，必须额外假设两个因子都非空。这不是 `⊆` 方向的问题，也不是析取信息丢失的问题。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:37 · units/I.9/unit23-products.sokonanoda:112",
+      "kps": [
+        "kp.i8.prod"
+      ]
+    },
+    {
+      "id": "I.8.prod-comm-1",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 1,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "commutativity"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "要证 `(s ×ˢ t) ≈ (t ×ˢ s)`，下面哪个映射是交换两个坐标的见证？",
+      "options": [
+        "`fun (p : Prod A B) => prod_mk A B (Prod.fst A B p) (Prod.snd A B p)`",
+        "`fun (p : Prod A B) => prod_mk B A (Prod.fst A B p) (Prod.snd A B p)`",
+        "`fun (p : Prod A B) => prod_mk B A (Prod.snd A B p) (Prod.fst A B p)`",
+        "`fun (p : Prod A B) => prod_mk A B (Prod.snd A B p) (Prod.fst A B p)`"
+      ],
+      "answer": 3,
+      "why": "交换律的见证要把两个坐标对调，所以结果必须落在 `Prod B A` 里，写成 `prod_mk B A (snd p) (fst p)`。其余写法要么没有换类型，要么把坐标塞进了错误的构造子，类型当场就对不上。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:136 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:128",
+      "kps": [
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.8.prod-comm-2",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 2,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "commutativity"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "在 `Set.Equiv.mk` 里为交换律填「回来的映射」时，最省事的填法是什么？",
+      "options": [
+        "填恒等映射，因为把交换后的序对原样交回去就等于回到原地。",
+        "填一个只返回 `Prod.fst` 的常函数，因为它能取回原来的第一坐标。",
+        "填一个把两个坐标都换成 `Prod.snd` 的映射，因为它把顺序固定住。",
+        "再填一次交换坐标的映射，因为它做两次就回到原地，自己就是自己的逆。"
+      ],
+      "answer": 4,
+      "why": "交换坐标的映射做两次就回到原来的序对，所以它自己是自己的逆，两条互逆律都由 `Prod.eta` 收尾。填恒等映射会让落点条件的类型对不上：`Prod A B` 与 `Prod B A` 不是同一个类型。常函数和复制 `snd` 的写法都丢掉了坐标信息，连映射的双向性都不满足。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:128 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:63",
+      "kps": [
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.8.prod-comm-3",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 3,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "equality-vs-equiv"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "为什么 `(s ×ˢ t) ≈ (t ×ˢ s)` 不能写成 `s ×ˢ t = t ×ˢ s`？",
+      "options": [
+        "因为 `s ×ˢ t` 与 `t ×ˢ s` 住在不同的类型里，相等根本说不出口。",
+        "因为两个积的元素个数一般不相等，只有存在单射时才等势。",
+        "因为集合相等要求两个方向都有包含，而交换坐标只给一个方向。",
+        "因为 `≈` 只对无穷集合有效，有限积的基数要另外计算。"
+      ],
+      "answer": 1,
+      "why": "等势是跨类型的：`s ×ˢ t` 住在前两个论域的积上，`t ×ˢ s` 住在交换后的积上，不是同一个类型里的两个集合。交换坐标给出的是双射，不是同一个类型里的相等；若强行写成相等，类型检查会先失败。元素个数一致并不自动给出可写下的相等。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:128 · lib/Equiv.sokonanoda:118",
+      "kps": [
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.8.prod-comm-4",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 2,
+      "tags": [
+        "cardinal-arithmetic",
+        "product-set",
+        "eta"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "在交换律的证明里，为什么两条互逆律都要显式用一次 `Prod.eta`？",
+      "options": [
+        "因为 `Prod.eta` 能证明两个不同类型的序对相等，补上类型差距。",
+        "因为本语言没有隐式 η 转换，`prod_mk (fst p) (snd p) = p` 必须显式调用。",
+        "因为只有 `Prod.eta` 才能把 `snd p` 换成 `fst p`，完成坐标交换。",
+        "因为 `Set.Equiv.mk` 的四条证据里，η 是唯一的映射构造子。"
+      ],
+      "answer": 2,
+      "why": "交换两次得到 `prod_mk (fst p) (snd p)`，本语言没有隐式 η 转换，必须用 `Prod.eta` 显式把这条等式交出来。`Prod.eta` 只在同一个类型内部使用，它不能跨 `Prod A B` 与 `Prod B A`。`Set.Equiv.mk` 的四条证据也不需要 η 当构造子。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:63 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:128",
+      "kps": [
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.8.ch-1",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "level": 2,
+      "tags": [
+        "continuum-hypothesis",
+        "unfold"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : CH`。对任意 `X : Set (Set Nat)` 与 `univ ≼ X`，`h` 直接给出的结论是哪一个？",
+      "options": [
+        "`X ≈ univ`，即每个这样的 `X` 都与 `ℕ` 等势。",
+        "`X ⊆ 𝒫 univ`，即每个这样的 `X` 都是 `𝒫 ℕ` 的子集。",
+        "`univ ≈ X ∨ X ≈ 𝒫 univ`，即 `X` 与 `ℕ` 或 `𝒫 ℕ` 等势。",
+        "`univ ≼ X ∧ X ≼ 𝒫 univ`，即 `X` 被夹在两者之间。"
+      ],
+      "answer": 3,
+      "why": "`CH` 是一个 `def`，展开后对每个 `X` 给出「`X` 与 `ℕ` 等势或与 `𝒫 ℕ` 等势」这条析取。它说的是没有严格介于两者之间的基数，不是每个 `X` 都等于其中一个。这里的 `univ` 指 `@Set.univ Nat`。",
+      "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:10 · units/I.8/unit113-continuum-hypothesis.sokonanoda:15",
+      "kps": [
+        "kp.i8.ch"
+      ]
+    },
+    {
+      "id": "I.8.ch-2",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "level": 3,
+      "tags": [
+        "continuum-hypothesis",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "为什么连续统假设的独立性不在本课范围内？",
+      "options": [
+        "因为 CH 已经被证明为假，本课不教假命题的证明。",
+        "因为 CH 依赖选择公理，而本课没有选择公理可用。",
+        "因为 CH 只是一个定义，定义既不需要证明也不需要讨论。",
+        "因为它需要模型论与力迫法，本课只做 CH 的陈述与展开。"
+      ],
+      "answer": 4,
+      "why": "CH 既不能被 ZFC 证明、也不能被 ZFC 否证，证明这一点要用模型论与力迫法，超出本卷范围。本课只要求会陈述 CH、会把 `def CH` 展开成顶层 `∀` 命题。把它说成已证假、依赖选择公理或只是定义，都不符合课程边界。",
+      "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:40 · units/I.8/unit113-continuum-hypothesis.sokonanoda:10",
+      "kps": [
+        "kp.i8.ch"
+      ]
+    },
+    {
+      "id": "I.8.ch-3",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "level": 2,
+      "tags": [
+        "continuum-hypothesis",
+        "diagonal"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "要证 `¬ ((𝒫 univ) ≼ univ)`，证明里构造的对角线集是哪一个？",
+      "options": [
+        "`cantorDiagonal f := fun x => ∃ S, f S = x ∧ ¬ (x ∈ S)`",
+        "`diagonal f`：单点版，`fun n => ¬ (f {n} = n)`，只看单点集的像。",
+        "`fun x => ¬ (x ∈ f x)`，把每个点从自己的像里排除。",
+        "`fun x => x ∈ f x`，收集落在自己像里的点。"
+      ],
+      "answer": 1,
+      "why": "`cantorDiagonal` 用 `∃ S` 形式：`x` 属于它，当且仅当有一个集合被 `f` 映到 `x` 且 `x` 不在它里面。配合 `f` 的单射性，就能从 `f A ∈ A` 推出矛盾。单点版 `diagonal` 只能得到 `f {n} ≠ n`，载不动这条对角线论证。",
+      "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:28 · units/I.8/unit113-continuum-hypothesis.sokonanoda:75",
+      "kps": [
+        "kp.i8.ch"
+      ]
+    },
+    {
+      "id": "I.8.ch-4",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "level": 3,
+      "tags": [
+        "continuum-hypothesis",
+        "notation-boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "CH 的陈述里为什么用 `≼` 与 `≈` 而不用 `ℵ` 与 `2^ℵ₀`？",
+      "options": [
+        "因为 `≼` 与 `≈` 比基数符号更精确，能区分可数与不可数。",
+        "因为序数线仍在内核墙后，本课只能用「存在单射」与「存在互逆映射」来比较基数。",
+        "因为 `ℵ` 只是 `≈` 的缩写，写哪一个在数学上完全等价。",
+        "因为 CH 本身与基数无关，只是关于集合包含的一条命题。"
+      ],
+      "answer": 2,
+      "why": "本课的序数线还在内核墙后，能用的只有「存在单射」与「存在互逆映射」这两种集合层说法。`def CH` 因此把「介于 `ℕ` 与 `𝒫 ℕ` 之间」写成两种等势的析取。这不是因为 `ℵ` 与 `≈` 等价，而是因为 `ℵ` 这条线在本课还没打通。",
+      "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:9 · units/I.8/unit113-continuum-hypothesis.sokonanoda:10",
+      "kps": [
+        "kp.i8.ch"
+      ]
+    },
+    {
+      "id": "I.8.mix-1",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "level": 3,
+      "tags": [
+        "cardinal-le",
+        "product-set",
+        "integration"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : (s ×ˢ t) ≼ ∅`。由 I.8 的结论，可以同时推出下面哪个结论？",
+      "options": [
+        "`s` 与 `t` 都为空，因为积空必然意味着两个因子都空。",
+        "`s` 为空但 `t` 任意，因为只有第一因子决定成员。",
+        "积没有元素，因此也不存在同时落在 `s` 与 `t` 里的坐标对。",
+        "`s ×ˢ t ≈ ∅`，因此两个因子都等势于空集。"
+      ],
+      "answer": 3,
+      "why": "`(s ×ˢ t) ≼ ∅` 由 `le_empty` 给出「积没有成员」，再由积的成员刻画可知不存在同时落在 `s`、`t` 里的坐标对。积空推不出两个因子都空：只要有一个因子为空，积就为空。",
+      "source": "units/I.8/unit19-cardinal-le.sokonanoda:141 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:37",
+      "kps": [
+        "kp.i8.le.empty",
+        "kp.i8.prod"
+      ]
+    },
+    {
+      "id": "I.8.mix-2",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "level": 2,
+      "tags": [
+        "product-set",
+        "commutativity",
+        "integration"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `hp : p ∈ (s ×ˢ t)`，用交换律的落点条件可以推出下面哪个结论？",
+      "options": [
+        "`prod_mk A B (fst p) (snd p) ∈ (t ×ˢ s)`，原序对落在交换后的积里。",
+        "`prod_mk B A (fst p) (snd p) ∈ (s ×ˢ t)`，坐标顺序保持不变。",
+        "`p ∈ (t ×ˢ s)`，同一个序对属于两个积。",
+        "`prod_mk B A (snd p) (fst p) ∈ (t ×ˢ s)`，交换后的序对落在交换后的积里。"
+      ],
+      "answer": 4,
+      "why": "交换律的见证把两个坐标对调并换到 `Prod B A` 里，所以成员关系也走到 `t ×ˢ s`。原序对 `p` 的类型是 `Prod A B`，它不可能住进 `t ×ˢ s : Set (Prod B A)`。保持坐标顺序的写法也没有完成交换。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:136 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:128",
+      "kps": [
+        "kp.i8.prod",
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.8.mix-3",
+      "kind": "choice",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "level": 3,
+      "tags": [
+        "cardinal-le",
+        "commutativity",
+        "integration"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `(s ×ˢ t) ≼ ∅` 且 `(s ×ˢ t) ≈ (t ×ˢ s)`。能否推出 `(t ×ˢ s) ≼ ∅`？",
+      "options": [
+        "能：等势给出 `(s ×ˢ t) ≼ (t ×ˢ s)`，再与已知用 `≼` 传递接起来。",
+        "不能：交换律只给等势，不保证与空集的比较能传递。",
+        "能，但需要先证 `(t ×ˢ s) ≈ ∅`，而这不是交换律的结论。",
+        "不能，因为两个积的类型不同，`≼` 无法比较。"
+      ],
+      "answer": 1,
+      "why": "等势强于单射：`le_of_equiv` 从 `(s ×ˢ t) ≈ (t ×ˢ s)` 给出 `(s ×ˢ t) ≼ (t ×ˢ s)`。再用 `le_trans` 把「积比空集小」接到交换后的积上。类型不同不构成障碍，`≼` 本来就允许两侧论域不同。",
+      "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:128 · units/I.8/unit54-equiv-algebra.sokonanoda:105 · units/I.8/unit19-cardinal-le.sokonanoda:119",
+      "kps": [
+        "kp.i8.le.empty",
+        "kp.i8.prod.comm"
+      ]
+    },
+    {
+      "id": "I.9.family-1",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 1,
+      "tags": [
+        "family",
+        "sUnion",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "`x ∈ ⋃₀ F` 展开后是哪一个命题？",
+      "options": [
+        "对每个 `A ∈ F`，都有 `x ∈ A`。",
+        "存在一个 `A ∈ F`，使 `x ∈ A`。",
+        "存在一个 `A`，使 `A ∈ F` 且 `A ⊆ x`。",
+        "对每个 `x ∈ F`，都有 `x ⊆ A`。"
+      ],
+      "answer": 2,
+      "why": "广义并是存在量化：只要族里有一个成员装得下 `x`，`x` 就属于 `⋃₀ F`。对每个成员都成立的全称形态是广义交 `⋂₀ F`，两者不能混。",
+      "source": "units/I.9/unit21-families.sokonanoda:39 · units/I.9/unit21-families.sokonanoda:44",
+      "kps": [
+        "kp.i9.family"
+      ]
+    },
+    {
+      "id": "I.9.family-2",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "family",
+        "sUnion",
+        "characterization"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : (⋃₀ F) ⊆ B` 与 `hA : A ∈ F`，要得到 `A ⊆ B`，正确的路线是哪一个？",
+      "options": [
+        "先用 `h` 把 `A` 直接送进 `B`，再对每个点用一次 `hA`。",
+        "先证明 `A` 是广义交的成员，再用广义交包含于 `B`。",
+        "任取 `x ∈ A`，先用族成员把 `x` 送进广义并，再交给 `h`。",
+        "对 `h` 做一次全称消去，把 `A` 当成它的第一个见证。"
+      ],
+      "answer": 3,
+      "why": "`A ∈ F` 让 `A` 的每个点都落进 `⋃₀ F`，这就是 `Set.subset_sUnion` 的作用。再用 `h : (⋃₀ F) ⊆ B` 把点送到 `B`，`A ⊆ B` 就得证。`h` 只对广义并说话，不能直接作用于 `A`。",
+      "source": "units/I.9/unit21-families.sokonanoda:81 · units/I.9/unit21-families.sokonanoda:39",
+      "kps": [
+        "kp.i9.family"
+      ]
+    },
+    {
+      "id": "I.9.family-3",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "family",
+        "sInter",
+        "characterization"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : B ⊆ (⋂₀ F)` 与 `hA : A ∈ F`，要得到 `B ⊆ A`，关键的一步是什么？",
+      "options": [
+        "任取 `x ∈ B`，用 `hA` 先得到 `A ⊆ B`，再用包含关系的传递。",
+        "先证明 `A ⊆ ⋂₀ F`，再用反对称性把 `B` 与 `A` 换过来。",
+        "先证明 `⋂₀ F ⊆ A`，再与 `h` 复合得到 `B ⊆ A`。",
+        "任取 `x ∈ B`，用 `h` 得 `x ∈ ⋂₀ F`，再把 `hA` 喂给这条全称命题。"
+      ],
+      "answer": 4,
+      "why": "`x ∈ ⋂₀ F` 的展开是「族里每个成员都装得下 `x`」，所以把 `hA : A ∈ F` 喂进去就得到 `x ∈ A`。`hA` 本身只说明 `A` 是族里的成员，推不出 `A ⊆ B` 或 `A ⊆ ⋂₀ F`。",
+      "source": "units/I.9/unit21-families.sokonanoda:101 · units/I.9/unit21-families.sokonanoda:44",
+      "kps": [
+        "kp.i9.family"
+      ]
+    },
+    {
+      "id": "I.9.family-4",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 3,
+      "tags": [
+        "family",
+        "sUnion",
+        "sInter",
+        "duality"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "`⋃₀ F ⊆ B` 与 `B ⊆ ⋂₀ F` 都能化成「每个族成员与 `B` 的关系」，为什么两者的方向相反？",
+      "options": [
+        "`⋃₀` 是存在量化，装进 `B` 要逐个成员验证；`⋂₀` 是全称量化，要让每个成员都满足。",
+        "因为 `⋃₀` 与 `⋂₀` 的定义里 `⊆` 的方向本来就相反，与量词无关。",
+        "因为 `⋃₀` 只对非空族有定义，空族时方向会翻转。",
+        "因为 `B ⊆ ⋂₀ F` 其实是 `⋃₀ F ⊆ B` 的逆否命题。"
+      ],
+      "answer": 1,
+      "why": "`x ∈ ⋃₀ F` 是存在命题，所以「整体装进 `B`」等价于「每个成员都装进 `B`」；`x ∈ ⋂₀ F` 是全称命题，所以「`B` 装进整体」等价于「`B` 装进每个成员」。两条都要逐成员验证，但前者验的是 `A ⊆ B`，后者验的是 `B ⊆ A`。两者不是逆否关系，空族也不影响这两条刻画。",
+      "source": "units/I.9/unit21-families.sokonanoda:91 · units/I.9/unit21-families.sokonanoda:110",
+      "kps": [
+        "kp.i9.family"
+      ]
+    },
+    {
+      "id": "I.9.family-mono-1",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 1,
+      "tags": [
+        "family",
+        "sUnion",
+        "monotone"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : F ⊆ G`。广义并在族包含下的单调方向是哪一个？",
+      "options": [
+        "`⋃₀ G ⊆ ⋃₀ F`，族变大时并变小。",
+        "`⋃₀ F ⊆ ⋃₀ G`，族变大时并变大。",
+        "`⋂₀ F ⊆ ⋂₀ G`，交也随族变大而变大。",
+        "`⋃₀ F = ⋃₀ G`，族包含不改变并。"
+      ],
+      "answer": 2,
+      "why": "并的元素由某个族成员见证；族变大只增加可选见证，所以并只可能变大，方向是 `⋃₀ F ⊆ ⋃₀ G`。交的方向相反，`F ⊆ G` 给的是 `⋂₀ G ⊆ ⋂₀ F`，不是 `⋂₀ F ⊆ ⋂₀ G`。",
+      "source": "units/I.9/unit21-families.sokonanoda:124 · units/I.9/unit21-families.sokonanoda:134",
+      "kps": [
+        "kp.i9.family.mono"
+      ]
+    },
+    {
+      "id": "I.9.family-mono-2",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "family",
+        "sInter",
+        "monotone"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : F ⊆ G` 与 `hx : x ∈ ⋂₀ G`，要得到 `x ∈ ⋂₀ F`，正确的路线是哪一个？",
+      "options": [
+        "先对 `F` 用一次广义交的展开，再把结果沿 `h` 搬到 `G`。",
+        "把 `x ∈ ⋂₀ G` 展开成存在命题，再取一个见证成员。",
+        "对每个 `A ∈ F`，先用 `h` 得 `A ∈ G`，再把 `hx` 用在这个成员上。",
+        "先证明 `⋂₀ F ⊆ ⋂₀ G`，再用包含关系的反对称性反过来。"
+      ],
+      "answer": 3,
+      "why": "`x ∈ ⋂₀ F` 要求每个 `A ∈ F` 都装得下 `x`；取一个这样的 `A`，由 `h` 把它变成 `G` 的成员，再交给 `x ∈ ⋂₀ G`。所以族变大时交变小，方向是 `⋂₀ G ⊆ ⋂₀ F`。广义交是逐成员的全称，不是存在见证。",
+      "source": "units/I.9/unit21-families.sokonanoda:134 · units/I.9/unit21-families.sokonanoda:44",
+      "kps": [
+        "kp.i9.family.mono"
+      ]
+    },
+    {
+      "id": "I.9.family-mono-3",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 2,
+      "tags": [
+        "family",
+        "sUnion",
+        "monotone"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "要证 `F ⊆ G → ⋃₀ F ⊆ ⋃₀ G`，拆开 `x ∈ ⋃₀ F` 之后应当做什么？",
+      "options": [
+        "对每个 `A ∈ F` 都证一次 `x ∈ A`，再用全称消去得到结论。",
+        "先证 `⋃₀ G ⊆ ⋃₀ F`，再用反对称性得到两个并相等。",
+        "把 `x` 先送到 `G` 的某个成员，再用该成员的成员关系反向使用。",
+        "取出见证 `A ∈ F` 与 `x ∈ A`，把同一个 `A` 搬进 `G`，再当见证。"
+      ],
+      "answer": 4,
+      "why": "广义并的成员证据是一个存在命题：某个族成员装得下 `x`。族包含只影响「哪个成员可选」，所以把同一个 `A` 搬进 `G`，它的成员证据可以继续用。逐成员全称那一步是广义交的形态，不是广义并的。",
+      "source": "units/I.9/unit21-families.sokonanoda:124 · units/I.9/unit21-families.sokonanoda:39",
+      "kps": [
+        "kp.i9.family.mono"
+      ]
+    },
+    {
+      "id": "I.9.family-mono-4",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 3,
+      "tags": [
+        "family",
+        "sUnion",
+        "sInter",
+        "empty-family"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "为什么 `⋂₀ F ⊆ ⋃₀ F` 这条结论需要「`F` 非空」这个前提？",
+      "options": [
+        "空族时广义交退化成全集，广义并是空集，两者只要论域有点就不相等。",
+        "空族时广义交为空集，而广义并退化成全集，方向正好反过来。",
+        "非空族的交一定非空，空族的交则无法与并比较大小。",
+        "因为 `⋂₀` 只在非空族上有定义，空族的写法不合法。"
+      ],
+      "answer": 1,
+      "why": "`x ∈ ⋂₀ F` 展开成「每个 `A ∈ F` 都装得下 `x`」；`F` 为空时这条全称空真，于是每个点都在交里，交退化成全集。而空族的并没有成员可作见证，是空集，所以只要论域里有一个点，全集就不可能含于它。非空族的交也不一定非空，这不是理由。",
+      "source": "units/I.9/unit21-families.sokonanoda:146 · units/I.9/unit21-families.sokonanoda:156 · units/I.9/unit21-families.sokonanoda:44",
+      "kps": [
+        "kp.i9.family.mono"
+      ]
+    },
+    {
+      "id": "I.9.product-1",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 1,
+      "tags": [
+        "family",
+        "pi",
+        "unfold"
+      ],
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "`f ∈ Set.pi ι α A` 展开后是哪一个命题？",
+      "options": [
+        "存在一个坐标 `i`，使 `f i ∈ A i`。",
+        "对每个坐标 `i`，都有 `f i ∈ A i`。",
+        "对每个坐标 `i`，都有 `A i ⊆ A`。",
+        "存在一个坐标 `i`，使 `A i` 为空集。"
+      ],
+      "answer": 2,
+      "why": "广义积的成员是函数，成员条件逐坐标量化：每个 `i` 都要满足 `f i ∈ A i`。存在量化的形态不是积，积要求所有坐标同时满足。",
+      "source": "units/I.9/unit23-products.sokonanoda:48 · lib/SUnion.sokonanoda:115",
+      "kps": [
+        "kp.i9.product"
+      ]
+    },
+    {
+      "id": "I.9.product-2",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 2,
+      "tags": [
+        "family",
+        "pi",
+        "projection"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `hf : f ∈ Set.pi ι α A`，要取出 `f i ∈ A i`，应当用哪一个取用子？",
+      "options": [
+        "`Set.mem_pi_intro ι α A f hf`",
+        "`Set.pi_mono ι α A A hf f`",
+        "`Set.mem_pi_elim ι α A f i hf`",
+        "`Iff.mpr (Set.mem_pi_iff ι α A f) hf`"
+      ],
+      "answer": 3,
+      "why": "`Set.mem_pi_elim` 的签名正是「积的成员 + 一个坐标 ⇒ 该坐标的成员证据」，参数顺序是族、函数、坐标、成员证据。`mem_pi_intro` 是反方向的构造子，`pi_mono` 要的是逐坐标包含，`Iff.mpr` 方向反了。",
+      "source": "units/I.9/unit23-products.sokonanoda:66 · units/I.9/unit23-products.sokonanoda:48",
+      "kps": [
+        "kp.i9.product"
+      ]
+    },
+    {
+      "id": "I.9.product-3",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 2,
+      "tags": [
+        "family",
+        "pi",
+        "monotone"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `h : ∀ i, A i ⊆ B i` 与 `hf : f ∈ Set.pi ι α A`，要得到 `f ∈ Set.pi ι α B`，应当调用哪一个？",
+      "options": [
+        "`Set.pi_mono ι α B A h f hf`",
+        "`Set.mem_pi_intro ι α B f hf`",
+        "`Set.mem_pi_elim ι α A f i hf`",
+        "`Set.pi_mono ι α A B h f hf`"
+      ],
+      "answer": 4,
+      "why": "积对族单调：逐坐标包含 `A i ⊆ B i` 可以逐点把 `f i` 搬过去，库里的 `Set.pi_mono` 就是这条，参数先给旧族、再给新族。把两个族写反会让包含方向对不上，另外两个选项分别只处理构造和取用，都不产生「换到 `B`」的结论。",
+      "source": "units/I.9/unit23-products.sokonanoda:82 · units/I.9/unit23-products.sokonanoda:48",
+      "kps": [
+        "kp.i9.product"
+      ]
+    },
+    {
+      "id": "I.9.product-4",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 3,
+      "tags": [
+        "family",
+        "pi",
+        "empty-factor"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知某个坐标 `i` 的因子 `A i` 为空。为什么 `Set.pi ι α A` 里不可能有元素？",
+      "options": [
+        "因为积的成员要求在每个坐标上都落在对应因子里，空因子那个坐标无处可落。",
+        "因为积只能对非空族定义，空因子的出现让整个定义失效。",
+        "因为空因子会让索引族变空，积于是自动变成空集。",
+        "因为 `Set.pi` 要求所有因子两两不交，空因子破坏了这一要求。"
+      ],
+      "answer": 1,
+      "why": "积的成员条件逐坐标量化：若 `A i` 为空，任何函数在该坐标上的值都不在 `A i` 里。所以积里不可能有函数，这是成员条件直接给出的结论。`Set.pi` 对任意索引族都有定义，也不要求因子两两不交。",
+      "source": "units/I.9/unit23-products.sokonanoda:112 · units/I.9/unit23-products.sokonanoda:48",
+      "kps": [
+        "kp.i9.product"
+      ]
+    },
+    {
+      "id": "I.9.product-5",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 2,
+      "tags": [
+        "family",
+        "pi",
+        "inter"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "把 `Set.pi ι α (fun i => A i ∩ B i)` 与 `Set.pi ι α A ∩ Set.pi ι α B` 接起来，下面哪个说法正确？",
+      "options": [
+        "只有 `pi (A ∩ B) ⊆ pi A ∩ pi B` 成立，反方向需要选择公理。",
+        "两个方向都成立，它们只是把逐坐标的合取重新分组，因此集合相等。",
+        "只有反方向成立，因为交在函数层会缩小定义域。",
+        "两者一般不可比较，因为 `∩` 只对集合有定义，不对函数有定义。"
+      ],
+      "answer": 2,
+      "why": "`f` 在每个坐标同时属于 `A i`、`B i`，等价于在每个坐标属于 `A i ∩ B i`，两个方向都只是逐坐标展开。所以 `pi` 与逐坐标交完全交换，两个包含合起来就是集合相等。这一步不需要选择公理。",
+      "source": "units/I.9/unit23-products.sokonanoda:127 · units/I.9/unit23-products.sokonanoda:137",
+      "kps": [
+        "kp.i9.product"
+      ]
+    },
+    {
+      "id": "I.9.product-ac-1",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 2,
+      "tags": [
+        "family",
+        "pi",
+        "choice"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "用 `choice` 证「每个因子非空 ⇒ 积非空」时，选择关系应当写成哪一种？",
+      "options": [
+        "写成「`i` 属于索引族」，让选择函数从索引里挑坐标。",
+        "写成「`A i` 是空集」，再用反证法把它消去。",
+        "写成「`x` 属于 `A i`」，它的逐点存在性正好是「每个因子非空」。",
+        "写成「`x = y`」，让选择函数给所有因子挑同一个元素。"
+      ],
+      "answer": 3,
+      "why": "`choice` 接受一条关系与「每个第一侧点都有第二侧见证」的前提，给出一个满足该关系的函数。这里的逐点存在性正是「`A i` 非空」，关系写成 `x ∈ A i` 就能直接选中每个因子的元素。选完再用 `Set.mem_pi_intro` 装成积的成员。",
+      "source": "units/I.9/unit23-products.sokonanoda:172 · units/I.9/unit23-products.sokonanoda:74",
+      "kps": [
+        "kp.i9.product.ac"
+      ]
+    },
+    {
+      "id": "I.9.product-ac-2",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 2,
+      "tags": [
+        "family",
+        "pi",
+        "choice"
+      ],
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "prompt": "`choice` 给出的函数 `f` 要满足哪条性质，才能直接用 `Set.mem_pi_intro` 装进积里？",
+      "options": [
+        "`f` 只在一个坐标上取到 `A i` 的元素，其余坐标可以任意。",
+        "`f` 是索引族上的恒等函数，所以每个 `i` 都落在 `A i` 里。",
+        "`f` 把每个 `A i` 都映成空集，从而让积变成空集。",
+        "`f i ∈ A i` 对每个坐标都成立，于是构造子的前提正好齐备。"
+      ],
+      "answer": 4,
+      "why": "`Set.mem_pi_intro` 的前提就是逐坐标的成员条件 `∀ i, f i ∈ A i`。`choice` 给出的函数恰好逐点满足选择关系，所以这条前提可以直接交出去。只满足一个坐标、恒等函数或映成空集，都不满足构造子的前提。",
+      "source": "units/I.9/unit23-products.sokonanoda:172 · units/I.9/unit23-products.sokonanoda:74",
+      "kps": [
+        "kp.i9.product.ac"
+      ]
+    },
+    {
+      "id": "I.9.product-ac-3",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 3,
+      "tags": [
+        "family",
+        "pi",
+        "choice",
+        "boundary"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "若把选择公理从工具里拿掉，「每个因子非空 ⇒ 积非空」会怎样？",
+      "options": [
+        "它不再可证：逐坐标都有元素，并不自动给出一个同时选好所有坐标的函数。",
+        "它仍然可证，因为 `Set.mem_pi_intro` 会自己产生一个满足条件的函数。",
+        "它变成假命题，因为可以造出每个因子非空但积为空的例子。",
+        "它退化成「某个因子非空 ⇒ 积非空」，因为量词顺序可以交换。"
+      ],
+      "answer": 1,
+      "why": "构造性地说，`∀ i, ∃ x, x ∈ A i` 只保证每个坐标单独有元素，并不给出一个统一的选择函数。要同时选好所有坐标，正是 `choice` 提供的步骤；没有它，这条命题就停在边界上。它不是被证伪，而是不可证。",
+      "source": "units/I.9/unit23-products.sokonanoda:172",
+      "kps": [
+        "kp.i9.product.ac"
+      ]
+    },
+    {
+      "id": "I.9.mix-1",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "level": 3,
+      "tags": [
+        "family",
+        "sUnion",
+        "sInter",
+        "integration"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "已知 `F` 非空且 `F ⊆ G`。下面哪个结论一定成立？",
+      "options": [
+        "`⋂₀ G ⊆ ⋃₀ F`，因为交对族反单调而并对族单调。",
+        "`⋂₀ F ⊆ ⋃₀ F ⊆ ⋃₀ G`，交先落在自己的并里，再随族扩大进入 `G` 的并。",
+        "`⋃₀ F ⊆ ⋂₀ G`，因为每个族成员都落在 `G` 的交里。",
+        "`⋂₀ G = ⋂₀ F`，因为族扩大不会改变交。"
+      ],
+      "answer": 2,
+      "why": "非空族的交含于自己的并，而并随族变大单调，两段接起来就是 `⋂₀ F ⊆ ⋃₀ G`。选项里的 `⋂₀ G ⊆ ⋃₀ F` 不一定成立：`G` 多出来的成员可能把交压小，而 `F` 的并并没有跟着变大。族扩大一般会改变交，所以等号也不成立。",
+      "source": "units/I.9/unit21-families.sokonanoda:146 · units/I.9/unit21-families.sokonanoda:124",
+      "kps": [
+        "kp.i9.family",
+        "kp.i9.family.mono"
+      ]
+    },
+    {
+      "id": "I.9.mix-2",
+      "kind": "choice",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "level": 3,
+      "tags": [
+        "family",
+        "pi",
+        "choice",
+        "integration"
+      ],
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "prompt": "为什么「某个因子空 ⇒ 积空」是定理，而「每个因子非空 ⇒ 积非空」需要选择公理？",
+      "options": [
+        "前者是假命题，只有加上选择公理才变成真的，后者本来就是定理。",
+        "后者也需要 `choice` 才能陈述，它甚至不是一条有意义的命题。",
+        "前者靠一个坐标上的否定就能否定整个函数，后者要同时为所有坐标挑元素、组成函数。",
+        "两者都不需要选择公理，课程只是把后者写成边界来提醒读者。"
+      ],
+      "answer": 3,
+      "why": "「某个因子空 ⇒ 积空」是逐坐标的否定：只要在一个坐标上矛盾，任何函数都进不了积。反方向要为每个坐标同时选一个元素并组成函数，这一步正是 `choice` 的内容。所以前者是定理，后者是边界。",
+      "source": "units/I.9/unit23-products.sokonanoda:112 · units/I.9/unit23-products.sokonanoda:172",
+      "kps": [
+        "kp.i9.product",
+        "kp.i9.product.ac"
+      ]
     },
     {
       "id": "II.1.intrel-1",

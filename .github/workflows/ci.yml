@@ -1126,7 +1126,12 @@ jobs:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # **45 → 75 分钟**（2026-11-26 实测）：45 分钟到点时 `Course gate (analysis, G1–G6)`
+    # 还在跑 ⇒ job `cancelled`（不是判负）。同一棵树在主分支暖缓存下是 36m38s；
+    # 只改 `knowledge/**` 也会让下面的 artifact cache 落冷（旧 key 含整个
+    # `courses/set-theory/**`）⇒ 冷跑 + analysis 175 单元越过 45。analysis 那一步
+    # 自己留了 90 分钟 ⇒ job 上限对齐到 75（只抬上限，绿跑耗时不变）；key 也同时收窄。
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -1142,6 +1147,17 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
+
+      - name: 知识库门禁（结构 + source 行 + lessons 同步）
+        # `validate.py` 一直是纯 python3、秒级，却**从未进 CI**（2026-11-24 审计：
+        # 全库 6 道题的 source 不满足 SCHEMA §2.5 也照样合入）。它现在除结构/交叉引用/
+        # lessons 同步外，还逐条核 `source` 的文件:行号（与 verify_batch 共用
+        # `knowledge/source_check.py`，口径不漂移）。
+        # 放在重活之前 ⇒ 题库数据坏了先红、不浪费 build。
+        # 为什么不加 `coverage.py`：I.4–I.13 的 KP 是 C9.1 一次性注册的，C9.2/C9.3
+        # 补题期间它**预期红**（此刻 99 个 KP 无题）⇒ 现在接成门禁只会天天假红；
+        # 等 C9.2 把注册 KP 补到 0 红后再接（`CONTENT-PLAN.md` §2.1 的批次表）。
+        run: python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/validate.py"
 
       - name: 课程题目集数据集（构建 + 校验 + 自检）
         # C9.0（#98）：数据集是课程源的派生物 —— `--check` 判源文件漂移，`check.py`
@@ -1193,11 +1209,15 @@ jobs:
       # 产物本身还是**内容寻址**的（`<模块根>/.sokonanoda/compiled/`，键含源文本 +
       # 依赖闭包）⇒ 即使命中了不该命中的条目，也只会**重编**、不会错判 ✓。
       - name: Restore course artifacts（内容寻址缓存）
+        # key 只含**编译输入**（lib/units/清单/check.py）。`knowledge/**` 是题库数据、
+        # 不参与课程编译；旧 key 把整个 `courses/set-theory/**` 算进去 ⇒ **只改题库的
+        # PR 必然落冷缓存**（2026-11-26 实测：gates-course 因此顶到 45 分钟 job 超时）。
+        # 产物本身是内容寻址的 ⇒ key 判断保守也只会重编、不会错判。
         id: course-cache
         uses: actions/cache/restore@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/lib/**', 'courses/set-theory/units/**', 'courses/set-theory/sokonanoda.toml', 'courses/set-theory/tools/check.py') }}
       - name: Course artifacts（冷启动时说明一句；命中/未命中都可见）
         # 只做**可观测性**：让人在日志里一眼看出这次是冷是热（缓存是否命中）。
         shell: bash
@@ -1264,7 +1284,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/lib/**', 'courses/set-theory/units/**', 'courses/set-theory/sokonanoda.toml', 'courses/set-theory/tools/check.py') }}
       - name: Upload course gate report (always)
         # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
         # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。

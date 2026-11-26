@@ -148,7 +148,15 @@
 - 选项是完整陈述句（纯代码/符号选项例外，题干须明确“下面哪个表达式…”）；
   四项结构平行，长度 8–60 字；禁止“以上都对/以上都不对”。
 - 一个正确答案 + 3 个可信干扰项；不要让两个选项都成立。
+- **选项长度不泄漏答案**：正确项不得比最长干扰项长 15 字以上
+  （2026-11-24 审计：旧库 174/219 道正确项最长）。`verify_batch.py` 对新批判红
+  （`option.length-leak`），`text_audit.py` 对全库给出同一口径的报告（存量待清洗）。
+- **正确项位置要打散**：存储顺序就是渲染顺序（`build_quiz.py` / 教学卡片都按
+  存储顺序显示，不洗牌）⇒ 整批 ≥8 道 choice 时，同一选项位不得超过 60%
+  （`verify_batch.py` 判红）。新批的选项顺序应按 id 轮换正确项位次，不能整批都放第 1 位。
 - `why` 解释正确项，并点出主要干扰项的错因；不把答案写进 `prompt`。
+- `why` 必须是 2–4 个完整句子（新批由 `verify_batch.py` 判红；存量由
+  `text_audit.py` 的 `why.short` 报告，不判红）。
 - 同一 KP 不要堆同模板题；coverage 全绿 ≠ 题库质量好。
 
 ### 2.4 开放题（short / explain）
@@ -171,6 +179,9 @@
 3. 一行不够就写多段 `文件:行号`；优先引用**声明行/演示行/练习行**。
 4. `verify_batch.py` 只查“文件存在 + 行号不越界 + 非空”，**语义核验靠人**：
    每批按 level 分层抽 ≥10%（`--sample` 打印样本），逐条打开 source 核答案。
+   同一检查也进了 `validate.py`（全库逐题核）**与 CI**（`ci.yml` 的 `gates-course`
+   在重活之前跑 `validate.py`）——2026-11-24 审计发现全库有 6 道题 source 不合规
+   却照样合入，所以口径不能只覆盖当批；两处共用 `source_check.py`，不写第二份。
 5. 新单元的行号在写题时同步补；若某题必须等新引理/新单元而写不出 source，
    记进 `CONTENT-PLAN.md` §4「暂缓题记账」，**不许编假 source 混过 validate**。
 
@@ -182,6 +193,10 @@
 
 ## 3. 覆盖门禁（`coverage.py`）
 
+- **统计口径 = 可服务题**：`params.json` 的 `selection.exclude` 排除的题不计
+  （`engine.py` 选题时就跳过它们；覆盖门禁必须同口径，否则“绿”是名义上的）。
+  `--include-excluded` 可切回全库口径做诊断；报告里 `selection` 段给出排除清单与
+  同一份清单里不在库中的 id（防参数漂移）。
 - 红：某个 L1/L2/L3 档 < `saturation.min`（必须补；exit 1）。
 - 黄：达到 min，但总数 < `target`（可补；默认不判红）。
 - 绿：达到 target 且各档过 min。
@@ -254,11 +269,15 @@ C9.1 的门禁项，按章补。
 ## 6. 可执行 checklist（复制到 PR 描述）
 
 - [ ] `python3 courses/set-theory/knowledge/validate.py` → `KNOWLEDGE VALIDATE OK`，exit 0
+      （含全库 `source` 的文件:行号存在性）
 - [ ] 每个 KP 的 `chapter/kind/prereq/saturation/keyPoint` 齐全；prereq 无环
 - [ ] `python3 courses/set-theory/knowledge/coverage.py` 跑通；本批目标章 0 红
-      （C9.1 注册批例外：逐条列出预期红，见 `CONTENT-PLAN.md`）
+      （按可服务题；C9.1 注册批例外：逐条列出预期红，见 `CONTENT-PLAN.md`；
+      多看一行“题库共 N，排除 M”，确认口径没变）
 - [ ] `verify_batch.py --batch … --chapter … --sample 8` → exit 0
+      （含选项 8–60 字、正确项不超最长干扰项 15 字、`why` ≥2 句）
 - [ ] source 抽检 ≥10%，逐条打开核验答案；无占位/假行号
+- [ ] `text_audit.py` 没有**新增** `why.short` / `option.length*` 条目（存量可暂留）
 - [ ] `engine.py selftest` + `engine.py simulate --questions 50` → exit 0
 - [ ] `text_audit.py` 无新增问题；`notation-lint.py` 绿（若改课程单元）
 - [ ] `lessons.json` 的 KP title/kind 与 `questionTotal` 与注册表/题库一致
