@@ -1,7 +1,7 @@
 {
   "schema": "soko.glossary/1",
-  "version": 6,
-  "updated": "2026-11-22",
+  "version": 11,
+  "updated": "2026-11-26",
   "entries": [
     {
       "id": "type",
@@ -250,6 +250,158 @@
       "oneLiner": "`LeOn α β A B` 与库里的 `A ≼ B`（即 `Set.Le`）是**同一个定义**：存在一个在 `A` 上单射、并把 `A` 送进 `B` 的函数；单元里用点名前缀写明 `α β`，库里用 `≼` 记法。",
       "code": "def LeOn (α β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B",
       "source": "units/I.3/unit97-equiv-le.sokonanoda:28 = lib/Equiv.sokonanoda:169 Set.Le"
+    },
+    {
+      "id": "int-rel",
+      "term": "intRel",
+      "kind": "definition",
+      "oneLiner": "整数代表元之间的「差相等」关系：`intRel (a,b) (c,d)` 就是 `a + d = b + c`。",
+      "code": "-- def intRel (a b : Prod Nat Nat) : Prop",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:11"
+    },
+    {
+      "id": "int-quotient",
+      "term": "Int",
+      "kind": "definition",
+      "oneLiner": "整数类型，定义为 `ℕ × ℕ` 按 `intRel` 作商得到的商。",
+      "code": "-- def Int : Type := @Quot.{1} (Prod Nat Nat) intRel",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:16"
+    },
+    {
+      "id": "quot-sound",
+      "term": "Quot.sound",
+      "kind": "lemma",
+      "oneLiner": "相关的代表元在商里相等：从 `r a b` 得到 `Quot.mk r a = Quot.mk r b`。",
+      "code": "-- @Quot.sound.{1} α r a b h",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42"
+    },
+    {
+      "id": "quot-lift",
+      "term": "Quot.lift",
+      "kind": "definition",
+      "oneLiner": "从代表元函数下降到商上函数的工具；先要证明相关代表元给出同一个值。",
+      "code": "-- @Quot.lift.{1, 1} α r β f h",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46"
+    },
+    {
+      "id": "well-defined",
+      "term": "良定义性",
+      "kind": "concept",
+      "oneLiner": "从代表元定义商上的对象时，必须证明相关代表元给出同一个结果。",
+      "code": "-- h : ∀ a b, r a b → f a = f b",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:58"
+    },
+    {
+      "id": "quot-iota",
+      "term": "iota 归约",
+      "kind": "concept",
+      "oneLiner": "`Quot.lift f h (Quot.mk a)` 算成 `f a` 的计算规则。",
+      "code": "-- lift f h (mk a) ≡ f a",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46"
+    },
+    {
+      "id": "int-rep",
+      "term": "代表元",
+      "kind": "concept",
+      "oneLiner": "整数用自然数对 `(a,b)` 表示 `a-b`；同一个整数可以有多个代表元。",
+      "code": "-- (2,0) 与 (3,1) 都表示 2",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:10"
+    },
+    {
+      "id": "add-rep",
+      "term": "addRep",
+      "kind": "definition",
+      "oneLiner": "整数加法的代表元公式：`(a,b)+(c,d) = (a+c,b+d)`。",
+      "code": "-- def addRep (a b : Prod Nat Nat) : Prod Nat Nat",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22"
+    },
+    {
+      "id": "neg-rep",
+      "term": "negRep",
+      "kind": "definition",
+      "oneLiner": "整数取负的代表元公式：`-(a,b) = (b,a)`。",
+      "code": "-- def negRep (p : Prod Nat Nat) : Prod Nat Nat",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:27"
+    },
+    {
+      "id": "sub-rep",
+      "term": "subRep",
+      "kind": "definition",
+      "oneLiner": "整数减法的代表元公式：先取负再相加，`(a,b)-(c,d) = (a+d,b+c)`。",
+      "code": "-- def subRep (a b : Prod Nat Nat) : Prod Nat Nat := addRep a (negRep b)",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:30"
+    },
+    {
+      "id": "mul-rep",
+      "term": "mulRep",
+      "kind": "definition",
+      "oneLiner": "整数乘法的代表元公式：`(a-b)(c-d) = (ac+bd) - (ad+bc)`。",
+      "code": "-- def mulRep (a b : Prod Nat Nat) : Prod Nat Nat",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:26"
+    },
+    {
+      "id": "add-rep-wd",
+      "term": "加法的良定义性",
+      "kind": "concept",
+      "oneLiner": "相关的代表元相加后仍相关；两个槽都要验证，才能把加法下降到 `Int`。",
+      "code": "-- theorem addRep_wd … : intRel (addRep p r) (addRep q r)",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84"
+    },
+    {
+      "id": "sub-rep-wd",
+      "term": "减法的良定义性",
+      "kind": "concept",
+      "oneLiner": "减法的两个槽都换成相关代表元后，结果仍相关；可由取负与加法的良定义性组合。",
+      "code": "-- theorem subRep_wd … : intRel (subRep p q) (subRep p' q')",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208"
+    },
+    {
+      "id": "le-rep",
+      "term": "leRep",
+      "kind": "definition",
+      "oneLiner": "整数序的代表元公式：`(a-b) ≤ (c-d)` 当且仅当 `a + d ≤ c + b`。",
+      "code": "-- def leRep (p q : Prod Nat Nat) : Prop",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31"
+    },
+    {
+      "id": "le-nat",
+      "term": "LeNat",
+      "kind": "definition",
+      "oneLiner": "课程自建的 ℕ 序，只有 `le_refl` 与 `le_succ` 两个构造子。",
+      "code": "-- inductive LeNat : Nat → Nat → Prop",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:21"
+    },
+    {
+      "id": "nat-add-cancel",
+      "term": "加法右消去",
+      "kind": "lemma",
+      "oneLiner": "两边加同一个自然数后相等，就能消去这个加数：`a+k = b+k → a = b`。",
+      "code": "-- theorem nat_add_cancel_right (a b k : Nat)",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
+    },
+    {
+      "id": "order-rep-wd",
+      "term": "序的良定义性",
+      "kind": "concept",
+      "oneLiner": "两个代表元各换成相关代表元后，`leRep` 的真假不变；两个槽都要证。",
+      "code": "-- theorem leRep_wd … : leRep p q → leRep p' q'",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:226"
+    },
+    {
+      "id": "mul-rep-wd-snd",
+      "term": "乘法第二槽良定义",
+      "kind": "concept",
+      "oneLiner": "固定左因子、换右因子时乘积仍相关；用交换律化归到第一个槽。",
+      "code": "-- theorem mulRep_wd_snd …",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237"
+    },
+    {
+      "id": "int-neg",
+      "term": "intNeg",
+      "kind": "definition",
+      "oneLiner": "用 `Quot.lift` 把 `negRep` 下降到 `Int → Int` 得到的取负函数。",
+      "code": "-- def intNeg : Int → Int := @Quot.lift … negRep negRep_wd",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:109"
     }
   ]
 }

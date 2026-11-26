@@ -1,6 +1,6 @@
 {
   "schema": "soko.lessons/1",
-  "version": 6,
+  "version": 14,
   "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
@@ -2312,6 +2312,448 @@
         "units/I.13/unit52-rel-iteration.sokonanoda:1",
         "units/I.13/unit52-rel-iteration.sokonanoda:32"
       ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "goal": "学完这一单元，你能够从「差相等」关系构造 ℤ，并把自然数嵌入为 (n,0) 的等价类。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.intrel",
+          "title": "差相等关系 intRel",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.quot",
+          "title": "整数类型 Int = Quot intRel",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.intofnat",
+          "title": "自然数的整数像 intOfNat",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元把整数定义成 ℕ×ℕ 按 intRel 作商，并先用 intRel 与 Quot.sound 把代表元相等写顺。",
+      "cards": [
+        "int-as-quotient"
+      ],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:1",
+        "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:11"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "goal": "学完这一单元，你能够用 Quot.sound、Quot.lift、Quot.ind 在商上做证明与定义，并说出没有 Quot.exact 的边界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.quot.sound",
+          "title": "Quot.sound：关系到商内相等",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.quot.lift",
+          "title": "Quot.lift 与良定义性",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.quot.iota",
+          "title": "Quot.lift 的 iota 归约",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.quot.ind",
+          "title": "Quot.ind：对代表元归纳",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.quot.exact",
+          "title": "商的边界：没有 Quot.exact",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元复习商的三件套：sound 把关系变成相等，lift 要求良定义性，ind 把商上的性质降到代表元。",
+      "cards": [
+        "quot-lift-well-defined"
+      ],
+      "questionTotal": 21,
+      "sources": [
+        "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:1",
+        "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "goal": "学完这一单元，你能够用 Nat.rec 的归纳证明加法的基本律，并用这些律重排等式。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.rec",
+          "title": "Nat.rec 归纳与 Eq.subst 搬运",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.nat.add",
+          "title": "ℕ 加法的递归律",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.nat.mul",
+          "title": "ℕ 乘法与分配律",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元从 Nat.rec 自建 add 与 mul，用 Prop 动机做归纳，再用 Eq.subst 把假设搬到后继情形。",
+      "cards": [],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:1",
+        "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:30"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "goal": "学完这一单元，你能够写出整数加法、取负、减法的代表元公式，并分清定义性相等与下降前的良定义性。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.addrep",
+          "title": "整数加法的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.negrep",
+          "title": "整数取负的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.subrep",
+          "title": "整数减法的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.rep.rfl",
+          "title": "代表元公式是定义性相等",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元把 ℤ 上的运算先写成 ℕ×ℕ 代表元上的公式，这些公式在代表元层都是 rfl；下降到商上则需要后续单元证良定义性。",
+      "cards": [
+        "int-rep-formulas"
+      ],
+      "questionTotal": 16,
+      "sources": [
+        "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:1",
+        "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "goal": "学完这一单元，你能够写出整数乘法的代表元公式，并用闭值计算检查它。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mulrep",
+          "title": "整数乘法的代表元公式",
+          "kind": "definition"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit05.sokonanoda:1",
+        "courses/analysis/units/II.1/unit05.sokonanoda:26"
+      ],
+      "intuition": "本单元把 (a-b)(c-d) 展开成 (ac+bd)-(ad+bc)，先只在代表元层写出公式。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "goal": "学完这一单元，你能够用 add_shift 与 intRel 的假设证明整数加法尊重代表元相等。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.wd",
+          "title": "整数加法的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit06.sokonanoda:1",
+        "courses/analysis/units/II.1/unit06.sokonanoda:76"
+      ],
+      "intuition": "本单元用 add_shift 重排交叉和，证明 addRep 对 intRel 的两个槽都相容。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "goal": "学完这一单元，你能够在商上证明加法的交换律与结合律，并分清代表元层与商层。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.laws",
+          "title": "商上加法的交换律与结合律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit07.sokonanoda:1",
+        "courses/analysis/units/II.1/unit07.sokonanoda:81"
+      ],
+      "intuition": "本单元把代表元层的交换与结合交给 Quot.sound，得到商上的加法律。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "goal": "学完这一单元，你能够证明整数加法的零元律与逆元律，并说明取负为什么需要良定义性。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.group",
+          "title": "商上加法的零元与负元",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.int.neg.wd",
+          "title": "整数取负的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 8,
+      "sources": [
+        "courses/analysis/units/II.1/unit08.sokonanoda:1",
+        "courses/analysis/units/II.1/unit08.sokonanoda:73"
+      ],
+      "intuition": "本单元用 zero_rep 与 add_neg_rep 给出商上的零元与逆元，并证明取负的良定义性。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "goal": "学完这一单元，你能够证明减法尊重代表元相等，并证明 p-p=0 与 (p-q)+q=p。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.sub.wd",
+          "title": "整数减法的良定义性",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.int.sub.laws",
+          "title": "商上减法的基本律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 8,
+      "sources": [
+        "courses/analysis/units/II.1/unit09.sokonanoda:1",
+        "courses/analysis/units/II.1/unit09.sokonanoda:208"
+      ],
+      "intuition": "本单元证明减法尊重代表元相等，并导出 p-p=0 与 (p-q)+q=p。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "goal": "学完这一单元，你能够证明整数乘零与乘一的代表元事实，并区分相关与逐字相等。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.identity",
+          "title": "乘法的零元与单位元",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:1",
+        "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:77"
+      ],
+      "intuition": "本单元用 myMul 的计算规则把乘零与乘一化到代表元层。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "goal": "学完这一单元，你能够用分配律与加法重排证明乘法尊重第一个代表元。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.wd",
+          "title": "整数乘法的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178"
+      ],
+      "intuition": "本单元用分配律把乘积展开，再用乘法同余搬交叉项，证明换第一个因子不变。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "goal": "学完这一单元，你能够把 a-b≤c-d 化归成 a+d≤c+b，并在序对上做定义展开。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.orderrep",
+          "title": "整数序的代表元公式",
+          "kind": "definition"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:1",
+        "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31"
+      ],
+      "intuition": "本单元把整数序化成 ℕ 上的 LeNat 交叉和，先只写代表元公式。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "goal": "学完这一单元，你能够用 LeNat 的构造子证明传递性、后继单调与加法单调。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.order",
+          "title": "ℕ 序的构造子与单调性",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:1",
+        "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:43"
+      ],
+      "intuition": "本单元用 LeNat 的构造子链证明传递性、后继单调与加法单调。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "goal": "学完这一单元，你能够证明 ℕ 加法的右消去律，并把序翻成「存在加数」再消去。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.add.cancel",
+          "title": "ℕ 加法的右消去律",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.nat.le.exists",
+          "title": "序的存在加数刻画",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.nat.le.cancel",
+          "title": "ℕ 序的右消去律",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:1",
+        "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
+      ],
+      "intuition": "本单元先证 ℕ 加法消去，再把序翻成存在加数，用重排与消去证序的消去律。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "goal": "学完这一单元，你能够证明整数序尊重两个代表元槽的替换。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.order.wd",
+          "title": "整数序的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:189"
+      ],
+      "intuition": "本单元把 intRel 假设读成等式，用序的加法消去律证明 leRep 的两个槽都稳定。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "goal": "学完这一单元，你能够在代表元层证明整数序的传递性与加法单调。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.order.axioms",
+          "title": "整数序的传递性与加法单调",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:1",
+        "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:177"
+      ],
+      "intuition": "本单元用 leNat_trans 与 add4 把 ℕ 序的传递性和加法单调搬到整数上。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "goal": "学完这一单元，你能够证明自建乘法的交换律与代表元乘积的交换。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.comm",
+          "title": "乘法的交换律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:1",
+        "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170"
+      ],
+      "intuition": "本单元先证 ℕ 乘法交换，再用 congrArg 与 add_comm 证代表元乘积交换。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "goal": "学完这一单元，你能够用交换律把乘法的第二个槽化归到第一个槽。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.wd.snd",
+          "title": "乘法第二个因子的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237"
+      ],
+      "intuition": "本单元用乘法交换律把第二个槽化归到第一个槽，复用 mulRep_wd。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "goal": "学完这一单元，你能够用 Quot.lift 定义 intNeg，并证计算规则与对合律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.neg.lift",
+          "title": "取负下降成 intNeg",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:1",
+        "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:109"
+      ],
+      "intuition": "本单元用 Quot.lift 加 negRep_wd 定义 intNeg，再用 iota 与 Quot.ind 证计算与对合。"
     }
   ]
 }

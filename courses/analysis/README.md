@@ -3,6 +3,25 @@
 > 从卷 I《集合论》（`courses/set-theory/`）继续，目标 Tao《Analysis I》第 4–11 章：
 > ℤ / ℚ / ℝ 的构造 → 序列与级数 → 连续与微分 → Riemann 积分。
 
+## 选择题库（C9.3）
+
+本课程的知识点与选择题和其它课程共用一份题库：
+`courses/set-theory/knowledge/data/`（`soko.choice-bank/1` / `soko.knowledge-points/1`）。
+卷 II/III 的题目 `source` 写仓库根相对路径 `courses/analysis/units/…:行号`，`unit` 取
+本文件 `course.json` 的单元标题去掉「单元」前缀。2026-11-26 起按
+`courses/set-theory/knowledge/CONTENT-PLAN.md` §2.2 的 16 章 / 30 批计划推进；
+**II.1 全部单元①–⑲** 已落盘 34 KP / 143 题（II.1 覆盖 0 红、综合题 31）。
+
+```bash
+cd courses/set-theory/knowledge
+python3 validate.py
+python3 coverage.py --json | python3 -c 'import json,sys; c=json.load(sys.stdin)["chapters"]["II.1"]; print(c); sys.exit(0 if c["red"]==0 else 1)'
+python3 engine.py selftest
+python3 engine.py simulate --questions 50
+```
+
+不改本课程画布/解答/lib；题库只从单元原文与课程标准库取证，不新增课程内容。
+
 ## 状态
 
 课程共 175 个单元（卷 II 72、卷 III 103；单元172/173 是 2026-11-24 补的 FTC 前置与 FTC-1，单元174/175 是 2026-11-25 补的切分引擎与卷 III capstone），M1–M5 已在 2026-11-19 全部落盘，`course.json` 与 `units/` 一致。M6 的 QA、文档与站点入口已收口：全量课程门禁复跑为 0 rejected、0 solutions_open、0 lib_open，`notation-lint` rc=0；发版节点仍被 Lean Kernel Arena 门禁挡住（两条递归规则伪造被接受、一条性能用例超时），内核修复前版本号不写。书页媒介与双语范围待用户拍板，尚未开工。下面按时间倒序保留各单元的写作记录。

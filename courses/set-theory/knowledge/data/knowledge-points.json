@@ -1,7 +1,7 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 4,
-  "updated": "2026-11-25",
+  "version": 9,
+  "updated": "2026-11-26",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
     "target": "饱和目标（达到即绿；min 与 target 之间为黄）",
@@ -3082,6 +3082,628 @@
       },
       "note": "",
       "keyPoint": "写出单值性并说明图是函数。"
+    },
+    {
+      "id": "kp.ii1.intrel",
+      "chapter": "II.1",
+      "title": "差相等关系 intRel",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.pair",
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把「a−b=c−d」翻译成 Nat 上的交叉和 a+d=b+c，并用它判断两个整数代表元是否相等。"
+    },
+    {
+      "id": "kp.ii1.int.quot",
+      "chapter": "II.1",
+      "title": "整数类型 Int = Quot intRel",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "说明整数是代表元对的等价类，商内相等由 intRel 加 Quot.sound 给出，而不是逐分量相等。"
+    },
+    {
+      "id": "kp.ii1.intofnat",
+      "chapter": "II.1",
+      "title": "自然数的整数像 intOfNat",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.int.quot"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用代表元 (n,0) 把 ℕ 嵌入 ℤ，并用 Quot.sound 认出与它相关的其他代表元。"
+    },
+    {
+      "id": "kp.ii1.quot.sound",
+      "chapter": "II.1",
+      "title": "Quot.sound：关系到商内相等",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.quot"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把代表元之间的关系转成商内相等，并分清它的反方向（Quot.exact）在本课不可用。"
+    },
+    {
+      "id": "kp.ii1.quot.lift",
+      "chapter": "II.1",
+      "title": "Quot.lift 与良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.quot.sound"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "要从代表元下降函数，必须先证相关代表元同值；义务不成立时函数不存在。"
+    },
+    {
+      "id": "kp.ii1.quot.iota",
+      "chapter": "II.1",
+      "title": "Quot.lift 的 iota 归约",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "认出 lift f h (mk a) 算成 f a，并用 Eq.refl 收掉这类计算等式。"
+    },
+    {
+      "id": "kp.ii1.quot.ind",
+      "chapter": "II.1",
+      "title": "Quot.ind：对代表元归纳",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.quot.sound"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把「商上每个元素都满足 C」降成「每个代表元都满足 C」，并知道它只能消去成 Prop。"
+    },
+    {
+      "id": "kp.ii1.quot.exact",
+      "chapter": "II.1",
+      "title": "商的边界：没有 Quot.exact",
+      "kind": "boundary",
+      "prereq": [
+        "kp.ii1.quot.lift",
+        "kp.ii1.quot.iota"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "keyPoint": "说出没有 Quot.exact、函数见证构造不出、congrArg 越界这三条边界，并知道缩回与逐点形态的替代路线。"
+    },
+    {
+      "id": "kp.ii1.nat.rec",
+      "chapter": "II.1",
+      "title": "Nat.rec 归纳与 Eq.subst 搬运",
+      "kind": "technique",
+      "prereq": [],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 Nat.rec 的 Prop 动机证明算术律，并在后继情形用 Eq.subst 把假设搬过去。"
+    },
+    {
+      "id": "kp.ii1.nat.add",
+      "chapter": "II.1",
+      "title": "ℕ 加法的递归律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.rec"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "认出 add 对第二参数递归，并用 zero_add/succ_add/结合/交换/rotate 重排等式。"
+    },
+    {
+      "id": "kp.ii1.nat.mul",
+      "chapter": "II.1",
+      "title": "ℕ 乘法与分配律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.rec"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "认出 mul 对第二参数递归，并用 zero_mul 与 mul_distrib 计算与重排。"
+    },
+    {
+      "id": "kp.ii1.int.addrep",
+      "chapter": "II.1",
+      "title": "整数加法的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 (a-b)+(c-d)=(a+c)-(b+d) 并知道它在代表元层是定义性相等。"
+    },
+    {
+      "id": "kp.ii1.int.negrep",
+      "chapter": "II.1",
+      "title": "整数取负的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 -(a-b)=b-a（交换分量）并知道它下降到商前还要证良定义性。"
+    },
+    {
+      "id": "kp.ii1.int.subrep",
+      "chapter": "II.1",
+      "title": "整数减法的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.int.addrep",
+        "kp.ii1.int.negrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把减法定义成加负元，写出 (a-b)-(c-d)=(a+d)-(b+c)。"
+    },
+    {
+      "id": "kp.ii1.int.rep.rfl",
+      "chapter": "II.1",
+      "title": "代表元公式是定义性相等",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.addrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "分清代表元层 rfl 与商上良定义性：前者算公式，后者证换代表元不变。"
+    },
+    {
+      "id": "kp.ii1.int.mulrep",
+      "chapter": "II.1",
+      "title": "整数乘法的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 (a-b)(c-d)=(ac+bd)-(ad+bc)，并认出它是代表元层的定义性公式。"
+    },
+    {
+      "id": "kp.ii1.int.add.wd",
+      "chapter": "II.1",
+      "title": "整数加法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.addrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 add_shift 把 addRep 的两个分量重排，证明两个槽换代表元后结果仍相关。"
+    },
+    {
+      "id": "kp.ii1.int.add.laws",
+      "chapter": "II.1",
+      "title": "商上加法的交换律与结合律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.add.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把代表元层的 addRep_comm/addRep_assoc 交给 Quot.sound，得到商上的交换律与结合律。"
+    },
+    {
+      "id": "kp.ii1.int.add.group",
+      "chapter": "II.1",
+      "title": "商上加法的零元与负元",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.add.laws"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 zero_rep/add_neg_rep 得到 p+0=p 与 p+(-p)=0，并认出两次取负是定义性相等。"
+    },
+    {
+      "id": "kp.ii1.int.neg.wd",
+      "chapter": "II.1",
+      "title": "整数取负的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.negrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 intRel 的假设对称并用 add_comm 翻分量，证明负元尊重 intRel。"
+    },
+    {
+      "id": "kp.ii1.int.sub.wd",
+      "chapter": "II.1",
+      "title": "整数减法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.subrep",
+        "kp.ii1.int.add.wd",
+        "kp.ii1.int.neg.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "同时对被减数与减数使用相关性，或用 negRep_wd 加两次 addRep_wd 组合出 subRep 的良定义性。"
+    },
+    {
+      "id": "kp.ii1.int.sub.laws",
+      "chapter": "II.1",
+      "title": "商上减法的基本律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.sub.wd",
+        "kp.ii1.int.add.group"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 add_neg_rep 证 p-p=0，并用展开与重排证 (p-q)+q=p。"
+    },
+    {
+      "id": "kp.ii1.int.mul.identity",
+      "chapter": "II.1",
+      "title": "乘法的零元与单位元",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.mulrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mulRep_zero_rep/mulRep_one_rep 得到 p·0=0 与 p·1=p，并分清代表元相关与逐字相等。"
+    },
+    {
+      "id": "kp.ii1.int.mul.wd",
+      "chapter": "II.1",
+      "title": "整数乘法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.mulrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mul_shift_c 分别搬两个交叉项，再用加法重排证明乘法尊重 intRel（本单元只做第一个槽）。"
+    },
+    {
+      "id": "kp.ii1.int.orderrep",
+      "chapter": "II.1",
+      "title": "整数序的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 (a-b)≤(c-d) 当且仅当 a+d≤c+b，并在序对上做定义展开。"
+    },
+    {
+      "id": "kp.ii1.nat.order",
+      "chapter": "II.1",
+      "title": "ℕ 序的构造子与单调性",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.rec"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "认出 LeNat 的 le_refl/le_succ，并用传递性与 leNat_succ_succ/leNat_add_right 推序。"
+    },
+    {
+      "id": "kp.ii1.nat.add.cancel",
+      "chapter": "II.1",
+      "title": "ℕ 加法的右消去律",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.nat.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "对 k 归纳，用 Nat.succ.inj 剥掉后继，证明 a+k=b+k → a=b。"
+    },
+    {
+      "id": "kp.ii1.nat.le.exists",
+      "chapter": "II.1",
+      "title": "序的存在加数刻画",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 LeNat m n 翻成 ∃k, n=m+k，并在 le_refl/le_succ 两情形构造见证。"
+    },
+    {
+      "id": "kp.ii1.nat.le.cancel",
+      "chapter": "II.1",
+      "title": "ℕ 序的右消去律",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.nat.add.cancel",
+        "kp.ii1.nat.le.exists"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把序翻成存在加数，用 add_rotate 与加法消去，再用 of_exists_add 回到 LeNat。"
+    },
+    {
+      "id": "kp.ii1.int.order.wd",
+      "chapter": "II.1",
+      "title": "整数序的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.orderrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 intRel 假设读成等式，用加法消去律证明 leRep 对两个槽都尊重代表元替换。"
+    },
+    {
+      "id": "kp.ii1.int.order.axioms",
+      "chapter": "II.1",
+      "title": "整数序的传递性与加法单调",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.order.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 leNat_trans 与 add4 把 ℕ 序的传递性和加法单调搬到整数代表元上。"
+    },
+    {
+      "id": "kp.ii1.int.mul.comm",
+      "chapter": "II.1",
+      "title": "乘法的交换律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.mul.identity"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "证 myMul_comm 与 mulRep_comm：交换两个因子后代表元逐字相等。"
+    },
+    {
+      "id": "kp.ii1.int.mul.wd.snd",
+      "chapter": "II.1",
+      "title": "乘法第二个因子的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.mul.wd",
+        "kp.ii1.int.mul.comm"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mulRep_comm 把第二个槽换成第一个槽，套 mulRep_wd，再换回来。"
+    },
+    {
+      "id": "kp.ii1.int.neg.lift",
+      "chapter": "II.1",
+      "title": "取负下降成 intNeg",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.neg.wd",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 Quot.lift 把 negRep 下降成 intNeg，并用 iota 与 Quot.ind 证计算规则与对合律。"
     }
   ]
 }

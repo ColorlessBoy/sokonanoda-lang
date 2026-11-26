@@ -89,8 +89,8 @@ for index, q in enumerate(questions):
     if not isinstance(q, dict):
         fail(at + ": not an object")
         continue
-    if not isinstance(q.get("id"), str) or not re.match(r"^I\.\d+\.[a-z0-9-]+$", q["id"]):
-        fail(at + ": id must look like I.2.rel-1")
+    if not isinstance(q.get("id"), str) or not re.match(r"^[IVX]+\.\d+\.[a-z0-9-]+$", q["id"]):
+        fail(at + ": id must look like I.2.rel-1 or II.1.intrel-1")
     elif q["id"] in qids:
         fail(at + ": duplicate id")
     else:
