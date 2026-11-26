@@ -1,7 +1,7 @@
 {
   "schema": "soko.lessons/1",
-  "version": 4,
-  "updated": "2026-11-25",
+  "version": 6,
+  "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
     {
@@ -186,7 +186,7 @@
           "oneLiner": "`A ∨ B` 要证 `C`：两个来源各证一次 `C`，然后交给 `Or.elim`。"
         }
       ],
-      "questionTotal": 29,
+      "questionTotal": 31,
       "sources": [
         "lib/Set.sokonanoda:108",
         "lib/Set.sokonanoda:209",
@@ -263,7 +263,7 @@
           "oneLiner": "关系 = 二元谓词：`Rel α β` 与 `α → β → Prop` 是同一个东西。"
         }
       ],
-      "questionTotal": 38,
+      "questionTotal": 39,
       "sources": [
         "lib/Order.sokonanoda:191",
         "lib/Order.sokonanoda:195",
@@ -1407,7 +1407,7 @@
       ],
       "intuition": "本单元围绕「“不比空集大”」「势比较（⊆/InjOn 定义与自反传递）」展开，核心是：A ≼ ∅ ⇒ A 没有元素（A ⊆ ∅）。",
       "cards": [],
-      "questionTotal": 0,
+      "questionTotal": 5,
       "sources": [
         "units/I.8/unit19-cardinal-le.sokonanoda:1",
         "units/I.8/unit19-cardinal-le.sokonanoda:41"
@@ -1431,7 +1431,7 @@
       ],
       "intuition": "本单元围绕「积集合的成员刻画与 ⊆-函子性」「乘法交换律（集合层）」展开，核心是：写出 p ∈ s ×ˢ t 的两个坐标，并证积对包含逐坐标单调。",
       "cards": [],
-      "questionTotal": 0,
+      "questionTotal": 9,
       "sources": [
         "units/I.8/unit20-cardinal-arithmetic.sokonanoda:1",
         "units/I.8/unit20-cardinal-arithmetic.sokonanoda:37"
@@ -1469,7 +1469,7 @@
       ],
       "intuition": "本单元围绕「连续统假设」展开，核心是：陈述并展开 CH，并用对角线证 ¬(𝒫ℕ ≼ ℕ)。",
       "cards": [],
-      "questionTotal": 0,
+      "questionTotal": 4,
       "sources": [
         "units/I.8/unit113-continuum-hypothesis.sokonanoda:1",
         "units/I.8/unit113-continuum-hypothesis.sokonanoda:10"
@@ -1493,7 +1493,7 @@
       ],
       "intuition": "本单元围绕「广义并交的刻画定理」「单调与空族」展开，核心是：证 ⋃₀F ⊆ B ↔ 每个族成员 ⊆ B、B ⊆ ⋂₀F ↔ 每个族成员 ⊇ B。",
       "cards": [],
-      "questionTotal": 0,
+      "questionTotal": 9,
       "sources": [
         "units/I.9/unit21-families.sokonanoda:1",
         "units/I.9/unit21-families.sokonanoda:39"
@@ -1536,7 +1536,7 @@
       ],
       "intuition": "本单元围绕「广义积与柯里化」「非空族积非空 ⇔ AC」展开，核心是：写出 Set.pi 成员刻画，证族单调、空因子 ⇒ 积空与 pi∩ 拆装（curry/uncurry 为定义）。",
       "cards": [],
-      "questionTotal": 0,
+      "questionTotal": 9,
       "sources": [
         "units/I.9/unit23-products.sokonanoda:1",
         "units/I.9/unit23-products.sokonanoda:37"

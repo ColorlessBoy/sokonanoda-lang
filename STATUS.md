@@ -1,9 +1,11 @@
-## 当前快照（2026-11-25 · C9.1）
-C9.1（issue #99）落盘 `knowledge/SCHEMA.md`（choice/KP schema 规格与批次 checklist）；
-I.4–I.13 注册 107 新 KP + 2 既有 prep = 109（课程共 161），14 批 B5–B18、bank 目标 493；
-`validate.py` 新增 keyPoint/prereq 无环/lessons 同步判据（反向验证能咬住 2 条历史漂移）。
-现状：validate OK；coverage **预期红 107**（新 KP 无题，C9.2 补）；selftest/simulate/
-notation-lint 绿；text_audit 仅 1 条既有 card.item。逐章表见 `CONTENT-PLAN.md` §0.1/§2.1。
+## 当前快照（2026-11-26 · C9.2 首批）
+C9.2（#100）先修门禁再扩题：`coverage.py` 改用**可服务题**口径（遵守
+`selection.exclude`，与 engine 同口径）；全库 `source` 检查进 `validate.py` 与 CI；
+`verify_batch` 卡选项长度与 `why` 句数。
+补 3 道门禁题（54 KP 全绿）+ B11/B12（I.8/I.9 各 18 题、4 绿 0 红）。
+题库 266（可服务 257），KP 绿 54→62、红 107→99，综合题 39，知识卡 16；
+text_audit 欠账 216/98/71 待按章清洗。
+下一批：B5（I.4 首波）或 B7（I.5，32 题可清零）；见 CONTENT-PLAN §0.2。
 
 ## C9 题目集数据集 P0（2026-11-24 · issue #96）
 - 结构：`model.py` 唯一解析器（课程清单 v1/v2、画布、解答）；`build.py` / `check.py` / `compose.py` 共用。记录带稳定 ID `<course>/[<chapter>/]<unit-stem>/<name>`、`prompt`/`hints`/`template`/`solution`/`source` 映射；匿名 `example` 用 `example-N`。

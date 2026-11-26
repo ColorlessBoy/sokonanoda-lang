@@ -1143,6 +1143,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: 知识库门禁（结构 + source 行 + lessons 同步）
+        # `validate.py` 一直是纯 python3、秒级，却**从未进 CI**（2026-11-24 审计：
+        # 全库 6 道题的 source 不满足 SCHEMA §2.5 也照样合入）。它现在除结构/交叉引用/
+        # lessons 同步外，还逐条核 `source` 的文件:行号（与 verify_batch 共用
+        # `knowledge/source_check.py`，口径不漂移）。
+        # 放在重活之前 ⇒ 题库数据坏了先红、不浪费 build。
+        # 为什么不加 `coverage.py`：I.4–I.13 的 KP 是 C9.1 一次性注册的，C9.2/C9.3
+        # 补题期间它**预期红**（此刻 99 个 KP 无题）⇒ 现在接成门禁只会天天假红；
+        # 等 C9.2 把注册 KP 补到 0 红后再接（`CONTENT-PLAN.md` §2.1 的批次表）。
+        run: python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/validate.py"
+
       - name: 课程题目集数据集（构建 + 校验 + 自检）
         # C9.0（#98）：数据集是课程源的派生物 —— `--check` 判源文件漂移，`check.py`
         # 判结构/来源映射/解答，`--selftest` 注入坏数据必须判红。纯 python3、秒级，
