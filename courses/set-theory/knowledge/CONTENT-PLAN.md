@@ -87,9 +87,11 @@ choice 212 + short 6 + explain 3），kps 引用 **257**、综合题 **34**。po
 
 **阶段 1（I.1–I.3）✅ 完成**：题库从 78 → 221 题，覆盖从 5 绿/47 红（9.3%）
 到 **54 绿 / 0 红（100%）**；B1–B4 每批均经 `verify_batch.py` 结构+source 逐行+覆盖预测验收。
-后续阶段（I.4–I.13）按 §2 继续：先注册章级 KP，再按 `KP × 4.5 × 1.2` 估题分批开发。
+后续阶段（I.4–I.13）已由 **C9.1（2026-11-25）注册 KP**：107 个新 KP + 2 个既有 prep，
+区间合计 109；bank 目标按 `KP × 4.5` = 493 题（`×1.2` 只作排期返工，不重复计入 bank）。
+逐章 KP × 目标题量 × 批次见 §2.1。
 
-按 kind 看（当前 54 个 KP）：
+阶段 1 的 54 个 KP 按 kind 看（历史读数，2026-11-22）：
 
 | kind | KP 数 | 绿 | 红 | 说明 |
 |---|---|---|---|---|
@@ -99,47 +101,60 @@ choice 212 + short 6 + explain 3），kps 引用 **257**、综合题 **34**。po
 | boundary | 3 | 0 | 3 | 反例/不可证边界（排中、选择公理） |
 | prep | 2 | 0 | 2 | I.6/I.7 预备（当前题库 0 题挂载） |
 
-完整 47 条红名单见最新 `reports/coverage-<时间>.json`（`kps` 数组，`status:"red"`）。
+阶段 1 的 47 条红名单见当时的 `reports/coverage-<时间>.json`（`kps` 数组，`status:"red"`）。
+
+### 0.1 C9.1 注册实测（2026-11-25）
+
+I.4–I.13 的 KP 已注册（`data/knowledge-points.json` v4）：**新增 107 / 区间 109
+（含 2 个既有 prep）**，课程 KP 总数 **161**。逐章实测：
+
+| 章 | 单元 | KP（含 prep） | 新增 | bank 目标 ⌈KP×4.5⌉ | min L1/L2/L3 | 综合题目标 | 批次（题数） |
+|---|---|---|---|---|---|---|---|
+| I.4 | 12 | 17 | 17 | 77 | 6/26/17 | 9 | B5 40 + B6 37 |
+| I.5 | 4 | 7 | 7 | 32 | 5/8/7 | 4 | B7 32 |
+| I.6 | 13 | 17 | 16（+1 prep） | 77 | 12/21/16 | 9 | B8 40 + B9 37 |
+| I.7 | 7 | 11 | 10（+1 prep） | 50 | 7/13/11 | 6 | B10 50 |
+| I.8 | 4 | 4 | 4 | 18 | 2/4/4 | 2 | B11 18 |
+| I.9 | 3 | 4 | 4 | 18 | 3/4/4 | 2 | B12 18 |
+| I.10 | 12 | 16 | 16 | 72 | 11/17/16 | 8 | B13 40 + B14 32 |
+| I.11 | 7 | 11 | 11 | 50 | 7/14/11 | 6 | B15 50 |
+| I.12 | 7 | 8 | 8 | 36 | 5/9/8 | 4 | B16 36 |
+| I.13 | 8 | 14 | 14 | 63 | 11/15/14 | 7 | B17 40 + B18 23 |
+| **合计** | **77** | **109** | **107 + 2 prep** | **493** | **69/131/108** | **57** | **14 批** |
+
+new KP 的 kind 分布（107 个）：definition 35 · concept 31 · technique 32 ·
+boundary 8 · integration 1。区间 109 个里另含 2 个既有 prep。
+
+> **为什么是 109 而不是草稿的 115**：115 是「1.49 KP/单元 × 77」的外推；逐单元
+> 审计合并了 6 个与既有 KP 重复的条目（I.8 u19/u54 复述 I.3 的 `≼`/`≈`；I.9 u22
+> 复述 I.3 的像/原像分配律；I.10 u78 的往返已由 `kp.i10.partition.equiv` 承载；
+> I.6 u16 的 `≤` 没有单元支撑；I.6 u83 的无环性并入 `kp.i6.antisymm`），并补了
+> 3 个审计发现的缺项（`kp.i7.union`、`kp.i13.kernel`、`kp.i13.wf.boundary`）。
+> 实测 1.42 KP/单元，仍在原计划的 1.42–1.75 区间；**没有为凑 115 保留重复 KP**
+> （重复 KP 会让 coverage 的「题挂 KP」变成同题重复记账）。
+
+**当前覆盖（`coverage.py`，2026-11-25）**：161 KP → **绿 54 / 黄 0 / 红 107**
+（饱和率 33.5%），exit 1；I.4–I.13 的 107 个新 KP 均无题，**这是 C9.1 的预期红**，
+报告逐条点名（`reports/coverage-<时间>.json` 的 `kps[status=red]`）。C9.2/C9.3 按
+§2.1 的批次补题后转绿；**不许**用降低 `min`、虚增 `target` 或删 KP 伪造绿色。
 
 ## 1. 估算：需要开发多少题
 
-**建议公式**（Lead 给的口径）：
+**口径（2026-11-25 修正）**：**bank 目标 = KP 数 × 4.5**
+（`4` = 每 KP 平均题数；`0.5` = 章级综合题，一题挂 ≥2 KP）。
+`×1.2` 只是**排期返工系数**（写题→核验→改 rubric），**不重复计入 bank 规模**。
 
-```
-目标题量 = KP 数 × 每 KP 平均题数 + 章节综合题
-         = KP 数 × 4（按 kind 平均 4 题/KP）
-         + KP 数 × 0.5（章节综合题 ≈ KP 数 × 0.5）
-         ≈ KP 数 × 4.5
-开发量   = 目标题量 × 1.2（返工系数：写题→核验→改 rubric 的返工）
-```
-
-两种口径都算一遍（避免把 buffer 当硬缺口）：
-
-| 口径 | 计算 | 目标题量 | ×1.2 后 | 现有 78 题 → 需新增 |
+| 范围 | 唯一 KP | bank 目标 | 已写题 | 覆盖状态 |
 |---|---|---|---|---|
-| 建议公式（kind 平均 4 题） | 54 × 4 + 27 | 243 | **292** | **≈ 214** |
-| 注册表实配 target（`saturation.target` 之和 + 综合题） | 192 + 29 | 221 | **≈ 266** | **≈ 188** |
+| I.1–I.3 + prep | 54 | 243 | 227 | 54/54 绿（阶段 1，2026-11-22） |
+| I.4–I.13（含同一批 2 个 prep） | 109 | 493 | 0 | 0/109 绿（C9.1 预期红） |
+| 全课程去重 | 161 | ≈ 725（逐章取整 728） | 227 | 54 绿 / 107 红 |
 
-> **规划取中位数 ≈ 200 题**（当前已注册的 I.1–I.3 + prep）作为第一阶段开发目标；
-> 其中 107 题是「红→绿」的硬需求（99 target 缺口 + 9 综合题缺口，取整）……
-> 另 ~90 题是 L2/L3 强化与预留 buffer（`1.2` 返工系数 + 黄转绿的余量）。
+> 阶段 1 的 227 题已满足其 saturation 口径（54 绿）；bank 口径的 243 只是规划上限，
+> 不是硬缺口。全课程 bank 目标按 161×4.5 ≈ 725；逐章取整合计 728（2 个 prep 在
+> 区间表里各计一次）。`×1.2` 后的排期工作量约 870 题当量，不改变 bank 规模。
 
-### 全课程（I.1–I.13）外推
-
-当前只注册了 I.1–I.3 + 两个 prep KP。按每章 15–18 个 KP 估算：
-
-| 阶段 | 章节 | 预估 KP 数 | 目标题量（×4.5） | ×1.2 | 估计新增 |
-|---|---|---|---|---|---|
-| 1 | I.1–I.3（已注册） | 54 | 243 | 292 | **≈ 214** |
-| 2 | I.4–I.6 | ≈ 48 | 216 | 259 | ≈ 260 |
-| 3 | I.7–I.9 | ≈ 48 | 216 | 259 | ≈ 260 |
-| 4 | I.10–I.13 | ≈ 64 | 288 | 346 | ≈ 346 |
-| 合计 | I.1–I.13 | ≈ 214 | ≈ 963 | ≈ 1156 | **≈ 1080** |
-
-全课程终态题库约 **1100–1200 题**；每个阶段开始时**先注册该阶段的 KP**
-（kind/chapter/prereq/saturation 四件套），否则 `coverage.py` 无法给该阶段记账。
-
-## 2. 分阶段计划（每批 40–60 题，一批一次验收）
+## 2. 分阶段计划（每批 ≤50 题，一批一次验收）
 
 | 批次 | 范围 | 目标题量 | 重点 | 验收判据（全过才算完成） |
 |---|---|---|---|---|
@@ -149,16 +164,66 @@ choice 212 + short 6 + explain 3），kps 引用 **257**、综合题 **34**。po
 | B4 | I.1–I.3 收口 | 43 | 黄转绿、prep（I.6/I.7）补 L1/L2、综合题补到 27/29 | 三章全绿或黄 ≤2 且有记账；综合 27+ |
 | **B4** | 收口（prep + open） | 7 | 4 prep choice（补 I.6/I.7 的 L1/L2）+ 3 open（short/explain，rubric） | 全库 54 绿 / 0 黄 / 0 红 |
 | **阶段 1 ✅ 小计** | I.1–I.3 | **179** | ✅ 完成：221 题、54/54 绿、0 红、饱和率 100% | |
-| B5–B10 | I.4–I.6（先注册 KP） | ≈ 260 | 论域/悖论/良序；先补 KP 注册表再出题 | 新章覆盖全绿 + 抽检 source |
-| B11–B16 | I.7–I.9（先注册 KP） | ≈ 260 | 选择公理/ZF/基数算术/集族 | 同上 |
-| B17–B24 | I.10–I.13（先注册 KP） | ≈ 346 | 闭包/等价关系/集合代数/幂集函数空间/关系代数 | 同上 |
+| **阶段 2（C9.1 已注册 KP）** | I.4–I.13 | **493**（bank 口径） | 论域/悖论/序数/AC-ZF/基数/集族/闭包/集合代数/幂集/关系代数 | 每批 `verify_batch` + 收口批目标章 0 红（首波例外见 §2.1）；逐章表见 §2.1 |
+
+### 2.1 阶段 2 批次表（C9.1 实测；C9.2/C9.3 的出题输入）
+
+**批次边界**：常规批 **40–50 题**，任何批 **≤50**；单章目标 <40（I.8 18 · I.9 18 ·
+I.12 36）整章一批；多批章的**收口批**可 <40（I.4 37 · I.6 37 · I.10 32 · I.13 23）。
+**不跨章拼批**：`verify_batch.py --chapter` 按单章预测红/绿，跨章拼批会互相拖红。
+KP 波次是**出题顺序**（注册已在 C9.1 一次完成）：同一波次的 KP 与该批题一起把
+该章推到 0 红；不是「先注册、后出题」的两步。
+
+**多批章的首波**（B5/B8/B13/B17）该章还有后续波，`verify_batch.py` 的「目标章
+0 红」**不可能**满足 ⇒ 首波用 `--no-coverage`（结构/source/kps 引用仍逐条判），
+**收口批**（B6/B9/B14/B18）必须跑完整 `--chapter` 并 0 红。这是 C9.1 一次性注册
+全部 KP 的直接后果（`coverage.py` 对 0 题 KP 判红）；若改按波次注册 KP，首波也能
+0 红，但注册表就只覆盖部分 KP，违背本 ticket「为 I.4–I.13 注册」的验收。
+
+| 批次 | 章 | 题数 | KP 波次（出题顺序） | 该批验收（全过才算完成） |
+|---|---|---|---|---|
+| B5 | I.4 | 40 | u11–u57（10 KP） | `verify_batch --batch data/_staging-b5.json --chapter I.4 --sample 8 --no-coverage`（首波；结构/source/kps 逐条判）+ `coverage.py` 看 I.4 红 17→7（B6 收口） |
+| B6 | I.4 | 37 | u87–u95（7 KP） | 同上（`_staging-b6.json`）；合入后 **I.4 0 红** |
+| B7 | I.5 | 32 | 全章 7 KP | `--chapter I.5`；合入后 **I.5 0 红** |
+| B8 | I.6 | 40 | u15–u80（8 新 + 1 prep） | `--chapter I.6 --sample 8 --no-coverage`（首波）+ `coverage.py`；该波 8 新 KP 转绿，I.6 红 16→8（B9 收口） |
+| B9 | I.6 | 37 | u81–u111（8 KP） | 同上；合入后 **I.6 0 红** |
+| B10 | I.7 | 50 | 全章 10 新 + 1 prep | `--chapter I.7`；合入后 **I.7 0 红** |
+| B11 | I.8 | 18 | 全章 4 KP | `--chapter I.8`；合入后 **I.8 0 红** |
+| B12 | I.9 | 18 | 全章 4 KP | `--chapter I.9`；合入后 **I.9 0 红** |
+| B13 | I.10 | 40 | u24–u27（10 KP） | `--chapter I.10 --sample 8 --no-coverage`（首波）+ `coverage.py`；该波 10 KP 转绿，I.10 红 16→6（B14 收口） |
+| B14 | I.10 | 32 | u43–u86（6 KP） | 同上；合入后 **I.10 0 红** |
+| B15 | I.11 | 50 | 全章 11 KP | `--chapter I.11`；合入后 **I.11 0 红** |
+| B16 | I.12 | 36 | 全章 8 KP | `--chapter I.12`；合入后 **I.12 0 红** |
+| B17 | I.13 | 40 | u36–u40（10 KP） | `--chapter I.13 --sample 8 --no-coverage`（首波）+ `coverage.py`；该波 10 KP 转绿，I.13 红 14→4（B18 收口） |
+| B18 | I.13 | 23 | u41–u52（4 KP） | 同上；合入后 **I.13 0 红** |
+
+**每章单条验收命令**（把 `I.4` / `b5` 换成实际章/批）：
+
+```bash
+cd courses/set-theory/knowledge
+# 多批章首波（B5/B8/B13/B17）加 --no-coverage；收口批（B6/B9/B14/B18）全跑
+python3 verify_batch.py --batch data/_staging-b5.json --chapter I.4 --sample 8
+python3 coverage.py --json | python3 -c 'import json,sys; c=json.load(sys.stdin)["chapters"]["I.4"]; print(c["red"],c["yellow"],c["green"]); sys.exit(0 if c["red"]==0 else 1)'
+```
+
+**source 可复查规则**（每题落笔即定，不允许事后补假行号）：`source` 写
+`courses/set-theory` 相对路径 + `:行号`（如 `units/I.4/unit11-universe-russell.sokonanoda:83`）；
+行号必须是打开文件核过的**非空真实行**，答案/`why` 能由该行（含紧邻上下文）核验；
+`verify_batch.py` 只查文件/行号存在，**语义核验靠人**：每批按 level 分层抽 ≥10%
+（`--sample 8` 给出样本），逐条打开核答案；写不出来源的题进 §4「暂缓题记账」，
+不许编假 source 混过 validate。细则见 `SCHEMA.md` §2.5。
+
+**lessons 同步**：每批合入时把该单元 `questionTotal` 与 `knowledgePoints` 更新到
+`data/lessons.json`；`validate.py` 已把「KP title/kind 与 lessons 一致 / questionTotal
+等于真实题数 / 每个 KP 至少出现在一个 lesson」钉成判据（C9.1 新增）。
+
 
 **每批固定动作**（写进批次 checklist）：
 
 1. 按清单写题（open 题同时写 `rubric` + `reference`，keywords 必须来自 `reference` 原词）；
 2. 每题 `kps` 至少 1 个（综合题 ≥2），`source` 落**可打开核验的文件:行号**（新行号写题时同步补）；
 3. `python3 validate.py`（kps 引用/章节归属/综合题结构）；
-4. `python3 coverage.py`（本章零红；红则回到第 1 步）；
+4. `python3 coverage.py`（**收口批**本章零红；首波见 §2.1 的 `--no-coverage` 例外；红则回到第 1 步）；
 5. 抽检 ≥10% 题目的 `source` 行号真实存在且答案能由该处核验（禁止凭印象改答案）；
 6. `python3 engine.py selftest`（引擎自检）+ 若有新 open 题：同一批用 `engine.py answer --text <rubric 关键词>` 自测判分。
 
@@ -258,25 +323,33 @@ B2 目标：**48 题**（32 个 min 缺口 + 3 综合题缺口 + 4 题到 target
 
 ## 5. 工具与门禁
 
+规格与可执行 checklist 见 **`SCHEMA.md`**（字段/约束/source 规则/批次流程；改数据前先读）。
+`validate.py` 现在除结构/交叉引用外，还钉：**每个 KP 有 `keyPoint`**、**prereq 无环**、
+**lessons 的 KP title/kind 与 `questionTotal` 同步**。
+
 ```bash
 cd courses/set-theory/knowledge
 
-# 1) 草稿验收（content-author 交 data/_staging-b1.json，裸 JSON 数组；不改仓库）
-python3 verify_batch.py --batch data/_staging-b2.json --chapter I.2   # B2（B1 已完成）
+# 1) 草稿验收（content-author 交 data/_staging-b5.json，裸 JSON 数组；不改仓库）
+python3 verify_batch.py --batch data/_staging-b5.json --chapter I.4 --sample 8
 #    → 结构/15 字段/id 撞号/kps 引用/source 行号逐条核验 + 内存注入预测目标章红黄绿
 
 # 2) 合入后（由 Lead/指定人把数组 extend 进 data/questions.json）
-python3 validate.py        # 数据结构 + kps 引用 + 逻辑校验（红则 exit 1）
+python3 validate.py        # 结构 + kps 引用 + keyPoint/prereq 无环/lessons 同步
 python3 coverage.py        # 覆盖门禁：任一 KP 红 → exit 1，并写 reports/coverage-<时间>.json
 python3 coverage.py --no-report   # 只看汇总
 python3 coverage.py --json        # 机器可读（CI/agent 消费）
 python3 engine.py selftest        # 引擎自检（改题库后必跑）
+python3 engine.py simulate --questions 50
+python3 text_audit.py             # 完整句子启发式；新文本不应新增问题
+python3 ../../../scripts/notation-lint.py   # 改了课程单元/画布才需要
 ```
 
-- **批次协作约定（B1 起）**：content-author 只写 `data/_staging-b1.json`（40 项裸数组，
-  字段 `id/kind/chapter/unit/level/tags/difficulty/variants/prereq/prompt/options/answer/
-  why/source/kps`）；product-manager 用 `verify_batch.py` 复核并出覆盖预测；合入
-  `data/questions.json` 后重跑 `validate.py` + `coverage.py` + `engine.py selftest`。
+- **批次协作约定（B1 起，B5 起沿用）**：content-author 只写 `data/_staging-b5.json`
+  （裸数组；choice 字段 `id/kind/chapter/unit/level/tags/difficulty/variants/prereq/
+  prompt/options/answer/why/source/kps`，开放题把 `options/answer` 换成
+  `rubric/reference`）；product-manager 用 `verify_batch.py` 复核并出覆盖预测；
+  合入 `data/questions.json` 后重跑 `validate.py` + `coverage.py` + `engine.py selftest`。
 
 - `coverage.py` 的「红」只严格卡 `saturation.min`；`--fail-on-yellow` 可把黄也当红（更严）。
 - 生成的报告 `reports/coverage-<时间>.json` 是**可回溯的覆盖账**：每次合入一批就留一份。

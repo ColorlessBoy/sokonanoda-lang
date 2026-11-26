@@ -1,7 +1,7 @@
 {
   "schema": "soko.lessons/1",
-  "version": 3,
-  "updated": "2026-11-22",
+  "version": 4,
+  "updated": "2026-11-25",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
     {
@@ -17,7 +17,7 @@
       ],
       "intuition": "集合的类型是 `α → Prop`，`∈` 只是把函数应用写短：`Set.mem a A` 就是 `A a`。",
       "cards": [],
-      "questionTotal": 3,
+      "questionTotal": 8,
       "sources": [
         "lib/Set.sokonanoda:60",
         "units/I.1/unit01-sets-membership.sokonanoda:33"
@@ -335,7 +335,7 @@
           "oneLiner": "单射 = 不同输入不会撞到同一个输出。"
         }
       ],
-      "questionTotal": 32,
+      "questionTotal": 33,
       "sources": [
         "lib/Exists.sokonanoda:89",
         "lib/Exists.sokonanoda:95",
@@ -608,6 +608,1709 @@
         "lib/Choice.sokonanoda:34",
         "lib/Choice.sokonanoda:37",
         "lib/Choice.sokonanoda:46"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "⑪ 论域与 Russell 悖论",
+      "goal": "学完这一单元，你能够处理：论域分层与每层自己的全集；概括公理与 Russell 悖论。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.univ",
+          "title": "论域分层与每层自己的全集",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i4.russell",
+          "title": "概括公理与 Russell 悖论",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「论域分层与每层自己的全集」「概括公理与 Russell 悖论」展开，核心是：说清 `@Set.univ α` 与 `Set.univ (Set α)` 是两个全集。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit11-universe-russell.sokonanoda:1",
+        "units/I.4/unit11-universe-russell.sokonanoda:83"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "⑫ 综合与读证明",
+      "goal": "学完这一单元，你能够处理：集合→关系→函数→基数综合链；读证明与给错证找错。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.synthesis",
+          "title": "集合→关系→函数→基数综合链",
+          "kind": "integration"
+        },
+        {
+          "id": "kp.i4.proofread",
+          "title": "读证明与给错证找错",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「集合→关系→函数→基数综合链」「读证明与给错证找错」展开，核心是：把多章结论串成一条证明链。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit12-synthesis.sokonanoda:1",
+        "units/I.4/unit12-synthesis.sokonanoda:126"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "55 反例与不可证（一）",
+      "goal": "学完这一单元，你能够处理：驳倒全称：给反例；驳倒包含：找成员。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.refute.forall",
+          "title": "驳倒全称：给反例",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i4.refute.subset",
+          "title": "驳倒包含：找成员",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「驳倒全称：给反例」「驳倒包含：找成员」展开，核心是：用反例证 `¬∀`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit55-refutation.sokonanoda:1",
+        "units/I.4/unit55-refutation.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "56 反例与不可证（二）",
+      "goal": "学完这一单元，你能够处理：驳倒存在：逐个消去；驳倒集合等式。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.refute.exists",
+          "title": "驳倒存在：逐个消去",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i4.refute.eq",
+          "title": "驳倒集合等式",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「驳倒存在：逐个消去」「驳倒集合等式」展开，核心是：先 intro 再消去 `∃` 来证 `¬∃`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit56-refutation2.sokonanoda:1",
+        "units/I.4/unit56-refutation2.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "57 反例与不可证（三）",
+      "goal": "学完这一单元，你能够处理：差集取用与反例；“差集非空”的边界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.refute.sdiff",
+          "title": "差集取用与反例",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i4.sdiff.nonempty",
+          "title": "“差集非空”的边界",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「差集取用与反例」「“差集非空”的边界」展开，核心是：用 `A\\B` 的成员刻画造反例。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit57-refutation3.sokonanoda:1",
+        "units/I.4/unit57-refutation3.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "87 单射、满射与复合",
+      "goal": "学完这一单元，你能够处理：单射的复合与消去。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.comp.inj",
+          "title": "单射的复合与消去",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「单射的复合与消去」展开，核心是：从复合单射反推内层单射；外层要把单射换成满射。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit87-inj-surj.sokonanoda:1",
+        "units/I.4/unit87-inj-surj.sokonanoda:27"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "88 满射与复合",
+      "goal": "学完这一单元，你能够处理：满射的复合与消去。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.comp.surj",
+          "title": "满射的复合与消去",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「满射的复合与消去」展开，核心是：从复合满射反推外层满射；内层不成立。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit88-surj.sokonanoda:1",
+        "units/I.4/unit88-surj.sokonanoda:31"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "89 双射与复合",
+      "goal": "学完这一单元，你能够处理：双射的复合。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.comp.bij",
+          "title": "双射的复合",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「双射的复合」展开，核心是：双射对复合封闭。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit89-bij.sokonanoda:1",
+        "units/I.4/unit89-bij.sokonanoda:29"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "90 复合层的等式与外层单射",
+      "goal": "学完这一单元，你能够处理：复合层等式与外层单射。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.comp.eq",
+          "title": "复合层等式与外层单射",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「复合层等式与外层单射」展开，核心是：用复合相等 + 外层单射推出分量相等。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit90-comp-eq.sokonanoda:1",
+        "units/I.4/unit90-comp-eq.sokonanoda:32"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "91 逆映射与双射代数",
+      "goal": "学完这一单元，你能够处理：逆映射与双射代数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.inverse",
+          "title": "逆映射与双射代数",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「逆映射与双射代数」展开，核心是：两侧逆 ⇒ 逆映射是双射；逆唯一。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit91-inverse.sokonanoda:1",
+        "units/I.4/unit91-inverse.sokonanoda:29"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "94 Cantor 对角线（函数版）",
+      "goal": "学完这一单元，你能够处理：Cantor 对角线（函数版）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.diag",
+          "title": "Cantor 对角线（函数版）",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「Cantor 对角线（函数版）」展开，核心是：用对角化造出不属于枚举的函数。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit94-cantor-diag.sokonanoda:1",
+        "units/I.4/unit94-cantor-diag.sokonanoda:28"
+      ]
+    },
+    {
+      "chapter": "I.4",
+      "unit": "95 对角线的一般形态",
+      "goal": "学完这一单元，你能够处理：对角线的一般形态。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i4.diag.general",
+          "title": "对角线的一般形态",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「对角线的一般形态」展开，核心是：识别“自指 + 反证”的共同骨架。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.4/unit95-diagonal.sokonanoda:1",
+        "units/I.4/unit95-diagonal.sokonanoda:26"
+      ]
+    },
+    {
+      "chapter": "I.5",
+      "unit": "⑬ 偏序、全序与严格序",
+      "goal": "学完这一单元，你能够处理：偏序、全序与严格序（六条性质）；严格/非严格部分互译。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i5.order",
+          "title": "偏序、全序与严格序（六条性质）",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i5.order.strict",
+          "title": "严格/非严格部分互译",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「偏序、全序与严格序（六条性质）」「严格/非严格部分互译」展开，核心是：按六条性质判定偏序/全序/严格序，并把严格与非严格互译。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.5/unit13-orders.sokonanoda:1",
+        "units/I.5/unit13-orders.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.5",
+      "unit": "⑭ 良序与良基",
+      "goal": "学完这一单元，你能够处理：良序与良基；良基的硬后果；良基与自反互不包含。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i5.wellorder",
+          "title": "良序与良基",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i5.wellorder.conseq",
+          "title": "良基的硬后果",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i5.wellorder.boundary",
+          "title": "良基不蕴含自反",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「良序与良基」「良基的硬后果」「良基与自反互不包含」展开，核心是：展开“每个非空子集有极小元”。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.5/unit14-wellorder.sokonanoda:1",
+        "units/I.5/unit14-wellorder.sokonanoda:31"
+      ]
+    },
+    {
+      "chapter": "I.5",
+      "unit": "53 序嵌入",
+      "goal": "学完这一单元，你能够处理：序嵌入及反射。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i5.embedding",
+          "title": "序嵌入及反射",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「序嵌入及反射」展开，核心是：序嵌入保持并反射自反/对称/传递/非自反。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.5/unit53-order-embedding.sokonanoda:1",
+        "units/I.5/unit53-order-embedding.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.5",
+      "unit": "67 ⊆ 是一个偏序",
+      "goal": "学完这一单元，你能够处理：⊆ 是偏序（自反/传递/反对称）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i5.order.subset",
+          "title": "⊆ 是偏序（自反/传递/反对称）",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「⊆ 是偏序（自反/传递/反对称）」展开，核心是：证 ⊆ 是偏序，并用 A = B ↔ A ⊆ B ∧ B ⊆ A 证集合相等。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.5/unit67-subset-order.sokonanoda:1",
+        "units/I.5/unit67-subset-order.sokonanoda:34"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "⑮ 传递集与序数",
+      "goal": "学完这一单元，你能够处理：序数/传递集（预备）；传递集；序数 = 传递 + 元素传递 + 良基。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.ordinal",
+          "title": "序数/传递集（预备）",
+          "kind": "prep"
+        },
+        {
+          "id": "kp.i6.transitive",
+          "title": "传递集",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i6.ordinal",
+          "title": "序数 = 传递 + 元素传递 + 良基",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「序数/传递集（预备）」「传递集」「序数 = 传递 + 元素传递 + 良基」展开，核心是：能把序数与传递集当谓词用，并逐条取出传递、元素传递与良基证据。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit15-ordinals.sokonanoda:1",
+        "units/I.6/unit15-ordinals.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "⑯ 序数的序：外延性、反对称与零序数",
+      "goal": "学完这一单元，你能够处理：序数外延性；序数反对称/无 2-循环；零序数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.ext",
+          "title": "序数外延性",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i6.antisymm",
+          "title": "序数反对称/无 2-循环",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i6.zero",
+          "title": "零序数",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「序数外延性」「序数反对称/无 2-循环」「零序数」展开，核心是：元素相同即序数相等。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit16-ordering.sokonanoda:1",
+        "units/I.6/unit16-ordering.sokonanoda:34"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "㊷ 良序集的「最小元」",
+      "goal": "学完这一单元，你能够处理：最小元四件套；最小元与极小元对译。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.least",
+          "title": "最小元四件套",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i6.least.equiv",
+          "title": "最小元与极小元对译",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「最小元四件套」「最小元与极小元对译」展开，核心是：取用/展开/构造/见证最小元。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit42-least-element.sokonanoda:1",
+        "units/I.6/unit42-least-element.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "80 序数的元素仍是序数",
+      "goal": "学完这一单元，你能够处理：序数的元素仍是序数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.elem",
+          "title": "序数的元素仍是序数",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「序数的元素仍是序数」展开，核心是：把该性质当继承性使用。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit80-ordinal-elems.sokonanoda:1",
+        "units/I.6/unit80-ordinal-elems.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "81 后继的成员刻画",
+      "goal": "学完这一单元，你能够处理：后继成员刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.succ.spec",
+          "title": "后继成员刻画",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「后继成员刻画」展开，核心是：`b∈a⁺ ↔ b∈a ∨ b=a`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit81-succ.sokonanoda:1",
+        "units/I.6/unit81-succ.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "82 后继与序数的合流",
+      "goal": "学完这一单元，你能够处理：后继的前驱与元素。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.succ",
+          "title": "后继的前驱与元素",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「后继的前驱与元素」展开，核心是：后继的前驱及其元素仍是序数。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit82-succ-ordinal.sokonanoda:1",
+        "units/I.6/unit82-succ-ordinal.sokonanoda:31"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "83 序数的无环性",
+      "goal": "学完这一单元，你能够处理：序数反对称/无 2-循环。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.antisymm",
+          "title": "序数反对称/无 2-循环",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「序数反对称/无 2-循环」展开，核心是：排除 `a∈b ∧ b∈a`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit83-ordinal-no-cycle.sokonanoda:1",
+        "units/I.6/unit83-ordinal-no-cycle.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "106 良基递归（Acc）",
+      "goal": "学完这一单元，你能够处理：Acc 与良基递归。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.acc",
+          "title": "Acc 与良基递归",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「Acc 与良基递归」展开，核心是：说明 Acc 的构造与取用。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit106-acc.sokonanoda:1",
+        "units/I.6/unit106-acc.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "107 ∈-归纳与序数三歧（上）",
+      "goal": "学完这一单元，你能够处理：∈-归纳。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.ind",
+          "title": "∈-归纳",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「∈-归纳」展开，核心是：用 ∈-归纳证序数性质。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit107-ordinal-ind.sokonanoda:1",
+        "units/I.6/unit107-ordinal-ind.sokonanoda:32"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "108 序数三歧（引理与装配）",
+      "goal": "学完这一单元，你能够处理：序数三歧。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.trichotomy",
+          "title": "序数三歧",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「序数三歧」展开，核心是：陈述并装配 `a∈b`/`a=b`/`b∈a`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit108-trichotomy.sokonanoda:1",
+        "units/I.6/unit108-trichotomy.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "109 序数上的递归与加法（关系版 · 逆引理与结合律）",
+      "goal": "学完这一单元，你能够处理：序数递归与加法。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.rec",
+          "title": "序数递归与加法",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「序数递归与加法」展开，核心是：递归定义加法并证结合律。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit109-ordinal-rec.sokonanoda:1",
+        "units/I.6/unit109-ordinal-rec.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "110 选择公理的取数据（良序定理线入口）",
+      "goal": "学完这一单元，你能够处理：选择公理的族版取数据。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.choice",
+          "title": "选择公理的族版取数据",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「选择公理的族版取数据」展开，核心是：用 choice_family 从 ∀i∈I ∃x 取出选择函数；右逆留给 I.7。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit110-choice.sokonanoda:1",
+        "units/I.6/unit110-choice.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.6",
+      "unit": "111 ℕ 的算术律（自建 add/mul）",
+      "goal": "学完这一单元，你能够处理：ℕ 上的 add/mul 与算术律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i6.nat",
+          "title": "ℕ 上的 add/mul 与算术律",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「ℕ 上的 add/mul 与算术律」展开，核心是：用 Nat.rec 定义 add/mul 并归纳证结合/交换/分配。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.6/unit111-nat-arith.sokonanoda:1",
+        "units/I.6/unit111-nat-arith.sokonanoda:32"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "⑰ 选择公理",
+      "goal": "学完这一单元，你能够处理：选择公理（预备）；满射可裂：AC 造右逆；AC 不是处处要用。",
+      "knowledgePoints": [
+        {
+          "id": "kp.prep.choice",
+          "title": "选择公理（预备）",
+          "kind": "prep"
+        },
+        {
+          "id": "kp.i7.ac.split",
+          "title": "满射可裂：AC 造右逆",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i7.ac.boundary",
+          "title": "AC 不是处处要用",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「选择公理（预备）」「满射可裂：AC 造右逆」「AC 不是处处要用」展开，核心是：能识别哪一步在从 `Prop` 里取数据，从而知道它需要选择公理。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit17-choice.sokonanoda:1",
+        "units/I.7/unit17-choice.sokonanoda:40"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "⑱ ZF 公理体系与正则性",
+      "goal": "学完这一单元，你能够处理：ZF 公理清单；正则性；外延性的两个用法；IsUnionOf 接口与空族并。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.zf",
+          "title": "ZF 公理清单",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i7.regularity",
+          "title": "正则性",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i7.ext.use",
+          "title": "外延性的两个用法",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i7.union",
+          "title": "IsUnionOf 接口与空族并",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「ZF 公理清单」「正则性」「外延性的两个用法」「IsUnionOf 接口与空族并」展开，核心是：外延性/正则性/选择是外挂公理，空集/无序对/并是定义。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit18-zf-axioms.sokonanoda:1",
+        "units/I.7/unit18-zf-axioms.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "㊽ 覆盖与广义并",
+      "goal": "学完这一单元，你能够处理：⋃/⋂ 的包含演算与单调（空族并）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.cover",
+          "title": "⋃/⋂ 的包含演算与单调（空族并）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「⋃/⋂ 的包含演算与单调（空族并）」展开，核心是：证 ⋃F ⊆ A ↔ 每个族成员 ⊆ A、A ⊆ ⋂F ↔ 每个族成员 ⊇ A，并处理单调与空族并。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit48-cover.sokonanoda:1",
+        "units/I.7/unit48-cover.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "㊾ 广义并的代数",
+      "goal": "学完这一单元，你能够处理：广义并的代数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.sunion",
+          "title": "广义并的代数",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「广义并的代数」展开，核心是：证 ⋃(F ∪ G) = ⋃F ∪ ⋃G、对偶与单调。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit49-sUnion-algebra.sokonanoda:1",
+        "units/I.7/unit49-sUnion-algebra.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "69 并交的伴随刻画",
+      "goal": "学完这一单元，你能够处理：并交的伴随刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.adjunction",
+          "title": "并交的伴随刻画",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「并交的伴随刻画」展开，核心是：`A⊆B` 与并交伴随式互译。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit69-union-adjunction.sokonanoda:1",
+        "units/I.7/unit69-union-adjunction.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "71 并交与交的分配",
+      "goal": "学完这一单元，你能够处理：交对族并/族交的分配。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.inter.family",
+          "title": "交对族并/族交的分配",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「交对族并/族交的分配」展开，核心是：证 A ∩ ⋃F 与 A ∩ ⋂F 的分配，注意 c ∈ A 这一支不能丢。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit71-inter-families.sokonanoda:1",
+        "units/I.7/unit71-inter-families.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.7",
+      "unit": "72 广义并与交、单调与空族",
+      "goal": "学完这一单元，你能够处理：广义并的代数；并交的伴随刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i7.sunion",
+          "title": "广义并的代数",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i7.adjunction",
+          "title": "并交的伴随刻画",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元把「广义并的代数」「并交的伴随刻画」的结论接到课程主线上，核心是：证 ⋃(F ∪ G) = ⋃F ∪ ⋃G、对偶与单调。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.7/unit72-sUnion-inter.sokonanoda:1",
+        "units/I.7/unit72-sUnion-inter.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "goal": "学完这一单元，你能够处理：“不比空集大”；势比较（⊆/InjOn 定义与自反传递）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i8.le.empty",
+          "title": "“不比空集大”",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i3.le",
+          "title": "势比较（⊆/InjOn 定义与自反传递）",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「“不比空集大”」「势比较（⊆/InjOn 定义与自反传递）」展开，核心是：A ≼ ∅ ⇒ A 没有元素（A ⊆ ∅）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.8/unit19-cardinal-le.sokonanoda:1",
+        "units/I.8/unit19-cardinal-le.sokonanoda:41"
+      ]
+    },
+    {
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "goal": "学完这一单元，你能够处理：积集合的成员刻画与 ⊆-函子性；乘法交换律（集合层）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i8.prod",
+          "title": "积集合的成员刻画与 ⊆-函子性",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i8.prod.comm",
+          "title": "乘法交换律（集合层）",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「积集合的成员刻画与 ⊆-函子性」「乘法交换律（集合层）」展开，核心是：写出 p ∈ s ×ˢ t 的两个坐标，并证积对包含逐坐标单调。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.8/unit20-cardinal-arithmetic.sokonanoda:1",
+        "units/I.8/unit20-cardinal-arithmetic.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.8",
+      "unit": "54 等势的代数的开端",
+      "goal": "学完这一单元，你能够处理：等势的代数（自反/对称/传递/复合）。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.equiv.algebra",
+          "title": "等势的代数（自反/对称/传递/复合）",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「等势的代数（自反/对称/传递/复合）」展开，核心是：会用互逆对的对调、复合与反序来证等势的自反、对称、传递。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.8/unit54-equiv-algebra.sokonanoda:1",
+        "units/I.8/unit54-equiv-algebra.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "goal": "学完这一单元，你能够处理：连续统假设。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i8.ch",
+          "title": "连续统假设",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「连续统假设」展开，核心是：陈述并展开 CH，并用对角线证 ¬(𝒫ℕ ≼ ℕ)。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.8/unit113-continuum-hypothesis.sokonanoda:1",
+        "units/I.8/unit113-continuum-hypothesis.sokonanoda:10"
+      ]
+    },
+    {
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "goal": "学完这一单元，你能够处理：广义并交的刻画定理；单调与空族。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i9.family",
+          "title": "广义并交的刻画定理",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i9.family.mono",
+          "title": "单调与空族",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「广义并交的刻画定理」「单调与空族」展开，核心是：证 ⋃₀F ⊆ B ↔ 每个族成员 ⊆ B、B ⊆ ⋂₀F ↔ 每个族成员 ⊇ B。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.9/unit21-families.sokonanoda:1",
+        "units/I.9/unit21-families.sokonanoda:39"
+      ]
+    },
+    {
+      "chapter": "I.9",
+      "unit": "㉒ 像、原像与广义并交",
+      "goal": "学完这一单元，你能够处理：像/原像与广义并交的分配律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i3.family.image",
+          "title": "像/原像与广义并交的分配律",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「像/原像与广义并交的分配律」展开，核心是：会把像与原像同广义并交交换，并说清交换失败的那一半。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.9/unit22-images-families.sokonanoda:1",
+        "units/I.9/unit22-images-families.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "goal": "学完这一单元，你能够处理：广义积与柯里化；非空族积非空 ⇔ AC。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i9.product",
+          "title": "广义积与柯里化",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i9.product.ac",
+          "title": "非空族积非空依赖 AC",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「广义积与柯里化」「非空族积非空 ⇔ AC」展开，核心是：写出 Set.pi 成员刻画，证族单调、空因子 ⇒ 积空与 pi∩ 拆装（curry/uncurry 为定义）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.9/unit23-products.sokonanoda:1",
+        "units/I.9/unit23-products.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "㉔ 关系闭包",
+      "goal": "学完这一单元，你能够处理：三种闭包；闭包是最小闭包；传递闭包幂等。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.closure",
+          "title": "三种闭包",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i10.closure.least",
+          "title": "闭包是最小闭包",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i10.closure.idem",
+          "title": "传递闭包幂等",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「三种闭包」「闭包是最小闭包」「传递闭包幂等」展开，核心是：展开三种闭包并说出包含与极小性。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit24-closures.sokonanoda:1",
+        "units/I.10/unit24-closures.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "㉕ 等价关系与划分",
+      "goal": "学完这一单元，你能够处理：等价类与商集；类相等 ↔ 相关。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.class",
+          "title": "等价类与商集",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i10.class.eq",
+          "title": "类相等 ↔ 相关",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「等价类与商集」「类相等 ↔ 相关」展开，核心是：写出 `[a]` 与 `A/r` 的成员。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit25-equivalence.sokonanoda:1",
+        "units/I.10/unit25-equivalence.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "㉖ 划分：等价关系的反方向",
+      "goal": "学完这一单元，你能够处理：划分；划分 ⇔ 等价关系。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.partition",
+          "title": "划分",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i10.partition.equiv",
+          "title": "划分 ⇔ 等价关系",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「划分」「划分 ⇔ 等价关系」展开，核心是：按不交/非空/覆盖检验。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit26-partitions.sokonanoda:1",
+        "units/I.10/unit26-partitions.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "㉗ 商类型与良定义性",
+      "goal": "学完这一单元，你能够处理：商类型三件套；良定义性；商类型的边界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.quot",
+          "title": "商类型三件套",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i10.welldef",
+          "title": "良定义性",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i10.quot.boundary",
+          "title": "商类型的边界",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「商类型三件套」「良定义性」「商类型的边界」展开，核心是：Quot.sound / Quot.lift / Quot.ind 的职责（mk 为构造子）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit27-quotients.sokonanoda:1",
+        "units/I.10/unit27-quotients.sokonanoda:42"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "㊸ 等价类与商集的代数刻画",
+      "goal": "学完这一单元，你能够处理：类与商集的代数刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.class.algebra",
+          "title": "类与商集的代数刻画",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「类与商集的代数刻画」展开，核心是：用成员刻画做类/商集运算。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit43-classes.sokonanoda:1",
+        "units/I.10/unit43-classes.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "76 像的核关系",
+      "goal": "学完这一单元，你能够处理：核关系；等价关系。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.kernel",
+          "title": "核关系",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i10.equiv",
+          "title": "等价关系",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「核关系」「等价关系」展开，核心是：写 `ker f` 并等价于 `f x=f y`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit76-kernel.sokonanoda:1",
+        "units/I.10/unit76-kernel.sokonanoda:31"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "77 等价类的代数",
+      "goal": "学完这一单元，你能够处理：类与商集的代数刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.class.algebra",
+          "title": "类与商集的代数刻画",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元把「类与商集的代数刻画」的结论接到课程主线上，核心是：用成员刻画做类/商集运算。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit77-equivclass-algebra.sokonanoda:1",
+        "units/I.10/unit77-equivclass-algebra.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "78 划分与等价关系的往返",
+      "goal": "学完这一单元，你能够处理：划分 ⇔ 等价关系。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.partition.equiv",
+          "title": "划分 ⇔ 等价关系",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「划分 ⇔ 等价关系」展开，核心是：双向构造并证往返。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit78-partition-roundtrip.sokonanoda:1",
+        "units/I.10/unit78-partition-roundtrip.sokonanoda:39"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "79 商集上的函数（well-defined）",
+      "goal": "学完这一单元，你能够处理：商集上函数的良定义义务。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.quot.map",
+          "title": "商集上函数的良定义义务",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「商集上函数的良定义义务」展开，核心是：用 respects 与 class_value_unique 说明良定义义务。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit79-well-defined.sokonanoda:1",
+        "units/I.10/unit79-well-defined.sokonanoda:30"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "84 商与像的往返",
+      "goal": "学完这一单元，你能够处理：商与像：类的像。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.image.quot",
+          "title": "商与像：类的像",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「商与像：类的像」展开，核心是：同一等价类的像只有一点（y ∈ f''[a] ↔ f a = y）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit84-image-quotient.sokonanoda:1",
+        "units/I.10/unit84-image-quotient.sokonanoda:29"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "85 商到像的单射性",
+      "goal": "学完这一单元，你能够处理：商与像：类的像。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.image.quot",
+          "title": "商与像：类的像",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元把「商与像：类的像」的结论接到课程主线上，核心是：同一等价类的像只有一点（y ∈ f''[a] ↔ f a = y）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit85-kernel-injective.sokonanoda:1",
+        "units/I.10/unit85-kernel-injective.sokonanoda:28"
+      ]
+    },
+    {
+      "chapter": "I.10",
+      "unit": "86 核与复合、单射",
+      "goal": "学完这一单元，你能够处理：核与单射/复合。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i10.kernel.inj",
+          "title": "核与单射/复合",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「核与单射/复合」展开，核心是：用核平凡判定单射并与复合互动。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.10/unit86-kernel-inj.sokonanoda:1",
+        "units/I.10/unit86-kernel-inj.sokonanoda:27"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㉘ 集合代数：分配律与 De Morgan",
+      "goal": "学完这一单元，你能够处理：分配律与 De Morgan；吸收律与逆否；差就是交补。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.distrib",
+          "title": "分配律与 De Morgan",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i11.absorption",
+          "title": "吸收律与逆否",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i11.sdiff.compl",
+          "title": "差就是交补",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「分配律与 De Morgan」「吸收律与逆否」「差就是交补」展开，核心是：写出并交分配与可证方向的 De Morgan。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit28-set-algebra.sokonanoda:1",
+        "units/I.11/unit28-set-algebra.sokonanoda:35"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㉙ 上界、下界与确界",
+      "goal": "学完这一单元，你能够处理：界与确界；确界唯一；并交即确界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.bounds",
+          "title": "界与确界",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i11.sup.unique",
+          "title": "确界唯一",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i11.sup.set",
+          "title": "并交即确界",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「界与确界」「确界唯一」「并交即确界」展开，核心是：展开最小上界的两条义务。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit29-sups.sokonanoda:1",
+        "units/I.11/unit29-sups.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㉚ 格与对偶：确界的代数",
+      "goal": "学完这一单元，你能够处理：确界代数与对偶原理；退化的确界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.lattice",
+          "title": "确界代数与对偶原理",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i11.lattice.void",
+          "title": "退化的确界",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「确界代数与对偶原理」「退化的确界」展开，核心是：写出对偶语句，并给出广义并交的泛性质（⋃F ⊆ C ⟺ 每个族成员 ⊆ C；C ⊆ ⋂F ⟺ 每个族成员 ⊇ C）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit30-lattices.sokonanoda:1",
+        "units/I.11/unit30-lattices.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㉛ 单调函数与序同构保持确界",
+      "goal": "学完这一单元，你能够处理：单调、序反射与序同构保上确界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.mono",
+          "title": "单调、序反射与序同构保上确界",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「单调、序反射与序同构保上确界」展开，核心是：证单调的合成与常函数、序反射，并说明序同构保持上确界。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit31-monotone.sokonanoda:1",
+        "units/I.11/unit31-monotone.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㉜ 函数空间上的逐点序",
+      "goal": "学完这一单元，你能够处理：逐点序。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.pointwise",
+          "title": "逐点序",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「逐点序」展开，核心是：展开逐点 ≤，并证自反、传递与逐点反对称。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit32-pointwise.sokonanoda:1",
+        "units/I.11/unit32-pointwise.sokonanoda:39"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㊻ 对称差与布尔环",
+      "goal": "学完这一单元，你能够处理：对称差的成员刻画与代数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.symdiff",
+          "title": "对称差的成员刻画与代数",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「对称差的成员刻画与代数」展开，核心是：写出 A △ B 的成员，证交换、A △ A = ∅、∅/univ 两端与 A △ B ⊆ A ∪ B。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit46-symmetric-difference.sokonanoda:1",
+        "units/I.11/unit46-symmetric-difference.sokonanoda:40"
+      ]
+    },
+    {
+      "chapter": "I.11",
+      "unit": "㊿ 分配律族",
+      "goal": "学完这一单元，你能够处理：分配律与 De Morgan。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i11.distrib",
+          "title": "分配律与 De Morgan",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元把「分配律与 De Morgan」的结论接到课程主线上，核心是：写出并交分配与可证方向的 De Morgan。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.11/unit50-distributivity.sokonanoda:1",
+        "units/I.11/unit50-distributivity.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "㉝ 幂集代数与特征函数",
+      "goal": "学完这一单元，你能够处理：幂集代数；特征函数对应。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.powerset",
+          "title": "幂集代数",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i12.char",
+          "title": "特征函数对应",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「幂集代数」「特征函数对应」展开，核心是：𝒫 对 ∩ 完全交换、对 ∪ 只有一半。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit33-powerset.sokonanoda:1",
+        "units/I.12/unit33-powerset.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "㉞ 函数代数：合成与单满射",
+      "goal": "学完这一单元，你能够处理：合成基本律；单射的复合与消去；满射的复合与消去；双射的复合。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.comp",
+          "title": "合成基本律",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i4.comp.inj",
+          "title": "单射的复合与消去",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i4.comp.surj",
+          "title": "满射的复合与消去",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i4.comp.bij",
+          "title": "双射的复合",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「合成基本律」「单射的复合与消去」「满射的复合与消去」「双射的复合」展开，核心是：用逐点形态证合成律。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit34-function-algebra.sokonanoda:1",
+        "units/I.12/unit34-function-algebra.sokonanoda:39"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "㉟ 逆函数：左逆、右逆与双边逆",
+      "goal": "学完这一单元，你能够处理：逆函数的合成保持与对称。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.inverse",
+          "title": "逆函数的合成保持与对称",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「逆函数的合成保持与对称」展开，核心是：说明左逆与右逆逐点相等，并证逆在合成下保持与逆的对称。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit35-inverses.sokonanoda:1",
+        "units/I.12/unit35-inverses.sokonanoda:40"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "㊹ 两条外延公理的应用",
+      "goal": "学完这一单元，你能够处理：funext 与 propext；逐点序是偏序。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.funext",
+          "title": "funext 与 propext",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i12.pointwise.order",
+          "title": "逐点序是偏序",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「funext 与 propext」「逐点序是偏序」展开，核心是：说出两条公理的差别。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit44-extensionality.sokonanoda:1",
+        "units/I.12/unit44-extensionality.sokonanoda:42"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "51 幂集的格性质",
+      "goal": "学完这一单元，你能够处理：幂集的格性质。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.powerset.lattice",
+          "title": "幂集的格性质",
+          "kind": "technique"
+        }
+      ],
+      "intuition": "本单元围绕「幂集的格性质」展开，核心是：用成员/包含刻画处理 𝒫A 中的包含与 ⋂ 取用子。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit51-powerset-lattice.sokonanoda:1",
+        "units/I.12/unit51-powerset-lattice.sokonanoda:39"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "68 幂集是完备格",
+      "goal": "学完这一单元，你能够处理：幂集完备格。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.complete",
+          "title": "幂集完备格",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「幂集完备格」展开，核心是：证 ⋃₀(𝒫A) = A 与 ⋂₀(𝒫A) ⊆ A（top/bottom 与自家人）。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit68-powerset-complete.sokonanoda:1",
+        "units/I.12/unit68-powerset-complete.sokonanoda:33"
+      ]
+    },
+    {
+      "chapter": "I.12",
+      "unit": "70 幂集对交并的分配",
+      "goal": "学完这一单元，你能够处理：幂集代数。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i12.powerset",
+          "title": "幂集代数",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元把「幂集代数」的结论接到课程主线上，核心是：𝒫 对 ∩ 完全交换、对 ∪ 只有一半。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.12/unit70-powerset-membership.sokonanoda:1",
+        "units/I.12/unit70-powerset-membership.sokonanoda:36"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊱ 关系的代数",
+      "goal": "学完这一单元，你能够处理：关系复合与结合律；逆关系；恒等关系。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.comp",
+          "title": "关系复合与结合律",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i13.inv",
+          "title": "逆关系",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i13.id",
+          "title": "恒等关系",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「关系复合与结合律」「逆关系」「恒等关系」展开，核心是：写出 `r•s` 的成员并证结合律。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit36-relation-algebra.sokonanoda:1",
+        "units/I.13/unit36-relation-algebra.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊲ 关系的代数刻画",
+      "goal": "学完这一单元，你能够处理：三性质的代数形态；代数三条件 ⇔ 等价关系。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.char",
+          "title": "三性质的代数形态",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.i13.char.equiv",
+          "title": "代数三条件 ⇔ 等价关系",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「三性质的代数形态」「代数三条件 ⇔ 等价关系」展开，核心是：自反/对称/传递与代数式互译。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit37-algebraic-characterizations.sokonanoda:1",
+        "units/I.13/unit37-algebraic-characterizations.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊳ 序关系的关系代数视角",
+      "goal": "学完这一单元，你能够处理：偏序的代数条件。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.order",
+          "title": "偏序的代数条件",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「偏序的代数条件」展开，核心是：用代数式刻画反对称/非自反/非对称。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit38-order-algebra.sokonanoda:1",
+        "units/I.13/unit38-order-algebra.sokonanoda:37"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊴ 关系的像、原像与等价核",
+      "goal": "学完这一单元，你能够处理：关系像/原像/核；像穿过复合；等价核与单射判定。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.image",
+          "title": "关系像/原像/核",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i13.image.comp",
+          "title": "像穿过复合",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i13.kernel",
+          "title": "等价核与单射判定",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「关系像/原像/核」「像穿过复合」「等价核与单射判定」展开，核心是：写出 relImg/relPre/kernel 的成员刻画。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit39-image-kernel.sokonanoda:1",
+        "units/I.13/unit39-image-kernel.sokonanoda:40"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊵ 传递闭包的代数刻画",
+      "goal": "学完这一单元，你能够处理：闭包的代数刻画。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.closure",
+          "title": "闭包的代数刻画",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元围绕「闭包的代数刻画」展开，核心是：闭包两端 + 最小 + 幂等 + 对复合封闭。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit40-transitive-closure.sokonanoda:1",
+        "units/I.13/unit40-transitive-closure.sokonanoda:38"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊶ 良基关系（极小元原理）",
+      "goal": "学完这一单元，你能够处理：良基与极小元原理；良基的保持；良基归纳的边界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.wf",
+          "title": "良基与极小元原理",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i13.wf.props",
+          "title": "良基的保持",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.i13.wf.boundary",
+          "title": "良基归纳的边界",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元围绕「良基与极小元原理」「良基的保持」「良基归纳的边界」展开，核心是：写出良基并取出极小元。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit41-well-founded.sokonanoda:1",
+        "units/I.13/unit41-well-founded.sokonanoda:47"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "㊺ 关系的单值性与函数的图",
+      "goal": "学完这一单元，你能够处理：单值性与图。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.single",
+          "title": "单值性与图",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元围绕「单值性与图」展开，核心是：写出单值性并说明图是函数。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit45-single-valued.sokonanoda:1",
+        "units/I.13/unit45-single-valued.sokonanoda:41"
+      ]
+    },
+    {
+      "chapter": "I.13",
+      "unit": "52 关系的复合：单位律与逐点形态",
+      "goal": "学完这一单元，你能够处理：恒等关系；关系复合与结合律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.i13.id",
+          "title": "恒等关系",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.i13.comp",
+          "title": "关系复合与结合律",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元把「恒等关系」「关系复合与结合律」的结论接到课程主线上，核心是：证 `id•r=r=r•id`。",
+      "cards": [],
+      "questionTotal": 0,
+      "sources": [
+        "units/I.13/unit52-rel-iteration.sokonanoda:1",
+        "units/I.13/unit52-rel-iteration.sokonanoda:32"
       ]
     }
   ]

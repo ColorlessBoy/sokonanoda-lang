@@ -1,7 +1,7 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 3,
-  "updated": "2026-11-21",
+  "version": 4,
+  "updated": "2026-11-25",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
     "target": "饱和目标（达到即绿；min 与 target 之间为黄）",
@@ -1046,6 +1046,2042 @@
       },
       "note": "章节 I.7 展开后再细化",
       "keyPoint": "能识别哪一步在从 `Prop` 里取数据，从而知道它需要选择公理。"
+    },
+    {
+      "id": "kp.i4.univ",
+      "chapter": "I.4",
+      "title": "论域分层与每层自己的全集",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.univ"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "说清 `@Set.univ α` 与 `Set.univ (Set α)` 是两个全集"
+    },
+    {
+      "id": "kp.i4.russell",
+      "chapter": "I.4",
+      "title": "概括公理与 Russell 悖论",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i4.univ"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "指出自指在本语言里落不到类型上。"
+    },
+    {
+      "id": "kp.i4.synthesis",
+      "chapter": "I.4",
+      "title": "集合→关系→函数→基数综合链",
+      "kind": "integration",
+      "prereq": [
+        "kp.i3.cardinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "把多章结论串成一条证明链"
+    },
+    {
+      "id": "kp.i4.proofread",
+      "chapter": "I.4",
+      "title": "读证明与给错证找错",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.logic"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "定位错证中第一个不合法的步骤。"
+    },
+    {
+      "id": "kp.i4.refute.forall",
+      "chapter": "I.4",
+      "title": "驳倒全称：给反例",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.logic"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用反例证 `¬∀`"
+    },
+    {
+      "id": "kp.i4.refute.subset",
+      "chapter": "I.4",
+      "title": "驳倒包含：找成员",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用 `x∈A ∧ x∉B` 驳 `A⊆B`。"
+    },
+    {
+      "id": "kp.i4.refute.exists",
+      "chapter": "I.4",
+      "title": "驳倒存在：逐个消去",
+      "kind": "technique",
+      "prereq": [
+        "kp.i4.refute.forall"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "先 intro 再消去 `∃` 来证 `¬∃`"
+    },
+    {
+      "id": "kp.i4.refute.eq",
+      "chapter": "I.4",
+      "title": "驳倒集合等式",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.ext"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用外延性把 `A≠B` 化成某方向失效。"
+    },
+    {
+      "id": "kp.i4.refute.sdiff",
+      "chapter": "I.4",
+      "title": "差集取用与反例",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.sdiff"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用 `A\\B` 的成员刻画造反例"
+    },
+    {
+      "id": "kp.i4.sdiff.nonempty",
+      "chapter": "I.4",
+      "title": "“差集非空”的边界",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i4.refute.subset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "区分 `A\\B` 非空与 `¬A⊆B`。"
+    },
+    {
+      "id": "kp.i4.comp.inj",
+      "chapter": "I.4",
+      "title": "单射的复合与消去",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun.inj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "从复合单射反推内层单射；外层要把单射换成满射。"
+    },
+    {
+      "id": "kp.i4.comp.surj",
+      "chapter": "I.4",
+      "title": "满射的复合与消去",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "从复合满射反推外层满射；内层不成立。"
+    },
+    {
+      "id": "kp.i4.comp.bij",
+      "chapter": "I.4",
+      "title": "双射的复合",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.fun.bij"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "双射对复合封闭。"
+    },
+    {
+      "id": "kp.i4.comp.eq",
+      "chapter": "I.4",
+      "title": "复合层等式与外层单射",
+      "kind": "technique",
+      "prereq": [
+        "kp.i4.comp.inj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用复合相等 + 外层单射推出分量相等。"
+    },
+    {
+      "id": "kp.i4.inverse",
+      "chapter": "I.4",
+      "title": "逆映射与双射代数",
+      "kind": "technique",
+      "prereq": [
+        "kp.i2.fun.inverse"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "两侧逆 ⇒ 逆映射是双射；逆唯一。"
+    },
+    {
+      "id": "kp.i4.diag",
+      "chapter": "I.4",
+      "title": "Cantor 对角线（函数版）",
+      "kind": "technique",
+      "prereq": [
+        "kp.i2.fun.surj"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用对角化造出不属于枚举的函数。"
+    },
+    {
+      "id": "kp.i4.diag.general",
+      "chapter": "I.4",
+      "title": "对角线的一般形态",
+      "kind": "concept",
+      "prereq": [
+        "kp.i4.diag"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "识别“自指 + 反证”的共同骨架。"
+    },
+    {
+      "id": "kp.i5.order",
+      "chapter": "I.5",
+      "title": "偏序、全序与严格序（六条性质）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.order.partial"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "按六条性质判定偏序/全序/严格序，并把严格与非严格互译。"
+    },
+    {
+      "id": "kp.i5.order.strict",
+      "chapter": "I.5",
+      "title": "严格/非严格部分互译",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.order.strict"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "在 `<` 与 `≤` 两种写法间互推。"
+    },
+    {
+      "id": "kp.i5.wellorder",
+      "chapter": "I.5",
+      "title": "良序与良基",
+      "kind": "definition",
+      "prereq": [
+        "kp.i5.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "展开“每个非空子集有极小元”"
+    },
+    {
+      "id": "kp.i5.wellorder.conseq",
+      "chapter": "I.5",
+      "title": "良基的硬后果",
+      "kind": "technique",
+      "prereq": [
+        "kp.i5.wellorder"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "良基 ⇒ 无无穷下降链"
+    },
+    {
+      "id": "kp.i5.wellorder.boundary",
+      "chapter": "I.5",
+      "title": "良基不蕴含自反",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i5.wellorder"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "空关系良基但不自反（WF ⇏ 自反）。"
+    },
+    {
+      "id": "kp.i5.embedding",
+      "chapter": "I.5",
+      "title": "序嵌入及反射",
+      "kind": "concept",
+      "prereq": [
+        "kp.i5.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "序嵌入保持并反射自反/对称/传递/非自反。"
+    },
+    {
+      "id": "kp.i5.order.subset",
+      "chapter": "I.5",
+      "title": "⊆ 是偏序（自反/传递/反对称）",
+      "kind": "concept",
+      "prereq": [
+        "kp.i2.order.partial"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证 ⊆ 是偏序，并用 A = B ↔ A ⊆ B ∧ B ⊆ A 证集合相等。"
+    },
+    {
+      "id": "kp.i6.transitive",
+      "chapter": "I.6",
+      "title": "传递集",
+      "kind": "definition",
+      "prereq": [
+        "kp.prep.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "`x∈A ⇒ x⊆A` 的展开与取用"
+    },
+    {
+      "id": "kp.i6.ordinal",
+      "chapter": "I.6",
+      "title": "序数 = 传递 + 元素传递 + 良基",
+      "kind": "definition",
+      "prereq": [
+        "kp.i6.transitive"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "拆出传递、元素皆传递、良基三条义务。"
+    },
+    {
+      "id": "kp.i6.ext",
+      "chapter": "I.6",
+      "title": "序数外延性",
+      "kind": "concept",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "元素相同即序数相等"
+    },
+    {
+      "id": "kp.i6.antisymm",
+      "chapter": "I.6",
+      "title": "序数反对称/无 2-循环",
+      "kind": "concept",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "排除 `a∈b ∧ b∈a`"
+    },
+    {
+      "id": "kp.i6.zero",
+      "chapter": "I.6",
+      "title": "零序数",
+      "kind": "definition",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "空集是序数、无元素、两空集相等。"
+    },
+    {
+      "id": "kp.i6.least",
+      "chapter": "I.6",
+      "title": "最小元四件套",
+      "kind": "technique",
+      "prereq": [
+        "kp.i5.wellorder"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "取用/展开/构造/见证最小元"
+    },
+    {
+      "id": "kp.i6.least.equiv",
+      "chapter": "I.6",
+      "title": "最小元与极小元对译",
+      "kind": "concept",
+      "prereq": [
+        "kp.i6.least"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "说清两种“最小”何时一致。"
+    },
+    {
+      "id": "kp.i6.elem",
+      "chapter": "I.6",
+      "title": "序数的元素仍是序数",
+      "kind": "concept",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "把该性质当继承性使用。"
+    },
+    {
+      "id": "kp.i6.succ.spec",
+      "chapter": "I.6",
+      "title": "后继成员刻画",
+      "kind": "technique",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "`b∈a⁺ ↔ b∈a ∨ b=a`。"
+    },
+    {
+      "id": "kp.i6.succ",
+      "chapter": "I.6",
+      "title": "后继的前驱与元素",
+      "kind": "definition",
+      "prereq": [
+        "kp.i6.ordinal"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "后继的前驱及其元素仍是序数。"
+    },
+    {
+      "id": "kp.i6.acc",
+      "chapter": "I.6",
+      "title": "Acc 与良基递归",
+      "kind": "definition",
+      "prereq": [
+        "kp.i5.wellorder"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "说明 Acc 的构造与取用。"
+    },
+    {
+      "id": "kp.i6.ind",
+      "chapter": "I.6",
+      "title": "∈-归纳",
+      "kind": "technique",
+      "prereq": [
+        "kp.i6.acc"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "用 ∈-归纳证序数性质。"
+    },
+    {
+      "id": "kp.i6.trichotomy",
+      "chapter": "I.6",
+      "title": "序数三歧",
+      "kind": "concept",
+      "prereq": [
+        "kp.i6.ind",
+        "kp.i6.ext"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "陈述并装配 `a∈b`/`a=b`/`b∈a`。"
+    },
+    {
+      "id": "kp.i6.rec",
+      "chapter": "I.6",
+      "title": "序数递归与加法",
+      "kind": "technique",
+      "prereq": [
+        "kp.i6.ind"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "递归定义加法并证结合律。"
+    },
+    {
+      "id": "kp.i6.choice",
+      "chapter": "I.6",
+      "title": "选择公理的族版取数据",
+      "kind": "technique",
+      "prereq": [
+        "kp.prep.choice"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "用 choice_family 从 ∀i∈I ∃x 取出选择函数；右逆留给 I.7。"
+    },
+    {
+      "id": "kp.i6.nat",
+      "chapter": "I.6",
+      "title": "ℕ 上的 add/mul 与算术律",
+      "kind": "definition",
+      "prereq": [
+        "kp.i6.rec"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用 Nat.rec 定义 add/mul 并归纳证结合/交换/分配。"
+    },
+    {
+      "id": "kp.i7.ac.split",
+      "chapter": "I.7",
+      "title": "满射可裂：AC 造右逆",
+      "kind": "technique",
+      "prereq": [
+        "kp.prep.choice"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "按 AC 造右逆并验证"
+    },
+    {
+      "id": "kp.i7.ac.boundary",
+      "chapter": "I.7",
+      "title": "AC 不是处处要用",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i7.ac.split"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "空族/单点族不需要 AC。"
+    },
+    {
+      "id": "kp.i7.zf",
+      "chapter": "I.7",
+      "title": "ZF 公理清单",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.ext"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "外延性/正则性/选择是外挂公理，空集/无序对/并是定义。"
+    },
+    {
+      "id": "kp.i7.regularity",
+      "chapter": "I.7",
+      "title": "正则性",
+      "kind": "definition",
+      "prereq": [
+        "kp.i7.zf"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 IsRegular、取出 ∈-极小元并用极小性排除成员里的同类。"
+    },
+    {
+      "id": "kp.i7.ext.use",
+      "chapter": "I.7",
+      "title": "外延性的两个用法",
+      "kind": "concept",
+      "prereq": [
+        "kp.i1.ext"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "区分“证相等”与“用相等改写”。"
+    },
+    {
+      "id": "kp.i7.union",
+      "chapter": "I.7",
+      "title": "IsUnionOf 接口与空族并",
+      "kind": "definition",
+      "prereq": [
+        "kp.i7.zf"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用 IsUnionOf 包装并集，并说明空族的并没有元素。"
+    },
+    {
+      "id": "kp.i7.cover",
+      "chapter": "I.7",
+      "title": "⋃/⋂ 的包含演算与单调（空族并）",
+      "kind": "definition",
+      "prereq": [
+        "kp.i3.family"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证 ⋃F ⊆ A ↔ 每个族成员 ⊆ A、A ⊆ ⋂F ↔ 每个族成员 ⊇ A，并处理单调与空族并。"
+    },
+    {
+      "id": "kp.i7.sunion",
+      "chapter": "I.7",
+      "title": "广义并的代数",
+      "kind": "technique",
+      "prereq": [
+        "kp.i7.cover"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证 ⋃(F ∪ G) = ⋃F ∪ ⋃G、对偶与单调。"
+    },
+    {
+      "id": "kp.i7.adjunction",
+      "chapter": "I.7",
+      "title": "并交的伴随刻画",
+      "kind": "concept",
+      "prereq": [
+        "kp.i7.sunion"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "`A⊆B` 与并交伴随式互译。"
+    },
+    {
+      "id": "kp.i7.inter.family",
+      "chapter": "I.7",
+      "title": "交对族并/族交的分配",
+      "kind": "technique",
+      "prereq": [
+        "kp.i7.sunion"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "证 A ∩ ⋃F 与 A ∩ ⋂F 的分配，注意 c ∈ A 这一支不能丢。"
+    },
+    {
+      "id": "kp.i8.le.empty",
+      "chapter": "I.8",
+      "title": "“不比空集大”",
+      "kind": "technique",
+      "prereq": [
+        "kp.i3.le"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "A ≼ ∅ ⇒ A 没有元素（A ⊆ ∅）。"
+    },
+    {
+      "id": "kp.i8.prod",
+      "chapter": "I.8",
+      "title": "积集合的成员刻画与 ⊆-函子性",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.prod"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 p ∈ s ×ˢ t 的两个坐标，并证积对包含逐坐标单调。"
+    },
+    {
+      "id": "kp.i8.prod.comm",
+      "chapter": "I.8",
+      "title": "乘法交换律（集合层）",
+      "kind": "concept",
+      "prereq": [
+        "kp.i8.prod"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "造交换坐标的双射。"
+    },
+    {
+      "id": "kp.i8.ch",
+      "chapter": "I.8",
+      "title": "连续统假设",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i3.cantor"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "CH 的独立性不在本课判定范围。",
+      "keyPoint": "陈述并展开 CH，并用对角线证 ¬(𝒫ℕ ≼ ℕ)。"
+    },
+    {
+      "id": "kp.i9.family",
+      "chapter": "I.9",
+      "title": "广义并交的刻画定理",
+      "kind": "definition",
+      "prereq": [
+        "kp.i3.family"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "证 ⋃₀F ⊆ B ↔ 每个族成员 ⊆ B、B ⊆ ⋂₀F ↔ 每个族成员 ⊇ B。"
+    },
+    {
+      "id": "kp.i9.family.mono",
+      "chapter": "I.9",
+      "title": "单调与空族",
+      "kind": "concept",
+      "prereq": [
+        "kp.i9.family"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "区分并与交的单调方向及空族退化。"
+    },
+    {
+      "id": "kp.i9.product",
+      "chapter": "I.9",
+      "title": "广义积与柯里化",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.prod"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "写出 Set.pi 成员刻画，证族单调、空因子 ⇒ 积空与 pi∩ 拆装（curry/uncurry 为定义）。"
+    },
+    {
+      "id": "kp.i9.product.ac",
+      "chapter": "I.9",
+      "title": "非空族积非空依赖 AC",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i9.product"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "非空族的积非空依赖选择公理（用 choice 造选择函数）。"
+    },
+    {
+      "id": "kp.i10.closure",
+      "chapter": "I.10",
+      "title": "三种闭包",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "展开三种闭包并说出包含与极小性。"
+    },
+    {
+      "id": "kp.i10.closure.least",
+      "chapter": "I.10",
+      "title": "闭包是最小闭包",
+      "kind": "concept",
+      "prereq": [
+        "kp.i10.closure"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "任何包含 r 的闭关系都包含闭包（极小性）。"
+    },
+    {
+      "id": "kp.i10.closure.idem",
+      "chapter": "I.10",
+      "title": "传递闭包幂等",
+      "kind": "technique",
+      "prereq": [
+        "kp.i10.closure.least"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "r⁺⁺ ⊆ r⁺（幂等的包含方向）。"
+    },
+    {
+      "id": "kp.i10.equiv",
+      "chapter": "I.10",
+      "title": "等价关系",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel.refl"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "拆出等价关系的三条义务（自反/对称/传递）。"
+    },
+    {
+      "id": "kp.i10.class",
+      "chapter": "I.10",
+      "title": "等价类与商集",
+      "kind": "definition",
+      "prereq": [
+        "kp.i10.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 `[a]` 与 `A/r` 的成员"
+    },
+    {
+      "id": "kp.i10.class.eq",
+      "chapter": "I.10",
+      "title": "类相等 ↔ 相关",
+      "kind": "concept",
+      "prereq": [
+        "kp.i10.class"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "互译类相等与相关。"
+    },
+    {
+      "id": "kp.i10.partition",
+      "chapter": "I.10",
+      "title": "划分",
+      "kind": "definition",
+      "prereq": [
+        "kp.i10.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "按不交/非空/覆盖检验"
+    },
+    {
+      "id": "kp.i10.partition.equiv",
+      "chapter": "I.10",
+      "title": "划分 ⇔ 等价关系",
+      "kind": "concept",
+      "prereq": [
+        "kp.i10.partition"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "双向构造并证往返。"
+    },
+    {
+      "id": "kp.i10.quot",
+      "chapter": "I.10",
+      "title": "商类型三件套",
+      "kind": "definition",
+      "prereq": [
+        "kp.i10.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "Quot.sound / Quot.lift / Quot.ind 的职责（mk 为构造子）。"
+    },
+    {
+      "id": "kp.i10.welldef",
+      "chapter": "I.10",
+      "title": "良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.i10.quot"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "相关代表元给同一个值"
+    },
+    {
+      "id": "kp.i10.quot.boundary",
+      "chapter": "I.10",
+      "title": "商类型的边界",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i10.welldef"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "恒真关系粘成一点/无 `Quot.exact` 也能证单射。"
+    },
+    {
+      "id": "kp.i10.class.algebra",
+      "chapter": "I.10",
+      "title": "类与商集的代数刻画",
+      "kind": "technique",
+      "prereq": [
+        "kp.i10.class.eq"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "用成员刻画做类/商集运算。"
+    },
+    {
+      "id": "kp.i10.kernel",
+      "chapter": "I.10",
+      "title": "核关系",
+      "kind": "definition",
+      "prereq": [
+        "kp.i10.equiv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "写 `ker f` 并等价于 `f x=f y`。"
+    },
+    {
+      "id": "kp.i10.quot.map",
+      "chapter": "I.10",
+      "title": "商集上函数的良定义义务",
+      "kind": "technique",
+      "prereq": [
+        "kp.i10.welldef"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "用 respects 与 class_value_unique 说明良定义义务。"
+    },
+    {
+      "id": "kp.i10.image.quot",
+      "chapter": "I.10",
+      "title": "商与像：类的像",
+      "kind": "concept",
+      "prereq": [
+        "kp.i10.kernel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "同一等价类的像只有一点（y ∈ f''[a] ↔ f a = y）。"
+    },
+    {
+      "id": "kp.i10.kernel.inj",
+      "chapter": "I.10",
+      "title": "核与单射/复合",
+      "kind": "concept",
+      "prereq": [
+        "kp.i10.kernel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用核平凡判定单射并与复合互动。"
+    },
+    {
+      "id": "kp.i11.distrib",
+      "chapter": "I.11",
+      "title": "分配律与 De Morgan",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.sdiff.algebra"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "写出并交分配与可证方向的 De Morgan"
+    },
+    {
+      "id": "kp.i11.absorption",
+      "chapter": "I.11",
+      "title": "吸收律与逆否",
+      "kind": "technique",
+      "prereq": [
+        "kp.i11.distrib"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用吸收律化简集合式，并写出逆否的两个方向（A ⊆ B ⇔ Bᶜ ⊆ Aᶜ）。"
+    },
+    {
+      "id": "kp.i11.sdiff.compl",
+      "chapter": "I.11",
+      "title": "差就是交补",
+      "kind": "technique",
+      "prereq": [
+        "kp.i1.compl"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "把 `A\\B` 改写成 `A∩Bᶜ`。"
+    },
+    {
+      "id": "kp.i11.bounds",
+      "chapter": "I.11",
+      "title": "界与确界",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.order.partial"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "展开最小上界的两条义务"
+    },
+    {
+      "id": "kp.i11.sup.unique",
+      "chapter": "I.11",
+      "title": "确界唯一",
+      "kind": "concept",
+      "prereq": [
+        "kp.i11.bounds"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "用反对称证唯一"
+    },
+    {
+      "id": "kp.i11.sup.set",
+      "chapter": "I.11",
+      "title": "并交即确界",
+      "kind": "concept",
+      "prereq": [
+        "kp.i11.bounds",
+        "kp.i3.family"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "在 `(Set α,⊆)` 中对译确界与并交。"
+    },
+    {
+      "id": "kp.i11.lattice",
+      "chapter": "I.11",
+      "title": "确界代数与对偶原理",
+      "kind": "definition",
+      "prereq": [
+        "kp.i11.sup.set"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出对偶语句，并给出广义并交的泛性质（⋃F ⊆ C ⟺ 每个族成员 ⊆ C；C ⊆ ⋂F ⟺ 每个族成员 ⊇ C）。"
+    },
+    {
+      "id": "kp.i11.lattice.void",
+      "chapter": "I.11",
+      "title": "退化的确界",
+      "kind": "concept",
+      "prereq": [
+        "kp.i11.bounds"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "算空集/单点的确界。"
+    },
+    {
+      "id": "kp.i11.mono",
+      "chapter": "I.11",
+      "title": "单调、序反射与序同构保上确界",
+      "kind": "technique",
+      "prereq": [
+        "kp.i11.sup.set"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证单调的合成与常函数、序反射，并说明序同构保持上确界。"
+    },
+    {
+      "id": "kp.i11.pointwise",
+      "chapter": "I.11",
+      "title": "逐点序",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.fun"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "展开逐点 ≤，并证自反、传递与逐点反对称。"
+    },
+    {
+      "id": "kp.i11.symdiff",
+      "chapter": "I.11",
+      "title": "对称差的成员刻画与代数",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.sdiff"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 A △ B 的成员，证交换、A △ A = ∅、∅/univ 两端与 A △ B ⊆ A ∪ B。"
+    },
+    {
+      "id": "kp.i12.powerset",
+      "chapter": "I.12",
+      "title": "幂集代数",
+      "kind": "definition",
+      "prereq": [
+        "kp.i1.powerset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "𝒫 对 ∩ 完全交换、对 ∪ 只有一半"
+    },
+    {
+      "id": "kp.i12.char",
+      "chapter": "I.12",
+      "title": "特征函数对应",
+      "kind": "definition",
+      "prereq": [
+        "kp.i12.powerset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 charSet f 的成员刻画与单调性；反向（集合 → 特征函数）需要可判定性，本课不做。"
+    },
+    {
+      "id": "kp.i12.comp",
+      "chapter": "I.12",
+      "title": "合成基本律",
+      "kind": "technique",
+      "prereq": [
+        "kp.i2.fun.comp"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用逐点形态证合成律"
+    },
+    {
+      "id": "kp.i12.inverse",
+      "chapter": "I.12",
+      "title": "逆函数的合成保持与对称",
+      "kind": "technique",
+      "prereq": [
+        "kp.i4.inverse"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "说明左逆与右逆逐点相等，并证逆在合成下保持与逆的对称。"
+    },
+    {
+      "id": "kp.i12.funext",
+      "chapter": "I.12",
+      "title": "funext 与 propext",
+      "kind": "definition",
+      "prereq": [
+        "kp.i12.comp"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "说出两条公理的差别"
+    },
+    {
+      "id": "kp.i12.pointwise.order",
+      "chapter": "I.12",
+      "title": "逐点序是偏序",
+      "kind": "concept",
+      "prereq": [
+        "kp.i12.funext"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用 funext 证反对称。"
+    },
+    {
+      "id": "kp.i12.powerset.lattice",
+      "chapter": "I.12",
+      "title": "幂集的格性质",
+      "kind": "technique",
+      "prereq": [
+        "kp.i12.powerset"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "用成员/包含刻画处理 𝒫A 中的包含与 ⋂ 取用子。"
+    },
+    {
+      "id": "kp.i12.complete",
+      "chapter": "I.12",
+      "title": "幂集完备格",
+      "kind": "concept",
+      "prereq": [
+        "kp.i12.powerset.lattice"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证 ⋃₀(𝒫A) = A 与 ⋂₀(𝒫A) ⊆ A（top/bottom 与自家人）。"
+    },
+    {
+      "id": "kp.i13.comp",
+      "chapter": "I.13",
+      "title": "关系复合与结合律",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel.comp"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 `r•s` 的成员并证结合律"
+    },
+    {
+      "id": "kp.i13.inv",
+      "chapter": "I.13",
+      "title": "逆关系",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel.inv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "`r⁻¹` 对合与反穿复合"
+    },
+    {
+      "id": "kp.i13.id",
+      "chapter": "I.13",
+      "title": "恒等关系",
+      "kind": "definition",
+      "prereq": [
+        "kp.i2.rel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "证 `id•r=r=r•id`。"
+    },
+    {
+      "id": "kp.i13.char",
+      "chapter": "I.13",
+      "title": "三性质的代数形态",
+      "kind": "concept",
+      "prereq": [
+        "kp.i13.comp",
+        "kp.i13.id"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 5
+      },
+      "note": "",
+      "keyPoint": "自反/对称/传递与代数式互译"
+    },
+    {
+      "id": "kp.i13.char.equiv",
+      "chapter": "I.13",
+      "title": "代数三条件 ⇔ 等价关系",
+      "kind": "concept",
+      "prereq": [
+        "kp.i13.char"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "装配双向证明。"
+    },
+    {
+      "id": "kp.i13.order",
+      "chapter": "I.13",
+      "title": "偏序的代数条件",
+      "kind": "concept",
+      "prereq": [
+        "kp.i13.char"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "用代数式刻画反对称/非自反/非对称。"
+    },
+    {
+      "id": "kp.i13.image",
+      "chapter": "I.13",
+      "title": "关系像/原像/核",
+      "kind": "definition",
+      "prereq": [
+        "kp.i3.image"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出 relImg/relPre/kernel 的成员刻画。"
+    },
+    {
+      "id": "kp.i13.image.comp",
+      "chapter": "I.13",
+      "title": "像穿过复合",
+      "kind": "technique",
+      "prereq": [
+        "kp.i13.image"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "证 relImg 穿过复合，并与原像的分配对偶。"
+    },
+    {
+      "id": "kp.i13.kernel",
+      "chapter": "I.13",
+      "title": "等价核与单射判定",
+      "kind": "concept",
+      "prereq": [
+        "kp.i13.image"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "证 kernel f 是等价关系，并用 kernel f ⊆ idRel 判定单射。"
+    },
+    {
+      "id": "kp.i13.closure",
+      "chapter": "I.13",
+      "title": "闭包的代数刻画",
+      "kind": "concept",
+      "prereq": [
+        "kp.i13.char"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "闭包两端 + 最小 + 幂等 + 对复合封闭。"
+    },
+    {
+      "id": "kp.i13.wf",
+      "chapter": "I.13",
+      "title": "良基与极小元原理",
+      "kind": "definition",
+      "prereq": [
+        "kp.i5.wellorder"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出良基并取出极小元"
+    },
+    {
+      "id": "kp.i13.wf.props",
+      "chapter": "I.13",
+      "title": "良基的保持",
+      "kind": "technique",
+      "prereq": [
+        "kp.i13.wf"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "子关系/严格化保持良基；良基 ⇒ 非自反。"
+    },
+    {
+      "id": "kp.i13.wf.boundary",
+      "chapter": "I.13",
+      "title": "良基归纳的边界",
+      "kind": "boundary",
+      "prereq": [
+        "kp.i13.wf"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 3
+      },
+      "note": "",
+      "keyPoint": "指出良基归纳原理在本课证不出来（G-74/无 Acc），并说明良基 + 自反只能落在空论域。"
+    },
+    {
+      "id": "kp.i13.single",
+      "chapter": "I.13",
+      "title": "单值性与图",
+      "kind": "definition",
+      "prereq": [
+        "kp.i13.inv"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "note": "",
+      "keyPoint": "写出单值性并说明图是函数。"
     }
   ]
 }
