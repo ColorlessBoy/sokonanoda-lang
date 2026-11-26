@@ -1,0 +1,94 @@
+-- 单元174 解答：区间切分引擎与面积值的单调性
+--
+-- 引擎在 `lib/IntegralCatValue`；本解答把切分、矩形和、单调性与可积性
+-- 相加四件接到单元里，最后用常值曲线做一个可算读数。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralCat
+import lib.IntegralCatPart
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+import lib.IntegralSign
+import lib.IntegralFTC
+import lib.IntegralCatValue
+
+-- 前半的切点读数。
+theorem u174_cutHead_point (k : Nat) (c : ratRep) (p : Partition) (i : Nat)
+    (hi : LeNat (Nat.succ i) (Nat.succ k)) :
+    partPoint (cutHead k c p) i = partPoint p i :=
+  cutHead_point k c p i hi
+
+-- 前半仍是分割。
+theorem u174_cutHead_partition (a b c : ratRep) (p : Partition) (k : Nat)
+    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c) :
+    IsPartition a c (cutHead k c p) :=
+  cutHead_isPartition a b c p k hp hk hlt
+
+-- 后半仍是分割。
+theorem u174_cutTail_partition (a b c : ratRep) (p : Partition) (k m : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :
+    IsPartition c b (cutTail k m c p) :=
+  cutTail_isPartition a b c p k m hp hn hlt
+
+-- 矩形和沿切开精确相加。
+theorem u174_cutStepSum (a b c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) (hn : partCount p = Nat.add (Nat.succ k) m) :
+    ratRel (stepSum p cs)
+      (ratAddRep (stepSum (cutHead k c p) cs)
+        (stepSum (cutTail k m c p)
+          (fun (j : Nat) => cs (Nat.add k j)))) :=
+  cutStepSum a b c p k m cs hn
+
+-- 前缀的矩形和是原来和的前 j 项。
+theorem u174_prefix_sum (p : Partition) (j : Nat) (l : Nat → ratRep) :
+    stepSum (prefixPart j p) l = sumTo (stepTerm p l) j :=
+  prefixPart_stepSum p j l
+
+-- 非负曲线的下和一侧。
+theorem u174_lower_pin (a b c : ratRep) (f : ratRep → ratRep) (I : ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x))
+    (p1 : Partition) (L1 : ratRep) (hp1 : IsPartition a c p1)
+    (hL1 : LowerSum a c p1 f L1) :
+    ratLeRep L1 I :=
+  lower_sum_le_of_nonneg_right a b c f I hac hcb h hf p1 L1 hp1 hL1
+
+-- 非负曲线上面积值不下降。
+theorem u174_nonneg_nondec (a b c : ratRep) (f : ratRep → ratRep)
+    (I1 I : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : HasIntegral a c f I1) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep I1 I :=
+  hasIntegral_le_of_nonneg_right a b c f I1 I hac hcb h1 h hf
+
+-- 可积性沿切点相加。
+theorem u174_integrable_cat (a b c : ratRep) (f : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : Integrable a c f) (h2 : Integrable c b f) :
+    Integrable a b f :=
+  integrable_cat a b c f hac hcb h1 h2
+
+-- 常值曲线的可算读数：k(c−a) ≤ k(b−a)（k ≥ 0）。
+theorem demo_u174_mono_const (a b c k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :
+    ratLeRep (ratMulRep k (ratSubRep c a))
+      (ratMulRep k (ratSubRep b a)) :=
+  hasIntegral_le_of_nonneg_right a b c (fun (_ : ratRep) => k)
+    (ratMulRep k (ratSubRep c a)) (ratMulRep k (ratSubRep b a))
+    hac hcb (hasIntegral_const a c k hac)
+    (hasIntegral_const a b k (ratLtRep_trans a c b hac hcb))
+    (fun (_ : ratRep) => hk)

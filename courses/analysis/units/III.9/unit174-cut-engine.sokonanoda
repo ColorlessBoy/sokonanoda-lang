@@ -1,0 +1,136 @@
+-- 单元174 区间切分引擎与面积值的单调性
+--
+-- 面积值夹在**每一个**分割的上下和之间。要在 c 处把 [a,b] 切成 [a,c] 与
+-- [c,b]，就得回答一个问题：任意一个 [a,b] 的分割，不一定在 c 处有切点。
+-- 本单元补上这一刀：在 c 处**插入**一个切点。插入时继承原来那一段的台阶
+-- 高度，于是矩形和一字不差——`(c - x_k) + (x_{k+1} - c) = x_{k+1} - x_k`。
+-- 若 c 本来就是切点，直接把分割截成前缀与后缀，和按索引拆开。
+--
+-- 切开的用处是「拼」：把 [a,b] 分割的两半各自交给两块面积值的条件，就能把
+-- 整段的下和压在 I1 + I2 之下。本单元先做最容易的那一半——曲线非负时，
+-- 右边一块的下和不会为负，于是面积值沿右端点**不下降**；再把可积性沿切点
+-- 相加（两个半区可积则整段可积）。
+--
+-- 边界：切分引擎到位，但「任意分割的上下和都被 I1+I2 夹住」（完整的区间
+-- 可加性）还需要一条「切点只差一个代表元时替换切点」的引理，本单元不做。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralCat
+import lib.IntegralCatPart
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+import lib.IntegralSign
+import lib.IntegralFTC
+import lib.IntegralCatValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 一、插入切点：两半的读数
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：前半的切点序就是 `cutHead` 的点函数；`catFun_left` 直接给出左半读数。
+-- soko:hint 目标形态：`partPoint (cutHead k c p) i = partPoint p i`（i ≤ k）。
+-- soko:hint 关键件：cutHead_point。
+theorem u174_cutHead_point (k : Nat) (c : ratRep) (p : Partition) (i : Nat)
+    (hi : LeNat (Nat.succ i) (Nat.succ k)) :
+    partPoint (cutHead k c p) i = partPoint p i :=
+  sorry
+
+-- soko:hint 思路：左端是 a、右端是 c，相邻切点在原来的分割里严格上升，接缝用 `p k < c`。
+-- soko:hint 目标形态：`IsPartition a c (cutHead k c p)`。
+-- soko:hint 关键件：cutHead_isPartition。
+theorem u174_cutHead_partition (a b c : ratRep) (p : Partition) (k : Nat)
+    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c) :
+    IsPartition a c (cutHead k c p) :=
+  sorry
+
+-- soko:hint 思路：左端是 c、右端是 b，内部各段回到原来的段上，接缝用 `c < p (k+1)`。
+-- soko:hint 目标形态：`IsPartition c b (cutTail k m c p)`（段数写成 `succ k + m`）。
+-- soko:hint 关键件：cutTail_isPartition。
+theorem u174_cutTail_partition (a b c : ratRep) (p : Partition) (k m : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :
+    IsPartition c b (cutTail k m c p) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 二、矩形和沿切开精确相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：前 k 项两边相同；接缝那一段一分为二，`(c-x_k)+(x_{k+1}-c)` 按分配律收回原来的宽；后面 m 项逐项对齐。
+-- soko:hint 目标形态：`ratRel (stepSum p cs) (stepSum (cutHead …) cs + stepSum (cutTail …) (cs ∘ (+k)))`。
+-- soko:hint 关键件：cutStepSum。
+theorem u174_cutStepSum (a b c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) (hn : partCount p = Nat.add (Nat.succ k) m) :
+    ratRel (stepSum p cs)
+      (ratAddRep (stepSum (cutHead k c p) cs)
+        (stepSum (cutTail k m c p)
+          (fun (j : Nat) => cs (Nat.add k j)))) :=
+  sorry
+
+-- soko:hint 思路：前缀的切点是原分割的前 j 个，段相同，矩形和就是前 j 项的有限和。
+-- soko:hint 目标形态：`stepSum (prefixPart j p) l = sumTo (stepTerm p l) j`。
+-- soko:hint 关键件：prefixPart_stepSum。
+theorem u174_prefix_sum (p : Partition) (j : Nat) (l : Nat → ratRep) :
+    stepSum (prefixPart j p) l = sumTo (stepTerm p l) j :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三、非负曲线：面积值沿右端点不下降
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：任取 [a,c] 的下和 L1，在 [c,b] 上用两切点分割、零台阶得到一个不小于零的下和；把两块用 `catPartition` 拼起来，整段的下和就是 L1 加零，面积值 I 压在它上面。
+-- soko:hint 目标形态：`ratLeRep L1 I`。
+-- soko:hint 关键件：lower_sum_le_of_nonneg_right。
+theorem u174_lower_pin (a b c : ratRep) (f : ratRep → ratRep) (I : ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x))
+    (p1 : Partition) (L1 : ratRep) (hp1 : IsPartition a c p1)
+    (hL1 : LowerSum a c p1 f L1) :
+    ratLeRep L1 I :=
+  sorry
+
+-- soko:hint 思路：上一条把每个 [a,c] 的下和压住；再用可积性取上下和相差 ε 的分割，I1 不超过上和，于是 I1−I 被压到 ε 以下。
+-- soko:hint 目标形态：`ratLeRep I1 I`。
+-- soko:hint 关键件：hasIntegral_le_of_nonneg_right。
+theorem u174_nonneg_nondec (a b c : ratRep) (f : ratRep → ratRep)
+    (I1 I : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : HasIntegral a c f I1) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep I1 I :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 四、可积性沿切点相加
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：ε 折半，两个半区各取缝隙更小的分割，用 `catPartition` 接起来；两个缝隙相加仍小于 ε。
+-- soko:hint 目标形态：`Integrable a b f`。
+-- soko:hint 关键件：integrable_cat。
+theorem u174_integrable_cat (a b c : ratRep) (f : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : Integrable a c f) (h2 : Integrable c b f) :
+    Integrable a b f :=
+  sorry
+
+-- soko:hint 思路：常值曲线 k ≥ 0 处处非负；把两条常值面积值读数喂给「非负 ⇒ 不下降」，得到 k(c−a) ≤ k(b−a)。
+-- soko:hint 目标形态：`ratLeRep (k·(c−a)) (k·(b−a))`。
+-- soko:hint 关键件：hasIntegral_le_of_nonneg_right · hasIntegral_const。
+theorem demo_u174_mono_const (a b c k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :
+    ratLeRep (ratMulRep k (ratSubRep c a))
+      (ratMulRep k (ratSubRep b a)) :=
+  sorry

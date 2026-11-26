@@ -1,0 +1,1339 @@
+-- 课程库：区间可加性——把面积值沿切点拼起来
+--
+-- `HasIntegral a c f I1` 与 `HasIntegral c b f I2` 要给同一个 `f` 在 `[a,b]`
+-- 上的面积值 `I1 + I2`。`lib/IntegralCatPart` 已经能把「沿 c 对齐的两个分割」
+-- 接成一个 `[a,b]` 的分割；剩下的问题是**任意**一个 `[a,b]` 的分割并不一定
+-- 在 c 处有切点。本文件补上缺的那一刀：把一个分割从 c 处切开。
+--
+-- 切开有两种情形：
+--   · c 本身就是分割的一个切点 ⇒ 前半与后半都是现成的分割，和按索引拆开；
+--   · c 落在第 k 段内部 ⇒ 在 c 处插入一个切点。插入时**继承**第 k 段原来的
+--     台阶高度，于是矩形和一字不差：`(c - x_k) + (x_{k+1} - c) = x_{k+1} - x_k`。
+--
+-- 已证：
+--   · `cutHead` / `cutTail` —— 插入切点后的前半与后半；
+--   · `cutHead_isPartition` / `cutTail_isPartition` —— 两半仍是分割；
+--   · `cutHead_lowerStep` / `cutTail_lowerStep`（上与下界同形）—— 台阶逐段搬运；
+--   · `cutStepSum` —— 矩形和沿切开精确相加（对任意台阶函数成立）；
+--   · `prefixPartition` / `suffixPartition` —— c 是现成切点时的一刀；
+--   · `hasIntegral_cat` —— 面积值沿切点可加：`I1 + I2` 是 `[a,b]` 上的面积值。
+--
+-- 边界：函数取 `ratRep → ratRep`，停在有理代表元层；不新增公理。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.RatAbsOrder
+import lib.RatHalf
+import lib.RatClose
+import lib.Cauchy
+import lib.RatSub
+import lib.RatRing
+import lib.RatAssoc
+import lib.RatGroup
+import lib.Bounded
+import lib.MaxOn
+import lib.Integral
+import lib.IntegralCat
+import lib.IntegralCatPart
+import lib.IntegralRect
+import lib.IntegralStep
+import lib.IntegralSum
+import lib.IntegralValue
+import lib.IntegralSign
+import lib.SumSplit
+import lib.IntegralFTC
+
+-- ─────────────────────────────────────────────────────────────
+-- 在 c 处插入切点：前半与后半
+-- ─────────────────────────────────────────────────────────────
+
+-- 前半：原来的第 0..k 个切点，接上 c。段数是 `succ k`（最后一段的右端是 c）。
+def cutHead (k : Nat) (c : ratRep) (p : Partition) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ k)
+    (catFun (Nat.succ k) (partPoint p) (fun (_ : Nat) => c))
+
+-- 后半：从 c 起，接上原来的第 `k+1, …, k+1+m` 个切点。段数是 `succ m`。
+def cutTail (k m : Nat) (c : ratRep) (p : Partition) : Partition :=
+  @prod_mk Nat (Nat → ratRep) (Nat.succ m)
+    (catFun (Nat.succ Nat.zero) (fun (_ : Nat) => c)
+      (fun (j : Nat) => partPoint p (Nat.add (Nat.succ k) j)))
+
+-- 前半的第 i 个切点（i ≤ k）就是原来的第 i 个切点。
+theorem cutHead_point (k : Nat) (c : ratRep) (p : Partition) (i : Nat)
+    (hi : LeNat (Nat.succ i) (Nat.succ k)) :
+    partPoint (cutHead k c p) i = partPoint p i :=
+  catFun_left (partPoint p) (fun (_ : Nat) => c) (Nat.succ k) i hi
+
+-- 前半的最后一个切点是 c。
+theorem cutHead_last (k : Nat) (c : ratRep) (p : Partition) :
+    partPoint (cutHead k c p) (Nat.succ k) = c :=
+  catFun_at (partPoint p) (fun (_ : Nat) => c) (Nat.succ k) Nat.zero
+
+-- 后半的第 0 个切点是 c。
+theorem cutTail_zero (k m : Nat) (c : ratRep) (p : Partition) :
+    partPoint (cutTail k m c p) Nat.zero = c :=
+  catFun_at_zero Nat.zero (fun (_ : Nat) => c)
+    (fun (j : Nat) => partPoint p (Nat.add (Nat.succ k) j))
+
+-- `1 + j = j + 1`：`catFun` 从下标 1 起走 j 步，课程里写成 `succ j`。
+theorem add_one_succ (j : Nat) :
+    Nat.add (Nat.succ Nat.zero) j = Nat.succ j :=
+  @Eq.trans.{1} Nat
+    (Nat.add (Nat.succ Nat.zero) j)
+    (Nat.succ (Nat.add Nat.zero j))
+    (Nat.succ j)
+    (succ_add Nat.zero j)
+    (congrArg (fun (z : Nat) => Nat.succ z) (zero_add j))
+
+-- 后半的第 `succ j` 个切点回到原来的第 `k+1+j` 个切点。
+theorem cutTail_succ (k m : Nat) (c : ratRep) (p : Partition) (j : Nat) :
+    partPoint (cutTail k m c p) (Nat.succ j) =
+      partPoint p (Nat.add (Nat.succ k) j) :=
+  @Eq.subst.{1} Nat
+    (fun (z : Nat) => partPoint (cutTail k m c p) z =
+      partPoint p (Nat.add (Nat.succ k) j))
+    (Nat.add (Nat.succ Nat.zero) j) (Nat.succ j) (add_one_succ j)
+    (catFun_at (fun (_ : Nat) => c)
+      (fun (j : Nat) => partPoint p (Nat.add (Nat.succ k) j))
+      (Nat.succ Nat.zero) j)
+
+
+-- 严格序沿字面相等换一边（`IntegralCatPart` 的两条投影）。
+theorem ratLtRep_congr_left (a a' b : ratRep) (ha : a = a')
+    (h : ratLtRep a b) : ratLtRep a' b :=
+  ratLtRep_congr_eq a a' b b ha (@Eq.refl.{1} ratRep b) h
+
+theorem ratLtRep_congr_right (a b b' : ratRep) (hb : b = b')
+    (h : ratLtRep a b) : ratLtRep a b' :=
+  ratLtRep_congr_eq a a b b' (@Eq.refl.{1} ratRep a) hb h
+
+-- `k+1 ≤ N` 就够推出 `k ≤ N`（`LeNat` 的右端点去掉一层后继）。
+theorem leNat_of_succ_le (k N : Nat) (h : LeNat (Nat.succ k) N) : LeNat k N :=
+  leNat_of_exists_add k N
+    (Exists.elim (leNat_exists_add (Nat.succ k) N h)
+      (fun (j : Nat) (hj : N = Nat.add (Nat.succ k) j) =>
+        Exists.intro (Nat.succ j)
+          (@Eq.trans.{1} Nat N (Nat.add (Nat.succ k) j)
+            (Nat.add k (Nat.succ j)) hj (succ_add k j))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 插入之后两半仍是分割
+-- ─────────────────────────────────────────────────────────────
+
+-- 前半接缝之前的一步：原来的相邻切点。
+theorem cutHead_step_lt (a b c : ratRep) (p : Partition) (k i : Nat)
+    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))
+    (hi : LeNat (Nat.succ i) (Nat.succ k))
+    (hsucc : LeNat (Nat.succ i) k) :
+    ratLtRep (partPoint (cutHead k c p) i)
+      (partPoint (cutHead k c p) (Nat.succ i)) :=
+  ratLtRep_congr_eq (partPoint p i) (partPoint (cutHead k c p) i)
+    (partPoint p (Nat.succ i)) (partPoint (cutHead k c p) (Nat.succ i))
+    (@Eq.symm.{1} ratRep (partPoint (cutHead k c p) i) (partPoint p i)
+      (cutHead_point k c p i hi))
+    (@Eq.symm.{1} ratRep (partPoint (cutHead k c p) (Nat.succ i))
+      (partPoint p (Nat.succ i))
+      (cutHead_point k c p (Nat.succ i)
+        (leNat_succ_succ (Nat.succ i) k hsucc)))
+    (isPartition_step a b p hp i
+      (leNat_trans (Nat.succ i) k (partCount p) hsucc
+        (leNat_of_succ_le k (partCount p) hk)))
+
+-- 前半接缝的一步：`p k < c`。
+theorem cutHead_step_eq (c : ratRep) (p : Partition) (k : Nat)
+    (hlt : ratLtRep (partPoint p k) c) :
+    ratLtRep (partPoint (cutHead k c p) k)
+      (partPoint (cutHead k c p) (Nat.succ k)) :=
+  ratLtRep_congr_eq (partPoint p k) (partPoint (cutHead k c p) k) c
+    (partPoint (cutHead k c p) (Nat.succ k))
+    (@Eq.symm.{1} ratRep (partPoint (cutHead k c p) k) (partPoint p k)
+      (cutHead_point k c p k (le_refl (Nat.succ k))))
+    (@Eq.symm.{1} ratRep (partPoint (cutHead k c p) (Nat.succ k)) c
+      (cutHead_last k c p))
+    hlt
+
+-- 前半的严格上升：分成「还在原来的段里」与「正好是接缝」两支。
+theorem cutHead_step (a b c : ratRep) (p : Partition) (k i : Nat)
+    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c)
+    (hi : LeNat (Nat.succ i) (Nat.succ k)) :
+    ratLtRep (partPoint (cutHead k c p) i)
+      (partPoint (cutHead k c p) (Nat.succ i)) :=
+  Or.elim
+    (fun (heq : i = k) =>
+      @Eq.subst.{1} Nat
+        (fun (z : Nat) => ratLtRep (partPoint (cutHead k c p) z)
+          (partPoint (cutHead k c p) (Nat.succ z)))
+        k i (@Eq.symm.{1} Nat i k heq)
+        (cutHead_step_eq c p k hlt))
+    (fun (hsucc : LeNat (Nat.succ i) k) =>
+      cutHead_step_lt a b c p k i hp hk hi hsucc)
+    (leNat_eq_or_succ i k (leNat_pred i k hi))
+
+-- 前半：左端是 a，右端是 c；相邻切点在原来的分割里严格上升（接缝那一步用
+-- 假设 `p k < c`）。
+theorem cutHead_isPartition (a b c : ratRep) (p : Partition) (k : Nat)
+    (hp : IsPartition a b p) (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c) :
+    IsPartition a c (cutHead k c p) :=
+  And.intro
+    (@Eq.trans.{1} ratRep
+      (partPoint (cutHead k c p) Nat.zero)
+      (partPoint p Nat.zero)
+      a
+      (cutHead_point k c p Nat.zero
+        (leNat_succ_succ Nat.zero k (leNat_zero_le k)))
+      (isPartition_left a b p hp))
+    (And.intro
+      (cutHead_last k c p)
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) (Nat.succ k)) =>
+        cutHead_step a b c p k i hp hk hlt hi))
+
+-- 后半接缝的一步：`c < p (k+1)`。
+theorem cutTail_step_zero (c : ratRep) (p : Partition) (k m : Nat)
+    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :
+    ratLtRep (partPoint (cutTail k m c p) Nat.zero)
+      (partPoint (cutTail k m c p) (Nat.succ Nat.zero)) :=
+  ratLtRep_congr_eq c (partPoint (cutTail k m c p) Nat.zero)
+    (partPoint p (Nat.succ k))
+    (partPoint (cutTail k m c p) (Nat.succ Nat.zero))
+    (@Eq.symm.{1} ratRep (partPoint (cutTail k m c p) Nat.zero) c
+      (cutTail_zero k m c p))
+    (@Eq.symm.{1} ratRep (partPoint (cutTail k m c p) (Nat.succ Nat.zero))
+      (partPoint p (Nat.succ k)) (cutTail_succ k m c p Nat.zero))
+    hlt
+
+-- 后半内部的一步：原来的相邻切点（下标从 `k+1+j` 起）。
+theorem cutTail_step_succ (a b c : ratRep) (p : Partition) (k m j : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hj : LeNat (Nat.succ j) m) :
+    ratLtRep (partPoint (cutTail k m c p) (Nat.succ j))
+      (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j))) :=
+  ratLtRep_congr_eq (partPoint p (Nat.add (Nat.succ k) j))
+    (partPoint (cutTail k m c p) (Nat.succ j))
+    (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))
+    (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+    (@Eq.symm.{1} ratRep (partPoint (cutTail k m c p) (Nat.succ j))
+      (partPoint p (Nat.add (Nat.succ k) j)) (cutTail_succ k m c p j))
+    (@Eq.symm.{1} ratRep (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+      (partPoint p (Nat.add (Nat.succ k) (Nat.succ j)))
+      (cutTail_succ k m c p (Nat.succ j)))
+    (isPartition_step a b p hp (Nat.add (Nat.succ k) j)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat (Nat.succ (Nat.add (Nat.succ k) j)) z)
+        (Nat.add (Nat.succ k) m) (partCount p)
+        (@Eq.symm.{1} Nat (partCount p) (Nat.add (Nat.succ k) m) hn)
+        (leNat_add_left (Nat.succ j) m (Nat.succ k) hj)))
+
+-- 后半的严格上升：分成「接缝」与「内部」两支。
+theorem cutTail_step (a b c : ratRep) (p : Partition) (k m : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :
+    ∀ (i : Nat), LeNat (Nat.succ i) (Nat.succ m) →
+      ratLtRep (partPoint (cutTail k m c p) i)
+        (partPoint (cutTail k m c p) (Nat.succ i)) :=
+  @Nat.rec
+    (fun (z : Nat) => LeNat (Nat.succ z) (Nat.succ m) →
+      ratLtRep (partPoint (cutTail k m c p) z)
+        (partPoint (cutTail k m c p) (Nat.succ z)))
+    (fun (_hi : LeNat (Nat.succ Nat.zero) (Nat.succ m)) =>
+      cutTail_step_zero c p k m hlt)
+    (fun (j : Nat)
+        (_ih : LeNat (Nat.succ j) (Nat.succ m) →
+          ratLtRep (partPoint (cutTail k m c p) j)
+            (partPoint (cutTail k m c p) (Nat.succ j)))
+        (hi : LeNat (Nat.succ (Nat.succ j)) (Nat.succ m)) =>
+      cutTail_step_succ a b c p k m j hp hn (leNat_pred (Nat.succ j) m hi))
+
+-- 后半：左端是 c，右端是 b（段数写成 `succ k + m` 便于索引）；接缝那一步
+-- 用假设 `c < p (k+1)`。
+theorem cutTail_isPartition (a b c : ratRep) (p : Partition) (k m : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep c (partPoint p (Nat.succ k))) :
+    IsPartition c b (cutTail k m c p) :=
+  And.intro
+    (cutTail_zero k m c p)
+    (And.intro
+      (@Eq.trans.{1} ratRep
+        (partPoint (cutTail k m c p) (partCount (cutTail k m c p)))
+        (partPoint p (Nat.add (Nat.succ k) m))
+        b
+        (cutTail_succ k m c p m)
+        (@Eq.trans.{1} ratRep
+          (partPoint p (Nat.add (Nat.succ k) m))
+          (partPoint p (partCount p))
+          b
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) =>
+              partPoint p (Nat.add (Nat.succ k) m) = partPoint p z)
+            (Nat.add (Nat.succ k) m) (partCount p)
+            (@Eq.symm.{1} Nat (partCount p) (Nat.add (Nat.succ k) m) hn)
+            (@Eq.refl.{1} ratRep (partPoint p (Nat.add (Nat.succ k) m))))
+          (isPartition_right a b p hp)))
+      (cutTail_step a b c p k m hp hn hlt))
+
+-- ─────────────────────────────────────────────────────────────
+-- 台阶沿切开搬运
+-- ─────────────────────────────────────────────────────────────
+
+-- 闭区间沿端点放大是闭区间（同 `IntegralFTC` 的那条，独立放在这里免得反向依赖）。
+theorem inClosed_mono_cat (u v p q x : ratRep) (hup : ratLeRep u p)
+    (hqv : ratLeRep q v) (h : InClosed p q x) : InClosed u v x :=
+  And.intro
+    (ratLeRep_trans u p x hup (And.left h))
+    (ratLeRep_trans x q v (And.right h) hqv)
+
+-- 前半的第 i 段（i < k）与原来的那一段是同一段。
+theorem cutHead_inClosed_lt (a b c : ratRep) (p : Partition) (k i : Nat)
+    (hi : LeNat (Nat.succ i) (Nat.succ k))
+    (hsucc : LeNat (Nat.succ i) k) (x : ratRep)
+    (hx : InClosed (partPoint (cutHead k c p) i)
+      (partPoint (cutHead k c p) (Nat.succ i)) x) :
+    InClosed (partPoint p i) (partPoint p (Nat.succ i)) x :=
+  And.intro
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z x)
+      (partPoint (cutHead k c p) i) (partPoint p i)
+      (cutHead_point k c p i hi)
+      (And.left hx))
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep x z)
+      (partPoint (cutHead k c p) (Nat.succ i)) (partPoint p (Nat.succ i))
+      (cutHead_point k c p (Nat.succ i)
+        (leNat_succ_succ (Nat.succ i) k hsucc))
+      (And.right hx))
+
+-- 前半的第 k 段 `[p k, c]` 落在原来的第 k 段 `[p k, p (k+1)]` 里。
+theorem cutHead_inClosed_last (a b c : ratRep) (p : Partition) (k : Nat)
+    (hgt : ratLtRep c (partPoint p (Nat.succ k))) (x : ratRep)
+    (hx : InClosed (partPoint (cutHead k c p) k)
+      (partPoint (cutHead k c p) (Nat.succ k)) x) :
+    InClosed (partPoint p k) (partPoint p (Nat.succ k)) x :=
+  And.intro
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z x)
+      (partPoint (cutHead k c p) k) (partPoint p k)
+      (cutHead_point k c p k (le_refl (Nat.succ k)))
+      (And.left hx))
+    (ratLeRep_trans x c (partPoint p (Nat.succ k))
+      (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep x z)
+        (partPoint (cutHead k c p) (Nat.succ k)) c
+        (cutHead_last k c p) (And.right hx))
+      (ratLtRep_le c (partPoint p (Nat.succ k)) hgt))
+
+-- 前半的下界：两支各自回到原来的段上。
+theorem cutHead_lowerStep (a b c : ratRep) (p : Partition) (k : Nat)
+    (f : ratRep → ratRep) (l : Nat → ratRep) (hp : IsPartition a b p)
+    (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c)
+    (hgt : ratLtRep c (partPoint p (Nat.succ k)))
+    (hl : LowerStep a b p f l) :
+    LowerStep a c (cutHead k c p) f l :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (Nat.succ k))
+      (x : ratRep)
+      (hx : InClosed (partPoint (cutHead k c p) i)
+        (partPoint (cutHead k c p) (Nat.succ i)) x) =>
+    Or.elim
+      (fun (heq : i = k) =>
+        @Eq.subst.{1} Nat
+          (fun (z : Nat) => ratLeRep (l z) (f x))
+          k i (@Eq.symm.{1} Nat i k heq)
+          (hl k hk x (cutHead_inClosed_last a b c p k hgt x
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) => InClosed (partPoint (cutHead k c p) z)
+                (partPoint (cutHead k c p) (Nat.succ z)) x)
+              i k heq hx))))
+      (fun (hsucc : LeNat (Nat.succ i) k) =>
+        hl i (leNat_trans (Nat.succ i) k (partCount p) hsucc
+            (leNat_of_succ_le k (partCount p) hk))
+          x (cutHead_inClosed_lt a b c p k i hi hsucc x hx))
+      (leNat_eq_or_succ i k (leNat_pred i k hi))
+
+-- 前半的上界同形。
+theorem cutHead_upperStep (a b c : ratRep) (p : Partition) (k : Nat)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (hp : IsPartition a b p)
+    (hk : LeNat (Nat.succ k) (partCount p))
+    (hlt : ratLtRep (partPoint p k) c)
+    (hgt : ratLtRep c (partPoint p (Nat.succ k)))
+    (hu : UpperStep a b p f u) :
+    UpperStep a c (cutHead k c p) f u :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) (Nat.succ k))
+      (x : ratRep)
+      (hx : InClosed (partPoint (cutHead k c p) i)
+        (partPoint (cutHead k c p) (Nat.succ i)) x) =>
+    Or.elim
+      (fun (heq : i = k) =>
+        @Eq.subst.{1} Nat
+          (fun (z : Nat) => ratLeRep (f x) (u z))
+          k i (@Eq.symm.{1} Nat i k heq)
+          (hu k hk x (cutHead_inClosed_last a b c p k hgt x
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) => InClosed (partPoint (cutHead k c p) z)
+                (partPoint (cutHead k c p) (Nat.succ z)) x)
+              i k heq hx))))
+      (fun (hsucc : LeNat (Nat.succ i) k) =>
+        hu i (leNat_trans (Nat.succ i) k (partCount p) hsucc
+            (leNat_of_succ_le k (partCount p) hk))
+          x (cutHead_inClosed_lt a b c p k i hi hsucc x hx))
+      (leNat_eq_or_succ i k (leNat_pred i k hi))
+
+-- 后半的第 0 段 `[c, p (k+1)]` 落在原来的第 k 段里。
+theorem cutTail_inClosed_zero (a b c : ratRep) (p : Partition) (k m : Nat)
+    (hlt : ratLtRep (partPoint p k) c) (x : ratRep)
+    (hx : InClosed (partPoint (cutTail k m c p) Nat.zero)
+      (partPoint (cutTail k m c p) (Nat.succ Nat.zero)) x) :
+    InClosed (partPoint p k) (partPoint p (Nat.succ k)) x :=
+  And.intro
+    (ratLeRep_trans (partPoint p k) c x
+      (ratLtRep_le (partPoint p k) c hlt)
+      (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z x)
+        (partPoint (cutTail k m c p) Nat.zero) c
+        (cutTail_zero k m c p) (And.left hx)))
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep x z)
+      (partPoint (cutTail k m c p) (Nat.succ Nat.zero))
+      (partPoint p (Nat.succ k))
+      (cutTail_succ k m c p Nat.zero)
+      (And.right hx))
+
+-- 后半的第 `succ j` 段回到原来的第 `k+1+j` 段。
+theorem cutTail_inClosed_succ (a b c : ratRep) (p : Partition) (k m j : Nat)
+    (x : ratRep)
+    (hx : InClosed (partPoint (cutTail k m c p) (Nat.succ j))
+      (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j))) x) :
+    InClosed (partPoint p (Nat.add (Nat.succ k) j))
+      (partPoint p (Nat.succ (Nat.add (Nat.succ k) j))) x :=
+  And.intro
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep z x)
+      (partPoint (cutTail k m c p) (Nat.succ j))
+      (partPoint p (Nat.add (Nat.succ k) j))
+      (cutTail_succ k m c p j)
+      (And.left hx))
+    (@Eq.subst.{1} ratRep (fun (z : ratRep) => ratLeRep x z)
+      (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+      (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))
+      (@Eq.trans.{1} ratRep
+        (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+        (partPoint p (Nat.add (Nat.succ k) (Nat.succ j)))
+        (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))
+        (cutTail_succ k m c p (Nat.succ j))
+        (@Eq.refl.{1} ratRep (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))))
+      (And.right hx))
+
+-- 后半的下界：接缝那一段用第 k 段的下界，其余照搬。
+theorem cutTail_lowerStep (a b c : ratRep) (p : Partition) (k m : Nat)
+    (f : ratRep → ratRep) (l : Nat → ratRep) (hp : IsPartition a b p)
+    (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep (partPoint p k) c)
+    (hk : LeNat (Nat.succ k) (partCount p))
+    (hl : LowerStep a b p f l) :
+    LowerStep c b (cutTail k m c p) f (fun (j : Nat) => l (Nat.add k j)) :=
+  fun (j : Nat) (hj : LeNat (Nat.succ j) (partCount (cutTail k m c p)))
+      (x : ratRep)
+      (hx : InClosed (partPoint (cutTail k m c p) j)
+        (partPoint (cutTail k m c p) (Nat.succ j)) x) =>
+    @Nat.rec
+      (fun (z : Nat) =>
+        LeNat (Nat.succ z) (partCount (cutTail k m c p)) →
+          ∀ (x : ratRep),
+            InClosed (partPoint (cutTail k m c p) z)
+              (partPoint (cutTail k m c p) (Nat.succ z)) x →
+            ratLeRep (l (Nat.add k z)) (f x))
+      (fun (_hj : LeNat (Nat.succ Nat.zero)
+            (partCount (cutTail k m c p)))
+          (x0 : ratRep)
+          (hx0 : InClosed (partPoint (cutTail k m c p) Nat.zero)
+            (partPoint (cutTail k m c p) (Nat.succ Nat.zero)) x0) =>
+        hl k hk x0 (cutTail_inClosed_zero a b c p k m hlt x0 hx0))
+      (fun (j' : Nat)
+          (_ih : LeNat (Nat.succ j') (partCount (cutTail k m c p)) →
+            ∀ (x : ratRep),
+              InClosed (partPoint (cutTail k m c p) j')
+                (partPoint (cutTail k m c p) (Nat.succ j')) x →
+              ratLeRep (l (Nat.add k j')) (f x))
+          (_hj : LeNat (Nat.succ (Nat.succ j'))
+            (partCount (cutTail k m c p)))
+          (x0 : ratRep)
+          (hx0 : InClosed (partPoint (cutTail k m c p) (Nat.succ j'))
+            (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j'))) x0) =>
+        @Eq.subst.{1} Nat (fun (z : Nat) => ratLeRep (l z) (f x0))
+          (Nat.add (Nat.succ k) j') (Nat.add k (Nat.succ j'))
+          (succ_add k j')
+          (hl (Nat.add (Nat.succ k) j')
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) => LeNat (Nat.succ (Nat.add (Nat.succ k) j')) z)
+              (Nat.add (Nat.succ k) m) (partCount p)
+              (@Eq.symm.{1} Nat (partCount p) (Nat.add (Nat.succ k) m) hn)
+              (leNat_add_left (Nat.succ j') m (Nat.succ k)
+                (leNat_pred (Nat.succ j') m _hj)))
+            x0 (cutTail_inClosed_succ a b c p k m j' x0 hx0)))
+      j hj x hx
+
+-- 后半的上界同形。
+theorem cutTail_upperStep (a b c : ratRep) (p : Partition) (k m : Nat)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (hp : IsPartition a b p)
+    (hn : partCount p = Nat.add (Nat.succ k) m)
+    (hlt : ratLtRep (partPoint p k) c)
+    (hk : LeNat (Nat.succ k) (partCount p))
+    (hu : UpperStep a b p f u) :
+    UpperStep c b (cutTail k m c p) f (fun (j : Nat) => u (Nat.add k j)) :=
+  fun (j : Nat) (hj : LeNat (Nat.succ j) (partCount (cutTail k m c p)))
+      (x : ratRep)
+      (hx : InClosed (partPoint (cutTail k m c p) j)
+        (partPoint (cutTail k m c p) (Nat.succ j)) x) =>
+    @Nat.rec
+      (fun (z : Nat) =>
+        LeNat (Nat.succ z) (partCount (cutTail k m c p)) →
+          ∀ (x : ratRep),
+            InClosed (partPoint (cutTail k m c p) z)
+              (partPoint (cutTail k m c p) (Nat.succ z)) x →
+            ratLeRep (f x) (u (Nat.add k z)))
+      (fun (_hj : LeNat (Nat.succ Nat.zero)
+            (partCount (cutTail k m c p)))
+          (x0 : ratRep)
+          (hx0 : InClosed (partPoint (cutTail k m c p) Nat.zero)
+            (partPoint (cutTail k m c p) (Nat.succ Nat.zero)) x0) =>
+        hu k hk x0 (cutTail_inClosed_zero a b c p k m hlt x0 hx0))
+      (fun (j' : Nat)
+          (_ih : LeNat (Nat.succ j') (partCount (cutTail k m c p)) →
+            ∀ (x : ratRep),
+              InClosed (partPoint (cutTail k m c p) j')
+                (partPoint (cutTail k m c p) (Nat.succ j')) x →
+              ratLeRep (f x) (u (Nat.add k j')))
+          (_hj : LeNat (Nat.succ (Nat.succ j'))
+            (partCount (cutTail k m c p)))
+          (x0 : ratRep)
+          (hx0 : InClosed (partPoint (cutTail k m c p) (Nat.succ j'))
+            (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j'))) x0) =>
+        @Eq.subst.{1} Nat (fun (z : Nat) => ratLeRep (f x0) (u z))
+          (Nat.add (Nat.succ k) j') (Nat.add k (Nat.succ j'))
+          (succ_add k j')
+          (hu (Nat.add (Nat.succ k) j')
+            (@Eq.subst.{1} Nat
+              (fun (z : Nat) => LeNat (Nat.succ (Nat.add (Nat.succ k) j')) z)
+              (Nat.add (Nat.succ k) m) (partCount p)
+              (@Eq.symm.{1} Nat (partCount p) (Nat.add (Nat.succ k) m) hn)
+              (leNat_add_left (Nat.succ j') m (Nat.succ k)
+                (leNat_pred (Nat.succ j') m _hj)))
+            x0 (cutTail_inClosed_succ a b c p k m j' x0 hx0)))
+      j hj x hx
+
+-- ─────────────────────────────────────────────────────────────
+-- 矩形和沿切开精确相加
+-- ─────────────────────────────────────────────────────────────
+
+-- 每段的宽只差端点：端点字面相等，宽就字面相等。
+theorem ratSubRep_congr_eq (a a' b b' : ratRep) (ha : a = a')
+    (hb : b = b') : ratSubRep a b = ratSubRep a' b' :=
+  @Eq.trans.{1} ratRep (ratSubRep a b) (ratSubRep a' b) (ratSubRep a' b')
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratSubRep a b = ratSubRep z b)
+      a a' ha (@Eq.refl.{1} ratRep (ratSubRep a b)))
+    (@Eq.subst.{1} ratRep
+      (fun (z : ratRep) => ratSubRep a' b = ratSubRep a' z)
+      b b' hb (@Eq.refl.{1} ratRep (ratSubRep a' b)))
+
+-- `n ≤ n+1`。
+theorem leNat_succ_self (n : Nat) : LeNat n (Nat.succ n) :=
+  leNat_self_add n (Nat.succ Nat.zero)
+
+-- 前半内部第 i 段（`i+1 ≤ k`）的宽就是原来的宽。
+theorem segLen_cutHead_lt (a b c : ratRep) (p : Partition) (k i : Nat)
+    (hsucc : LeNat (Nat.succ i) k) :
+    ratRel (segLen (cutHead k c p) i) (segLen p i) :=
+  ratRel_of_eq (segLen (cutHead k c p) i) (segLen p i)
+    (ratSubRep_congr_eq (partPoint (cutHead k c p) (Nat.succ i))
+      (partPoint p (Nat.succ i)) (partPoint (cutHead k c p) i)
+      (partPoint p i)
+      (cutHead_point k c p (Nat.succ i)
+        (leNat_succ_succ (Nat.succ i) k hsucc))
+      (cutHead_point k c p i
+        (leNat_trans (Nat.succ i) k (Nat.succ k) hsucc
+          (leNat_succ_self k))))
+
+-- 前半接缝那一段的宽是 `c - p k`。
+theorem segLen_cutHead_last (a b c : ratRep) (p : Partition) (k : Nat) :
+    ratRel (segLen (cutHead k c p) k) (ratSubRep c (partPoint p k)) :=
+  ratRel_of_eq (segLen (cutHead k c p) k) (ratSubRep c (partPoint p k))
+    (ratSubRep_congr_eq (partPoint (cutHead k c p) (Nat.succ k)) c
+      (partPoint (cutHead k c p) k) (partPoint p k)
+      (cutHead_last k c p)
+      (cutHead_point k c p k (le_refl (Nat.succ k))))
+
+-- 后半接缝那一段的宽是 `p (k+1) - c`。
+theorem segLen_cutTail_zero (a b c : ratRep) (p : Partition) (k m : Nat) :
+    ratRel (segLen (cutTail k m c p) Nat.zero)
+      (ratSubRep (partPoint p (Nat.succ k)) c) :=
+  ratRel_of_eq (segLen (cutTail k m c p) Nat.zero)
+    (ratSubRep (partPoint p (Nat.succ k)) c)
+    (ratSubRep_congr_eq (partPoint (cutTail k m c p) (Nat.succ Nat.zero))
+      (partPoint p (Nat.succ k)) (partPoint (cutTail k m c p) Nat.zero) c
+      (cutTail_succ k m c p Nat.zero)
+      (cutTail_zero k m c p))
+
+-- 后半内部第 `succ j` 段的宽回到原来的第 `k+1+j` 段。
+theorem segLen_cutTail_succ (a b c : ratRep) (p : Partition) (k m j : Nat) :
+    ratRel (segLen (cutTail k m c p) (Nat.succ j))
+      (segLen p (Nat.add (Nat.succ k) j)) :=
+  ratRel_of_eq (segLen (cutTail k m c p) (Nat.succ j))
+    (segLen p (Nat.add (Nat.succ k) j))
+    (ratSubRep_congr_eq
+      (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+      (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))
+      (partPoint (cutTail k m c p) (Nat.succ j))
+      (partPoint p (Nat.add (Nat.succ k) j))
+      (@Eq.trans.{1} ratRep
+        (partPoint (cutTail k m c p) (Nat.succ (Nat.succ j)))
+        (partPoint p (Nat.add (Nat.succ k) (Nat.succ j)))
+        (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))
+        (cutTail_succ k m c p (Nat.succ j))
+        (@Eq.refl.{1} ratRep
+          (partPoint p (Nat.succ (Nat.add (Nat.succ k) j)))))
+      (cutTail_succ k m c p j))
+
+-- ─────────────────────────────────────────────────────────────
+-- 切点两侧的矩形项
+-- ─────────────────────────────────────────────────────────────
+
+-- 第 k 段一分为二：`cs k·(p(k+1)-p k)` 等于两块的宽分别乘高度再相加。
+theorem cut_mid_term (a b c : ratRep) (p : Partition) (k : Nat)
+    (cs : Nat → ratRep) :
+    ratRel
+      (ratMulRep (cs k)
+        (ratSubRep (partPoint p (Nat.succ k)) (partPoint p k)))
+      (ratAddRep
+        (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+        (ratMulRep (cs k)
+          (ratSubRep (partPoint p (Nat.succ k)) c))) :=
+  ratRel_trans_gen
+    (ratMulRep (cs k)
+      (ratSubRep (partPoint p (Nat.succ k)) (partPoint p k)))
+    (ratMulRep (cs k)
+      (ratAddRep (ratSubRep c (partPoint p k))
+        (ratSubRep (partPoint p (Nat.succ k)) c)))
+    (ratAddRep
+      (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+      (ratMulRep (cs k)
+        (ratSubRep (partPoint p (Nat.succ k)) c)))
+    (ratMulRep_wd_snd_gen (cs k)
+      (ratSubRep (partPoint p (Nat.succ k)) (partPoint p k))
+      (ratAddRep (ratSubRep c (partPoint p k))
+        (ratSubRep (partPoint p (Nat.succ k)) c))
+      (ratRel_trans_gen
+        (ratSubRep (partPoint p (Nat.succ k)) (partPoint p k))
+        (ratAddRep (ratSubRep (partPoint p (Nat.succ k)) c)
+          (ratSubRep c (partPoint p k)))
+        (ratAddRep (ratSubRep c (partPoint p k))
+          (ratSubRep (partPoint p (Nat.succ k)) c))
+        (ratRel_symm
+          (ratAddRep (ratSubRep (partPoint p (Nat.succ k)) c)
+            (ratSubRep c (partPoint p k)))
+          (ratSubRep (partPoint p (Nat.succ k)) (partPoint p k))
+          (ratSubRep_add (partPoint p (Nat.succ k)) c (partPoint p k)))
+        (ratAdd_comm (ratSubRep (partPoint p (Nat.succ k)) c)
+          (ratSubRep c (partPoint p k)))))
+    (ratMul_add (cs k)
+      (ratSubRep c (partPoint p k))
+      (ratSubRep (partPoint p (Nat.succ k)) c))
+
+-- 三个矩形项：原来的第 i 段、前半的第 i 段、后半的第 j 段。
+def stepTerm (p : Partition) (cs : Nat → ratRep) (i : Nat) : ratRep :=
+  ratMulRep (cs i) (segLen p i)
+
+def cutHeadTerm (c : ratRep) (p : Partition) (k : Nat)
+    (cs : Nat → ratRep) (i : Nat) : ratRep :=
+  ratMulRep (cs i) (segLen (cutHead k c p) i)
+
+def cutTailTerm (c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) (j : Nat) : ratRep :=
+  ratMulRep (cs (Nat.add k j)) (segLen (cutTail k m c p) j)
+
+-- 前半的矩形和：前 k 项与原来的相同，最后一项是 `cs k·(c - p k)`。
+theorem cutHeadSum_form (a b c : ratRep) (p : Partition) (k : Nat)
+    (cs : Nat → ratRep) :
+    ratRel
+      (sumTo (cutHeadTerm c p k cs) (Nat.succ k))
+      (ratAddRep
+        (sumTo (stepTerm p cs) k)
+        (ratMulRep (cs k) (ratSubRep c (partPoint p k)))) :=
+  ratRel_trans_gen
+    (sumTo (cutHeadTerm c p k cs) (Nat.succ k))
+    (ratAddRep (sumTo (cutHeadTerm c p k cs) k)
+      (cutHeadTerm c p k cs k))
+    (ratAddRep
+      (sumTo (stepTerm p cs) k)
+      (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+    (ratRel_of_eq
+      (sumTo (cutHeadTerm c p k cs) (Nat.succ k))
+      (ratAddRep (sumTo (cutHeadTerm c p k cs) k)
+        (cutHeadTerm c p k cs k))
+      (sumTo_succ (cutHeadTerm c p k cs) k))
+    (ratRel_trans_gen
+      (ratAddRep (sumTo (cutHeadTerm c p k cs) k)
+        (cutHeadTerm c p k cs k))
+      (ratAddRep (sumTo (stepTerm p cs) k)
+        (cutHeadTerm c p k cs k))
+      (ratAddRep
+        (sumTo (stepTerm p cs) k)
+        (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+      (ratAddRep_wd_gen (sumTo (cutHeadTerm c p k cs) k)
+        (sumTo (stepTerm p cs) k) (cutHeadTerm c p k cs k)
+        (sumTo_congr_upto (cutHeadTerm c p k cs) (stepTerm p cs) k
+          (fun (i : Nat) (hi : LeNat (Nat.succ i) k) =>
+            ratMulRep_wd_snd_gen (cs i)
+              (segLen (cutHead k c p) i) (segLen p i)
+              (segLen_cutHead_lt a b c p k i hi))))
+      (ratAddRep_wd_snd_gen (sumTo (stepTerm p cs) k)
+        (cutHeadTerm c p k cs k)
+        (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+        (ratMulRep_wd_snd_gen (cs k) (segLen (cutHead k c p) k)
+          (ratSubRep c (partPoint p k))
+          (segLen_cutHead_last a b c p k))))
+
+-- 后半的矩形和：接缝一项是 `cs k·(p(k+1) - c)`，其余回到原来的第 `k+1+j` 段。
+theorem cutTailSum_form (a b c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) :
+    ratRel
+      (sumTo (cutTailTerm c p k m cs) (Nat.succ m))
+      (ratAddRep
+        (ratMulRep (cs k)
+          (ratSubRep (partPoint p (Nat.succ k)) c))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m)) :=
+  ratRel_trans_gen
+    (sumTo (cutTailTerm c p k m cs) (Nat.succ m))
+    (sumTo (cutTailTerm c p k m cs) (Nat.add (Nat.succ Nat.zero) m))
+    (ratAddRep
+      (ratMulRep (cs k)
+        (ratSubRep (partPoint p (Nat.succ k)) c))
+      (sumTo (fun (j : Nat) =>
+        stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+    (ratRel_of_eq
+      (sumTo (cutTailTerm c p k m cs) (Nat.succ m))
+      (sumTo (cutTailTerm c p k m cs) (Nat.add (Nat.succ Nat.zero) m))
+      (@Eq.symm.{1} ratRep
+        (sumTo (cutTailTerm c p k m cs) (Nat.add (Nat.succ Nat.zero) m))
+        (sumTo (cutTailTerm c p k m cs) (Nat.succ m))
+        (congrArg (sumTo (cutTailTerm c p k m cs)) (add_one_succ m))))
+    (ratRel_trans_gen
+      (sumTo (cutTailTerm c p k m cs) (Nat.add (Nat.succ Nat.zero) m))
+      (ratAddRep (sumTo (cutTailTerm c p k m cs) (Nat.succ Nat.zero))
+        (sumTo (fun (j : Nat) =>
+          cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j)) m))
+      (ratAddRep
+        (ratMulRep (cs k)
+          (ratSubRep (partPoint p (Nat.succ k)) c))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+      (sumTo_shift (cutTailTerm c p k m cs) (Nat.succ Nat.zero) m)
+      (ratRel_trans_gen
+        (ratAddRep (sumTo (cutTailTerm c p k m cs) (Nat.succ Nat.zero))
+          (sumTo (fun (j : Nat) =>
+            cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j)) m))
+        (ratAddRep
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))
+          (sumTo (fun (j : Nat) =>
+            cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j)) m))
+        (ratAddRep
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))
+          (sumTo (fun (j : Nat) =>
+            stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+        (ratAddRep_wd_gen
+          (sumTo (cutTailTerm c p k m cs) (Nat.succ Nat.zero))
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))
+          (sumTo (fun (j : Nat) =>
+            cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j)) m)
+          (ratRel_trans_gen
+            (sumTo (cutTailTerm c p k m cs) (Nat.succ Nat.zero))
+            (ratAddRep ratZeroRep (cutTailTerm c p k m cs Nat.zero))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))
+            (ratRel_of_eq
+              (sumTo (cutTailTerm c p k m cs) (Nat.succ Nat.zero))
+              (ratAddRep ratZeroRep (cutTailTerm c p k m cs Nat.zero))
+              (sumTo_succ (cutTailTerm c p k m cs) Nat.zero))
+            (ratRel_trans_gen
+              (ratAddRep ratZeroRep (cutTailTerm c p k m cs Nat.zero))
+              (cutTailTerm c p k m cs Nat.zero)
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))
+              (ratAdd_zero_left (cutTailTerm c p k m cs Nat.zero))
+              (ratMulRep_wd_snd_gen (cs k) (segLen (cutTail k m c p) Nat.zero)
+                (ratSubRep (partPoint p (Nat.succ k)) c)
+                (segLen_cutTail_zero a b c p k m)))))
+        (ratAddRep_wd_snd_gen
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))
+          (sumTo (fun (j : Nat) =>
+            cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j)) m)
+          (sumTo (fun (j : Nat) =>
+            stepTerm p cs (Nat.add (Nat.succ k) j)) m)
+          (sumTo_congr_upto
+            (fun (j : Nat) =>
+              cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j))
+            (fun (j : Nat) => stepTerm p cs (Nat.add (Nat.succ k) j)) m
+            (fun (j : Nat) (_hi : LeNat (Nat.succ j) m) =>
+              ratRel_trans_gen
+                (cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j))
+                (cutTailTerm c p k m cs (Nat.succ j))
+                (stepTerm p cs (Nat.add (Nat.succ k) j))
+                (ratRel_of_eq
+                  (cutTailTerm c p k m cs (Nat.add (Nat.succ Nat.zero) j))
+                  (cutTailTerm c p k m cs (Nat.succ j))
+                  (congrArg (cutTailTerm c p k m cs) (add_one_succ j)))
+                (ratRel_trans_gen
+                  (cutTailTerm c p k m cs (Nat.succ j))
+                  (ratMulRep (cs (Nat.add (Nat.succ k) j))
+                    (segLen (cutTail k m c p) (Nat.succ j)))
+                  (stepTerm p cs (Nat.add (Nat.succ k) j))
+                  (ratRel_of_eq
+                    (ratMulRep (cs (Nat.add k (Nat.succ j)))
+                      (segLen (cutTail k m c p) (Nat.succ j)))
+                    (ratMulRep (cs (Nat.add (Nat.succ k) j))
+                      (segLen (cutTail k m c p) (Nat.succ j)))
+                    (congrArg (fun (z : Nat) =>
+                      ratMulRep (cs z)
+                        (segLen (cutTail k m c p) (Nat.succ j)))
+                      (@Eq.symm.{1} Nat (Nat.add (Nat.succ k) j)
+                        (Nat.add k (Nat.succ j)) (succ_add k j))))
+                  (ratMulRep_wd_snd_gen (cs (Nat.add (Nat.succ k) j))
+                    (segLen (cutTail k m c p) (Nat.succ j))
+                    (segLen p (Nat.add (Nat.succ k) j))
+                    (segLen_cutTail_succ a b c p k m j))))))))
+
+-- 主式：把原来的和拆成「前 k 项 + 接缝两块 + 后面 m 项」。
+theorem cutMain_form (a b c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) :
+    ratRel
+      (sumTo (stepTerm p cs) (Nat.add (Nat.succ k) m))
+      (ratAddRep
+        (ratAddRep (sumTo (stepTerm p cs) k)
+          (ratAddRep
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m)) :=
+  ratRel_trans_gen
+    (sumTo (stepTerm p cs) (Nat.add (Nat.succ k) m))
+    (ratAddRep (sumTo (stepTerm p cs) (Nat.succ k))
+      (sumTo (fun (j : Nat) =>
+        stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+    (ratAddRep
+      (ratAddRep (sumTo (stepTerm p cs) k)
+        (ratAddRep
+          (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))))
+      (sumTo (fun (j : Nat) =>
+        stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+    (sumTo_shift (stepTerm p cs) (Nat.succ k) m)
+    (ratRel_trans_gen
+      (ratAddRep (sumTo (stepTerm p cs) (Nat.succ k))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+      (ratAddRep
+        (ratAddRep (sumTo (stepTerm p cs) k)
+          (stepTerm p cs k))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+      (ratAddRep
+        (ratAddRep (sumTo (stepTerm p cs) k)
+          (ratAddRep
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+      (ratAddRep_wd_gen
+        (sumTo (stepTerm p cs) (Nat.succ k))
+        (ratAddRep (sumTo (stepTerm p cs) k) (stepTerm p cs k))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m)
+        (ratRel_of_eq (sumTo (stepTerm p cs) (Nat.succ k))
+          (ratAddRep (sumTo (stepTerm p cs) k) (stepTerm p cs k))
+          (sumTo_succ (stepTerm p cs) k)))
+      (ratAddRep_wd_gen
+        (ratAddRep (sumTo (stepTerm p cs) k) (stepTerm p cs k))
+        (ratAddRep (sumTo (stepTerm p cs) k)
+          (ratAddRep
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m)
+        (ratAddRep_wd_snd_gen (sumTo (stepTerm p cs) k)
+          (stepTerm p cs k)
+          (ratAddRep
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c)))
+          (cut_mid_term a b c p k cs))))
+
+-- 三块重括号：`(S + (G + H)) + T` 与 `(S + G) + (H + T)`。
+theorem cut_reassoc (S Gk H0 T : ratRep) :
+    ratRel (ratAddRep (ratAddRep S (ratAddRep Gk H0)) T)
+      (ratAddRep (ratAddRep S Gk) (ratAddRep H0 T)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep S (ratAddRep Gk H0)) T)
+    (ratAddRep (ratAddRep (ratAddRep S Gk) H0) T)
+    (ratAddRep (ratAddRep S Gk) (ratAddRep H0 T))
+    (ratAddRep_wd_gen (ratAddRep S (ratAddRep Gk H0))
+      (ratAddRep (ratAddRep S Gk) H0) T
+      (ratRel_symm (ratAddRep (ratAddRep S Gk) H0)
+        (ratAddRep S (ratAddRep Gk H0)) (ratAdd_assoc S Gk H0)))
+    (ratAdd_assoc (ratAddRep S Gk) H0 T)
+
+-- 矩形和沿切开精确相加（对任意台阶函数成立）。
+theorem cutStepSum (a b c : ratRep) (p : Partition) (k m : Nat)
+    (cs : Nat → ratRep) (hn : partCount p = Nat.add (Nat.succ k) m) :
+    ratRel (stepSum p cs)
+      (ratAddRep (stepSum (cutHead k c p) cs)
+        (stepSum (cutTail k m c p)
+          (fun (j : Nat) => cs (Nat.add k j)))) :=
+  ratRel_trans_gen
+    (stepSum p cs)
+    (sumTo (stepTerm p cs) (Nat.add (Nat.succ k) m))
+    (ratAddRep (stepSum (cutHead k c p) cs)
+      (stepSum (cutTail k m c p)
+        (fun (j : Nat) => cs (Nat.add k j))))
+    (ratRel_of_eq (stepSum p cs)
+      (sumTo (stepTerm p cs) (Nat.add (Nat.succ k) m))
+      (congrArg (sumTo (stepTerm p cs)) hn))
+    (ratRel_trans_gen
+      (sumTo (stepTerm p cs) (Nat.add (Nat.succ k) m))
+      (ratAddRep
+        (ratAddRep (sumTo (stepTerm p cs) k)
+          (ratAddRep
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))))
+        (sumTo (fun (j : Nat) =>
+          stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+      (ratAddRep (stepSum (cutHead k c p) cs)
+        (stepSum (cutTail k m c p)
+          (fun (j : Nat) => cs (Nat.add k j))))
+      (cutMain_form a b c p k m cs)
+      (ratRel_trans_gen
+        (ratAddRep
+          (ratAddRep (sumTo (stepTerm p cs) k)
+            (ratAddRep
+              (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))))
+          (sumTo (fun (j : Nat) =>
+            stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+        (ratAddRep
+          (ratAddRep (sumTo (stepTerm p cs) k)
+            (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+          (ratAddRep
+            (ratMulRep (cs k)
+              (ratSubRep (partPoint p (Nat.succ k)) c))
+            (sumTo (fun (j : Nat) =>
+              stepTerm p cs (Nat.add (Nat.succ k) j)) m)))
+        (ratAddRep (stepSum (cutHead k c p) cs)
+          (stepSum (cutTail k m c p)
+            (fun (j : Nat) => cs (Nat.add k j))))
+        (cut_reassoc (sumTo (stepTerm p cs) k)
+          (ratMulRep (cs k) (ratSubRep c (partPoint p k)))
+          (ratMulRep (cs k)
+            (ratSubRep (partPoint p (Nat.succ k)) c))
+          (sumTo (fun (j : Nat) =>
+            stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+        (ratRel_trans_gen
+          (ratAddRep
+            (ratAddRep (sumTo (stepTerm p cs) k)
+              (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+            (ratAddRep
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))
+              (sumTo (fun (j : Nat) =>
+                stepTerm p cs (Nat.add (Nat.succ k) j)) m)))
+          (ratAddRep (stepSum (cutHead k c p) cs)
+            (ratAddRep
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))
+              (sumTo (fun (j : Nat) =>
+                stepTerm p cs (Nat.add (Nat.succ k) j)) m)))
+          (ratAddRep (stepSum (cutHead k c p) cs)
+            (stepSum (cutTail k m c p)
+              (fun (j : Nat) => cs (Nat.add k j))))
+          (ratAddRep_wd_gen
+            (ratAddRep (sumTo (stepTerm p cs) k)
+              (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+            (stepSum (cutHead k c p) cs)
+            (ratAddRep
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))
+              (sumTo (fun (j : Nat) =>
+                stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+            (ratRel_symm (stepSum (cutHead k c p) cs)
+              (ratAddRep (sumTo (stepTerm p cs) k)
+                (ratMulRep (cs k) (ratSubRep c (partPoint p k))))
+              (cutHeadSum_form a b c p k cs)))
+          (ratAddRep_wd_snd_gen
+            (stepSum (cutHead k c p) cs)
+            (ratAddRep
+              (ratMulRep (cs k)
+                (ratSubRep (partPoint p (Nat.succ k)) c))
+              (sumTo (fun (j : Nat) =>
+                stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+            (stepSum (cutTail k m c p)
+              (fun (j : Nat) => cs (Nat.add k j)))
+            (ratRel_symm
+              (stepSum (cutTail k m c p)
+                (fun (j : Nat) => cs (Nat.add k j)))
+              (ratAddRep
+                (ratMulRep (cs k)
+                  (ratSubRep (partPoint p (Nat.succ k)) c))
+                (sumTo (fun (j : Nat) =>
+                  stepTerm p cs (Nat.add (Nat.succ k) j)) m))
+              (cutTailSum_form a b c p k m cs))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 沿现成的切点切开：前缀与后缀
+-- ─────────────────────────────────────────────────────────────
+
+-- 前 `j` 段：切点序原样截断，最后一个切点是 `p j`。
+def prefixPart (j : Nat) (p : Partition) : Partition :=
+  @prod_mk Nat (Nat → ratRep) j (partPoint p)
+
+-- 从第 `j` 个切点起的 `m` 段：切点序整体平移到 `p j` 开头。
+def suffixPart (j m : Nat) (p : Partition) : Partition :=
+  @prod_mk Nat (Nat → ratRep) m
+    (fun (i : Nat) => partPoint p (Nat.add j i))
+
+-- 前缀与后缀仍是分割。
+theorem prefixPart_isPartition (a b : ratRep) (p : Partition) (j : Nat)
+    (hp : IsPartition a b p) (hj : LeNat j (partCount p)) :
+    IsPartition a (partPoint p j) (prefixPart j p) :=
+  And.intro
+    (isPartition_left a b p hp)
+    (And.intro
+      (@Eq.refl.{1} ratRep (partPoint p j))
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) j) =>
+        isPartition_step a b p hp i
+          (leNat_trans (Nat.succ i) j (partCount p) hi hj)))
+
+theorem suffixPart_isPartition (a b : ratRep) (p : Partition) (j m : Nat)
+    (hp : IsPartition a b p) (hn : partCount p = Nat.add j m) :
+    IsPartition (partPoint p j) b (suffixPart j m p) :=
+  And.intro
+    (@Eq.refl.{1} ratRep (partPoint p j))
+    (And.intro
+      (@Eq.trans.{1} ratRep
+        (partPoint (suffixPart j m p) (partCount (suffixPart j m p)))
+        (partPoint p (partCount p))
+        b
+        (@Eq.subst.{1} Nat
+          (fun (z : Nat) =>
+            partPoint (suffixPart j m p) (partCount (suffixPart j m p)) =
+              partPoint p z)
+          (Nat.add j m) (partCount p)
+          (@Eq.symm.{1} Nat (partCount p) (Nat.add j m) hn)
+          (@Eq.refl.{1} ratRep (partPoint p (Nat.add j m))))
+        (isPartition_right a b p hp))
+      (fun (i : Nat) (hi : LeNat (Nat.succ i) m) =>
+        isPartition_step a b p hp (Nat.add j i)
+          (@Eq.subst.{1} Nat
+            (fun (z : Nat) => LeNat (Nat.succ (Nat.add j i)) z)
+            (Nat.add j m) (partCount p)
+            (@Eq.symm.{1} Nat (partCount p) (Nat.add j m) hn)
+            (leNat_add_left (Nat.succ i) m j hi))))
+
+-- 前缀的下界/上界：段与原来的段逐段相同。
+theorem prefixPart_lowerStep (a b : ratRep) (p : Partition) (j : Nat)
+    (f : ratRep → ratRep) (l : Nat → ratRep) (hp : IsPartition a b p)
+    (hj : LeNat j (partCount p)) (hl : LowerStep a b p f l) :
+    LowerStep a (partPoint p j) (prefixPart j p) f l :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) j) (x : ratRep)
+      (hx : InClosed (partPoint (prefixPart j p) i)
+        (partPoint (prefixPart j p) (Nat.succ i)) x) =>
+    hl i (leNat_trans (Nat.succ i) j (partCount p) hi hj) x hx
+
+theorem prefixPart_upperStep (a b : ratRep) (p : Partition) (j : Nat)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (hp : IsPartition a b p)
+    (hj : LeNat j (partCount p)) (hu : UpperStep a b p f u) :
+    UpperStep a (partPoint p j) (prefixPart j p) f u :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) j) (x : ratRep)
+      (hx : InClosed (partPoint (prefixPart j p) i)
+        (partPoint (prefixPart j p) (Nat.succ i)) x) =>
+    hu i (leNat_trans (Nat.succ i) j (partCount p) hi hj) x hx
+
+-- 后缀的下界/上界：第 `i` 段回到原来的第 `j+i` 段。
+theorem suffixPart_lowerStep (a b : ratRep) (p : Partition) (j m : Nat)
+    (f : ratRep → ratRep) (l : Nat → ratRep) (hp : IsPartition a b p)
+    (hn : partCount p = Nat.add j m) (hl : LowerStep a b p f l) :
+    LowerStep (partPoint p j) b (suffixPart j m p) f
+      (fun (i : Nat) => l (Nat.add j i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) m) (x : ratRep)
+      (hx : InClosed (partPoint (suffixPart j m p) i)
+        (partPoint (suffixPart j m p) (Nat.succ i)) x) =>
+    hl (Nat.add j i)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat (Nat.succ (Nat.add j i)) z)
+        (Nat.add j m) (partCount p)
+        (@Eq.symm.{1} Nat (partCount p) (Nat.add j m) hn)
+        (leNat_add_left (Nat.succ i) m j hi))
+      x hx
+
+theorem suffixPart_upperStep (a b : ratRep) (p : Partition) (j m : Nat)
+    (f : ratRep → ratRep) (u : Nat → ratRep) (hp : IsPartition a b p)
+    (hn : partCount p = Nat.add j m) (hu : UpperStep a b p f u) :
+    UpperStep (partPoint p j) b (suffixPart j m p) f
+      (fun (i : Nat) => u (Nat.add j i)) :=
+  fun (i : Nat) (hi : LeNat (Nat.succ i) m) (x : ratRep)
+      (hx : InClosed (partPoint (suffixPart j m p) i)
+        (partPoint (suffixPart j m p) (Nat.succ i)) x) =>
+    hu (Nat.add j i)
+      (@Eq.subst.{1} Nat
+        (fun (z : Nat) => LeNat (Nat.succ (Nat.add j i)) z)
+        (Nat.add j m) (partCount p)
+        (@Eq.symm.{1} Nat (partCount p) (Nat.add j m) hn)
+        (leNat_add_left (Nat.succ i) m j hi))
+      x hx
+
+-- 前缀/后缀的矩形和是原来和的切片（定义性相等）。
+theorem prefixPart_stepSum (p : Partition) (j : Nat)
+    (l : Nat → ratRep) :
+    stepSum (prefixPart j p) l = sumTo (stepTerm p l) j :=
+  @Eq.refl.{1} ratRep (sumTo (stepTerm p l) j)
+
+theorem suffixPart_stepSum (p : Partition) (j m : Nat)
+    (l : Nat → ratRep) :
+    stepSum (suffixPart j m p) (fun (i : Nat) => l (Nat.add j i)) =
+      sumTo (fun (k : Nat) => stepTerm p l (Nat.add j k)) m :=
+  @Eq.refl.{1} ratRep
+    (sumTo (fun (k : Nat) => stepTerm p l (Nat.add j k)) m)
+
+-- ─────────────────────────────────────────────────────────────
+-- 上和的差沿两个半区相加
+-- ─────────────────────────────────────────────────────────────
+
+-- `(U1+U2) - (L1+L2) ~ (U1-L1) + (U2-L2)`。
+theorem sub_add_gap (U1 L1 U2 L2 : ratRep) :
+    ratRel (ratSubRep (ratAddRep U1 U2) (ratAddRep L1 L2))
+      (ratAddRep (ratSubRep U1 L1) (ratSubRep U2 L2)) :=
+  ratRel_trans_gen
+    (ratAddRep (ratAddRep U1 U2) (ratNegRep (ratAddRep L1 L2)))
+    (ratAddRep (ratAddRep U1 U2)
+      (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+    (ratAddRep (ratAddRep U1 (ratNegRep L1))
+      (ratAddRep U2 (ratNegRep L2)))
+    (ratAddRep_wd_snd_gen (ratAddRep U1 U2)
+      (ratNegRep (ratAddRep L1 L2))
+      (ratAddRep (ratNegRep L1) (ratNegRep L2))
+      (ratNegRep_add L1 L2))
+    (ratRel_trans_gen
+      (ratAddRep (ratAddRep U1 U2)
+        (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+      (ratAddRep U1
+        (ratAddRep U2 (ratAddRep (ratNegRep L1) (ratNegRep L2))))
+      (ratAddRep (ratAddRep U1 (ratNegRep L1))
+        (ratAddRep U2 (ratNegRep L2)))
+      (ratAdd_assoc U1 U2 (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+      (ratRel_trans_gen
+        (ratAddRep U1
+          (ratAddRep U2 (ratAddRep (ratNegRep L1) (ratNegRep L2))))
+        (ratAddRep U1
+          (ratAddRep (ratNegRep L1) (ratAddRep U2 (ratNegRep L2))))
+        (ratAddRep (ratAddRep U1 (ratNegRep L1))
+          (ratAddRep U2 (ratNegRep L2)))
+        (ratAddRep_wd_snd_gen U1
+          (ratAddRep U2 (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+          (ratAddRep (ratNegRep L1) (ratAddRep U2 (ratNegRep L2)))
+          (ratRel_trans_gen
+            (ratAddRep U2 (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+            (ratAddRep (ratAddRep U2 (ratNegRep L1)) (ratNegRep L2))
+            (ratAddRep (ratNegRep L1) (ratAddRep U2 (ratNegRep L2)))
+            (ratRel_symm
+              (ratAddRep (ratAddRep U2 (ratNegRep L1)) (ratNegRep L2))
+              (ratAddRep U2 (ratAddRep (ratNegRep L1) (ratNegRep L2)))
+              (ratAdd_assoc U2 (ratNegRep L1) (ratNegRep L2)))
+            (ratRel_trans_gen
+              (ratAddRep (ratAddRep U2 (ratNegRep L1)) (ratNegRep L2))
+              (ratAddRep (ratAddRep (ratNegRep L1) U2) (ratNegRep L2))
+              (ratAddRep (ratNegRep L1) (ratAddRep U2 (ratNegRep L2)))
+              (ratAddRep_wd_gen (ratAddRep U2 (ratNegRep L1))
+                (ratAddRep (ratNegRep L1) U2) (ratNegRep L2)
+                (ratAdd_comm U2 (ratNegRep L1)))
+              (ratAdd_assoc (ratNegRep L1) U2 (ratNegRep L2)))))
+        (ratRel_symm
+          (ratAddRep (ratAddRep U1 (ratNegRep L1))
+            (ratAddRep U2 (ratNegRep L2)))
+          (ratAddRep U1
+            (ratAddRep (ratNegRep L1) (ratAddRep U2 (ratNegRep L2))))
+          (ratAdd_assoc U1 (ratNegRep L1) (ratAddRep U2 (ratNegRep L2))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 非负曲线：面积值沿右端点不下降
+-- ─────────────────────────────────────────────────────────────
+
+-- 下和一侧：右边一块垫着非负曲线，它的下和不会为负；把两块拼起来就压住
+-- 整段的下和。
+theorem lower_sum_le_of_nonneg_right (a b c : ratRep) (f : ratRep → ratRep)
+    (I : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x))
+    (p1 : Partition) (L1 : ratRep) (hp1 : IsPartition a c p1)
+    (hL1 : LowerSum a c p1 f L1) :
+    ratLeRep L1 I :=
+  Exists.elim
+    (nat_succ_of_ne_zero (partCount p1)
+      (partCount_ne_zero a c p1 hp1 hac))
+    (fun (n1 : Nat) (hn1 : partCount p1 = Nat.succ n1) =>
+      ratLeRep_congr_gen
+        (ratAddRep L1 ratZeroRep) L1 I I
+        (ratAdd_zero L1) (ratRel_refl I)
+        (hasIntegral_lower a b f I h
+          (catPartition n1 p1 (twoPoint c b))
+          (ratAddRep L1 ratZeroRep)
+          (catPartition_isPartition a b c p1 (twoPoint c b) n1
+            hp1 (twoPoint_isPartition c b hcb)
+            (ratRel_of_eq (partPoint p1 (partCount p1)) c
+              (isPartition_right a c p1 hp1))
+            hn1)
+          (catPartition_lowerSum a b c p1 (twoPoint c b) n1 f L1
+            ratZeroRep hp1 (twoPoint_isPartition c b hcb)
+            (ratRel_of_eq (partPoint p1 (partCount p1)) c
+              (isPartition_right a c p1 hp1))
+            hn1 hL1 (lowerSum_zero c b (twoPoint c b) f hf))))
+
+-- 主定理：非负曲线上，面积函数不下降。
+theorem hasIntegral_le_of_nonneg_right (a b c : ratRep)
+    (f : ratRep → ratRep) (I1 I : ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : HasIntegral a c f I1) (h : HasIntegral a b f I)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    ratLeRep I1 I :=
+  ratLeRep_of_sub_le_all I1 I
+    (fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+      Exists.elim (hasIntegral_integrable a c f I1 h1 eps heps)
+        (fun (p1 : Partition)
+            (hp1 : IsPartition a c p1 ∧
+              ∃ (L : ratRep), ∃ (U : ratRep),
+                LowerSum a c p1 f L ∧ UpperSum a c p1 f U ∧
+                  ratLtRep (ratSubRep U L) eps) =>
+          Exists.elim (And.right hp1)
+            (fun (L1 : ratRep)
+                (hL1 : ∃ (U : ratRep),
+                  LowerSum a c p1 f L1 ∧ UpperSum a c p1 f U ∧
+                    ratLtRep (ratSubRep U L1) eps) =>
+              Exists.elim hL1
+                (fun (U1 : ratRep)
+                    (hU1 : LowerSum a c p1 f L1 ∧
+                      UpperSum a c p1 f U1 ∧
+                        ratLtRep (ratSubRep U1 L1) eps) =>
+                  ratLeRep_trans
+                    (ratSubRep I1 I) (ratSubRep U1 L1) eps
+                    (ratLeRep_sub I1 U1 I L1
+                      (hasIntegral_upper a c f I1 h1 p1 U1
+                        (And.left hp1) (And.left (And.right hU1)))
+                      (lower_sum_le_of_nonneg_right a b c f I hac hcb h
+                        hf p1 L1 (And.left hp1) (And.left hU1)))
+                    (ratLtRep_le (ratSubRep U1 L1) eps
+                      (And.right (And.right hU1)))))))
+
+-- ─────────────────────────────────────────────────────────────
+-- 可积性沿切点相加
+-- ─────────────────────────────────────────────────────────────
+
+-- 两个半区各自可积，整段可积：把 ε 折半，两个半区的分割用 `catPartition`
+-- 接起来，两个缝隙相加仍小于 ε。
+theorem integrable_cat (a b c : ratRep) (f : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (h1 : Integrable a c f) (h2 : Integrable c b f) :
+    Integrable a b f :=
+  fun (eps : ratRep) (heps : ratLtRep ratZeroRep eps) =>
+    Exists.elim (h1 (ratHalf eps) (ratLtRep_half eps heps))
+      (fun (p1 : Partition)
+          (hp1 : IsPartition a c p1 ∧
+            ∃ (L : ratRep), ∃ (U : ratRep),
+              LowerSum a c p1 f L ∧ UpperSum a c p1 f U ∧
+                ratLtRep (ratSubRep U L) (ratHalf eps)) =>
+        Exists.elim (h2 (ratHalf eps) (ratLtRep_half eps heps))
+          (fun (p2 : Partition)
+              (hp2 : IsPartition c b p2 ∧
+                ∃ (L : ratRep), ∃ (U : ratRep),
+                  LowerSum c b p2 f L ∧ UpperSum c b p2 f U ∧
+                    ratLtRep (ratSubRep U L) (ratHalf eps)) =>
+            Exists.elim (And.right hp1)
+              (fun (L1 : ratRep)
+                  (hL1 : ∃ (U : ratRep),
+                    LowerSum a c p1 f L1 ∧ UpperSum a c p1 f U ∧
+                      ratLtRep (ratSubRep U L1) (ratHalf eps)) =>
+                Exists.elim hL1
+                  (fun (U1 : ratRep)
+                      (hU1 : LowerSum a c p1 f L1 ∧
+                        UpperSum a c p1 f U1 ∧
+                          ratLtRep (ratSubRep U1 L1) (ratHalf eps)) =>
+                    Exists.elim (And.right hp2)
+                      (fun (L2 : ratRep)
+                          (hL2 : ∃ (U : ratRep),
+                            LowerSum c b p2 f L2 ∧ UpperSum c b p2 f U ∧
+                              ratLtRep (ratSubRep U L2) (ratHalf eps)) =>
+                        Exists.elim hL2
+                          (fun (U2 : ratRep)
+                              (hU2 : LowerSum c b p2 f L2 ∧
+                                UpperSum c b p2 f U2 ∧
+                                  ratLtRep (ratSubRep U2 L2)
+                                    (ratHalf eps)) =>
+                            Exists.elim
+                              (nat_succ_of_ne_zero (partCount p1)
+                                (partCount_ne_zero a c p1 (And.left hp1)
+                                  hac))
+                              (fun (n1 : Nat)
+                                  (hn1 : partCount p1 = Nat.succ n1) =>
+                                Exists.intro
+                                  (catPartition n1 p1 p2)
+                                  (And.intro
+                                    (catPartition_isPartition a b c p1 p2 n1
+                                      (And.left hp1) (And.left hp2)
+                                      (ratRel_of_eq (partPoint p1 (partCount p1)) c
+                                        (isPartition_right a c p1
+                                          (And.left hp1)))
+                                      hn1)
+                                    (Exists.intro
+                                      (ratAddRep L1 L2)
+                                      (Exists.intro
+                                        (ratAddRep U1 U2)
+                                        (And.intro
+                                          (catPartition_lowerSum a b c p1 p2
+                                            n1 f L1 L2 (And.left hp1)
+                                            (And.left hp2)
+                                            (ratRel_of_eq (partPoint p1 (partCount p1)) c
+                                              (isPartition_right a c p1
+                                                (And.left hp1)))
+                                            hn1 (And.left hU1) (And.left hU2))
+                                          (And.intro
+                                            (catPartition_upperSum a b c p1 p2
+                                              n1 f U1 U2 (And.left hp1)
+                                              (And.left hp2)
+                                              (ratRel_of_eq (partPoint p1 (partCount p1)) c
+                                                (isPartition_right a c p1
+                                                  (And.left hp1)))
+                                              hn1 (And.left (And.right hU1))
+                                              (And.left (And.right hU2)))
+                                            (ratLtRep_congr_fst
+                                              (ratSubRep (ratAddRep U1 U2)
+                                                (ratAddRep L1 L2))
+                                              (ratAddRep
+                                                (ratSubRep U1 L1)
+                                                (ratSubRep U2 L2))
+                                              eps
+                                              (ratLtRep_congr_snd
+                                                (ratAddRep
+                                                  (ratSubRep U1 L1)
+                                                  (ratSubRep U2 L2))
+                                                (ratAddRep (ratHalf eps)
+                                                  (ratHalf eps))
+                                                eps
+                                                (ratLtRep_add
+                                                  (ratSubRep U1 L1)
+                                                  (ratHalf eps)
+                                                  (ratSubRep U2 L2)
+                                                  (ratHalf eps)
+                                                  (And.right (And.right hU1))
+                                                  (And.right (And.right hU2)))
+                                                (ratHalf_add_self eps))
+                                              (sub_add_gap U1 L1 U2 L2))))))))))))))

@@ -30,21 +30,21 @@
       "id": "analysis",
       "title": "从集合论到实分析",
       "file": "data/analysis.json",
-      "source_fingerprint": "sha256:5e4d2de64f5ffe51e3f3a337e6bc45098982eb2c9cf51bffc3a6e88280ee5037",
-      "units": 173,
-      "units_with_exercises": 173,
-      "exercises": 1032,
-      "hints": 3039,
-      "solutions": 1032,
-      "prompt": 778
+      "source_fingerprint": "sha256:37746dbc021b982c9ee5f31aa9558909cb892746224a54ed849e071e50885f2d",
+      "units": 175,
+      "units_with_exercises": 175,
+      "exercises": 1046,
+      "hints": 3081,
+      "solutions": 1046,
+      "prompt": 787
     }
   ],
   "totals": {
-    "units": 296,
-    "units_with_exercises": 296,
-    "exercises": 2008,
-    "hints": 4988,
-    "solutions": 2008,
-    "prompt": 1732
+    "units": 298,
+    "units_with_exercises": 298,
+    "exercises": 2022,
+    "hints": 5030,
+    "solutions": 2022,
+    "prompt": 1741
   }
 }

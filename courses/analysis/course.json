@@ -1312,6 +1312,18 @@
               "title": "单元173 微积分基本定理（第一部分）：面积函数的导数是曲线的高度",
               "title_en": "Unit 173 — FTC, Part 1: The Derivative of the Area Function Is the Curve's Height",
               "unit": 173
+            },
+            {
+              "file": "units/III.9/unit174-cut-engine.sokonanoda",
+              "title": "单元174 区间切分引擎：插入切点、前缀后缀与面积值的单调性",
+              "title_en": "Unit 174 — The Cut Engine: Inserting a Cut Point, Prefix/Suffix Partitions, and Monotonicity of the Integral Value",
+              "unit": 174
+            },
+            {
+              "file": "units/III.9/unit175-capstone-area-function.sokonanoda",
+              "title": "单元175 卷 III capstone：面积函数的画像——可导、唯一、不降",
+              "title_en": "Unit 175 — Volume III Capstone: The Profile of the Area Function — Differentiable, Unique, Nondecreasing",
+              "unit": 175
             }
           ]
         }
