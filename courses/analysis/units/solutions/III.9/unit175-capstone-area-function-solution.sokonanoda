@@ -1,0 +1,81 @@
+-- 单元175 解答：卷 III capstone——面积函数的画像
+--
+-- 三件事分别来自单元173（FTC 第一部分）、单元167（面积值唯一）与单元174
+-- （非负 ⇒ 不下降），最后用常值曲线做一个可算读数。
+-- 不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.Uniform
+import lib.Deriv
+import lib.Integral
+import lib.IntegralValue
+import lib.IntegralSlope
+import lib.IntegralFTC
+import lib.IntegralCatValue
+
+-- 可导：面积函数的导数是曲线的高度。
+theorem u175_deriv (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →
+      HasIntegral a x f (F x)) :
+    HasDerivAt F c (f c) :=
+  integral_hasDerivAt a c b f F hac hcb huc hF
+
+-- 唯一：面积值至多一个。
+theorem u175_value_unique (a c : ratRep) (f : ratRep → ratRep)
+    (I1 I2 : ratRep) (h1 : HasIntegral a c f I1)
+    (h2 : HasIntegral a c f I2) :
+    ratRel I1 I2 :=
+  hasIntegral_unique a c f I1 I2 h1 h2
+
+-- 不降：曲线非负时面积函数单调。
+theorem u175_mono (a c b x : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcx : ratLtRep c x) (hxb : ratLtRep x b)
+    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b →
+      HasIntegral a y f (F y))
+    (hf : ∀ (y : ratRep), ratLeRep ratZeroRep (f y)) :
+    ratLeRep (F c) (F x) :=
+  hasIntegral_le_of_nonneg_right a x c f (F c) (F x)
+    hac hcx (hF c hac (ratLtRep_trans c x b hcx hxb))
+    (hF x (ratLtRep_trans a c x hac hcx) hxb) hf
+
+-- 画像：可导、唯一、不降。
+theorem u175_profile (a c b : ratRep) (f F : ratRep → ratRep)
+    (I2 : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →
+      HasIntegral a x f (F x))
+    (hI2 : HasIntegral a c f I2)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧
+      (∀ (x : ratRep), ratLtRep c x → ratLtRep x b →
+        ratLeRep (F c) (F x)) :=
+  And.intro
+    (u175_deriv a c b f F hac hcb huc hF)
+    (And.intro
+      (u175_value_unique a c f (F c) I2
+        (hF c hac hcb) hI2)
+      (fun (x : ratRep) (hcx : ratLtRep c x)
+          (hxb : ratLtRep x b) =>
+        u175_mono a c b x f F hac hcx hxb hF hf))
+
+-- 常值曲线的可算读数：导数是 k，且 k(c−a) ≤ k(b−a)。
+theorem demo_u175_const (a c b k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :
+    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k ∧
+      ratLeRep (ratMulRep k (ratSubRep c a))
+        (ratMulRep k (ratSubRep b a)) :=
+  And.intro
+    (integral_hasDerivAt a c b (fun (_ : ratRep) => k)
+      (fun (x : ratRep) => ratMulRep k (ratSubRep x a))
+      hac hcb (uniformlyContinuous_const k)
+      (fun (x : ratRep) (_hx : ratLtRep a x) (hxb : ratLtRep x b) =>
+        hasIntegral_const a x k _hx))
+    (hasIntegral_le_of_nonneg_right a b c (fun (_ : ratRep) => k)
+      (ratMulRep k (ratSubRep c a)) (ratMulRep k (ratSubRep b a))
+      hac hcb (hasIntegral_const a c k hac)
+      (hasIntegral_const a b k (ratLtRep_trans a c b hac hcb))
+      (fun (_ : ratRep) => hk))

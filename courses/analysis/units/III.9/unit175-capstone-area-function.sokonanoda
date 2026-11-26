@@ -1,0 +1,109 @@
+-- 单元175 卷 III capstone：面积函数的画像
+--
+-- 到这里，卷 III 的四样东西都已经就位：极限（III.1–III.5）、连续与微分
+-- （III.6–III.7）、Riemann 积分与面积值（III.8–III.9）。本单元把它们串成
+-- 一条完整的路径——给一条一致连续的曲线 f，取它在 [a,x] 上的面积值 F x，
+-- 问 F 到底是一个什么样的函数。
+--
+-- 三个回答：
+--   · 可导：F 在区间内部每一点可导，且 F′(c) 就是曲线的高度 f c（单元173 的
+--     FTC 第一部分，引擎在 `lib/IntegralFTC`）；
+--   · 唯一：面积值至多一个（单元167），所以「F」不是随手挑的读数；
+--   · 不降：曲线非负时，F 沿右端点不下降（单元174 的切分引擎 + 符号），
+--     这是「积分保持序」的第一个完整实例。
+--
+-- 合起来就是一张画像：F 可导、值唯一、单调方向由曲线的符号决定。粗体字里
+-- 唯一缺的是连续性——它要处理「两个切点只差一个代表元」的端点替换，留作
+-- 下一批内容；本单元不假装已经有它。
+--
+-- 边界：不证 Newton–Leibniz 的通用原函数版（在有理代表元层不成立），也不证
+-- Rolle / 中值定理（同一层不成立，反例写在 `README.md` 的边界里）。
+--
+-- 函数取 ratRep → ratRep，停在有理代表元层；不新增公理，也不碰 kernel/front。
+
+import lib.Rat
+import lib.RatOrder
+import lib.RatAbs
+import lib.Cauchy
+import lib.Uniform
+import lib.Deriv
+import lib.Integral
+import lib.IntegralValue
+import lib.IntegralSlope
+import lib.IntegralFTC
+import lib.IntegralCatValue
+
+-- ─────────────────────────────────────────────────────────────
+-- 一、可导：面积函数的导数是曲线的高度
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：这就是单元173 的 FTC 第一部分；直接把区间条件、一致连续与面积值假设交给 `integral_hasDerivAt`。
+-- soko:hint 目标形态：`HasDerivAt F c (f c)`。
+-- soko:hint 关键件：integral_hasDerivAt。
+theorem u175_deriv (a c b : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcb : ratLtRep c b) (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →
+      HasIntegral a x f (F x)) :
+    HasDerivAt F c (f c) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 二、唯一：面积值至多一个
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：两个候选都夹在每一个分割的上下和之间；可积性给一个缝隙任意小的分割，把它俩同时夹住，差为 0。
+-- soko:hint 目标形态：`ratRel (F c) I2`。
+-- soko:hint 关键件：hasIntegral_unique。
+theorem u175_value_unique (a c : ratRep) (f : ratRep → ratRep)
+    (I1 I2 : ratRep) (h1 : HasIntegral a c f I1)
+    (h2 : HasIntegral a c f I2) :
+    ratRel I1 I2 :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 三、不降：曲线非负时面积函数单调
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：把整段 [a,x] 在 c 处切开：非负性给「右半的下和不小于零」，拼起来压住左半的下和，再用可积性收紧。
+-- soko:hint 目标形态：`ratLeRep (F c) (F x)`（c < x < b）。
+-- soko:hint 关键件：hasIntegral_le_of_nonneg_right。
+theorem u175_mono (a c b x : ratRep) (f F : ratRep → ratRep)
+    (hac : ratLtRep a c) (hcx : ratLtRep c x) (hxb : ratLtRep x b)
+    (hF : ∀ (y : ratRep), ratLtRep a y → ratLtRep y b →
+      HasIntegral a y f (F y))
+    (hf : ∀ (y : ratRep), ratLeRep ratZeroRep (f y)) :
+    ratLeRep (F c) (F x) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 四、画像：三件事合成一条定理
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：三件分别由 `u175_deriv`、`u175_value_unique`（用 `hF c` 与 `hI2`）、`u175_mono`（对每个 x）给出，用 `And.intro` 叠起来。
+-- soko:hint 目标形态：`HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧ (∀ x, c<x<b → F c ≤ F x)`。
+-- soko:hint 关键件：u175_deriv · u175_value_unique · u175_mono。
+theorem u175_profile (a c b : ratRep) (f F : ratRep → ratRep)
+    (I2 : ratRep) (hac : ratLtRep a c) (hcb : ratLtRep c b)
+    (huc : UniformlyContinuous f)
+    (hF : ∀ (x : ratRep), ratLtRep a x → ratLtRep x b →
+      HasIntegral a x f (F x))
+    (hI2 : HasIntegral a c f I2)
+    (hf : ∀ (x : ratRep), ratLeRep ratZeroRep (f x)) :
+    HasDerivAt F c (f c) ∧ ratRel (F c) I2 ∧
+      (∀ (x : ratRep), ratLtRep c x → ratLtRep x b →
+        ratLeRep (F c) (F x)) :=
+  sorry
+
+-- ─────────────────────────────────────────────────────────────
+-- 五、可算读数：常值曲线
+-- ─────────────────────────────────────────────────────────────
+
+-- soko:hint 思路：常值 k 一致连续、在每个 [a,x] 上面积值是 k(x−a)；导数由 FTC 第一部分给出，不降由单元174 的常值读数给出。
+-- soko:hint 目标形态：`HasDerivAt (fun x => k·(x−a)) c k ∧ k·(c−a) ≤ k·(b−a)`（k ≥ 0）。
+-- soko:hint 关键件：integral_hasDerivAt · hasIntegral_const · hasIntegral_le_of_nonneg_right。
+theorem demo_u175_const (a c b k : ratRep) (hac : ratLtRep a c)
+    (hcb : ratLtRep c b) (hk : ratLeRep ratZeroRep k) :
+    HasDerivAt (fun (x : ratRep) => ratMulRep k (ratSubRep x a)) c k ∧
+      ratLeRep (ratMulRep k (ratSubRep c a))
+        (ratMulRep k (ratSubRep b a)) :=
+  sorry
