@@ -1,6 +1,6 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 6,
+  "version": 7,
   "updated": "2026-11-26",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
@@ -3353,6 +3353,137 @@
         "target": 4
       },
       "keyPoint": "分清代表元层 rfl 与商上良定义性：前者算公式，后者证换代表元不变。"
+    },
+    {
+      "id": "kp.ii1.int.mulrep",
+      "chapter": "II.1",
+      "title": "整数乘法的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 (a-b)(c-d)=(ac+bd)-(ad+bc)，并认出它是代表元层的定义性公式。"
+    },
+    {
+      "id": "kp.ii1.int.add.wd",
+      "chapter": "II.1",
+      "title": "整数加法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.addrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 add_shift 把 addRep 的两个分量重排，证明两个槽换代表元后结果仍相关。"
+    },
+    {
+      "id": "kp.ii1.int.add.laws",
+      "chapter": "II.1",
+      "title": "商上加法的交换律与结合律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.add.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把代表元层的 addRep_comm/addRep_assoc 交给 Quot.sound，得到商上的交换律与结合律。"
+    },
+    {
+      "id": "kp.ii1.int.add.group",
+      "chapter": "II.1",
+      "title": "商上加法的零元与负元",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.add.laws"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 zero_rep/add_neg_rep 得到 p+0=p 与 p+(-p)=0，并认出两次取负是定义性相等。"
+    },
+    {
+      "id": "kp.ii1.int.neg.wd",
+      "chapter": "II.1",
+      "title": "整数取负的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.negrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 intRel 的假设对称并用 add_comm 翻分量，证明负元尊重 intRel。"
+    },
+    {
+      "id": "kp.ii1.int.sub.wd",
+      "chapter": "II.1",
+      "title": "整数减法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.subrep",
+        "kp.ii1.int.add.wd",
+        "kp.ii1.int.neg.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "同时对被减数与减数使用相关性，或用 negRep_wd 加两次 addRep_wd 组合出 subRep 的良定义性。"
+    },
+    {
+      "id": "kp.ii1.int.sub.laws",
+      "chapter": "II.1",
+      "title": "商上减法的基本律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.sub.wd",
+        "kp.ii1.int.add.group"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 add_neg_rep 证 p-p=0，并用展开与重排证 (p-q)+q=p。"
     }
   ]
 }

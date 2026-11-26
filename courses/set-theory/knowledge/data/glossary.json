@@ -1,6 +1,6 @@
 {
   "schema": "soko.glossary/1",
-  "version": 8,
+  "version": 9,
   "updated": "2026-11-26",
   "entries": [
     {
@@ -330,6 +330,30 @@
       "oneLiner": "整数减法的代表元公式：先取负再相加，`(a,b)-(c,d) = (a+d,b+c)`。",
       "code": "-- def subRep (a b : Prod Nat Nat) : Prod Nat Nat := addRep a (negRep b)",
       "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:30"
+    },
+    {
+      "id": "mul-rep",
+      "term": "mulRep",
+      "kind": "definition",
+      "oneLiner": "整数乘法的代表元公式：`(a-b)(c-d) = (ac+bd) - (ad+bc)`。",
+      "code": "-- def mulRep (a b : Prod Nat Nat) : Prod Nat Nat",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:26"
+    },
+    {
+      "id": "add-rep-wd",
+      "term": "加法的良定义性",
+      "kind": "concept",
+      "oneLiner": "相关的代表元相加后仍相关；两个槽都要验证，才能把加法下降到 `Int`。",
+      "code": "-- theorem addRep_wd … : intRel (addRep p r) (addRep q r)",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84"
+    },
+    {
+      "id": "sub-rep-wd",
+      "term": "减法的良定义性",
+      "kind": "concept",
+      "oneLiner": "减法的两个槽都换成相关代表元后，结果仍相关；可由取负与加法的良定义性组合。",
+      "code": "-- theorem subRep_wd … : intRel (subRep p q) (subRep p' q')",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208"
     }
   ]
 }

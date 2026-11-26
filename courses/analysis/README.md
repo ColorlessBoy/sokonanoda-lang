@@ -10,7 +10,7 @@
 卷 II/III 的题目 `source` 写仓库根相对路径 `courses/analysis/units/…:行号`，`unit` 取
 本文件 `course.json` 的单元标题去掉「单元」前缀。2026-11-26 起按
 `courses/set-theory/knowledge/CONTENT-PLAN.md` §2.2 的 16 章 / 30 批计划推进；
-**II.1 单元①–④** 已落盘 15 KP / 61 题（II.1 覆盖 0 红、综合题 12）。
+**II.1 单元①–⑨** 已落盘 22 KP / 91 题（II.1 覆盖 0 红、综合题 22）。
 
 ```bash
 cd courses/set-theory/knowledge

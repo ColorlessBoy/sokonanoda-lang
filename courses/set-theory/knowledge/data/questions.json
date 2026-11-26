@@ -1,7 +1,7 @@
 {
   "schema": "soko.choice-bank/1",
   "title": "卷 I–III 选择题题库（集合论 / 分析）",
-  "version": 30,
+  "version": 31,
   "updated": "2026-11-26",
   "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
@@ -8975,6 +8975,806 @@
       "prereq": [],
       "kps": [
         "kp.ii1.int.rep.rfl"
+      ]
+    },
+    {
+      "id": "II.1.mulrep-1",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-reps",
+        "mulRep"
+      ],
+      "prompt": "`mulRep (a,b) (c,d)` 的两个分量是什么？",
+      "options": [
+        "`(a·c + b·d, a·d + b·c)`。",
+        "`(a·d + b·c, a·c + b·d)`。",
+        "`(a·c, b·d)`。",
+        "`(a + c, b + d)`。"
+      ],
+      "answer": 1,
+      "why": "`mulRep` 把 `(a-b)(c-d)` 展开后的正项 `ac+bd` 放进第一分量，交叉项 `ad+bc` 放进第二分量。`(ac,bd)` 漏掉交叉项，两个分量对调的写法把正负号弄反了，`(a+c,b+d)` 是加法而不是乘法。",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:48",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mulrep"
+      ]
+    },
+    {
+      "id": "II.1.mulrep-2",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "mulRep"
+      ],
+      "prompt": "`mulRep (2,0) (3,1)` 的闭值计算结果是什么？",
+      "options": [
+        "`(6,0)`。",
+        "`(5,1)`。",
+        "`(6,2)`。",
+        "`(3,2)`。"
+      ],
+      "answer": 3,
+      "why": "第一分量 `2·3 + 0·1 = 6`，第二分量 `2·1 + 0·3 = 2`，所以结果是 `(6,2)`。它表示 `2·2 = 4`；`(6,0)` 漏掉交叉项，`(3,2)` 与 `(5,1)` 都不是按公式算出的。",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:58",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mulrep"
+      ]
+    },
+    {
+      "id": "II.1.mulrep-3",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "mulRep"
+      ],
+      "prompt": "`mulRep (2,5) (1,0)` 的闭值计算结果是什么？",
+      "options": [
+        "`(7,5)`。",
+        "`(2,0)`。",
+        "`(2,5)`。",
+        "`(5,2)`。"
+      ],
+      "answer": 3,
+      "why": "`(1,0)` 表示 1，所以结果应与 `(2,5)` 表示同一个整数；公式给出 `(2·1+5·0, 2·0+5·1) = (2,5)`。`(2,0)` 把第二分量误算成 0，`(5,2)` 是取负后的代表元，`(7,5)` 则像是把两个代表元相加。",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:74",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mulrep"
+      ]
+    },
+    {
+      "id": "II.1.mulrep-4",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "mulRep"
+      ],
+      "prompt": "为什么 `mulRep` 不能简单写成 `(a·c, b·d)`？",
+      "options": [
+        "因为那样会把加法也一起定义掉。",
+        "`(a-b)(c-d)` 还有交叉项，必须并进两个分量。",
+        "因为 `(a·c, b·d)` 的类型不是 `Prod Nat Nat`。",
+        "因为 `myMul` 只对第二个参数递归，不能算 `a·c`。"
+      ],
+      "answer": 2,
+      "why": "直接相乘只保留了两端项 `ac` 与 `bd`，漏掉了 `-ad-bc`；课程把正项 `ac+bd` 与交叉项 `ad+bc` 分成两个分量，正好表达这个差。`(a·c,b·d)` 仍是 `Prod Nat Nat`，`myMul` 也能算，问题在公式不完整。",
+      "source": "courses/analysis/units/II.1/unit05-int-mul-reps.sokonanoda:26",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mulrep"
+      ]
+    },
+    {
+      "id": "II.1.addwd-1",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "要在商 `Int` 上定义加法，除了给出 `addRep` 公式，还必须证哪条？",
+      "options": [
+        "`addRep p q = addRep q p`，交换两个输入。",
+        "`intRel p q → intRel (addRep p r) (addRep q r)`。",
+        "`intRel p q → p = q`，把商内相等还原成代表元相等，像 `Quot.exact`。",
+        "`addRep p (0,0) = p`，先验证零元。"
+      ],
+      "answer": 2,
+      "why": "良定义性要求相关的代表元给出相关的输出；加法有两个输入，所以换第一个或第二个代表元都必须保持 `intRel`。`p = q` 是 `Quot.exact` 的反方向（课程没有），交换律与零元律是商上的代数性质，不是下降前的义务。",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.wd"
+      ]
+    },
+    {
+      "id": "II.1.addwd-2",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "`add_shift` 证明的目标等式是哪一个？",
+      "options": [
+        "`a+c = c+a`。",
+        "`(a+c)+(b+d) = (a+b)+(c+d)`。",
+        "`a+(b+c) = (a+b)+c`。",
+        "`(a+b)+(c+d) = (a+c)+(b+d)` 的对称版本。"
+      ],
+      "answer": 2,
+      "why": "`add_shift` 要把 `addRep` 的两个分量从 `(a+c,b+d)` 重排成 `(a+b,c+d)`，所以目标正是 `(a+c)+(b+d) = (a+b)+(c+d)`。`a+(b+c)=(a+b)+c` 是结合律，`a+c=c+a` 是交换律，二者都只是这条重排的零件。",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:76",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.wd"
+      ]
+    },
+    {
+      "id": "II.1.addwd-3",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "`addRep_wd` 中假设 `h : intRel (a,b) (a',b')` 最终用在哪个位置？",
+      "options": [
+        "用 `add_shift` 配好 `c,d` 后，用 `h` 换掉 `a+b'`。",
+        "用 `h` 替换 `c` 与 `d`，因为 `h` 同时约束四个数。",
+        "把 `h` 当成 `addRep` 的良定义性证明本身。",
+        "直接交给 `Quot.sound`，把两个商元素变成相等。"
+      ],
+      "answer": 1,
+      "why": "`add_shift` 先把 `(a+c)+(b'+d)` 重排成 `(a+b')+(c+d)`，此时中间项正好是 `h` 的左端 `a+b'`，用 `h` 换成 `a'+b`，再反用 `add_shift` 得到目标。`h` 只约束前两个代表元，不涉及 `c,d`；`Quot.sound` 是最后把代表元关系变成商内相等时才用。",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.wd",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.addwd-4",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "只证明「换第一个代表元，加法结果仍相关」是否足够？",
+      "options": [
+        "够；加法满足交换律，第二个参数可以自动由第一个参数推出。",
+        "不够；但第二个参数只能靠 `Quot.exact` 补，课程里做不到。",
+        "不够；第二个参数也要证，否则换 `c,d` 时结果可能改变。",
+        "够；因为 `intRel` 是等价关系，只需检查一个槽。"
+      ],
+      "answer": 3,
+      "why": "商上的二元函数对两个输入都要良定义；只证第一个槽，换 `c,d` 时 `addRep` 的两个分量仍可能变。交换律要等函数定义好之后才能用，不能反过来替你补义务；`intRel` 是等价关系也只说明它自身对称传递，不自动给出第二个槽的相容性。",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.wd"
+      ]
+    },
+    {
+      "id": "II.1.addwd-5",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "`add_shift` 的证明为什么不能只用 `add_assoc`？",
+      "options": [
+        "因为 `add_assoc` 的方向只能从右往左用，不能重排。",
+        "因为目标里根本没有括号，结合律用不上。",
+        "还要用 `add_comm` 把 `c+b` 换成 `b+c`。",
+        "因为 `add_assoc` 只对零成立，非零情形要换一条律。"
+      ],
+      "answer": 3,
+      "why": "把 `(a+c)+(b+d)` 结合成 `a+(c+(b+d))` 后，中间是 `c+b`，而目标要 `b+c`，所以必须交换一次；最后再结合成 `(a+b)+(c+d)`。`add_assoc` 对任意自然数成立且可双向使用；目标里省略的括号正是结合律要处理的对象。",
+      "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:76",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.wd",
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.addlaws-1",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "level": 1,
+      "tags": [
+        "int-add",
+        "quotient"
+      ],
+      "prompt": "`int_add_comm` 的结论是什么？",
+      "options": [
+        "`addRep p q = addRep q p` 这个代表元等式，括号与顺序都相同。",
+        "`mk (addRep p q) = mk (addRep q p)`。",
+        "`p + 0 = p`。",
+        "`intRel p q` 的对称性。"
+      ],
+      "answer": 2,
+      "why": "`int_add_comm` 是商上的交换律：两个代表元先相加再送进 `mk`，交换输入后商点相等。代表元层的 `addRep p q = addRep q p` 一般不成立（分量顺序不同），它对应的是 `addRep_comm` 那条 `intRel`；`p+0=p` 是零元律。",
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:99",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.laws"
+      ]
+    },
+    {
+      "id": "II.1.addlaws-2",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "quotient",
+        "quot-sound"
+      ],
+      "prompt": "`int_add_comm` 的证明项应当是什么？",
+      "options": [
+        "`Quot.sound` 加 `addRep_comm`。",
+        "`addRep_assoc`，先用结合律重排。",
+        "`Eq.refl`，因为两个商点定义性相同。",
+        "`Quot.ind`，先对商元素归纳。"
+      ],
+      "answer": 1,
+      "why": "商里的相等只能由 `Quot.sound` 产生，而 `addRep_comm` 正好给出所需代表元关系。两个商点并不定义性相等（代表元不同），`Quot.ind` 是证性质而不是造相等；`addRep_assoc` 是结合律那条的零件。",
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:99",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.laws",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.addlaws-3",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "quotient"
+      ],
+      "prompt": "`addRep_comm` 的证明应当先改写哪一边？",
+      "options": [
+        "先用 `add_assoc` 把四个加数重新结合。",
+        "先把 `d+b` 换成 `b+d`，再把 `a+c` 换成 `c+a`。",
+        "先对 `a` 做归纳，其余分量不动。",
+        "先把左边的 `a+c` 换成 `c+a`，右边保持 `d+b`。"
+      ],
+      "answer": 2,
+      "why": "目标左边是 `(a+c)+(d+b)`、右边是 `(c+a)+(b+d)`；先把 `d+b` 交换成 `b+d`，再把 `a+c` 交换成 `c+a`，两边就对齐了。只改左边会与右边 `b+d` 对不上；这条不需要归纳，也不是结合律的重排。",
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:81",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.laws"
+      ]
+    },
+    {
+      "id": "II.1.addlaws-4",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "quotient"
+      ],
+      "prompt": "`addRep_assoc` 的结论是什么？",
+      "options": [
+        "`intRel (addRep p q) (addRep q p)`。",
+        "`addRep (addRep p q) r = addRep p (addRep q r)` 这个代表元等式。",
+        "`intRel p (addRep p (0,0))`。",
+        "`intRel (addRep (addRep p q) r) (addRep p (addRep q r))`"
+      ],
+      "answer": 4,
+      "why": "结合律在商上要的是两个代表元相关：先加前两个再加第三个，与先加后两个再加第一个，结果在 `intRel` 下相等。代表元本身一般不逐字相等（分量括号不同），所以不能写成代表元等式；零元与交换律是另外两条。",
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:89",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.laws"
+      ]
+    },
+    {
+      "id": "II.1.addlaws-5",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "level": 3,
+      "tags": [
+        "int-add",
+        "quotient"
+      ],
+      "prompt": "`int_add_assoc` 为什么不能直接用 `Eq.refl` 收尾？",
+      "options": [
+        "因为要先证明 `Int` 是交换群。",
+        "因为 `Eq.refl` 不能用于 `Quot` 类型。",
+        "因为结合律在商上不成立，只能对代表元证。",
+        "`(a+c)+e` 与 `a+(c+e)` 不是定义性相等。"
+      ],
+      "answer": 4,
+      "why": "两个代表元的分量括号不同，`mk` 作用后也不定义性相等；`addRep_assoc` 给出它们相关，再用 `Quot.sound` 才得到商内相等。结合律在商上是成立的（这一条正是它的证明），`Eq.refl` 也能用于 `Quot` 类型，只是这里两边不同。",
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:107",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.laws",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.addgroup-1",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 1,
+      "tags": [
+        "int-add",
+        "int-group"
+      ],
+      "prompt": "在 `Int := Quot intRel` 里，零元用哪个代表元表示？",
+      "options": [
+        "`(a,a)` 只对 a=0 成立。",
+        "`(1,0)`。",
+        "`(0,0)`。",
+        "`(0,1)`。"
+      ],
+      "answer": 3,
+      "why": "`(0,0)` 表示 `0-0=0`，是课程里零元的代表元；`(1,0)` 表示 1，`(0,1)` 表示 -1。`(a,a)` 虽然也满足 `intRel (a,a) (0,0)`，但零元的定义选的是固定的 `(0,0)`，不是任取 a。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:73",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.group"
+      ]
+    },
+    {
+      "id": "II.1.addgroup-2",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "int-group",
+        "quot-sound"
+      ],
+      "prompt": "`int_add_zero` 的证明项应当是什么？",
+      "options": [
+        "`add_neg_rep a b`。",
+        "`Quot.sound` 用 `zero_rep`。",
+        "`Quot.ind`。",
+        "`Eq.refl`。"
+      ],
+      "answer": 2,
+      "why": "`int_add_zero` 要证 `mk (addRep p (0,0)) = mk p`，`zero_rep a b` 正好给出这两个代表元的相关性，交给 `Quot.sound` 即可。两边代表元不同，`Eq.refl` 不行；`Quot.ind` 不产生这条相等；`add_neg_rep` 是逆元那条。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:81",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.group",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.addgroup-3",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "int-group",
+        "quot-sound"
+      ],
+      "prompt": "`int_add_neg` 的证明项应当是什么？",
+      "options": [
+        "`Eq.refl`，因为 `p + (-p)` 定义性等于零。",
+        "`negRep_neg` 的对称。",
+        "`Quot.sound (zero_rep a b)`。",
+        "`Quot.sound (add_neg_rep a b)`。"
+      ],
+      "answer": 4,
+      "why": "`int_add_neg` 要证 `mk (addRep p (negRep p)) = mk (0,0)`；`add_neg_rep` 给出这两个代表元相关，交给 `Quot.sound`。`zero_rep` 是加零那条；`p+(-p)` 的代表元并不逐字等于 `(0,0)`，`negRep_neg` 处理的是两次取负。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:106",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.group",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.addgroup-4",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 3,
+      "tags": [
+        "int-add",
+        "int-group"
+      ],
+      "prompt": "`int_neg_neg` 为什么可以直接用 `Eq.refl` 收尾？",
+      "options": [
+        "因为两次取负在商上不成立，只能对代表元证。",
+        "因为要用 `Quot.sound` 加 `add_comm` 绕一圈才能得到。",
+        "因为 `Int` 上的取负是单射，消去一次即可。",
+        "`negRep (negRep p)` 定义性归约回 `p`。"
+      ],
+      "answer": 4,
+      "why": "`negRep` 只交换两个分量，做两次就回到 `(a,b)`，所以 `mk (negRep (negRep p))` 与 `mk p` 是同一个项，`Eq.refl` 足够。它不需要先证单射或绕道 `Quot.sound`；两次取负在商上当然成立。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:122",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.group"
+      ]
+    },
+    {
+      "id": "II.1.negwd-1",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "`negRep_wd` 要证的结论是什么？",
+      "options": [
+        "`intRel p (negRep p)`，取负与自己相关。",
+        "取负后两个新代表元仍满足 `intRel`。",
+        "`negRep p = negRep q` 这个代表元等式。",
+        "`mk p = mk (negRep p)`，取负不改变商点。"
+      ],
+      "answer": 2,
+      "why": "要在商上定义取负，需要说明相关的代表元取负后仍相关，所以结论是 `intRel p q → intRel (negRep p) (negRep q)`。代表元本身一般不逐字相等；取负当然改变商点（除非 p 表示 0）；`intRel p (negRep p)` 更不是普遍成立的。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:90",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.wd"
+      ]
+    },
+    {
+      "id": "II.1.negwd-2",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined"
+      ],
+      "prompt": "`negRep_wd` 的证明应当先做哪一步？",
+      "options": [
+        "先对 `a` 做归纳，再处理 `b`。",
+        "先 `Eq.symm h`，再用两次 `add_comm` 翻分量。",
+        "直接交出 `h`，因为 `negRep` 只是交换分量。",
+        "先用 `Quot.sound` 把 `h` 变成商内相等。"
+      ],
+      "answer": 2,
+      "why": "`h : a+b' = a'+b`；取负后要证 `b+a' = b'+a`。先 `Eq.symm h` 得到 `a'+b = a+b'`，再把两端各用一次 `add_comm` 翻成 `b+a'` 与 `b'+a`。`h` 的方向与分量顺序都不对，不能直接交；这一步还在代表元层，不需要 `Quot.sound`。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:90",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.wd"
+      ]
+    },
+    {
+      "id": "II.1.negwd-3",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 2,
+      "tags": [
+        "int-add",
+        "int-group"
+      ],
+      "prompt": "`add_neg_rep` 的结论是什么？",
+      "options": [
+        "`intRel (negRep p) p`。",
+        "`addRep p (negRep p) = (0,0)` 这个代表元等式。",
+        "`negRep (negRep p) = p`。",
+        "`intRel (addRep p (negRep p)) (0,0)`。"
+      ],
+      "answer": 4,
+      "why": "`add_neg_rep` 说的就是 `p + (-p)` 与零元代表元相关，这是商上逆元律的代表元证据。代表元本身一般不逐字等于 `(0,0)`（例如 `(2,5)+(5,2)` 的两个分量是 7 与 7）；`intRel (negRep p) p` 与两次取负都不是这一条。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:98",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.add.group"
+      ]
+    },
+    {
+      "id": "II.1.negwd-4",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "int-group"
+      ],
+      "prompt": "为什么取负需要 `negRep_wd`，而 `negRep_neg` 不需要良定义性？",
+      "options": [
+        "两者都需要良定义性，只是 `negRep_neg` 的证明更短。",
+        "前者涉及商，后者不涉及商，所以后者不能用于 `Int`。",
+        "前者是下降到商前的义务，后者只是代表元等式。",
+        "前者证的是单射，后者证的是满射。"
+      ],
+      "answer": 3,
+      "why": "`negRep_wd` 是「取负」下降到 `Int` 之前的义务：换代表元不能改变结果所属的等价类；`negRep_neg` 只在代表元层说交换两次回到原序对，用 `Eq.refl` 即可。`negRep_neg` 当然能用于商上的 `int_neg_neg`（把两边送进 `mk`），它只是不需要额外的相容性证明；两者也不是单射/满射。",
+      "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:115",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.wd",
+        "kp.ii1.int.add.group"
+      ]
+    },
+    {
+      "id": "II.1.subwd-1",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "subRep"
+      ],
+      "prompt": "`subRep_wd` 需要哪些相关性假设？",
+      "options": [
+        "两个：`h1` 换被减数，`h2` 换减数。",
+        "零个：`subRep` 是定义性展开，不需要假设。",
+        "一个：只需第一个参数的相关性。",
+        "三个：两个参数加一个零元的相关性。"
+      ],
+      "answer": 1,
+      "why": "减法同时依赖被减数与减数两个代表元，所以两个都要能换，`subRep_wd` 收 `h1` 与 `h2` 两个假设。只证第一个不够，零元不是这里的输入，而 `subRep` 虽然由 `addRep` 与 `negRep` 展开，下降到商上前仍需要良定义性。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.wd"
+      ]
+    },
+    {
+      "id": "II.1.subwd-2",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "subRep"
+      ],
+      "prompt": "`subRep_wd` 展开后要证的代表元等式是哪条？",
+      "options": [
+        "`(a+d)+(b'+c') = (a'+d')+(b+c)`。",
+        "`(a+c)+(b+d) = (a+c)+(b+d)`。",
+        "`(a+b)+(c+d) = (a'+b')+(c'+d')`。",
+        "`(a+c)+(b'+d') = (a'+c')+(b+d)`。"
+      ],
+      "answer": 1,
+      "why": "`subRep (a,b) (c,d)` 展开成 `(a+d,b+c)`，`subRep (a',b') (c',d')` 展开成 `(a'+d',b'+c')`；要证的就是这两个交叉和相等。其余三条分别把减法当成了加法、把交叉项配错、或只写了自反式。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.wd"
+      ]
+    },
+    {
+      "id": "II.1.subwd-3",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "subRep"
+      ],
+      "prompt": "`subRep` 的良定义性能否由 `addRep` 与 `negRep` 的良定义性组合得到？",
+      "options": [
+        "能：先 `negRep_wd`，再用两次 `addRep_wd`。",
+        "能：只要把 `subRep_wd` 的证明交给 `Quot.sound` 即可，无需组合。",
+        "不能：`addRep` 与 `negRep` 的良定义性只在闭值上成立。",
+        "不能：`subRep` 是独立定义，必须重新归纳自然数。"
+      ],
+      "answer": 1,
+      "why": "`subRep a b = addRep a (negRep b)`，所以先证 `negRep q` 与 `negRep q'` 相关，再把 `addRep` 的两个槽分别用良定义性接起来即可。`subRep` 不是独立递归，不需要重新归纳；两条良定义性对一般参数成立；`Quot.sound` 是把代表元关系变成商内相等时才用，不能代替相容性证明。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.wd",
+        "kp.ii1.int.neg.wd",
+        "kp.ii1.int.add.wd"
+      ]
+    },
+    {
+      "id": "II.1.subwd-4",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "subRep"
+      ],
+      "prompt": "为什么 `subRep_wd` 不能只证「换被减数结果不变」？",
+      "options": [
+        "减数换了也会变，两个槽都要证。",
+        "因为被减数的代表元总是固定不变的。",
+        "因为 `subRep` 只依赖减数，不依赖被减数。",
+        "因为减法不满足交换律，所以只需检查减数。"
+      ],
+      "answer": 1,
+      "why": "`subRep` 对两个输入都做运算（先取负第二个再相加），任一槽换代表元都要保证输出相关。被减数当然可以换；减法不交换并不等于只需检查一个槽；`subRep` 同时依赖两个输入。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.wd"
+      ]
+    },
+    {
+      "id": "II.1.sublaws-1",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 1,
+      "tags": [
+        "int-sub",
+        "int-group"
+      ],
+      "prompt": "`int_sub_self` 的结论是什么？",
+      "options": [
+        "`mk (subRep p p) = mk (0,0)`。",
+        "`subRep p q = subRep q p`。",
+        "`subRep p p = (0,0)` 这个代表元等式。",
+        "`mk p = mk (negRep p)`。"
+      ],
+      "answer": 1,
+      "why": "`int_sub_self` 说一个整数减去自己得到零：商点 `mk (subRep p p)` 与零元代表元的商点相等。代表元本身一般不逐字等于 `(0,0)`；`mk p = mk (negRep p)` 只在 p 表示 0 时成立；减法也不交换。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:225",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.laws"
+      ]
+    },
+    {
+      "id": "II.1.sublaws-2",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 2,
+      "tags": [
+        "int-sub",
+        "int-group",
+        "quot-sound"
+      ],
+      "prompt": "`int_sub_self` 的证明项应当是什么？",
+      "options": [
+        "`Eq.refl`。",
+        "`subRep_wd`。",
+        "`Quot.sound (zero_rep a b)`。",
+        "`Quot.sound` 用 `add_neg_rep`。"
+      ],
+      "answer": 4,
+      "why": "`subRep p p` 按定义就是 `addRep p (negRep p)`，而 `add_neg_rep a b` 正好说它与 `(0,0)` 相关。交给 `Quot.sound` 就得到商内相等；两边代表元不同，`Eq.refl` 不行；`zero_rep` 是加零，`subRep_wd` 是良定义性，都不是这条结论。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:225",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.laws",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.sublaws-3",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 2,
+      "tags": [
+        "int-sub",
+        "int-group"
+      ],
+      "prompt": "`int_sub_add` 的结论是什么？",
+      "options": [
+        "`mk (subRep p p) = mk (0,0)`。",
+        "`mk (subRep p q) = mk (addRep p q)`。",
+        "`mk (subRep p q) = mk p`。",
+        "`mk (addRep (subRep p q) q) = mk p`。"
+      ],
+      "answer": 4,
+      "why": "`int_sub_add` 说「先减再加回来」：`(p-q)+q` 与 `p` 是同一个整数。`subRep p q = addRep p q` 把减法当成加法；`subRep p p = 0` 是自减；`subRep p q = p` 则丢掉了减数。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:233",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.laws"
+      ]
+    },
+    {
+      "id": "II.1.sublaws-4",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "level": 3,
+      "tags": [
+        "int-sub",
+        "int-group"
+      ],
+      "prompt": "为什么 `int_sub_add` 不能直接用 `int_add_neg` 收尾？",
+      "options": [
+        "因为减法不满足结合律，所以任何逆元律都用不上。",
+        "因为 `int_add_neg` 只对零元成立，其他元素需要另证。",
+        "要先展开并重排；`int_add_neg` 是 `p+(-p)=0`。",
+        "因为 `int_sub_add` 其实是假命题，只在 p=q 时成立。"
+      ],
+      "answer": 3,
+      "why": "`int_add_neg` 给的是 `p+(-p)=0`，而目标是 `(p-q)+q=p`；需要先展开 `subRep`，用结合律与交换律把 `-q` 与 `q` 配到一起，再用逆元律消掉。`int_add_neg` 对任意 p 成立；结合律在商上成立（`int_add_assoc`），只是要先把结构展开；这条命题对所有 p、q 都成立。",
+      "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:233",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.sub.laws",
+        "kp.ii1.int.add.group"
       ]
     }
   ]

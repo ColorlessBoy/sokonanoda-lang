@@ -1,6 +1,6 @@
 {
   "schema": "soko.lessons/1",
-  "version": 7,
+  "version": 9,
   "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
@@ -2449,6 +2449,111 @@
         "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:1",
         "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22"
       ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "goal": "学完这一单元，你能够写出整数乘法的代表元公式，并用闭值计算检查它。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mulrep",
+          "title": "整数乘法的代表元公式",
+          "kind": "definition"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit05.sokonanoda:1",
+        "courses/analysis/units/II.1/unit05.sokonanoda:26"
+      ],
+      "intuition": "本单元把 (a-b)(c-d) 展开成 (ac+bd)-(ad+bc)，先只在代表元层写出公式。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "goal": "学完这一单元，你能够用 add_shift 与 intRel 的假设证明整数加法尊重代表元相等。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.wd",
+          "title": "整数加法的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit06.sokonanoda:1",
+        "courses/analysis/units/II.1/unit06.sokonanoda:76"
+      ],
+      "intuition": "本单元用 add_shift 重排交叉和，证明 addRep 对 intRel 的两个槽都相容。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "goal": "学完这一单元，你能够在商上证明加法的交换律与结合律，并分清代表元层与商层。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.laws",
+          "title": "商上加法的交换律与结合律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit07.sokonanoda:1",
+        "courses/analysis/units/II.1/unit07.sokonanoda:81"
+      ],
+      "intuition": "本单元把代表元层的交换与结合交给 Quot.sound，得到商上的加法律。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "goal": "学完这一单元，你能够证明整数加法的零元律与逆元律，并说明取负为什么需要良定义性。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.add.group",
+          "title": "商上加法的零元与负元",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.int.neg.wd",
+          "title": "整数取负的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 8,
+      "sources": [
+        "courses/analysis/units/II.1/unit08.sokonanoda:1",
+        "courses/analysis/units/II.1/unit08.sokonanoda:73"
+      ],
+      "intuition": "本单元用 zero_rep 与 add_neg_rep 给出商上的零元与逆元，并证明取负的良定义性。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "goal": "学完这一单元，你能够证明减法尊重代表元相等，并证明 p-p=0 与 (p-q)+q=p。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.sub.wd",
+          "title": "整数减法的良定义性",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.int.sub.laws",
+          "title": "商上减法的基本律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 8,
+      "sources": [
+        "courses/analysis/units/II.1/unit09.sokonanoda:1",
+        "courses/analysis/units/II.1/unit09.sokonanoda:208"
+      ],
+      "intuition": "本单元证明减法尊重代表元相等，并导出 p-p=0 与 (p-q)+q=p。"
     }
   ]
 }
