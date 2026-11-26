@@ -1,7 +1,7 @@
 {
   "schema": "soko.choice-bank/1",
   "title": "卷 I–III 选择题题库（集合论 / 分析）",
-  "version": 32,
+  "version": 33,
   "updated": "2026-11-26",
   "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
@@ -10547,6 +10547,589 @@
       "kps": [
         "kp.ii1.nat.le.cancel",
         "kp.ii1.nat.le.exists"
+      ]
+    },
+    {
+      "id": "II.1.orderwd-1",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "well-defined"
+      ],
+      "prompt": "`leRep_wd` 要证的结论是什么？",
+      "options": [
+        "两个代表元分别换成相关代表元后，`leRep` 仍成立。",
+        "`leRep p q → leRep q p`，序是对称的。",
+        "`intRel p q → p = q`，把商内相等还原。",
+        "`leRep` 在商上满足自反性。"
+      ],
+      "answer": 1,
+      "why": "`leRep_wd` 说：若 p~p'、q~q'，则 `leRep p q` 与 `leRep p' q'` 等价（课程给出正向并另证反向）。它不是商上的自反性；`p=q` 是 `Quot.exact` 的反方向；序一般不对称，`leRep q p` 是另一条不等式。",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:226",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.wd"
+      ]
+    },
+    {
+      "id": "II.1.orderwd-2",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "well-defined"
+      ],
+      "prompt": "`intRel_to_eq` 的作用是什么？",
+      "options": [
+        "把 `intRel` 假设读成加法等式。",
+        "证明 `intRel` 是等价关系。",
+        "把商内相等还原成代表元关系。",
+        "把 `leRep` 的假设读成等式。"
+      ],
+      "answer": 1,
+      "why": "`intRel` 是定义，假设位不会自动展开；`intRel_to_eq` 用一次 `Eq.subst` 把 `a+y=x+b` 这条等式拿出来，后面才能做加法重排。它处理的是 `intRel`，不是 `leRep`；`leRep` 是序而不是相等；它也不证自反/传递。",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:189",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.wd"
+      ]
+    },
+    {
+      "id": "II.1.orderwd-3",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "well-defined",
+        "nat-order"
+      ],
+      "prompt": "`leRep_wd_fst` 的证明关键一步是什么？",
+      "options": [
+        "直接交出 `h`，因为两个代表元相关就等价。",
+        "对 `a` 做归纳，其余分量不动。",
+        "用 `Quot.sound` 把两个商点变成相等。",
+        "读成等式，同加 `b1`，重排，再消去 `b`。"
+      ],
+      "answer": 4,
+      "why": "`leRep_wd_fst` 要证 `LeNat (a+d) (c+b)` 换成 `LeNat (a1+d) (c+b1)`；用 `intRel_to_eq` 得 `a+b1=a1+b`，两边同加 `b1`，再用 `add_rotate` 把公共项转到同一位置，最后用序的加法消去律消去 `b`。`h` 不能直接交（目标不是 `intRel`）；归纳与 `Quot.sound` 都不是这条证明的步骤。",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:208",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.wd",
+        "kp.ii1.nat.le.cancel"
+      ]
+    },
+    {
+      "id": "II.1.orderwd-4",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "level": 3,
+      "tags": [
+        "int-order",
+        "well-defined"
+      ],
+      "prompt": "为什么 `leRep_wd` 要证两个槽？",
+      "options": [
+        "因为 `leRep` 是对称关系，两个槽必须同时换。",
+        "因为第一个槽的证明会失败，必须靠第二个槽补。",
+        "序有两个输入，两个槽都要单独证。",
+        "因为 `intRel` 只对一个槽成立。"
+      ],
+      "answer": 3,
+      "why": "`leRep` 同时依赖被比较的两个整数；只换第一个槽或只换第二个槽都要单独证明，课程先给 `leRep_wd_fst`、再给 `leRep_wd_snd`，最后用两次替换组成 `leRep_wd`。`leRep` 不是对称关系；第一个槽的证明并不失败；`intRel` 对两个代表元都成立。",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:217",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.wd"
+      ]
+    },
+    {
+      "id": "II.1.orderwd-5",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "level": 3,
+      "tags": [
+        "int-order",
+        "well-defined"
+      ],
+      "prompt": "`leRep_wd_iff` 的作用是什么？",
+      "options": [
+        "证明 `leRep` 是等价关系。",
+        "把 `leRep` 的两个输入对调。",
+        "把 `leRep` 化成 `intRel`。",
+        "正反两向都用替换，反向先翻 `intRel`。"
+      ],
+      "answer": 4,
+      "why": "`leRep_wd_iff` 给出 `leRep p q ↔ leRep p' q'`：正向就是 `leRep_wd`，反向需要先把 `p'~p`、`q'~q` 用 `intRel_symm` 翻回来，再对调两组代表元用一次 `leRep_wd`。它不是等价关系（序不要求对称）；也不会把序化成相等。",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:236",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.wd"
+      ]
+    },
+    {
+      "id": "II.1.orderax-1",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "level": 1,
+      "tags": [
+        "int-order"
+      ],
+      "prompt": "`leRep_trans` 的结论是什么？",
+      "options": [
+        "`leRep p q → leRep q p`。",
+        "`leRep p q → p = q`。",
+        "`leRep p p` 的自反性。",
+        "p≤q 且 q≤r 推出 p≤r。"
+      ],
+      "answer": 4,
+      "why": "`leRep_trans` 是序的传递性：p≤q 且 q≤r，则 p≤r。反方向 `leRep q p` 是对称性（序一般没有）；`p=q` 是反对称性（另外的假设）；`leRep p p` 是自反性，不是这条。",
+      "source": "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:212",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.axioms"
+      ]
+    },
+    {
+      "id": "II.1.orderax-2",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "int-add"
+      ],
+      "prompt": "`leRep_add_right` 的结论是什么？",
+      "options": [
+        "`leRep (addRep p r) (addRep q r) → leRep p q`。",
+        "`leRep p q → leRep (addRep p r) (addRep q r)`。",
+        "`leRep p q → leRep (addRep r p) (addRep r q)` 的交换版本。",
+        "`addRep p r = addRep q r → p = q`。"
+      ],
+      "answer": 2,
+      "why": "`leRep_add_right` 说不等式两边同加同一个整数后仍成立：p≤q 推出 p+r≤q+r。它只加在右边这个参数上；加在左边的版本要另证（加法交换）；反方向是消去律，不是单调性；最后一条是加法消去，与本条无关。",
+      "source": "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:221",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.axioms"
+      ]
+    },
+    {
+      "id": "II.1.orderax-3",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "level": 3,
+      "tags": [
+        "int-order",
+        "nat-order"
+      ],
+      "prompt": "`leRep_trans` 为什么需要 `leNat_add_cancel_right`？",
+      "options": [
+        "两条不等式加完后出现公共加数 `d`，要消去它。",
+        "因为 `leNat_trans` 不成立，只能靠消去律。",
+        "因为 `leRep` 的定义里有一个减法，必须消去。",
+        "因为要证明 `LeNat` 自反。"
+      ],
+      "answer": 1,
+      "why": "证明把 `H1 : a+d ≤ c+b` 两边加 `f`、`H2 : c+f ≤ e+d` 两边加 `b`，用 `add_rotate` 重排后经 `leNat_trans` 得到 `(a+f)+d ≤ (e+b)+d`；两边的公共加数 `d` 必须用序的加法消去律消掉，才能得到 `a+f ≤ e+b`。`leNat_trans` 本身成立；`leRep` 的定义没有减法；自反性也不是这一步。",
+      "source": "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:212",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.axioms",
+        "kp.ii1.nat.le.cancel"
+      ]
+    },
+    {
+      "id": "II.1.orderax-4",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "`add4` 在证明中的作用是什么？",
+      "options": [
+        "把两个自然数相加的结果算成闭值。",
+        "把左边的加法重新结合成目标形状。",
+        "把 `leRep` 化成 `intRel`。",
+        "证明加法交换律。"
+      ],
+      "answer": 2,
+      "why": "`leRep_add_right` 的目标是 `(a+e)+(d+f) ≤ (c+e)+(b+f)`；从 `h : a+d ≤ c+b` 两边加 `e+f` 后左边是 `(a+d)+(e+f)`，`add4` 正好把它重排成目标左端。它不是闭值计算，也不是交换律本身；`leRep` 与 `intRel` 是两种关系。",
+      "source": "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:177",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.order.axioms"
+      ]
+    },
+    {
+      "id": "II.1.mulcomm-1",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "level": 1,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "`myMul_comm` 的结论是什么？",
+      "options": [
+        "`myMul 0 b = 0`。",
+        "`myMul a 1 = a`。",
+        "`myMul a (b+1) = myMul a b + a`。",
+        "`myMul a b = myMul b a`。"
+      ],
+      "answer": 4,
+      "why": "`myMul_comm` 是课程自建乘法的交换律：两个因子对调结果不变。`myMul a (b+1)=myMul a b+a` 是 `myMul_succ`/`succ_mul` 一类的展开；`myMul 0 b=0` 是 `zero_mul`；`myMul a 1=a` 是单位元。",
+      "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulcomm-2",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "`myMul_comm` 的证明应当对什么归纳？",
+      "options": [
+        "对 `b` 归纳；后继用 `succ_mul`。",
+        "对第一个参数 `a` 归纳：零情形用 `zero_mul`。",
+        "对 `myMul_succ` 归纳。",
+        "对乘积本身归纳，没有别的参数。"
+      ],
+      "answer": 1,
+      "why": "`myMul` 对第二个参数递归，交换律的归纳也落在 `b` 上：`b=0` 时 `myMul a 0` 与 `myMul 0 a` 都归约成 0；`b=succ n` 时把左边展开成 `a + myMul a n`，用归纳假设换成 `a + myMul n a`，再用 `add_comm` 与 `succ_mul` 的对称收口。对 a 归纳时递归规则不配合；乘积不是归纳对象；`myMul_succ` 是定理不是参数。",
+      "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulcomm-3",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "int-reps"
+      ],
+      "prompt": "`mulRep_comm` 的结论是什么？",
+      "options": [
+        "`mulRep p q = mulRep q p` 只在闭值上成立。",
+        "`mulRep (a,b) (c,d) = mulRep (c,d) (a,b)` 这个代表元等式。",
+        "`mulRep p (0,0) = (0,0)`。",
+        "`intRel (mulRep (a,b) (c,d)) (mulRep (c,d) (a,b))`。"
+      ],
+      "answer": 2,
+      "why": "`mulRep_comm` 是代表元层的逐字相等：交换两个因子后两个分量都能用 `myMul_comm` 与 `add_comm` 对上。它比 `intRel` 更强（代表元相等推出相关）；闭值才成立是错的；乘零是单位元那组事实。",
+      "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:177",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulcomm-4",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "为什么 `mulRep_comm` 不能只靠 `myMul_comm`？",
+      "options": [
+        "因为 `myMul_comm` 的证明需要先证 `mulRep_comm`。",
+        "因为 `mulRep` 是对称关系，不能用等式。",
+        "还要用 `add_comm` 交换两个交叉项的顺序，第二个分量才能逐字对上。",
+        "因为 `myMul_comm` 只对零成立。"
+      ],
+      "answer": 3,
+      "why": "第一个分量只用 `myMul_comm` 就能对上；第二个分量是 `a·d + b·c` 与 `c·b + d·a`，交换因子后还要把两个加数顺序换过来，所以要用 `add_comm`。`myMul_comm` 对任意自然数成立；`mulRep` 是函数而不是关系；两条证明没有循环依赖。",
+      "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:177",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulwdsnd-1",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "`mulRep_wd_snd` 要证的结论是什么？",
+      "options": [
+        "换第二个因子后结果仍 `intRel`。",
+        "`p~p' → intRel (mulRep p q) (mulRep p' q)`，即换第一个因子。",
+        "`mulRep p q = mulRep q p` 的交换律。",
+        "`intRel p p' → p = p'`。"
+      ],
+      "answer": 1,
+      "why": "`mulRep_wd_snd` 补的是第二个槽：固定左因子 q，换右因子 p 时结果仍相关。第一个槽是单元⑪的 `mulRep_wd`；交换律是 `mulRep_comm`；`p=p'` 是 `Quot.exact` 的反方向。",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd.snd"
+      ]
+    },
+    {
+      "id": "II.1.mulwdsnd-2",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "`mulRep_wd_snd` 的证明策略是什么？",
+      "options": [
+        "直接对 `h` 用 `Quot.sound`，不需要 `mulRep_wd`。",
+        "用 `mulRep_comm` 对调两槽，套 `mulRep_wd`，再换回。",
+        "重新对 `p` 的自然数分量做一次归纳。",
+        "用 `intRel_symm` 把 `h` 取反后交出去即可。"
+      ],
+      "answer": 2,
+      "why": "第二个槽不能直接套第一个槽的引理，但乘法交换已经证过：先用 `mulRep_comm` 把 `mulRep q p` 与 `mulRep p q` 对上，对第一槽用 `mulRep_wd`，再用交换把结果换回 `mulRep q p'`。这一步不需要重新归纳；`Quot.sound` 只是最后把代表元关系变成商内相等；只取 `h` 的对称也不够。",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd.snd",
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulwdsnd-3",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "为什么第二个槽不能由第一个槽直接得到？",
+      "options": [
+        "因为第二个槽要用 `Quot.exact`，课程里没有。",
+        "因为 `intRel` 只对第一个槽成立。",
+        "两个槽固定的因子不同，要用交换律对调。",
+        "因为第一个槽的证明是错的，第二个槽必须重来。"
+      ],
+      "answer": 3,
+      "why": "`mulRep_wd` 证明的是换左因子、固定右因子；`mulRep_wd_snd` 要的是固定左因子、换右因子。两者不是同一条命题，`mulRep_comm` 提供桥：交换因子后第二个槽就变成第一个槽。第一个槽的证明本身是对的；`intRel` 对两个代表元都成立；这条不需要 `Quot.exact`。",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd.snd",
+        "kp.ii1.int.mul.comm"
+      ]
+    },
+    {
+      "id": "II.1.mulwdsnd-4",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "`intRel_symm` 可能用在哪个位置？",
+      "options": [
+        "把 `mulRep_wd_snd` 的结论取反。",
+        "把 `h` 的方向翻成 `p'~p`。",
+        "把 `mulRep` 的乘积交换。",
+        "把 `intRel` 换成相等。"
+      ],
+      "answer": 2,
+      "why": "证明中要把交换后的因子按 `mulRep_wd` 的方向接起来，若手里的相关性方向相反，就用 `intRel_symm` 翻一次。它不改变结论的真假，也不把 `intRel` 变成相等；交换乘积是 `mulRep_comm` 的事。",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:225",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd.snd"
+      ]
+    },
+    {
+      "id": "II.1.neg-lift-1",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "level": 1,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "int-group"
+      ],
+      "prompt": "`intNeg` 对应下面哪个定义？",
+      "options": [
+        "直接定义为 `fun z => Quot.mk (negRep z)`，不需要良定义性。",
+        "用 `Quot.sound` 直接把每个商元素变成负元。",
+        "用 `Quot.ind` 从商元素构造一个新商元素。",
+        "`Quot.lift` 下降 `negRep`，相容性是 `negRep_wd`。"
+      ],
+      "answer": 4,
+      "why": "`intNeg` 的定义体是 `Quot.lift` 作用在 `fun p => mk (negRep p)` 上，第二个参数正是 `negRep_wd` 给出的相容性。不能直接用 `Quot.mk (negRep z)`（z 是商元素，`negRep` 只吃代表元）；`Quot.ind` 只消去成 Prop，不能构造函数；`Quot.sound` 只给相等，不定义函数。",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:109",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.lift"
+      ]
+    },
+    {
+      "id": "II.1.neg-lift-2",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-lift"
+      ],
+      "prompt": "`intNeg_mk` 的证明项应当是什么？",
+      "options": [
+        "`Quot.ind`，先对商元素归纳。",
+        "`Quot.sound`，因为两个商元素相关。",
+        "`Eq.refl`，iota 直接归约。",
+        "`negRep_wd`，因为要证相容性。"
+      ],
+      "answer": 3,
+      "why": "`Quot.lift` 的计算规则让 `intNeg (mk p)` 定义性归约成 `mk (negRep p)`，所以两边是同一个项，`Eq.refl` 足够。`Quot.sound` 是造商内相等的工具，但这里目标已经是计算等式；`Quot.ind` 证性质；`negRep_wd` 只用于定义 `intNeg` 时。",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:116",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.lift"
+      ]
+    },
+    {
+      "id": "II.1.neg-lift-3",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-ind",
+        "int-group"
+      ],
+      "prompt": "`intNeg_invol` 应当用哪件工具拆商元素？",
+      "options": [
+        "`Quot.sound`，直接把两边变成相等。",
+        "`Quot.ind`，把 z 降到 `mk p`。",
+        "`Quot.lift`，重新下降一次。",
+        "`negRep_wd`，用相容性消去 z。"
+      ],
+      "answer": 2,
+      "why": "`intNeg_invol` 要证 `intNeg (intNeg z)=z`；z 是任意商元素，先用 `Quot.ind` 把它降到 `mk p`，两次 iota 归约后再用 `Quot.sound` 收尾。`Quot.lift` 是定义函数用的；`Quot.sound` 是最后一步而不是拆 z 的工具；`negRep_wd` 不消去商元素。",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:125",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.lift",
+        "kp.ii1.quot.ind"
+      ]
+    },
+    {
+      "id": "II.1.neg-lift-4",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined"
+      ],
+      "prompt": "为什么 `intNeg` 不能直接写成 `fun z => Quot.mk (negRep z)`？",
+      "options": [
+        "因为 `Quot.mk` 不能作用在 `negRep` 上，类型检查会拒绝所有 `Quot.mk`。",
+        "因为 `intNeg` 必须用 `Quot.ind` 构造。",
+        "z 是商元素，`negRep` 只作用于代表元。",
+        "因为 `negRep` 不是函数，只是一个命题。"
+      ],
+      "answer": 3,
+      "why": "`negRep : Prod Nat Nat → Prod Nat Nat` 只吃代表元，而 `intNeg` 的输入是商元素 `Int`；必须用 `Quot.lift` 把代表元函数下降，并交出 `negRep_wd` 作为相容性。`Quot.mk` 当然能作用于代表元，问题在输入类型；`negRep` 是函数；`Quot.ind` 只证 Prop，不能构造函数。",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:99",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.lift",
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.neg-lift-5",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-sound",
+        "int-group"
+      ],
+      "prompt": "`intNeg_invol` 最后交给 `Quot.sound` 的相关性证明是什么？",
+      "options": [
+        "`Eq.refl`，两次 `negRep` 已回到 p。",
+        "`negRep_wd p p`，把 p 与自身相关。",
+        "`intRel_symm`，把假设翻方向。",
+        "`leRep_refl`，因为取负保序。"
+      ],
+      "answer": 1,
+      "why": "两次 `negRep` 交换两次分量，定义性回到 p，所以 `mk (negRep (negRep p))` 与 `mk p` 的相关性证明是自反的（课程用 `Quot.sound` 加一个自反等式）。`negRep_wd` 是相容性，不是这里需要的相关性；没有方向要翻；取负与序无关。",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:125",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.neg.lift",
+        "kp.ii1.quot.sound"
       ]
     }
   ]

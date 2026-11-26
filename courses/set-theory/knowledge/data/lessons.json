@@ -1,6 +1,6 @@
 {
   "schema": "soko.lessons/1",
-  "version": 11,
+  "version": 13,
   "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
@@ -2659,6 +2659,101 @@
         "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
       ],
       "intuition": "本单元先证 ℕ 加法消去，再把序翻成存在加数，用重排与消去证序的消去律。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "goal": "学完这一单元，你能够证明整数序尊重两个代表元槽的替换。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.order.wd",
+          "title": "整数序的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:189"
+      ],
+      "intuition": "本单元把 intRel 假设读成等式，用序的加法消去律证明 leRep 的两个槽都稳定。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "goal": "学完这一单元，你能够在代表元层证明整数序的传递性与加法单调。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.order.axioms",
+          "title": "整数序的传递性与加法单调",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:1",
+        "courses/analysis/units/II.1/unit16-int-order-axioms.sokonanoda:177"
+      ],
+      "intuition": "本单元用 leNat_trans 与 add4 把 ℕ 序的传递性和加法单调搬到整数上。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "goal": "学完这一单元，你能够证明自建乘法的交换律与代表元乘积的交换。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.comm",
+          "title": "乘法的交换律",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:1",
+        "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170"
+      ],
+      "intuition": "本单元先证 ℕ 乘法交换，再用 congrArg 与 add_comm 证代表元乘积交换。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "goal": "学完这一单元，你能够用交换律把乘法的第二个槽化归到第一个槽。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.wd.snd",
+          "title": "乘法第二个因子的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237"
+      ],
+      "intuition": "本单元用乘法交换律把第二个槽化归到第一个槽，复用 mulRep_wd。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "goal": "学完这一单元，你能够用 Quot.lift 定义 intNeg，并证计算规则与对合律。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.neg.lift",
+          "title": "取负下降成 intNeg",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:1",
+        "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:109"
+      ],
+      "intuition": "本单元用 Quot.lift 加 negRep_wd 定义 intNeg，再用 iota 与 Quot.ind 证计算与对合。"
     }
   ]
 }

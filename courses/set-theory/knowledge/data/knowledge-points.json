@@ -1,6 +1,6 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 8,
+  "version": 9,
   "updated": "2026-11-26",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
@@ -3612,6 +3612,98 @@
         "target": 4
       },
       "keyPoint": "把序翻成存在加数，用 add_rotate 与加法消去，再用 of_exists_add 回到 LeNat。"
+    },
+    {
+      "id": "kp.ii1.int.order.wd",
+      "chapter": "II.1",
+      "title": "整数序的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.orderrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 intRel 假设读成等式，用加法消去律证明 leRep 对两个槽都尊重代表元替换。"
+    },
+    {
+      "id": "kp.ii1.int.order.axioms",
+      "chapter": "II.1",
+      "title": "整数序的传递性与加法单调",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.order.wd"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 leNat_trans 与 add4 把 ℕ 序的传递性和加法单调搬到整数代表元上。"
+    },
+    {
+      "id": "kp.ii1.int.mul.comm",
+      "chapter": "II.1",
+      "title": "乘法的交换律",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.mul.identity"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "证 myMul_comm 与 mulRep_comm：交换两个因子后代表元逐字相等。"
+    },
+    {
+      "id": "kp.ii1.int.mul.wd.snd",
+      "chapter": "II.1",
+      "title": "乘法第二个因子的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.mul.wd",
+        "kp.ii1.int.mul.comm"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mulRep_comm 把第二个槽换成第一个槽，套 mulRep_wd，再换回来。"
+    },
+    {
+      "id": "kp.ii1.int.neg.lift",
+      "chapter": "II.1",
+      "title": "取负下降成 intNeg",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.neg.wd",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 Quot.lift 把 negRep 下降成 intNeg，并用 iota 与 Quot.ind 证计算规则与对合律。"
     }
   ]
 }

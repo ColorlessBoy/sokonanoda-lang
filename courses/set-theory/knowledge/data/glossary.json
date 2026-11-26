@@ -1,6 +1,6 @@
 {
   "schema": "soko.glossary/1",
-  "version": 10,
+  "version": 11,
   "updated": "2026-11-26",
   "entries": [
     {
@@ -378,6 +378,30 @@
       "oneLiner": "两边加同一个自然数后相等，就能消去这个加数：`a+k = b+k → a = b`。",
       "code": "-- theorem nat_add_cancel_right (a b k : Nat)",
       "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
+    },
+    {
+      "id": "order-rep-wd",
+      "term": "序的良定义性",
+      "kind": "concept",
+      "oneLiner": "两个代表元各换成相关代表元后，`leRep` 的真假不变；两个槽都要证。",
+      "code": "-- theorem leRep_wd … : leRep p q → leRep p' q'",
+      "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:226"
+    },
+    {
+      "id": "mul-rep-wd-snd",
+      "term": "乘法第二槽良定义",
+      "kind": "concept",
+      "oneLiner": "固定左因子、换右因子时乘积仍相关；用交换律化归到第一个槽。",
+      "code": "-- theorem mulRep_wd_snd …",
+      "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:237"
+    },
+    {
+      "id": "int-neg",
+      "term": "intNeg",
+      "kind": "definition",
+      "oneLiner": "用 `Quot.lift` 把 `negRep` 下降到 `Int → Int` 得到的取负函数。",
+      "code": "-- def intNeg : Int → Int := @Quot.lift … negRep negRep_wd",
+      "source": "courses/analysis/units/II.1/unit19-quot-lift.sokonanoda:109"
     }
   ]
 }
