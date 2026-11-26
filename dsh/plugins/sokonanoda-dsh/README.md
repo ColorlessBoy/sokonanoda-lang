@@ -47,6 +47,10 @@
 - 只有**显式开启**的会话才拦截（`/sokonanoda-fast-think on`）：`开始做题 / 练几题 / 出题` 可以在
   已开启会话里开始；字母/继续/不懂/跳过 需要同一会话先有 quiz 状态。普通会话里说
   「继续」「A」不会被劫持。
+- 「下一题 / 继续」在当前 issued 题**还没作答**时重发当前题、不推进（中间看知识卡、
+  聊别的、隔多少页都不影响）；想明确跳题用「换一题 / 再来一题 / 换一道」。
+- 「上一题 / 回看刚才那题」是**只读回顾**：正确选项绿色高亮 + `why` 解析，
+  不计分、不推进、不写 history。
 - 「进度/学习地图」是只读快照：已开启会话里直接出进展热点卡；未开启会话走模型
   （模型可通过 `sokonanoda_fast_think` 工具读取同一份 payload）。
 - 最后一条消息必须是 user（工具结果触发的续轮一律 `next()`）。
@@ -108,7 +112,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 16 + client 20
+node test/run.mjs     # host 19 + client 21
 ```
 
 ## 迁移与清理（一次性，2026-11-23）

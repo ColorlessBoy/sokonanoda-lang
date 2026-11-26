@@ -1,0 +1,36 @@
+{
+  "name": "next",
+  "cards": [
+    {
+      "kind": "question",
+      "text": "已知 h : a ∈ ∅，要立刻得到矛盾，应当把 h 看成哪个命题？ A False B True C a = a D ¬ (a = a) ? 我不知道",
+      "review": false,
+      "correct": []
+    },
+    {
+      "kind": "question",
+      "text": "要证明 x ∈ Set.empty 不成立，把 Set.empty 展开成谓词后得到的是哪个函数？ A fun (x : α) => True B fun (x : α) => False C fun (x : α) => x = x D fun (x : α) => ¬ (x = x) ? 我不知道",
+      "review": false,
+      "correct": []
+    },
+    {
+      "kind": "question",
+      "text": "本课程没有把集合相等写成构造，而是把 Set.ext 直接当作出发点；因此它属于下面哪一类陈述？ A 它是一条可以由 rfl 证明的定理。 B 它是一条由 funext 与 propext 推出的定理。 C 它是一条公理，与 Rel.ext 并列为卷 I 仅有的两条外延性公理。 D 它只是一条记法声明，并不产生命题。 ? 我不知道",
+      "review": false,
+      "correct": []
+    },
+    {
+      "kind": "question",
+      "text": "已知 h : a ∈ ∅，要立刻得到矛盾，应当把 h 看成哪个命题？ A False B True C a = a D ¬ (a = a) ? 我不知道",
+      "review": false,
+      "correct": []
+    },
+    {
+      "kind": "question",
+      "text": "要证明 x ∈ Set.empty 不成立，把 Set.empty 展开成谓词后得到的是哪个函数？ A fun (x : α) => True B fun (x : α) => False C fun (x : α) => x = x D fun (x : α) => ¬ (x = x) ? 我不知道",
+      "review": false,
+      "correct": []
+    }
+  ],
+  "tail": "新会话\n⌥\n⌘\nN\n插件\n自动化任务\n更多\n工作区\n默认工作区\n开始做题\n刚刚\n彭灵伟\n开始做题\n标准模式\n会话面板\n对话\n轨迹\nsokonanoda-fast-think\n本会话快思考已开启：做题消息会由本地课程引擎直接回答，其它消息仍走当前模型。\n开始做题\n20:26\n已完成\n已完成，用时 1秒\n⚡ 快思考\n\n已知 h : a ∈ ∅，要立刻得到矛盾，应当把 h 看成哪个命题？\n\nA\nFalse\nB\nTrue\nC\na = a\nD\n¬ (a = a)\n?\n我不知道\n20:26\n下一题\n20:26\n已完成\n已完成，用时 1秒\n⚡ 快思考\n\n要证明 x ∈ Set.empty 不成立，把 Set.empty 展开成谓词后得到的是哪个函数？\n\nA\nfun (x : α) => True\nB\nfun (x : α) => False\nC\nfun (x : α) => x = x\nD\nfun (x : α) => ¬ (x = x)\n?\n我不知道\n20:26\n换一题\n20:26\n已完成\n已完成，用时 1秒\n⚡ 快思考\n\n本课程没有把集合相等写成构造，而是把 Set.ext 直接当作出发点；因此它属于下面哪一类陈述？\n\nA\n它是一条可以由 rfl 证明的定理。\nB\n它是一条由 funext 与 propext 推出的定理。\nC\n它是一条公理，与 Rel.ext 并列为卷 I 仅有的两条外延性公理。\nD\n它只是一条记法声明，并不产生命题。\n?\n我不知道\n20:26\n上一题\n20:26\n处理失败\n处理失败\n本轮运行失败pi-ai provider \"opencode-go-7\" model \"deepseek-v4.1-flash\" does not support reasoning effort \"high\"\nUNSUPPORTED_REASONING_EFFORT\nsokonanoda-fast-think\n本会话快思考已开启：做题消息会由本地课程引擎直接回答，其它消息仍走当前模型。\n开始做题\n20:27\n已完成\n已完成，用时 1秒\n⚡ 快思考\n\n已知 h : a ∈ ∅，要立刻得到矛盾，应当把 h 看成哪个命题？\n\nA\nFalse\nB\nTrue\nC\na = a\nD\n¬ (a = a)\n?\n我不知道\n20:27\n下一题\n20:28\n已完成\n已完成，用时 1秒\n⚡ 快思考\n\n要证明 x ∈ Set.empty 不成立，把 Set.empty 展开成谓词后得到的是哪个函数？\n\nA\nfun (x : α) => True\nB\nfun (x : α) => False\nC\nfun (x : α) => x = x\nD\nfun (x : α) => ¬ (x = x)\n?\n我不知道\n20:28\n发消息或创建任务, / 调用指令, @ 文件或对话\n工作区内修改\ndeepseek-v4.1-flash\nHigh\n6 轮 6 步"
+}

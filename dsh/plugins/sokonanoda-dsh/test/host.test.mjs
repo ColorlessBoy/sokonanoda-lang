@@ -211,6 +211,13 @@ test('classifyFast: 我不知道 is a local explain request, not an answer', () 
   assert.equal(withPrefix, null, 'longer sentences must stay with the model')
 })
 
+test('classifyFast: 上一题 is a read-only review request', () => {
+  for (const text of ['上一题', '回到刚才那道题', '回看上一题']) {
+    const fast = core.classifyFast('quiz-auto', text)
+    assert.equal(fast.type, 'back', text + ' must route to review')
+  }
+})
+
 test('composeReplyText: card sources gain sidebar file coordinates', () => {
   const reply = composeReplyText({
     choices: [{
@@ -333,6 +340,106 @@ test('card mode: first wrong choice hints and re-sends the same card; second wro
     assert.equal(afterSecond.history.length, found.before.history.length + 1, 'second wrong attempt must be recorded')
     assert.ok(afterSecond.issued_qid !== found.before.issued_qid || fenceOf(secondReply) !== null,
       'second wrong attempt must advance or re-issue a question')
+  } finally {
+    await service.close()
+  }
+})
+
+test('card mode: 下一题 replays an unanswered question instead of advancing', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-replay-'))
+  const service = await core.startQuizService({
+    repoRoot: REPO,
+    stateDir: path.join(dataDir, 'quiz'),
+    runDir: path.join(dataDir, 'logs'),
+    cardsMode: 'learn',
+  })
+  const stateFile = path.join(dataDir, 'quiz', 'default.json')
+  const readState = () => JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  const fenceOf = (reply) => {
+    const match = reply.match(/```learn-card\n([\s\S]*?)\n```/)
+    return match === null ? null : JSON.parse(match[1])
+  }
+  const ask = async (texts) => composeReplyText(await callProxy({
+    proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 20000,
+  }, {
+    model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+    messages: toProxyMessages({ sessionId: 'replay-test', messages: [systemMsg(), ...texts.map((text) => userMsg(text))] }, core),
+  }, undefined))
+  try {
+    let startReply = await ask(['开始做题'])
+    let startCard = fenceOf(startReply)
+    for (let i = 0; i < 3 && (startCard === null || startCard.kind !== 'question'); i += 1) {
+      startReply = await ask(['继续'])
+      startCard = fenceOf(startReply)
+    }
+    assert.ok(startCard !== null && startCard.kind === 'question', 'quiz should reach a question')
+    const firstStem = startCard.payload.stem
+    const firstQid = readState().issued_qid
+
+    const replayReply = await ask(['下一题'])
+    assert.match(replayReply, /还没作答/, 'plain 下一题 must explain that the current question is still open')
+    const replayCard = fenceOf(replayReply)
+    assert.ok(replayCard !== null && replayCard.kind === 'question')
+    assert.equal(replayCard.payload.stem, firstStem, 'plain 下一题 must replay the same question')
+    assert.equal(readState().issued_qid, firstQid, 'replaying must not advance')
+
+    const explainReply = await ask(['我不知道'])
+    const explainCard = fenceOf(explainReply)
+    assert.ok(explainCard !== null && explainCard.kind === 'knowledge', '我不知道 must return a knowledge card')
+    const afterExplain = await ask(['下一题'])
+    const afterExplainCard = fenceOf(afterExplain)
+    assert.equal(afterExplainCard.payload.stem, firstStem, '下一题 after a knowledge card must return to the unanswered question')
+
+    const forcedReply = await ask(['换一题'])
+    const forcedCard = fenceOf(forcedReply)
+    assert.ok(forcedCard !== null && forcedCard.kind === 'question')
+    assert.notEqual(forcedCard.payload.stem, firstStem, '换一题 must advance even while the current question is open')
+  } finally {
+    await service.close()
+  }
+})
+
+test('card mode: 上一题 re-opens the previous question as a read-only review', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-back-'))
+  const service = await core.startQuizService({
+    repoRoot: REPO,
+    stateDir: path.join(dataDir, 'quiz'),
+    runDir: path.join(dataDir, 'logs'),
+    cardsMode: 'learn',
+  })
+  const stateFile = path.join(dataDir, 'quiz', 'default.json')
+  const readState = () => JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  const fenceOf = (reply) => {
+    const match = reply.match(/```learn-card\n([\s\S]*?)\n```/)
+    return match === null ? null : JSON.parse(match[1])
+  }
+  const ask = async (texts) => composeReplyText(await callProxy({
+    proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 20000,
+  }, {
+    model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+    messages: toProxyMessages({ sessionId: 'back-test', messages: [systemMsg(), ...texts.map((text) => userMsg(text))] }, core),
+  }, undefined))
+  try {
+    let first = null
+    let reply = await ask(['开始做题'])
+    for (let i = 0; i < 3; i += 1) {
+      const card = fenceOf(reply)
+      if (card !== null && card.kind === 'question') { first = card.payload.stem; break }
+      reply = await ask(['继续'])
+    }
+    assert.ok(first !== null, 'quiz should reach a question card')
+    await ask(['换一题'])
+    const before = readState()
+    const reviewReply = await ask(['上一题'])
+    const reviewCard = fenceOf(reviewReply)
+    assert.ok(reviewCard !== null && reviewCard.kind === 'question', 'review must re-send a question card')
+    assert.equal(reviewCard.payload.review, true, 'previous card must be marked as a review')
+    assert.equal(reviewCard.payload.stem, first, 'review must show the previous question')
+    assert.ok(typeof reviewCard.payload.correctKey === 'string' && 'ABCD'.includes(reviewCard.payload.correctKey))
+    assert.ok(typeof reviewCard.payload.why === 'string' && reviewCard.payload.why !== '', 'review must carry the explanation')
+    const after = readState()
+    assert.equal(after.issued_qid, before.issued_qid, 'review must not advance the issued question')
+    assert.equal(after.history.length, before.history.length, 'review must not record history')
   } finally {
     await service.close()
   }
