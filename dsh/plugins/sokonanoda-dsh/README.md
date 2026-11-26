@@ -27,6 +27,19 @@
   底层字符流（assistant 文本）就是卡片数据的来源，历史重放、fork、复制都按文本走。
 - **数据不进仓库**：配置、做题进度、决策历史全部在用户目录（见下）。
 
+## 数学图 skill
+
+插件包内附一份 **`sokonanoda-figure`** 作图规范（TikZ + 中文/数学字体搭配、
+对比度 token、grid、标签/箭头避让、PDF 文字框 lint）：
+
+```text
+dsh/plugins/sokonanoda-dsh/skills/sokonanoda-figure/SKILL.md
+```
+
+DSH 的发现入口是对应的
+`.agents/skills/sokonanoda-figure/SKILL.md`（指向仓库根下的 canonical 入口）。
+作图前先读它，不要手摆 HTML/SVG 坐标冒充数学图。
+
 ## 数据目录（唯一位置）
 
 ```

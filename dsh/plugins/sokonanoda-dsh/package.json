@@ -19,6 +19,7 @@
     "client.js",
     "lib/quiz-proxy.mjs",
     "cordis.patch.yml",
+    "skills",
     "locale/*.json",
     "icon.svg",
     "README.md"
