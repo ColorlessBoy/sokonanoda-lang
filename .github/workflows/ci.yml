@@ -1126,7 +1126,12 @@ jobs:
     needs: [changes, lint-fmt, lint-clippy, gates-fast]
     if: needs.changes.outputs.rust == 'true' || needs.changes.outputs.courses == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # **45 → 75 分钟**（2026-11-26 实测）：45 分钟到点时 `Course gate (analysis, G1–G6)`
+    # 还在跑 ⇒ job `cancelled`（不是判负）。同一棵树在主分支暖缓存下是 36m38s；
+    # 只改 `knowledge/**` 也会让下面的 artifact cache 落冷（旧 key 含整个
+    # `courses/set-theory/**`）⇒ 冷跑 + analysis 175 单元越过 45。analysis 那一步
+    # 自己留了 90 分钟 ⇒ job 上限对齐到 75（只抬上限，绿跑耗时不变）；key 也同时收窄。
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v5
       - name: Install Rust
@@ -1204,11 +1209,15 @@ jobs:
       # 产物本身还是**内容寻址**的（`<模块根>/.sokonanoda/compiled/`，键含源文本 +
       # 依赖闭包）⇒ 即使命中了不该命中的条目，也只会**重编**、不会错判 ✓。
       - name: Restore course artifacts（内容寻址缓存）
+        # key 只含**编译输入**（lib/units/清单/check.py）。`knowledge/**` 是题库数据、
+        # 不参与课程编译；旧 key 把整个 `courses/set-theory/**` 算进去 ⇒ **只改题库的
+        # PR 必然落冷缓存**（2026-11-26 实测：gates-course 因此顶到 45 分钟 job 超时）。
+        # 产物本身是内容寻址的 ⇒ key 判断保守也只会重编、不会错判。
         id: course-cache
         uses: actions/cache/restore@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/lib/**', 'courses/set-theory/units/**', 'courses/set-theory/sokonanoda.toml', 'courses/set-theory/tools/check.py') }}
       - name: Course artifacts（冷启动时说明一句；命中/未命中都可见）
         # 只做**可观测性**：让人在日志里一眼看出这次是冷是热（缓存是否命中）。
         shell: bash
@@ -1275,7 +1284,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: courses/set-theory/.sokonanoda
-          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/**', 'courses/set-theory/tools/check.py') }}
+          key: course-artifacts-${{ runner.os }}-${{ hashFiles('courses/set-theory/lib/**', 'courses/set-theory/units/**', 'courses/set-theory/sokonanoda.toml', 'courses/set-theory/tools/check.py') }}
       - name: Upload course gate report (always)
         # 判负时也要拿到全量报告（`--json` 的落盘版）：artifact + step summary 是
         # 公开仓库上无需 token 的自助诊断通道（同 cargo-test-log 的先例）。

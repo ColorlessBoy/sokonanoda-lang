@@ -632,15 +632,15 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 
 ## 2026-10-20 · run 39341179027（`1f32ba39`）：**6 个红 job，三条根因**（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）
 
-**共因**：`487f9a77 fix(front): 严格档翻默认` 把默认方言翻成严格档（message 自己写「⚠ 如实（未收口）」）
-⇒ `docs/gaps/repro/**` 夹具与 `crates/lsp` 一条成本判据仍是旧档写法。**判据一条没放宽**：红是「台账说 fixed、复现件仍红」的正确信号。
-
-**逐条**：① `ux-queue.py --check` 判 **3 条两层漂移**（调度器 `done` 而来源仍 `fix`）⇒ 收口同批条目时**每条都要有属于它自己的 commit**；
-② `e2e-merge.py --check` 报 **48/48**「引用的日志不存在」（为腾 `docs-lint ①` 预算删了 `docs/e2e/logs/` 32 份）⇒ 删源文件**必须同一行记 `log_pruned`**；
-③ `ledger` 10 条 `fixed` 复现件判红（翻默认后旧档写法）⇒ 翻默认要**同轮**迁 `docs/gaps/repro/**` 的 `.sokonanoda` 与 `.sh` 内联夹具；
-④ `the_kernel_quiet_window_is_thread_local` 竞态（探针先 spawn、主线程后轮询 ⇒ `checks==0`）⇒ 凡「先 spawn 再轮询」的判据，先做一次本线程该做的事再读信号。
-**未收口（如实）**：`changing_a_statement_must_invalidate_the_prefixes_after_it` 仍红（`prefix=12`，期望 0）= **引擎缺口** `SUB-flip-default-needs-engine-at-spine`（旧档 3/3 绿）。
-
 ## 2026-11-03 `board` 红：`ux-queue.py --selftest` 的 ④ 正对照（ubuntu 红；本地 Py3.12/3.13/3.15 · TZ/LANG · 净化 git 身份 · 10 连跑全绿 ⇒ 需诊断性 CI 打 `_out`；细节 `reports/2026-11-03-ci-board-selftest-red.md`）
+
+## 2026-11-26 · run 45753278263（`214e651`）：`gates-course` 45 分钟 job 超时（`cancelled`）
+
+**事实**：到点停在 `Course gate (analysis, G1–G6)`；后加的 `知识库门禁` 与 set-theory 门禁都 success。
+**根因**：artifact cache 的 key 含整个 `courses/set-theory/**` ⇒ 只改 `knowledge/**` 也落冷；
+叠加 analysis 175 单元（C7b）后冷跑越过 45 分钟（主分支暖缓存同一 job 36m38s，214e651 冷跑 >45）。
+**修复**：job 上限 45 → 75（analysis 步自己的上限是 90）；cache key 收窄到编译输入
+（`lib/**`、`units/**`、`sokonanoda.toml`、`tools/check.py`），题库数据不再让缓存落冷。
+**预防**：只改题库数据的内容 PR 必须能复用 main 的课程产物缓存；job 超时要 ≥ 冷跑实测 + 余量。
 
 ## 更早条目（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）
