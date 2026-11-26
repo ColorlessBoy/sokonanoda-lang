@@ -1,7 +1,7 @@
 {
   "schema": "soko.choice-bank/1",
   "title": "卷 I–III 选择题题库（集合论 / 分析）",
-  "version": 31,
+  "version": 32,
   "updated": "2026-11-26",
   "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
@@ -9775,6 +9775,778 @@
       "kps": [
         "kp.ii1.int.sub.laws",
         "kp.ii1.int.add.group"
+      ]
+    },
+    {
+      "id": "II.1.mulid-1",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "level": 1,
+      "tags": [
+        "int-mul",
+        "int-group"
+      ],
+      "prompt": "`mulRep p (0,0)` 与哪个代表元相关？",
+      "options": [
+        "与 `negRep p` 相关。",
+        "与 `p` 相关。",
+        "与 `(0,0)` 相关。",
+        "与 `(1,0)` 相关。"
+      ],
+      "answer": 3,
+      "why": "零元 `(0,0)` 表示 0，任何整数乘 0 都得 0，所以 `mulRep_zero_rep` 说结果与 `(0,0)` 相关。与 `p` 相关的是乘 1；与 `negRep p` 相关的是取负后相乘；`(1,0)` 是单位元。",
+      "source": "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:77",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.identity"
+      ]
+    },
+    {
+      "id": "II.1.mulid-2",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "int-group"
+      ],
+      "prompt": "`mulRep (2,5) (1,0)` 与 `(2,5)` 是什么关系？",
+      "options": [
+        "`intRel (mulRep (2,5) (1,0)) (0,0)`，乘 1 后归零。",
+        "`mulRep (2,5) (1,0) = (2,5)` 这个代表元等式，两个分量逐字相同。",
+        "`intRel (mulRep (2,5) (1,0)) (2,5)`，乘 1 不改变整数。",
+        "两者不相关，因为第二分量的计算会引入 5。"
+      ],
+      "answer": 3,
+      "why": "`(1,0)` 表示 1；展开公式得 `(2·1+5·0, 2·0+5·1) = (2,5)`，与 `(2,5)` 相关（其实分量也逐字相同）。`(0,0)` 是乘零的结果；说“不相关”或“归零”都与乘 1 的事实矛盾。",
+      "source": "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:84",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.identity"
+      ]
+    },
+    {
+      "id": "II.1.mulid-3",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "`myMul a 1` 归约成哪个表达式？",
+      "options": [
+        "`myMul 1 a`。",
+        "`Nat.succ a`。",
+        "`Nat.zero`。",
+        "`a`。"
+      ],
+      "answer": 4,
+      "why": "`myMul a (succ 0)` 按递归步展开成 `myAdd a (myMul a 0)`，而 `myMul a 0` 归约成 0，所以结果是 `myAdd a 0 = a`。`myMul 1 a` 是交换顺序后的积，不能直接归约成 a；零与后继都不是这条计算的结果。",
+      "source": "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:63",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.identity"
+      ]
+    },
+    {
+      "id": "II.1.mulid-4",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "rfl"
+      ],
+      "prompt": "为什么 `mulRep_zero_rep` 能用 `Eq.refl 0` 收尾？",
+      "options": [
+        "因为要先证明 `myMul a 0 = 0`，再交给 `Quot.sound`。",
+        "因为零元的良定义性只对闭值成立。",
+        "因为 `(0,0)` 是 `intRel` 的自反点，任何代表元都与它相关。",
+        "因为两个分量都归约成 0，目标变成 `0+0 = 0+0`。"
+      ],
+      "answer": 4,
+      "why": "`mulRep p (0,0)` 的两个分量都是 `a·0+b·0`，定义性归约成 0，因此 `intRel` 展开成 `0+0=0+0`，`Eq.refl 0` 足够。并不是任何代表元都与 `(0,0)` 相关（乘 1 的 p 就不是）；这一步在代表元层，不需要 `Quot.sound`。",
+      "source": "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:90",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.identity"
+      ]
+    },
+    {
+      "id": "II.1.mulwd-1",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "well-defined",
+        "int-mul"
+      ],
+      "prompt": "`mulRep_wd` 要证的结论是什么？",
+      "options": [
+        "`mulRep p q = mulRep q p`，乘法交换。",
+        "`mulRep p q = mulRep p' q` 这个代表元等式。",
+        "换第一个代表元后 `mulRep` 的结果仍 `intRel`。",
+        "`intRel p p' → p = p'`，把商内相等还原成代表元相等。"
+      ],
+      "answer": 3,
+      "why": "乘法在商上定义前，要先说明换第一个代表元后结果仍相关，这就是 `mulRep_wd`（本单元只证第一个槽）。代表元本身一般不逐字相等；`p=p'` 是 `Quot.exact` 的反方向；交换律是商上的性质，不是这里的义务。",
+      "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd"
+      ]
+    },
+    {
+      "id": "II.1.mulwd-2",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "`mul_add` 证明的是哪个等式？",
+      "options": [
+        "`(a+b)·c = a·c + b·c`。",
+        "`a·1 = a`。",
+        "`a·(b+c) = a·b + a·c`。",
+        "`a·b = b·a`。"
+      ],
+      "answer": 1,
+      "why": "`mul_add` 是右分配律：先把两个数相加再乘 c，等于分别乘 c 再相加。`a·(b+c)=a·b+a·c` 是左分配律（单元③的 `mul_distrib`）；交换律与单位元是另外两条。",
+      "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:151",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd"
+      ]
+    },
+    {
+      "id": "II.1.mulwd-3",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "level": 2,
+      "tags": [
+        "int-mul",
+        "nat-arithmetic"
+      ],
+      "prompt": "`mul_shift_c` 在假设 `h : a+b' = a'+b` 下要证哪个等式？",
+      "options": [
+        "`b'·c = b·c`。",
+        "`a·c = a'·c`。",
+        "`a·c + b'·c = a'·c + b·c`。",
+        "`(a+b')·c = (a'+b)·c` 的对称版本。"
+      ],
+      "answer": 3,
+      "why": "`mul_shift_c` 把假设 `h` 两边同时乘 c：左边 `(a+b')·c` 用 `mul_add` 展开成 `a·c+b'·c`，右边同理，正是这条等式。它不只证一个因子相等，也不是把 `(a+b')·c` 反过来写。",
+      "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:168",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd"
+      ]
+    },
+    {
+      "id": "II.1.mulwd-4",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "为什么乘法的良定义性比加法复杂？",
+      "options": [
+        "因为乘法只有闭值可计算，带参数时不可证。",
+        "因为乘法需要先证明交换律才能良定义。",
+        "因为乘法不满足结合律，无法重排。",
+        "乘积有交叉项，要分别搬 `c` 与 `d`。"
+      ],
+      "answer": 4,
+      "why": "`addRep` 只把两个对应分量相加；`mulRep` 的两个分量各含两项乘积，换代表元时要同时搬 `a,b` 与 `c,d` 两组交叉项，所以先用 `mul_shift_c` 处理 c，再处理 d，最后用 `add_shift`/`add_comm` 重排。乘法结合律在 ℕ 上成立；带参数的乘法公式当然可证；交换律不是良定义性的前提。",
+      "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:174",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd"
+      ]
+    },
+    {
+      "id": "II.1.mulwd-5",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "level": 3,
+      "tags": [
+        "int-mul",
+        "well-defined"
+      ],
+      "prompt": "第二个槽是否也要证？",
+      "options": [
+        "要；不过第二个槽要用 `Quot.exact` 才能证。",
+        "不要；`mulRep` 只依赖第一个代表元。",
+        "不要；交换律会自动补出第二个槽。",
+        "要；但本单元只做第一个槽，第二个槽在单元⑱再证。"
+      ],
+      "answer": 4,
+      "why": "乘法对两个输入都依赖，两个槽都需要相容性；本单元标题与注释都说明只证第一个分量固定（`p ~ p' ⇒ p*q ~ p'*q`），第二个槽留给单元⑱。交换律要等函数定义好之后才能用；`mulRep` 显然依赖两个输入；`Quot.exact` 课程没有，也不需要。",
+      "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.mul.wd"
+      ]
+    },
+    {
+      "id": "II.1.orderrep-1",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-order",
+        "leRep"
+      ],
+      "prompt": "`leRep (a,b) (c,d)` 展开成哪条 `LeNat` 命题？",
+      "options": [
+        "`LeNat (a+d) (c+b)`。",
+        "`LeNat (a+c) (b+d)`。",
+        "`LeNat (a+b) (c+d)`。",
+        "`LeNat a c`。"
+      ],
+      "answer": 1,
+      "why": "`leRep` 的定义是「`a-b ≤ c-d`」，两边同加 `b+d` 后化成 `a+d ≤ c+b`。`a+b ≤ c+d` 忘了把减数搬到另一边；`a+c ≤ b+d` 配错了交叉项；`LeNat a c` 只看第一个分量。",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.orderrep"
+      ]
+    },
+    {
+      "id": "II.1.orderrep-2",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "leRep"
+      ],
+      "prompt": "`0-0 ≤ 1-0` 为什么成立？",
+      "options": [
+        "因为 `leRep` 自反，任何 p 都满足 `leRep p p`。",
+        "因为 `0+0 ≤ 1+0`，由 `le_succ` 给出。",
+        "因为 `0 ≤ 1` 是布尔值 true，直接判定。",
+        "因为 `1-0` 与 `0-0` 在 `intRel` 下相等。"
+      ],
+      "answer": 2,
+      "why": "`leRep (0,0) (1,0)` 展开成 `LeNat (0+0) (1+0)`，即 `LeNat 0 1`；`le_succ 0 0 (le_refl 0)` 正好构造它。`LeNat` 是命题而不是布尔值；`leRep` 自反只给 `0-0 ≤ 0-0`；`0-0` 与 `1-0` 并不在 `intRel` 下相等。",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:40",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.orderrep"
+      ]
+    },
+    {
+      "id": "II.1.orderrep-3",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-order",
+        "leRep"
+      ],
+      "prompt": "`leRep_to_leNat` 的证明项是什么？",
+      "options": [
+        "`le_succ`，把 `h` 抬一层。",
+        "`Quot.sound h`。",
+        "对 `a,b,c,d` 做归纳。",
+        "直接把 `h` 交出去，两边定义性相等。"
+      ],
+      "answer": 4,
+      "why": "`leRep` 只是 `LeNat` 的缩写，`h : leRep (a,b) (c,d)` 的类型展开后正是 `LeNat (a+d) (c+b)`，所以直接给 `h`。两边没有需要抬的层；这是代表元层的定义展开，不需要归纳或 `Quot.sound`。",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:68",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.orderrep"
+      ]
+    },
+    {
+      "id": "II.1.orderrep-4",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-order",
+        "leRep"
+      ],
+      "prompt": "为什么 `leRep_refl` 需要对 `p` 做 match，而 `leRep_mk` 不需要？",
+      "options": [
+        "`leRep_mk` 的 p、q 已是 `prod_mk`；`leRep_refl` 的 p 要拆开。",
+        "因为 `leRep_mk` 是定义性相等，而 `leRep_refl` 是假命题。",
+        "因为 `leRep_refl` 需要先证明 `intRel` 自反。",
+        "因为 `leRep_refl` 要证商上的相等，`leRep_mk` 只证代表元层。"
+      ],
+      "answer": 1,
+      "why": "`leRep_mk` 把 `leRep (prod_mk a b) (prod_mk c d)` 直接展开；`leRep_refl` 的 `p` 是任意序对，必须先 `match p` 拆成 `prod_mk a b` 才能把两边都算成 `a+b`，再用 `le_refl`。两条都在代表元层；`leRep_refl` 是真命题，也不需要 `intRel`。",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:55",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.orderrep"
+      ]
+    },
+    {
+      "id": "II.1.natorder-1",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "level": 1,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`LeNat` 的构造子是下列哪两个？",
+      "options": [
+        "`le_refl` 与 `le_succ`。",
+        "`le_succ` 与 `le_add`。",
+        "`le_refl` 与 `le_trans`。",
+        "`le_zero` 与 `le_succ`。"
+      ],
+      "answer": 1,
+      "why": "`LeNat` 的定义只有两条：`le_refl n : LeNat n n` 与 `le_succ m n : LeNat m n → LeNat m (succ n)`。传递性 `leNat_trans` 是用这两条证的定理，不是构造子；`le_zero` 与 `le_add` 都不是构造子。",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:21",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.order"
+      ]
+    },
+    {
+      "id": "II.1.natorder-2",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_trans` 的证明对哪个假设归纳？",
+      "options": [
+        "对自然数 `a` 归纳，其余两个假设不动。",
+        "对 `h1 : LeNat a b` 归纳，动机写成 `LeNat m c`。",
+        "对 `c` 归纳，再用 `le_succ` 收尾。",
+        "对 `h2` 归纳，动机是 `LeNat a m → LeNat a n`。"
+      ],
+      "answer": 4,
+      "why": "要对 `h2 : LeNat b c` 做归纳：基例是 `LeNat a b → LeNat a b`（恒等），步例在归纳假设上再用一次 `le_succ`。对 `h1` 归纳时目标里的 `c` 不随构造子变化，接不上；对 `a` 或 `c` 归纳也无法直接利用两条构造子链。",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:43",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.order"
+      ]
+    },
+    {
+      "id": "II.1.natorder-3",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_succ_succ` 的结论是什么？",
+      "options": [
+        "`LeNat a b → LeNat (succ a) (succ b)`。",
+        "`LeNat (succ a) (succ b) → LeNat a b`。",
+        "`LeNat a (succ b) → LeNat (succ a) b`。",
+        "`LeNat (succ a) b → LeNat a (succ b)`。"
+      ],
+      "answer": 1,
+      "why": "`leNat_succ_succ` 说序对后继运算单调：a≤b 推出 succ a≤succ b，是从 `h : LeNat a b` 到 `LeNat (succ a) (succ b)`。反方向是消去律（本单元还没有）；另外两条把 succ 只放在一边，也不是这条定理的形状。",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:49",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.order"
+      ]
+    },
+    {
+      "id": "II.1.natorder-4",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "level": 3,
+      "tags": [
+        "nat-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "`leNat_add_right` 为什么对 `k` 归纳？",
+      "options": [
+        "k=0 时就是 h，k=succ 时用 `leNat_succ_succ`。",
+        "因为对 `h` 归纳无法得到加法形式，所以只能对 k 归纳。",
+        "因为 `LeNat` 的定义只对加法右侧的 k 递归。",
+        "因为 `a` 与 `b` 是固定参数，对它们归纳会改变 h 的类型。"
+      ],
+      "answer": 1,
+      "why": "目标是把同一个 k 加到不等式两边；k 是唯一的变元，k=0 时 `a+0`、`b+0` 定义性等于 a、b，正好是 `h`；k=succ n 时两边各露一层 succ，用 `leNat_succ_succ` 接上归纳假设。a、b 固定；`LeNat` 本身不对加法递归；对 h 归纳也是一条可行路线，但这条证明选的是对 k 归纳。",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:56",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.order"
+      ]
+    },
+    {
+      "id": "II.1.natorder-5",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`demo_leNat_zero_two` 用的是哪条链？",
+      "options": [
+        "`0 ≤ 2` 直接由 `le_refl 2` 得到。",
+        "`0 ≤ 0` 与 `0 ≤ 2`，经 `le_refl` 收尾。",
+        "`1 ≤ 1` 与 `1 ≤ 2`，经 `le_succ` 接成 `0 ≤ 2`。",
+        "`0≤1` 与 `1≤2` 经 `leNat_trans` 接成 `0≤2`。"
+      ],
+      "answer": 4,
+      "why": "`demo_leNat_zero_two` 把 `0 ≤ 2` 拆成 `0 ≤ 1`（`le_succ 0 0 (le_refl 0)`）与 `1 ≤ 2`（`le_succ 1 1 (le_refl 1)`），再用 `leNat_trans` 接起来。`le_refl 2` 只给 `2 ≤ 2`；`0 ≤ 0` 也推不到 2；`1 ≤ 1` 与 `1 ≤ 2` 的链缺了左端。",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:64",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.order"
+      ]
+    },
+    {
+      "id": "II.1.natcancel-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "`nat_add_cancel_right` 的结论是什么？",
+      "options": [
+        "`a+k = b+k → a+k = b+k` 的自反式。",
+        "`a = b → a+k = b+k`。",
+        "`a+k = b+k → a = b`。",
+        "`LeNat (a+k) (b+k) → LeNat a b`。"
+      ],
+      "answer": 3,
+      "why": "`nat_add_cancel_right` 是 ℕ 上的右消去律：两边加同一个 k 后相等，就能消去 k。反方向的「相等 ⇒ 加同一个数仍相等」是等式的同余，不是这条；最后一条是序的消去律，属于 `leNat_add_cancel_right`。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add.cancel"
+      ]
+    },
+    {
+      "id": "II.1.natcancel-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "`nat_add_cancel_right` 的证明应当对什么归纳？",
+      "options": [
+        "对 `h` 归纳：把等式链逐段拆开。",
+        "对 `k` 归纳；succ 时用 `Nat.succ.inj`。",
+        "对 `b` 归纳：b=0 时用 `zero_add`。",
+        "对 `a` 归纳：a=0 时直接消去 k。"
+      ],
+      "answer": 2,
+      "why": "k 是两边共同加的那个数，k=0 时 `a+0=a`、`b+0=b`，假设 h 直接就是 a=b；k=succ n 时两边各露一层 succ，剥掉后交给归纳假设。对 a 或 b 归纳时 k 仍留在加法里，接不上；h 是等式而不是构造子链，不能直接归纳。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add.cancel"
+      ]
+    },
+    {
+      "id": "II.1.natcancel-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "`Nat.succ.inj` 的作用是什么？",
+      "options": [
+        "把 `succ a` 归约成 `a`。",
+        "从 `a = b` 得到 `succ a = succ b`。",
+        "从 `succ a = succ b` 得到 `a = b`。",
+        "从 `a ≤ b` 得到 `succ a ≤ succ b`。"
+      ],
+      "answer": 3,
+      "why": "`Nat.succ.inj` 是后继构造子的单射性：已知两个后继相等，可以剥掉外层得到内层相等。反方向是 `congrArg Nat.succ`，不是单射性；序的单调性是 `leNat_succ_succ`；`succ` 也不会归约成 a。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:85",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add.cancel"
+      ]
+    },
+    {
+      "id": "II.1.natcancel-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 3,
+      "tags": [
+        "nat-order",
+        "nat-arithmetic"
+      ],
+      "prompt": "为什么归纳步必须用 `Nat.succ.inj`？",
+      "options": [
+        "因为归纳假设本身就是一个后继等式。",
+        "不剥掉 `succ` 就无法用归纳假设。",
+        "因为 `Nat.succ` 不是单射，必须额外假设。",
+        "因为 `succ` 会把加法交换顺序。"
+      ],
+      "answer": 2,
+      "why": "归纳步的目标是 `succ (a+n) = succ (b+n) → a=b`；先 `Nat.succ.inj` 得到 `a+n = b+n`，才正好是归纳假设的前提。`Nat.succ` 在这个课程里是构造子，单射性由 `Nat.succ.inj` 提供；归纳假设不是后继等式；`succ` 也不交换加法。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add.cancel"
+      ]
+    },
+    {
+      "id": "II.1.leexists-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 1,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_exists_add` 的结论是什么？",
+      "options": [
+        "`LeNat m n → m + n = n`。",
+        "`(∃ (k : Nat), n = m + k) → LeNat m n`。",
+        "`LeNat m n → ∃ (k : Nat), n = m + k`。",
+        "`LeNat m n → ∃ (k : Nat), m = n + k`。"
+      ],
+      "answer": 3,
+      "why": "`leNat_exists_add` 把序翻译成「存在一个加数 k，使 n=m+k」；反方向是 `leNat_of_exists_add`。`m+n=n` 只在 m=0 时成立；最后一条把加数的位置写反了。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:117",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.exists"
+      ]
+    },
+    {
+      "id": "II.1.leexists-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_exists_add` 的证明应当对什么归纳？",
+      "options": [
+        "对 `h` 归纳。",
+        "对 `m` 归纳。",
+        "对 `n` 归纳。",
+        "对加数 `k` 归纳。"
+      ],
+      "answer": 1,
+      "why": "结论由 `LeNat m n` 推出，最直接的归纳对象是 h 的构造链：`le_refl` 取 k=0，`le_succ` 把归纳假设的见证抬一层。k 还是被存在的量，不能先归纳；对 m 或 n 归纳时没有 h 的构造信息可用。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:117",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.exists"
+      ]
+    },
+    {
+      "id": "II.1.leexists-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_exists_add` 的基例 `le_refl` 取哪个见证？",
+      "options": [
+        "不需要见证，基例直接 `False.elim`。",
+        "`k = 0`，因为 `n = n + 0`。",
+        "`k = n`，因为 `n = n + n`。",
+        "`k = 1`，因为 `n = n + 1` 不成立也要先抬一层。"
+      ],
+      "answer": 2,
+      "why": "`le_refl n` 说的是 `LeNat n n`，要写成 `n = n + k`，取 k=0 即可（`n+0` 定义性等于 n）。k=1 时 `n+1≠n`；k=n 时 `n+n≠n`（除 n=0 外）；基例当然需要见证。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:117",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.exists"
+      ]
+    },
+    {
+      "id": "II.1.leexists-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 3,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_exists_add` 的步例如何构造新见证？",
+      "options": [
+        "对 k 再做一次归纳，得到新的 k。",
+        "把 k 改成 `succ k`，用 `congrArg` 包一层。",
+        "把归纳假设的 k 保持不变，直接交给 `le_succ`。",
+        "取 k=0，因为后继情形也归约成自反。"
+      ],
+      "answer": 2,
+      "why": "步例是 `le_succ m n h`，目标变成 `LeNat m (succ n)`，即要找 k' 使 `succ n = m + k'`；取 k' = succ k，并把归纳假设的 `n = m+k` 用 `congrArg Nat.succ` 包成 `succ n = succ (m+k)`，右边定义性等于 `m + succ k`。保持 k 不变得到的是 n 而不是 succ n；k=0 只适用于基例；再归纳 k 不会自动产生新见证。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:117",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.exists"
+      ]
+    },
+    {
+      "id": "II.1.lecancel-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_add_cancel_right` 的结论是什么？",
+      "options": [
+        "`LeNat a b → a = b`。",
+        "`LeNat (a+k) (b+k) → LeNat a b`。",
+        "`a+k = b+k → a = b`。",
+        "`LeNat a b → LeNat (a+k) (b+k)`。"
+      ],
+      "answer": 2,
+      "why": "`leNat_add_cancel_right` 是序的右消去律：两边加同一个 k 后仍有大小关系，就能消去 k。反方向是 `leNat_add_right`（单调性）；等式消去是 `nat_add_cancel_right`；`LeNat a b → a=b` 一般不对。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:138",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.cancel"
+      ]
+    },
+    {
+      "id": "II.1.lecancel-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 3,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_add_cancel_right` 的证明路线是什么？",
+      "options": [
+        "直接对 `h` 归纳，消去 k 后得到目标。",
+        "先取加数，再用 `add_rotate` 与加法消去，最后翻回 `LeNat`。",
+        "把 `LeNat` 当成等式，直接用 `nat_add_cancel_right`。",
+        "对 k 归纳，基例用 `le_refl`，步例用 `le_succ`。"
+      ],
+      "answer": 2,
+      "why": "序不能直接当等式消去；课程先把 `LeNat (a+k) (b+k)` 翻成存在某个 j 使 `b+k = (a+k)+j`，用 `add_rotate` 把右边转成 `(a+j)+k`，再用 ℕ 的加法消去律得 `b=a+j`，最后由 `leNat_of_exists_add` 回到 `LeNat a b`。只对 h 归纳或对 k 归纳都不能直接产生这个重排；`LeNat` 也不是等式。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:138",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.cancel",
+        "kp.ii1.nat.le.exists",
+        "kp.ii1.nat.add.cancel"
+      ]
+    },
+    {
+      "id": "II.1.lecancel-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_self_add` 的结论是什么？",
+      "options": [
+        "`m+k = m`。",
+        "`LeNat m (m+k)`。",
+        "`LeNat (m+k) m`。",
+        "`LeNat m k`。"
+      ],
+      "answer": 2,
+      "why": "`leNat_self_add` 说 m 不大于 m 加任何自然数：`LeNat m (m+k)`。反方向 `LeNat (m+k) m` 只在 k=0 时成立；`LeNat m k` 与加法无关；`m+k=m` 同样只在 k=0 时成立。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:124",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.cancel"
+      ]
+    },
+    {
+      "id": "II.1.lecancel-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "level": 2,
+      "tags": [
+        "nat-order"
+      ],
+      "prompt": "`leNat_of_exists_add` 的作用是什么？",
+      "options": [
+        "把「存在加数」翻回 `LeNat m n`。",
+        "把 `LeNat m n` 翻成存在加数。",
+        "证明加法满足交换律。",
+        "证明 `LeNat` 是等价关系。"
+      ],
+      "answer": 1,
+      "why": "`leNat_of_exists_add` 是 `leNat_exists_add` 的反方向：有了见证 k 与等式 `n=m+k`，用 `leNat_self_add` 得 `LeNat m (m+k)`，再沿等式换成 `LeNat m n`。正方向是 `leNat_exists_add`；加法交换律与等价关系都不是这条定理的内容。",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:130",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.le.cancel",
+        "kp.ii1.nat.le.exists"
       ]
     }
   ]

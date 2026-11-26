@@ -1,6 +1,6 @@
 {
   "schema": "soko.glossary/1",
-  "version": 9,
+  "version": 10,
   "updated": "2026-11-26",
   "entries": [
     {
@@ -354,6 +354,30 @@
       "oneLiner": "减法的两个槽都换成相关代表元后，结果仍相关；可由取负与加法的良定义性组合。",
       "code": "-- theorem subRep_wd … : intRel (subRep p q) (subRep p' q')",
       "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208"
+    },
+    {
+      "id": "le-rep",
+      "term": "leRep",
+      "kind": "definition",
+      "oneLiner": "整数序的代表元公式：`(a-b) ≤ (c-d)` 当且仅当 `a + d ≤ c + b`。",
+      "code": "-- def leRep (p q : Prod Nat Nat) : Prop",
+      "source": "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31"
+    },
+    {
+      "id": "le-nat",
+      "term": "LeNat",
+      "kind": "definition",
+      "oneLiner": "课程自建的 ℕ 序，只有 `le_refl` 与 `le_succ` 两个构造子。",
+      "code": "-- inductive LeNat : Nat → Nat → Prop",
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:21"
+    },
+    {
+      "id": "nat-add-cancel",
+      "term": "加法右消去",
+      "kind": "lemma",
+      "oneLiner": "两边加同一个自然数后相等，就能消去这个加数：`a+k = b+k → a = b`。",
+      "code": "-- theorem nat_add_cancel_right (a b k : Nat)",
+      "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
     }
   ]
 }

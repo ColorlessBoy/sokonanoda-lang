@@ -1,6 +1,6 @@
 {
   "schema": "soko.lessons/1",
-  "version": 9,
+  "version": 11,
   "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
@@ -2554,6 +2554,111 @@
         "courses/analysis/units/II.1/unit09.sokonanoda:208"
       ],
       "intuition": "本单元证明减法尊重代表元相等，并导出 p-p=0 与 (p-q)+q=p。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "goal": "学完这一单元，你能够证明整数乘零与乘一的代表元事实，并区分相关与逐字相等。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.identity",
+          "title": "乘法的零元与单位元",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:1",
+        "courses/analysis/units/II.1/unit10-int-mul-identity.sokonanoda:77"
+      ],
+      "intuition": "本单元用 myMul 的计算规则把乘零与乘一化到代表元层。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "goal": "学完这一单元，你能够用分配律与加法重排证明乘法尊重第一个代表元。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.mul.wd",
+          "title": "整数乘法的良定义性",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:1",
+        "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178"
+      ],
+      "intuition": "本单元用分配律把乘积展开，再用乘法同余搬交叉项，证明换第一个因子不变。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "goal": "学完这一单元，你能够把 a-b≤c-d 化归成 a+d≤c+b，并在序对上做定义展开。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.orderrep",
+          "title": "整数序的代表元公式",
+          "kind": "definition"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 4,
+      "sources": [
+        "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:1",
+        "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31"
+      ],
+      "intuition": "本单元把整数序化成 ℕ 上的 LeNat 交叉和，先只写代表元公式。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "goal": "学完这一单元，你能够用 LeNat 的构造子证明传递性、后继单调与加法单调。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.order",
+          "title": "ℕ 序的构造子与单调性",
+          "kind": "concept"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 5,
+      "sources": [
+        "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:1",
+        "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:43"
+      ],
+      "intuition": "本单元用 LeNat 的构造子链证明传递性、后继单调与加法单调。"
+    },
+    {
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "goal": "学完这一单元，你能够证明 ℕ 加法的右消去律，并把序翻成「存在加数」再消去。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.add.cancel",
+          "title": "ℕ 加法的右消去律",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.nat.le.exists",
+          "title": "序的存在加数刻画",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.nat.le.cancel",
+          "title": "ℕ 序的右消去律",
+          "kind": "technique"
+        }
+      ],
+      "cards": [],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:1",
+        "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
+      ],
+      "intuition": "本单元先证 ℕ 加法消去，再把序翻成存在加数，用重排与消去证序的消去律。"
     }
   ]
 }

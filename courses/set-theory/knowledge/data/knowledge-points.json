@@ -1,6 +1,6 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 7,
+  "version": 8,
   "updated": "2026-11-26",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
@@ -3484,6 +3484,134 @@
         "target": 4
       },
       "keyPoint": "用 add_neg_rep 证 p-p=0，并用展开与重排证 (p-q)+q=p。"
+    },
+    {
+      "id": "kp.ii1.int.mul.identity",
+      "chapter": "II.1",
+      "title": "乘法的零元与单位元",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.int.mulrep"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mulRep_zero_rep/mulRep_one_rep 得到 p·0=0 与 p·1=p，并分清代表元相关与逐字相等。"
+    },
+    {
+      "id": "kp.ii1.int.mul.wd",
+      "chapter": "II.1",
+      "title": "整数乘法的良定义性",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.int.mulrep",
+        "kp.ii1.quot.lift"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "用 mul_shift_c 分别搬两个交叉项，再用加法重排证明乘法尊重 intRel（本单元只做第一个槽）。"
+    },
+    {
+      "id": "kp.ii1.int.orderrep",
+      "chapter": "II.1",
+      "title": "整数序的代表元公式",
+      "kind": "definition",
+      "prereq": [
+        "kp.ii1.intrel"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "写出 (a-b)≤(c-d) 当且仅当 a+d≤c+b，并在序对上做定义展开。"
+    },
+    {
+      "id": "kp.ii1.nat.order",
+      "chapter": "II.1",
+      "title": "ℕ 序的构造子与单调性",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.rec"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "认出 LeNat 的 le_refl/le_succ，并用传递性与 leNat_succ_succ/leNat_add_right 推序。"
+    },
+    {
+      "id": "kp.ii1.nat.add.cancel",
+      "chapter": "II.1",
+      "title": "ℕ 加法的右消去律",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.nat.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "对 k 归纳，用 Nat.succ.inj 剥掉后继，证明 a+k=b+k → a=b。"
+    },
+    {
+      "id": "kp.ii1.nat.le.exists",
+      "chapter": "II.1",
+      "title": "序的存在加数刻画",
+      "kind": "concept",
+      "prereq": [
+        "kp.ii1.nat.order"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 1,
+          "L2": 1,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把 LeNat m n 翻成 ∃k, n=m+k，并在 le_refl/le_succ 两情形构造见证。"
+    },
+    {
+      "id": "kp.ii1.nat.le.cancel",
+      "chapter": "II.1",
+      "title": "ℕ 序的右消去律",
+      "kind": "technique",
+      "prereq": [
+        "kp.ii1.nat.add.cancel",
+        "kp.ii1.nat.le.exists"
+      ],
+      "saturation": {
+        "min": {
+          "L1": 0,
+          "L2": 2,
+          "L3": 1
+        },
+        "target": 4
+      },
+      "keyPoint": "把序翻成存在加数，用 add_rotate 与加法消去，再用 of_exists_add 回到 LeNat。"
     }
   ]
 }
