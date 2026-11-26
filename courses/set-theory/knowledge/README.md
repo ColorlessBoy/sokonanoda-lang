@@ -3,6 +3,11 @@
 **内容（文本）是唯一资产**：知识卡、选择题、调度参数都固化在 `data/` 里，可评审、可 diff、
 可逐渐优化；PNG / 聊天卡片 / 右栏面板 / 自测页都只是同一份数据的**渲染器**或**消费者**。
 
+> **多课程（C9.3）**：本库同时承载卷 I 集合论与卷 II/III 分析课；分析课按
+> `CONTENT-PLAN.md` §2.2 的批次逐波注册 KP 并同步出题，source 写仓库根相对的
+> `courses/analysis/units/…:行号`。工具仍只有这一套 `validate.py` / `coverage.py` /
+> `verify_batch.py` / `engine.py`，不复制第二套。
+
 ## 结构
 
 | 路径 | 作用 |
@@ -10,7 +15,7 @@
 | `DESIGN.md` | **三层自适应系统设计**（L1 交互 / L2 调度 / L3 维护）+ 阶段验收 |
 | `SCHEMA.md` | **题库/知识点 schema 的可执行规格与 checklist**（字段、约束、source 规则、批次流程） |
 | `data/knowledge-points.json` | **知识点注册表**（`soko.knowledge-points/1`；kind/chapter/prereq/`saturation.min,target`/keyPoint） |
-| `data/questions.json` | 题库（`soko.choice-bank/1`；choice/short/explain/proof；含 difficulty/variants/prereq/**kps**） |
+| `data/questions.json` | 题库（`soko.choice-bank/1`；卷 I + 卷 II/III；choice/short/explain/proof；含 difficulty/variants/prereq/**kps**） |
 | `data/cards.json` | 知识卡（`soko.knowledge-cards/1`；含 tags/prereq） |
 | `data/params.json` | L2 调度参数（`soko.learn-params/1`：eta/权重/阈值） |
 | `engine.py` | **L2 引擎**：掌握度（Elo）+ 推荐式召回 + 去重/变式/复习/知识卡触发；含 `selftest`/`simulate` |

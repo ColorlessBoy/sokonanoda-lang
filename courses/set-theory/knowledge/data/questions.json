@@ -1,9 +1,9 @@
 {
   "schema": "soko.choice-bank/1",
-  "title": "卷 I 集合论 · 选择题题库",
-  "version": 27,
-  "updated": "2026-11-22",
-  "policy": "每题的 answer 必须能由课程标准库或单元原文核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
+  "title": "卷 I–III 选择题题库（集合论 / 分析）",
+  "version": 30,
+  "updated": "2026-11-26",
+  "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
     "I.1": "集合、子集与集合运算（单元①–④）",
     "I.2": "序对、关系与函数（单元⑤–⑦）",
@@ -17,7 +17,8 @@
     "I.10": "关系闭包与等价关系（单元㉔–㉗）",
     "I.11": "集合代数（单元㉘–㉜）",
     "I.12": "幂集与函数空间（单元㉝–㉟）",
-    "I.13": "关系的代数（单元㊱–㊳）"
+    "I.13": "关系的代数（单元㊱–㊳）",
+    "II.1": "整数：从 ℕ 到 ℤ（单元①–⑲）"
   },
   "questions": [
     {
@@ -7357,6 +7358,1624 @@
       "source": "lib/Set.sokonanoda:56 · docs/design/course-stdlib.md",
       "seqIndex": 5,
       "seqTotal": 5
+    },
+    {
+      "id": "II.1.intrel-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 1,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "在 `intRel` 的定义里，`intRel (a,b) (c,d)` 展开后是哪个自然数等式？",
+      "options": [
+        "`a − d = b − c`",
+        "`a + b = c + d`",
+        "`a + d = b + c`",
+        "`a + c = b + d`"
+      ],
+      "answer": 3,
+      "why": "`intRel` 把「差相等」写成交叉相加：`a + d = b + c`，这样只用 `Nat.add`，不依赖减法。`a + b = c + d` 只是把对应位置相加，不能表达差相等；`a + c = b + d` 则是另一条关系。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:11",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intrel-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "要证 `intRel b a`，而手里只有 `h : intRel a b`，把定义展开后应当用哪件工具收尾？",
+      "options": [
+        "用 `Eq.refl` 直接收尾，因为两边是同一个表达式。",
+        "用 `Quot.sound` 把相关代表元变成商里的相等。",
+        "用 `Eq.symm h` 把两条交叉和等式换方向。",
+        "用 `Nat.add` 的交换律把两个加数对调。"
+      ],
+      "answer": 3,
+      "why": "`intRel a b` 展开后是 `a + d = b + c`，而 `intRel b a` 要的是 `b + c = a + d`，正好是前者的对称。因此 `Eq.symm h` 就是完整证明；`Eq.refl` 在这里类型不对，`Quot.sound` 则是从关系到商内相等，方向反了。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:42",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intrel-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "`zero_rel` 要证 `intRel (0,0) (1,1)`。为什么 `Eq.refl 1` 能直接收尾？",
+      "options": [
+        "因为 `Eq.refl 0` 证的是 `0 = 0`，而这条目标其实是 `0 = 1`，所以两者不可能互相替代。",
+        "因为 `Nat.add` 在这个语言里不可计算，必须先换成 `Quot.sound` 才能得到等式。",
+        "因为 `intRel` 是对称关系，要先把两个代表元交换位置，再用 `Eq.refl` 收尾。",
+        "因为展开后两边都归约成 `1`，目标就是 `1 = 1`，`Eq.refl 1` 正好证它。"
+      ],
+      "answer": 4,
+      "why": "`intRel (0,0) (1,1)` 展开是 `0 + 1 = 1 + 0`，两边都归约成 `1`，所以目标就是 `1 = 1`。`Eq.refl 0` 证的是 `0 = 0`，类型不匹配；这条计算也不需要商或对称性。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:48",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intrel-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 3,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "`intRel_refl` 对任意 `p : Prod Nat Nat` 成立。为什么证明不需要对 `p` 分情况，直接 `Eq.refl` 就够？",
+      "options": [
+        "因为 `intRel p p` 展开后两边是同一个表达式，`Eq.refl` 对任意 p 都适用。",
+        "因为 `intRel` 已经是等价关系，而等价关系的自反性按定义就应当直接用 `Eq.refl` 证明。",
+        "因为要先对 `p` 做 `cases`，再对两个分量分别用 `Eq.refl`，两步都不能省。",
+        "因为 `p` 的两个分量一定是相等的自然数，所以交叉和当然相等。"
+      ],
+      "answer": 1,
+      "why": "把 `p` 写成 `(a,b)` 时，`intRel p p` 的两边都是 `a + b`，不依赖 a、b 的具体值，因此 `Eq.refl (a + b)` 是通用证明。说「等价关系自反性就是 Eq.refl」混淆了关系与相等；而分量相等并不是 `intRel` 自反的前提。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:36",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intquot-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 1,
+      "tags": [
+        "int-quotient",
+        "quotient"
+      ],
+      "prompt": "课程里 `Int` 对应下面哪个类型？",
+      "options": [
+        "从 `ℕ` 到 `ℕ` 的函数空间，用函数表示整数。",
+        "`ℕ` 再加一个「负号」构造子、用递归定义得到的归纳类型。",
+        "所有整数对组成的集合，尚未按任何关系作商。",
+        "`ℕ × ℕ` 按 `intRel` 作商得到的商类型。"
+      ],
+      "answer": 4,
+      "why": "`Int` 的定义体是 `@Quot.{1} (Prod Nat Nat) intRel`，即把整数对按「差相等」粘成等价类。直接取 `Prod Nat Nat` 会把 `(2,0)` 与 `(3,1)` 当成不同元素，而它们应当表示同一个整数；归纳类型与函数空间则都不是本课的定义。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:16",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.quot"
+      ]
+    },
+    {
+      "id": "II.1.intquot-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "quotient",
+        "quot-sound"
+      ],
+      "prompt": "在 `Int := Quot intRel` 里，`Quot.mk a = Quot.mk b` 由哪条信息给出？",
+      "options": [
+        "由 `intRel a b` 经 `Quot.sound` 得到。",
+        "由 `Eq.refl` 给出，只要 a、b 的类型相同就自动成立。",
+        "由 `a` 与 `b` 作为序对逐分量相等给出，不需要别的条件。",
+        "由 `Quot.exact` 把商内相等还原成代表元关系后给出。"
+      ],
+      "answer": 1,
+      "why": "`Quot.sound` 的结论正好是「相关代表元在商里相等」，所以 `h : intRel a b` 经它得到 `mk a = mk b`。逐分量相等只是 `intRel` 成立的一种情形，不是唯一情形；本课程也没有 `Quot.exact`，不能反过来用。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:28",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.quot",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.intquot-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "在 `Int` 里，为什么不能用「两个代表元的分量都相等」来判断两个整数相等？",
+      "options": [
+        "因为同一个整数可以有不同代表元，只要满足 `intRel` 就相等。",
+        "因为 `Quot` 把相等的判断变成了函数应用，分量不再可见。",
+        "因为 `Nat` 上的相等不可判定，课程改用 `intRel` 代替。",
+        "因为 `Prod Nat Nat` 上没有相等关系，无法比较两个序对。"
+      ],
+      "answer": 1,
+      "why": "`Int` 的元素是等价类，`(2,0)` 与 `(3,1)` 虽然分量不同，却满足 `intRel`，因此是同一个整数。分量逐项相等只是相等的一种充分情形，会漏掉这些代表元；另外三个选项都与商的定义不符。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:10",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.quot",
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intquot-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 3,
+      "tags": [
+        "int-quotient",
+        "intRel"
+      ],
+      "prompt": "若把 `Int` 直接定义成 `Prod Nat Nat`（不取商），`intOfNat 2` 与 `intOfNat 3` 会怎样？",
+      "options": [
+        "它们不再有类型，因为 `Prod Nat Nat` 不是类型。",
+        "它们会变成两个不同的序对，`intRel` 不再参与整数相等的判断。",
+        "它们仍然相等，因为 `Eq.refl` 能证 `(2,0) = (3,0)`。",
+        "它们仍然相等，因为 `intRel (2,0) (3,0)` 成立。"
+      ],
+      "answer": 2,
+      "why": "不取商时 `intOfNat 2` 是 `(2,0)`、`intOfNat 3` 是 `(3,0)`，这是两个不同序对；`intRel` 只是普通命题，不再决定整数相等。`Eq.refl` 证不了 `(2,0) = (3,0)`，而 `intRel (2,0) (3,0)` 展开是 `2 = 3`，也不成立。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:15",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.quot",
+        "kp.ii1.intrel"
+      ]
+    },
+    {
+      "id": "II.1.intofnat-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 1,
+      "tags": [
+        "int-quotient",
+        "intOfNat"
+      ],
+      "prompt": "`intOfNat n` 用的是哪个代表元对？",
+      "options": [
+        "`(n, 0)`，表示 `n - 0`。",
+        "`(n + 1, 1)`，表示 `(n + 1) - 1`。",
+        "`(0, n)`，表示 `0 - n`。",
+        "`(n, n)`，表示 `n - n`。"
+      ],
+      "answer": 1,
+      "why": "`intOfNat` 的定义体是 `Quot.mk intRel (n, 0)`，注释也写明它表示 `n - 0`。`(0,n)` 表示的是 `-n`，`(n,n)` 表示 0；`(n+1,1)` 虽然与 `(n,0)` 相关，但不是定义里写的那一对。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:19",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intofnat"
+      ]
+    },
+    {
+      "id": "II.1.intofnat-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "intOfNat",
+        "quot-sound"
+      ],
+      "prompt": "要证 `intOfNat 2 = Quot.mk (3,1)`，应当把哪条相关性证明交给 `Quot.sound`？",
+      "options": [
+        "`2 = 3`，用 `Eq.refl 3` 证明。",
+        "`intRel (2,0) (3,1)`，用 `Eq.refl 3` 证明。",
+        "`(2,0) = (3,1)`，用 `Eq.refl (2,0)` 证明。",
+        "`intRel (3,1) (2,0)`，方向反过来才符合 `Quot.sound`。"
+      ],
+      "answer": 2,
+      "why": "`intOfNat 2` 就是 `Quot.mk (2,0)`，所以需要 `intRel (2,0) (3,1)`；它展开为 `2 + 1 = 3 + 0`，两边都是 3，`Eq.refl 3` 即可。`2 = 3` 与 `(2,0) = (3,1)` 都不是 `intRel` 的实例；反方向交给 `Quot.sound` 只会得到相反方向的相等。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:55",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intofnat",
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.intofnat-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 2,
+      "tags": [
+        "int-quotient",
+        "intOfNat"
+      ],
+      "prompt": "定义 `intOfNat n := Quot.mk (n,0)` 时，是否要先证明良定义性义务？",
+      "options": [
+        "需要先用 `Quot.lift` 把它下降到商上。",
+        "不需要额外的良定义性证明，因为它直接返回一个 `Quot.mk`。",
+        "需要先证 `intRel (n,0) (n,0)` 才能构造这个商元素。",
+        "需要证明任意两个 n 的代表元都相等。"
+      ],
+      "answer": 2,
+      "why": "`Quot.mk` 是商类型的构造子，任何代表元都可以直接送入，不需要先证明自反性。良定义性义务出现在「从代表元定义商上的函数」时，也就是用 `Quot.lift` 的时候；`intOfNat` 只是构造元素。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:19",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intofnat"
+      ]
+    },
+    {
+      "id": "II.1.intofnat-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "level": 3,
+      "tags": [
+        "int-quotient",
+        "intOfNat"
+      ],
+      "prompt": "如果把 `intOfNat n` 改成 `Quot.mk (0,n)`，它表示的整数属于哪一种？",
+      "options": [
+        "仍然表示 `n`，因为 `(0,n)` 与 `(n,0)` 总在 `intRel` 下相关。",
+        "无法构造，因为 `(0,n)` 不是 `Prod Nat Nat` 的元素。",
+        "表示 `-n`，而不是 `n`；只有 `n = 0` 时两者相同。",
+        "表示 `n + 1`，因为第一个分量是 0。"
+      ],
+      "answer": 3,
+      "why": "代表元 `(a,b)` 读作 `a - b`，所以 `(0,n)` 表示 `0 - n = -n`。它与 `(n,0)` 只有在 `n = 0` 时才满足 `intRel`；对一般的 n，`(0,n)` 与 `(n,0)` 展开后是 `0 = 2n`，并不成立。",
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:19",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.intofnat"
+      ]
+    },
+    {
+      "id": "II.1.quotsound-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 1,
+      "tags": [
+        "quotient",
+        "quot-sound"
+      ],
+      "prompt": "`Quot.sound` 的结论是什么？",
+      "options": [
+        "商上的每个元素都有代表元。",
+        "若 `Quot.mk r a = Quot.mk r b`，则 `r a b`。",
+        "`Quot.lift f h` 作用在 `Quot.mk r a` 上算得动。",
+        "若 `r a b`，则 `Quot.mk r a = Quot.mk r b`。"
+      ],
+      "answer": 4,
+      "why": "`Quot.sound` 把代表元之间的关系变成商内的相等，这是商构造最核心的一条原语。反方向 `mk a = mk b → r a b` 属于 `Quot.exact`，本课程没有；第三条是 iota 归约，第四条是商元素的构造性质。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.quotsound-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-sound"
+      ],
+      "prompt": "手里有 `h : r a b`，要证 `Quot.mk r a = Quot.mk r b`，应当用哪件工具？",
+      "options": [
+        "`Quot.ind`，因为它能消去商元素。",
+        "`Quot.sound h`。",
+        "`Quot.lift`，因为它定义了商上的函数。",
+        "`Eq.refl`，因为两边是同一个命题。"
+      ],
+      "answer": 2,
+      "why": "目标正是 `Quot.sound` 的结论形状，直接把 `h` 交给它即可。`Quot.lift` 是从代表元函数构造商上函数，`Quot.ind` 是证商上每个元素的性质，二者都不能直接产生这条相等。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.quotsound-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-sound",
+        "quot-exact"
+      ],
+      "prompt": "本课程能否直接使用 `Quot.sound` 的反方向 `Quot.mk r a = Quot.mk r b → r a b`？",
+      "options": [
+        "不能；课程没有 `Quot.exact`，这个反方向是明确记下的边界。",
+        "能；用 `Eq.refl` 对 `mk a = mk b` 归纳即可。",
+        "能；`Quot.exact` 就是它的名字，只是要写宇宙层级。",
+        "能；只要 r 是等价关系，`Quot.sound` 自动给出反方向。"
+      ],
+      "answer": 1,
+      "why": "单元开头把「没有 `Quot.exact`」列为三条边界之一，因此不能把商内相等还原成代表元关系。等价关系或自反性都不会自动补出反方向；单射那条只能改用缩回函数加 `rel_subst_right` 的绕法。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:19",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.sound",
+        "kp.ii1.quot.exact"
+      ]
+    },
+    {
+      "id": "II.1.quotsound-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-sound"
+      ],
+      "prompt": "为什么 `demo_quot_sound` 里要写全 `@Quot.sound.{1}`，而不能只写 `Quot.sound`？",
+      "options": [
+        "因为结论是相等命题，此处等号记法解不出宇宙层级，必须点名并写全层级。",
+        "因为 `Quot.sound` 只在 `Nat` 上工作，其他类型要显式层级。",
+        "因为不点名就会被解析成 `Quot.lift`。",
+        "因为点名只是为了风格统一，省掉也能通过。"
+      ],
+      "answer": 1,
+      "why": "注释说明：这条的结论是相等命题，而在这个位置等号的记法解不出宇宙层级，所以必须点名 `@Quot.sound.{1}`。这不是风格问题；省掉层级会留下无法求解的宇宙参数。把 `Quot.sound` 与 `Quot.lift` 混为一谈也不对，二者签名完全不同。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:40",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.sound"
+      ]
+    },
+    {
+      "id": "II.1.quotlift-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined"
+      ],
+      "prompt": "想从代表元函数 `f : α → β` 得到商上的函数 `Quot r → β`，`Quot.lift` 要求先交出哪条证明？",
+      "options": [
+        "`∀ a b, f a = f b → r a b`。",
+        "`∀ q, ∃ a, q = Quot.mk r a`。",
+        "`∀ a, r a a`。",
+        "`∀ a b, r a b → f a = f b`。"
+      ],
+      "answer": 4,
+      "why": "这正是良定义性义务：相关的代表元必须给出同一个函数值，否则下降后的结果不是函数。`∀ a, r a a` 是关系的自反性，第三条把蕴含方向写反了，第四条是代表元存在性，`Quot.lift` 都不要求。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.quotlift-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined"
+      ],
+      "prompt": "`quot_lift_eq` 要证下降函数在相关代表元上取同一个值。为什么证明只需交出 `h a b hab`？",
+      "options": [
+        "因为 `Quot.ind` 把两个代表元都消掉了。",
+        "因为 `Quot.lift` 的定义就是返回 `h a b hab`。",
+        "因为 `Quot.sound` 直接给出两个商元素相等。",
+        "两边 iota 归约成 `f a`、`f b`，正好由 `h a b hab` 接上。"
+      ],
+      "answer": 4,
+      "why": "`lift f h (mk a)` 与 `lift f h (mk b)` 各自归约成 `f a` 与 `f b`，目标于是变成 `f a = f b`，正是 `h` 在 `a`、`b`、`hab` 上的实例。`Quot.sound` 得到的是商内相等而不是函数值相等；`Quot.lift` 返回的是函数，也不会直接返回证明。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:62",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.quotlift-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined"
+      ],
+      "prompt": "把 `f p := Nat.add (Prod.fst p) (Prod.snd p)` 经 `Quot.lift` 下降到 `Int`，结果会怎样？",
+      "options": [
+        "下降不了：因为 `Nat.add` 在这个语言里不满足结合律，无法重排。",
+        "下降不了：`(2,0)` 与 `(3,1)` 相关，但分量和 2≠4。",
+        "能下降：`intRel` 保证两个分量之和一定相等，和就是 2。",
+        "能下降：只要再证 `intRel` 自反即可。"
+      ],
+      "answer": 2,
+      "why": "良定义性要求相关的代表元给出同一个值。`(2,0)` 与 `(3,1)` 满足 `intRel`（`2 + 1 = 3 + 0`），但两分量之和分别是 2 与 4，义务不成立，所以 `f` 不能下降。`intRel` 保的是交叉和 `a + d = b + c`，不是 `a + b`；`Nat.add` 的结合律与此无关。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:62",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.quotlift-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined"
+      ],
+      "prompt": "为什么 `Quot.lift` 的良定义性义务不能省？若省略它直接写 `g (mk a) := f a` 会出什么问题？",
+      "options": [
+        "省略后商类型不再成立，`Quot` 会退化成 `Prod`。",
+        "省略后仍能定义，只要 `f` 是单射。",
+        "省略后 `Quot.lift` 会自动选择第一个代表元，所以只是性能问题。",
+        "同一商元素可由不同代表元给出，`f` 取值不同时 `g` 不是函数。"
+      ],
+      "answer": 4,
+      "why": "商的元素只记得等价类，同一个元素可以写成 `mk a` 也可以写成 `mk b`（当 `r a b` 时）。如果 `f a ≠ f b`，同一输入就对应两个输出，定义不再是函数。单射也不能补救这一点，反而与「相关代表元可以不同」相冲突；`Quot` 也不会退化成 `Prod`。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:62",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.quotlift-5",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "quot-iota"
+      ],
+      "prompt": "`quot_lift_comp` 证明 `(fun q => lift f h q) (mk a) = f a`。这个等式为什么能直接用 `Eq.refl` 收尾？",
+      "options": [
+        "因为 `h a a (intRel_refl a)` 给出 `f a = f a` 后才能重写。",
+        "因为函数外延 `funext` 把两边变成同一个函数。",
+        "`lift` 在 `mk a` 上 iota 归约成 `f a`，目标立刻变成 `f a = f a`。",
+        "因为要先用 `Quot.ind` 对 q 归纳，归纳后再用 `Eq.refl`。"
+      ],
+      "answer": 3,
+      "why": "`Quot.lift` 的计算规则就是 `lift f h (mk a) ≡ f a`，所以整个左边一步归约成 `f a`，目标成为自反等式。这里不需要归纳，也不需要用 `h` 的自反实例；`funext` 是函数相等的外延原则，与这个逐点计算无关。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:88",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.lift",
+        "kp.ii1.quot.iota"
+      ]
+    },
+    {
+      "id": "II.1.quotiota-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 1,
+      "tags": [
+        "quotient",
+        "quot-iota"
+      ],
+      "prompt": "`Quot.lift f h (Quot.mk r a)` 归约成哪个表达式？",
+      "options": [
+        "无法归约，只能保留为变量。",
+        "`h a a`。",
+        "`f a`。",
+        "`Quot.mk r (f a)`。"
+      ],
+      "answer": 3,
+      "why": "`Quot.lift` 的 iota 规则规定：下降后的函数作用在 `mk a` 上就算成 `f a`。`Quot.mk r (f a)` 类型就不对（`f a` 未必是 α 的元素）；`h a a` 是良定义性证明的一个实例，不是计算结果。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.iota"
+      ]
+    },
+    {
+      "id": "II.1.quotiota-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-iota"
+      ],
+      "prompt": "要证 `Quot.lift f h (Quot.mk r a) = f a`，最直接的证明项是什么？",
+      "options": [
+        "`Eq.refl (f a)`。",
+        "`h a a`，因为自反性给出 `f a = f a`。",
+        "`Quot.sound`，因为两个商元素相等。",
+        "`Quot.ind`，因为要对商元素归纳。"
+      ],
+      "answer": 1,
+      "why": "目标左边按 iota 归约就是 `f a`，所以自反证明 `Eq.refl (f a)` 直接收尾。`Quot.sound` 证的是商元素相等，`Quot.ind` 用来证商上每个元素的性质，`h a a` 则需要先有 `r a a`，都不是这条计算等式的证明。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:48",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.iota"
+      ]
+    },
+    {
+      "id": "II.1.quotiota-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-iota"
+      ],
+      "prompt": "如果 `Quot.lift` 没有 iota 归约（作用在 `mk a` 上不计算），`quot_lift_comp` 这类题会怎样？",
+      "options": [
+        "会变成假命题，`lift` 不再返回 `f a`。",
+        "会自动退化成 `Quot.ind`。",
+        "仍然能用 `Eq.refl`，因为商元素相等就是代表元相等。",
+        "就无法用 `Eq.refl` 收尾，得另找计算规则或更强假设。"
+      ],
+      "answer": 4,
+      "why": "`quot_lift_comp` 的证明完全依赖「`lift f h (mk a)` 能算成 `f a`」这一步；没有 iota 规则，左边就是一个不透明的项，`Eq.refl` 对不上。它未必变成假命题，只是本课程现有工具证不出来；`Quot.ind` 也不会自动接管计算。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.iota"
+      ]
+    },
+    {
+      "id": "II.1.quotiota-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-iota"
+      ],
+      "prompt": "`demo_quot_lift_iota` 的类型里 `h` 是 `∀ a b, r a b → f a = f b`。为什么这个证明不需要用到 `h`？",
+      "options": [
+        "iota 已把 `lift (mk a)` 算成 `f a`，不需要 `h` 的内容。",
+        "因为 `Quot.sound` 已经把 `h` 消掉。",
+        "因为 `f a = f a` 必须先由 `h a a` 才能成立。",
+        "因为 `h` 是自动填充的隐式参数，证明里看不见。"
+      ],
+      "answer": 1,
+      "why": "`h` 是 `Quot.lift` 的第二个显式参数，用来保证下降合法；一旦函数已经构造出来，它在 `mk a` 上的计算值只由 iota 规则决定。`f a = f a` 本来就是自反的，不需要 `h a a`；`h` 也不是隐式参数。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:48",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.iota"
+      ]
+    },
+    {
+      "id": "II.1.quotind-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-ind"
+      ],
+      "prompt": "`Quot.ind` 把「证商上每个元素 q 都满足 C q」降成哪个命题？",
+      "options": [
+        "在商上找一个代表元 q。",
+        "证明 C 在商上可判定。",
+        "对每个代表元 a 证 `C (Quot.mk r a)`。",
+        "证 `∀ a b, r a b → C a`，也就是关系上的传递性。"
+      ],
+      "answer": 3,
+      "why": "`Quot.ind` 的类型是 `(∀ a, C (mk a)) → ∀ q, C q`，所以只需对代表元证。它不要求在商上找代表元，也不把 C 变成关系或可判定性；那些都不是 `Quot.ind` 的前提。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:54",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.ind"
+      ]
+    },
+    {
+      "id": "II.1.quotind-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-ind"
+      ],
+      "prompt": "`quot_lift_unique` 要证 `g q = lift f h q`，对 q 归纳后代表元那一步为什么直接交出 `hg a`？",
+      "options": [
+        "因为要对 a 再做一次 `Quot.ind`。",
+        "`lift (mk a)` iota 成 `f a`，目标就是 `hg a` 的类型。",
+        "因为 `Quot.sound` 给出 `g (mk a) = f (mk a)`。",
+        "因为 `g` 与 `lift f h` 按定义就是同一个函数。"
+      ],
+      "answer": 2,
+      "why": "代表元那一步的目标是 `g (mk a) = lift f h (mk a)`；右边归约成 `f a`，于是需要 `g (mk a) = f a`，这正好是假设 `hg` 在 a 上的实例。`g` 是任意满足逐点一致的函数，并不能按定义等同于 `lift`；`Quot.sound` 也不会给出这个等式。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:146",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.ind"
+      ]
+    },
+    {
+      "id": "II.1.quotind-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-ind"
+      ],
+      "prompt": "`quot_lift_const_all` 要证两个商元素上的下降函数相等。为什么证明要用两次 `Quot.ind`？",
+      "options": [
+        "因为第一次归纳会失败，必须重试一次。",
+        "因为 `Quot.ind` 一次只能消去一个函数参数，另一个必须用 `Quot.sound`。",
+        "外层归纳第一个商元素、内层归纳第二个；两边都降到代表元后才能用良定义性假设。",
+        "因为 `lift` 的良定义性证明本身需要两次归纳。"
+      ],
+      "answer": 3,
+      "why": "目标里有两个商元素 q1、q2，`Quot.ind` 一次只拆一个，所以先拆 q1，再在代表元分支里拆 q2。两个都变成 `mk` 之后，`lift` 的 iota 归约与良定义性假设才能接上；`Quot.sound` 在这里既不需要也不适用。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:164",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.ind"
+      ]
+    },
+    {
+      "id": "II.1.quotind-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-ind"
+      ],
+      "prompt": "为什么 `Quot.ind` 可以用来证商上的性质，却不能用来从商构造一个 `Type` 值（例如返回一个函数）？",
+      "options": [
+        "因为 `Quot.ind` 只能用在 `Nat` 上，其他类型要换工具。",
+        "`Quot.ind` 只证命题；构造数据要用 `Quot.lift` 并证良定义性。",
+        "因为 `Quot.ind` 需要 `Quot.sound` 作为额外参数。",
+        "因为 `Quot.ind` 会丢失代表元信息，直接返回 `False`。"
+      ],
+      "answer": 2,
+      "why": "`Quot.ind` 的动机 `C` 的类型是 `Quot r → Prop`，所以它只能消去成命题。若想要商上的函数或别的数据，必须用 `Quot.lift`，并先证明代表元函数在相关代表元上同值；`Quot.ind` 本身不要求 `Quot.sound` 作参数。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:54",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.ind"
+      ]
+    },
+    {
+      "id": "II.1.quotind-5",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-ind",
+        "quot-lift"
+      ],
+      "prompt": "想在商上定义「取代表元的第一个分量」，为什么不能只靠 `Quot.ind`？",
+      "options": [
+        "`Quot.ind` 可以定义函数，只是需要先证明 `intRel` 自反。",
+        "不能定义，因为商类型根本没有元素。",
+        "可以定义，因为同一个商元素的代表元第一个分量总相同。",
+        "`Quot.ind` 只证 Prop；定义函数要用 `Quot.lift`，而 `fst` 不良定义。"
+      ],
+      "answer": 4,
+      "why": "定义函数是构造数据，`Quot.ind` 的结论只在 `Prop` 里，帮不上忙；而用 `Quot.lift` 又需要 `fst` 在相关代表元上同值，`(2,0)` 与 `(3,1)` 给出 2 与 3，义务不成立。商类型当然有元素（例如 `intOfNat 0`），问题不在元素存在性。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:53",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.ind",
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.quotexact-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 2,
+      "tags": [
+        "quotient",
+        "quot-exact"
+      ],
+      "prompt": "本课程没有 `Quot.exact`。它本应给出哪条蕴含？",
+      "options": [
+        "`Quot.lift f h (Quot.mk r a) = f a`。",
+        "`Quot.mk r a = Quot.mk r b → r a b`。",
+        "`r a b → Quot.mk r a = Quot.mk r b`。",
+        "`(∀ a, C (Quot.mk r a)) → ∀ q, C q`。"
+      ],
+      "answer": 2,
+      "why": "`Quot.exact` 是 `Quot.sound` 的反方向：从商内相等还原出代表元关系。第二条是 `Quot.sound` 本身，第三条是 iota 计算规则，第四条是 `Quot.ind`，都不是精确性。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:19",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.exact"
+      ]
+    },
+    {
+      "id": "II.1.quotexact-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-exact"
+      ],
+      "prompt": "没有 `Quot.exact` 时，`quot_mk_injective`（按相等作商，`mk` 是单射）应当怎样证？",
+      "options": [
+        "先 `Quot.lift` 出缩回，再用 `rel_subst_right` 搬运。",
+        "用 `congrArg` 把 `mk` 直接消掉，得到两个代表元相等。",
+        "直接用 `Quot.exact`，只是要把宇宙层级写全。",
+        "用 `Quot.ind` 对两个商元素各归纳一次，再交给 `Eq.refl`。"
+      ],
+      "answer": 1,
+      "why": "本单元给出的路线是缩回技巧：用 `quot_lift_id` 那类下降函数作缩回，把等式两边都缩回代表元，再用 `rel_subst_right` 沿 `mk a = mk b` 搬运，最后算出 `a = b`。课程没有 `Quot.exact`；`congrArg` 在大类型上解不出宇宙层级，也是文件头记下的边界。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:124",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.exact"
+      ]
+    },
+    {
+      "id": "II.1.quotexact-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "level": 3,
+      "tags": [
+        "quotient",
+        "quot-exact"
+      ],
+      "prompt": "为什么 `∃ (g : Quot r → β), …` 这种「见证是函数」的存在量词在本单元构造不出来？",
+      "options": [
+        "因为商类型里没有元素，函数也无从定义。",
+        "因为函数类型不在 `Type` 里，无法被存在量词引用。",
+        "`Exists.intro` 的见证只能是 `Sort 0`，装不下函数。",
+        "因为 `Quot.lift` 只返回证明，不返回商上的函数。"
+      ],
+      "answer": 3,
+      "why": "单元开头把这条列为边界②：本语言的 `Exists.intro` 只接受 `Sort 0` 的见证，而 `Quot r → β` 是函数类型，因此「存在一个函数」这样的命题构造不出证明。于是全称性质只能写成 `∀ q, …` 的逐点形态；这并不意味着商没有元素或 `Quot.lift` 不返回函数。",
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:20",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.quot.exact"
+      ]
+    },
+    {
+      "id": "II.1.natrec-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 1,
+      "tags": [
+        "nat-arithmetic",
+        "nat-rec",
+        "induction"
+      ],
+      "prompt": "用 `Nat.rec` 对 `b` 归纳证明 `add a b = add b a` 时，动机（motive）应当写成什么？",
+      "options": [
+        "`Nat.succ` 本身，因为它负责后继情形。",
+        "`Eq.refl` 的证明项，因为它收尾零情形。",
+        "`fun n => add a n = add n a`，返回 Prop 的函数。",
+        "一个自然数，表示归纳进行到第几步，也决定递归从哪一项开始。"
+      ],
+      "answer": 3,
+      "why": "`Nat.rec` 的动机是「对每个 n 要证什么」的命题族，所以写成 `fun n => … = …` 这样的函数。自然数、`Nat.succ` 或某个证明项都不是命题族；没有动机就无法说明归纳在证哪件事。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:40",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.rec"
+      ]
+    },
+    {
+      "id": "II.1.natrec-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-rec",
+        "induction"
+      ],
+      "prompt": "`zero_add` 的后继情形要把归纳假设从 `n` 搬到 `Nat.succ n`。应当用哪件工具？",
+      "options": [
+        "再调一次 `Nat.rec`，对 `Nat.succ n` 重新归纳。",
+        "`Quot.sound`，因为自然数也是商。",
+        "`Eq.refl`，因为后继情形是定义性相等的。",
+        "`Eq.subst` 加谓词，把等式沿 `Nat.succ` 重写。"
+      ],
+      "answer": 4,
+      "why": "归纳假设是 `add 0 n = n`，而后继情形要证 `Nat.succ (add 0 n) = Nat.succ n`；用 `Eq.subst` 配合谓词 `fun m => Nat.succ (add 0 n) = Nat.succ m` 把假设搬过去。`Quot.sound` 处理的是商，`Eq.refl` 在这里证不了目标，再归纳一次也不能搬假设。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:40",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.rec",
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.natrec-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-rec"
+      ],
+      "prompt": "为什么 `add` 与 `mul` 要用 `def` 声明，而不能写成 `theorem`？",
+      "options": [
+        "因为 `theorem` 不能带参数，而 `add` 需要两个参数。",
+        "因为 `def` 会自动生成归纳原理，`theorem` 不会。",
+        "因为 `def` 的判定比 `theorem` 快，课程为了性能这样写。",
+        "返回 `Nat` 是数据不是 Prop，`theorem` 只能声明命题。"
+      ],
+      "answer": 4,
+      "why": "`theorem` 的结论类型必须是 `Prop`，而 `add`、`mul` 的返回类型是 `Nat`，属于数据。带参数对 `theorem` 是允许的，`def` 也不会自动生成课程要用的那套归纳原理；这条选择只由返回值类型决定。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:30",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.rec"
+      ]
+    },
+    {
+      "id": "II.1.natrec-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 3,
+      "tags": [
+        "nat-arithmetic",
+        "nat-rec",
+        "induction"
+      ],
+      "prompt": "归纳步里 `Eq.subst` 的谓词写成 `fun m => … m …` 时，谓词方向决定了哪个方面？",
+      "options": [
+        "决定了归纳从零开始还是从后继开始。",
+        "决定了 `Nat.rec` 用哪条递归规则展开。",
+        "决定等式往哪边重写，即最终目标的形状。",
+        "决定了证明项要写几个宇宙层级。"
+      ],
+      "answer": 3,
+      "why": "`Eq.subst` 把 `m` 处的等式替换进谓词：谓词里 `m` 出现的位置和方向，决定了替换后得到的是 `… n …` 还是 `… succ n …`。它不改变归纳的起点，也不影响 `Nat.rec` 的递归规则；宇宙层级与谓词方向是两件事。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:20",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.rec"
+      ]
+    },
+    {
+      "id": "II.1.natadd-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 1,
+      "tags": [
+        "nat-arithmetic",
+        "nat-add"
+      ],
+      "prompt": "`add a b` 的定义对哪个参数递归？",
+      "options": [
+        "第二个参数 `b`。",
+        "两个参数同时递归。",
+        "都不递归，`add` 直接调用内建加法。",
+        "第一个参数 `a`。"
+      ],
+      "answer": 1,
+      "why": "定义体是 `Nat.rec … b`，递归落在第二个参数上：`add a zero = a`、`add a (succ n) = succ (add a n)`。第一个参数 `a` 在递归中保持不变；课程这里还特意用 `Nat.rec` 自建加法，而不是直接调用内建版本。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:30",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.natadd-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-add"
+      ],
+      "prompt": "`add_zero` 的证明项是什么？",
+      "options": [
+        "`zero_add`，因为两条是同一个命题。",
+        "`Eq.refl Nat.zero`，因为零是递归起点。",
+        "`Eq.refl a`，因为 `add a 0` 就是 `a`。",
+        "`Nat.rec`，因为要再归纳一次。"
+      ],
+      "answer": 3,
+      "why": "`add a Nat.zero` 按定义归约成 `a`，所以目标 `add a 0 = a` 就是 `a = a`，`Eq.refl a` 足够。`zero_add` 说的是 `add 0 b = b`，与这条方向不同；这里也不需要再归纳。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:34",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.natadd-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-add"
+      ],
+      "prompt": "`add_comm` 的零情形 `add a 0 = add 0 a` 应当接哪两条结论？",
+      "options": [
+        "`add_assoc` 用两次。",
+        "`succ_add` 与 `add_succ`。",
+        "`mul_distrib` 与 `zero_mul`。",
+        "`zero_add` 与 `add_zero` 的对称。"
+      ],
+      "answer": 4,
+      "why": "左边 `add 0 b` 按 `zero_add` 是 `b`，右边 `add b 0` 按 `add_zero` 也是 `b`，两边接起来就得到零情形。结合律、分配律与后继规则都不是这一步需要的；后继情形才会用到 `succ_add` 与 `add_succ`。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:59",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.natadd-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 3,
+      "tags": [
+        "nat-arithmetic",
+        "nat-add"
+      ],
+      "prompt": "`add_rotate` 的证明顺序为什么不能先把外层的 `a` 与 `b` 交换？",
+      "options": [
+        "因为 `add_rotate` 的证明不需要任何引理，直接 `Eq.refl`。",
+        "因为 `add_assoc` 只能从右往左用，顺序无关。",
+        "因为 `add_comm` 只能对零使用，外层交换会卡住。",
+        "先用结合律拆出 `(a+b)+c`，再交换内层，最后收回。"
+      ],
+      "answer": 4,
+      "why": "目标是 `a + (b + c) = b + (a + c)`；外层根本没有可以直接交换的 `a + b`，必须先用结合律把它露出来，再交换内层，最后用结合律收回。`add_comm` 并不限于零，`add_assoc` 也可双向使用；这条证明依赖前两条，不能只靠 `Eq.refl`。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:65",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.add"
+      ]
+    },
+    {
+      "id": "II.1.natmul-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 1,
+      "tags": [
+        "nat-arithmetic",
+        "nat-mul"
+      ],
+      "prompt": "`mul a b` 的后继情形应当展开成哪个表达式？",
+      "options": [
+        "`mul a (Nat.succ n)` 本身，不需要展开。",
+        "`Nat.succ (mul a n)`。",
+        "`add a (mul a n)`。",
+        "`add n a`。"
+      ],
+      "answer": 3,
+      "why": "`mul` 的定义体在递归步用 `add a ih`：`mul a (succ n) = add a (mul a n)`。它把「乘以后继」化成一整份 `a` 加上原来的积；`Nat.succ (mul a n)` 少乘了一份 `a`，`add n a` 则把两个参数的角色对调了。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:32",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.mul"
+      ]
+    },
+    {
+      "id": "II.1.natmul-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-mul"
+      ],
+      "prompt": "`mul a Nat.zero` 应当归约成什么？",
+      "options": [
+        "`a`，因为零个 `a` 相加等于一个 `a`。",
+        "`Nat.zero`，因为递归起点取零。",
+        "无法归约，需要先证 `mul_zero`。",
+        "`Nat.succ Nat.zero`。"
+      ],
+      "answer": 2,
+      "why": "`mul` 的定义体在零情形取 `Nat.zero`，所以 `mul a 0` 直接归约成 0，`Eq.refl Nat.zero` 就能证。零个 `a` 相加是 0 而不是 `a`；这是定义性等式，不需要额外的引理。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:32",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.mul"
+      ]
+    },
+    {
+      "id": "II.1.natmul-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 2,
+      "tags": [
+        "nat-arithmetic",
+        "nat-mul"
+      ],
+      "prompt": "`zero_mul` 的后继情形在把归纳假设代入后，还要用哪条引理收尾？",
+      "options": [
+        "`add_comm`，交换两个零。",
+        "`add_zero`，把 `0 + 0` 收成 `0`。",
+        "`mul_distrib`，把零乘分配开。",
+        "`zero_add`，把 `0 + 0` 收成 `0`。"
+      ],
+      "answer": 4,
+      "why": "后继情形展开成 `0 + mul 0 n`，用归纳假设把 `mul 0 n` 换成 0，目标变成 `0 + 0 = 0`，正是 `zero_add` 的实例。`add_zero` 方向相反；分配律与交换律都不是这一小步需要的。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:72",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.mul"
+      ]
+    },
+    {
+      "id": "II.1.natmul-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "level": 3,
+      "tags": [
+        "nat-arithmetic",
+        "nat-mul"
+      ],
+      "prompt": "`mul_distrib` 的后继情形为什么需要 `add_rotate`？",
+      "options": [
+        "因为 `mul` 的递归在第一个参数上，后继情形会卡住。",
+        "因为 `add_rotate` 能把 `Nat.succ` 消掉。",
+        "因为分配律只对零成立，后继情形必须换一条引理。",
+        "要把 `a + (a·b + a·n)` 旋成 `a·b + (a + a·n)`。"
+      ],
+      "answer": 4,
+      "why": "左边 `a·(b + succ n)` 展开后是 `a + a·(b+n)`，代入归纳假设得到 `a + (a·b + a·n)`；右边按定义展开是 `a·b + (a + a·n)`。两者只差一次重排，正好由 `add_rotate` 接上。分配律对普通自然数都成立，`mul` 的递归在第二个参数上，`add_rotate` 也不会消去 `Nat.succ`。",
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:78",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.nat.mul"
+      ]
+    },
+    {
+      "id": "II.1.addrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-reps",
+        "addRep"
+      ],
+      "prompt": "`addRep (a,b) (c,d)` 等于哪个代表元对？",
+      "options": [
+        "`(a + c, b + d)`。",
+        "`(a + b, c + d)`。",
+        "`(a·c, b·d)`。",
+        "`(a + d, b + c)`。"
+      ],
+      "answer": 1,
+      "why": "`addRep` 把两个代表元的第一分量相加、第二分量相加，得到 `(a+c, b+d)`，对应 `(a-b)+(c-d)`。`(a+d,b+c)` 是减法的交叉形式，`(a+b,c+d)` 与 `(a·c,b·d)` 都不是加法公式。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.addrep"
+      ]
+    },
+    {
+      "id": "II.1.addrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "addRep"
+      ],
+      "prompt": "`addRep_mk` 的证明项应当是什么？",
+      "options": [
+        "`Eq.refl`，因为展开后两边逐字相同。",
+        "`Eq.symm`，因为要交换两个代表元。",
+        "`Quot.sound`，因为加法在商上定义。",
+        "`Nat.rec`，因为要对 a 归纳。"
+      ],
+      "answer": 1,
+      "why": "`addRep (mk a b) (mk c d)` 定义性展开就是 `prod_mk (a+c) (b+d)`，两边逐字相同，`Eq.refl` 即可。`Eq.symm`、`Quot.sound` 与归纳都不是这条定义性等式需要的；商上的良定义性是后续单元的事。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:47",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.addrep"
+      ]
+    },
+    {
+      "id": "II.1.addrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "addRep"
+      ],
+      "prompt": "`addRep (2,0) (3,1)` 的闭值计算结果是什么？",
+      "options": [
+        "`(2,3)`。",
+        "`(5,0)`。",
+        "`(5,1)`。",
+        "`(6,1)`。"
+      ],
+      "answer": 3,
+      "why": "第一分量 `2 + 3 = 5`，第二分量 `0 + 1 = 1`，所以结果是 `(5,1)`，也表示 `5 - 1 = 4`。`(5,0)` 表示 5，`(2,3)` 与 `(6,1)` 的分量都不是由这两个输入逐项相加得到的。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:70",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.addrep"
+      ]
+    },
+    {
+      "id": "II.1.addrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "addRep",
+        "well-defined"
+      ],
+      "prompt": "代表元加法公式已经是定义性相等，为什么把它下降到 `Int` 还要另证良定义性？",
+      "options": [
+        "因为代表元公式只在闭值上成立，带参数时是假命题。",
+        "不同代表元可表示同一整数，需证公式对它们给同一结果。",
+        "因为商上的加法需要先证明 `Int` 是交换群。",
+        "因为 `Eq.refl` 不能用在 `Prod Nat Nat` 上。"
+      ],
+      "answer": 2,
+      "why": "`addRep_mk` 只说明公式本身怎么算；要把它写成 `Int → Int → Int` 的函数，还得说明「换一对代表元，结果仍表示同一个整数」，也就是 `intRel` 与 `addRep` 相容。`Eq.refl` 当然能用在序对上，交换群也不是这一步的前提；带参数的公式本身已经由 `Eq.refl` 证过。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:7",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.addrep",
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.negrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-reps",
+        "negRep"
+      ],
+      "prompt": "`negRep (a,b)` 等于哪个代表元对？",
+      "options": [
+        "`(a + b, 0)`。",
+        "`(a,b)`。",
+        "`(b,a)`。",
+        "`(0,a)`。"
+      ],
+      "answer": 3,
+      "why": "`negRep` 交换两个分量，把 `a-b` 变成 `b-a`，所以结果是 `(b,a)`。`(0,a)` 表示 `-a`，`(a+b,0)` 表示 `a+b`，都没有完成这次交换；保留 `(a,b)` 则等于没有取负。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:27",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.negrep"
+      ]
+    },
+    {
+      "id": "II.1.negrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "negRep"
+      ],
+      "prompt": "`negRep (2,5)` 的闭值计算结果是什么？",
+      "options": [
+        "`(0,3)`。",
+        "`(5,2)`。",
+        "`(2,5)`。",
+        "`(7,0)`。"
+      ],
+      "answer": 2,
+      "why": "`negRep` 交换两个分量，输入 `(2,5)` 得到 `(5,2)`，也就是把 `2-5 = -3` 变成 `5-2 = 3`。`(2,5)` 没有交换，`(0,3)` 与 `(7,0)` 都不是分量对调的结果。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:78",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.negrep"
+      ]
+    },
+    {
+      "id": "II.1.negrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "negRep"
+      ],
+      "prompt": "代表元 `(a,b)` 表示 `a-b`，那么取负之后应当表示什么？",
+      "options": [
+        "`a+b`。",
+        "`0`。",
+        "仍然表示 `a-b`。",
+        "`b-a`。"
+      ],
+      "answer": 4,
+      "why": "取负把 `a-b` 变成 `-(a-b) = b-a`，这正是交换两个分量的效果。若仍表示 `a-b` 就没有取负；`a+b` 与 0 都不是这条代表元公式要表达的值。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:40",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.negrep"
+      ]
+    },
+    {
+      "id": "II.1.negrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "negRep",
+        "well-defined"
+      ],
+      "prompt": "为什么在商上定义取负之前，还要证明 `negRep` 的良定义性？",
+      "options": [
+        "相关代表元取负后仍应表示同一整数，需证新代表元也相关。",
+        "因为 `negRep` 不是函数，只是一个命题。",
+        "因为 `(b,a)` 不是 `Prod Nat Nat` 的元素。",
+        "因为取负只有在 `a = b` 时有定义。"
+      ],
+      "answer": 1,
+      "why": "`negRep` 在代表元层是函数，但要让它在 `Int` 上成为函数，必须说明 `intRel p q` 时 `negRep p` 与 `negRep q` 也相关。`negRep` 的返回类型确实是序对，定义也对所有 a、b 有效；问题只在商上的相容性，而不在定义域。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:7",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.negrep",
+        "kp.ii1.quot.lift"
+      ]
+    },
+    {
+      "id": "II.1.subrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-reps",
+        "subRep"
+      ],
+      "prompt": "`subRep a b` 的定义是什么？",
+      "options": [
+        "`addRep a (negRep b)`。",
+        "`addRep (negRep a) b`。",
+        "`addRep b (negRep a)`。",
+        "`negRep (addRep a b)`。"
+      ],
+      "answer": 1,
+      "why": "课程把减法定义成「加上第二个的负元」：`subRep a b := addRep a (negRep b)`。另外三种写法分别把负号放在错误的一边、把整个和取负、或者把两个参数的顺序对调，都不等于 `a - b`。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:30",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.subrep"
+      ]
+    },
+    {
+      "id": "II.1.subrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "subRep"
+      ],
+      "prompt": "`subRep (a,b) (c,d)` 展开后的代表元是什么？",
+      "options": [
+        "`(a + d, b + d)`。",
+        "`(a + d, b + c)`。",
+        "`(a + c, b + d)`。",
+        "`(a - c, b - d)`。"
+      ],
+      "answer": 2,
+      "why": "先把 `(c,d)` 取负成 `(d,c)`，再与 `(a,b)` 相加，得到 `(a+d, b+c)`，对应 `(a-b)-(c-d)`。`(a+c,b+d)` 是加法而不是减法；`(a-c,b-d)` 用了代表元层没有的减法，不是这条公式。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:62",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.subrep"
+      ]
+    },
+    {
+      "id": "II.1.subrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "subRep"
+      ],
+      "prompt": "`subRep (2,5) (1,3)` 的闭值计算结果是什么？",
+      "options": [
+        "`(5,6)`。",
+        "`(3,8)`。",
+        "`(5,2)`。",
+        "`(1,2)`。"
+      ],
+      "answer": 1,
+      "why": "`(2,5)` 表示 `2-5 = -3`，`(1,3)` 表示 `1-3 = -2`，相减得 `-1`；代表元公式给出 `(2+3, 5+1) = (5,6)`，也表示 `5-6 = -1`。`(3,8)` 把分量加反了，`(1,2)` 与 `(5,2)` 都没有按 `(a+d,b+c)` 计算。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:85",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.subrep"
+      ]
+    },
+    {
+      "id": "II.1.subrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "subRep",
+        "addRep",
+        "negRep"
+      ],
+      "prompt": "为什么 `subRep` 不单独定义成一个递归运算，而复用 `addRep` 与 `negRep`？",
+      "options": [
+        "因为 `Prod Nat Nat` 上不能定义第三个函数。",
+        "减法就是加负元，复用后 `subRep_mk` 可直接展开。",
+        "因为单独定义会改变整数的相等关系。",
+        "因为 `negRep` 已经是递归定义的，减法不能再递归。"
+      ],
+      "answer": 2,
+      "why": "把减法写成 `a + (-b)` 是代数的标准做法；代表元层照做后，`subRep_mk` 只需展开 `addRep` 与 `negRep` 两条定义，不必再证一套递归律。序对上完全可以定义更多函数，单独定义也不会改变 `intRel`；这里的选择是为了少证一条公式。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:59",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.subrep",
+        "kp.ii1.int.addrep",
+        "kp.ii1.int.negrep"
+      ]
+    },
+    {
+      "id": "II.1.reprfl-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 1,
+      "tags": [
+        "int-reps",
+        "rfl"
+      ],
+      "prompt": "`addRep_mk`、`negRep_mk`、`subRep_mk` 三条证明的共同点是什么？",
+      "options": [
+        "都要对自然数做归纳。",
+        "都能用 `Eq.refl` 收尾，两边是同一个 `prod_mk`。",
+        "都要先用 `Quot.sound` 把商元素变成代表元。",
+        "都要先证明 `intRel` 是等价关系。"
+      ],
+      "answer": 2,
+      "why": "这三条都是代表元层的定义性等式：把 `addRep`、`negRep`、`subRep` 展开后，目标两边逐字相同，`Eq.refl` 即可。它们还不在商上，不需要 `Quot.sound`；也不涉及递归或等价关系的证明。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:44",
+      "difficulty": -1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.rep.rfl"
+      ]
+    },
+    {
+      "id": "II.1.reprfl-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "rfl"
+      ],
+      "prompt": "为什么 `addRep_mk` 不需要对 `a`、`b`、`c`、`d` 做归纳？",
+      "options": [
+        "`addRep` 展开后与右边逐字相同。",
+        "因为 `a`、`b`、`c`、`d` 都是自然数，自然数上的命题都能直接判定。",
+        "因为 `Eq.refl` 会自动对所有参数做归纳。",
+        "因为 `addRep` 是商上的函数，商元素不能再归纳。"
+      ],
+      "answer": 1,
+      "why": "目标里的 `addRep` 是代表元层的函数，定义体没有任何递归调用，展开后就得到右边那个序对；所以证明项与参数无关。自然数命题并不都能直接判定，`Eq.refl` 也不会自动归纳，商上的函数是后续才定义的。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:47",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.rep.rfl"
+      ]
+    },
+    {
+      "id": "II.1.reprfl-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 2,
+      "tags": [
+        "int-reps",
+        "rfl",
+        "well-defined"
+      ],
+      "prompt": "代表元层的 `rfl` 与商上定义的良定义性是什么关系？",
+      "options": [
+        "前者已经足够，后者可以由 `rfl` 自动推出。",
+        "后者是前者的特例，只需要证一次。",
+        "前者证公式，后者证换代表元后一致，两者都需要。",
+        "两者互斥：证了 `rfl` 就不能再谈良定义性。"
+      ],
+      "answer": 3,
+      "why": "`addRep_mk` 说明公式怎么算，但它没有说明不同代表元是否给同一个整数；良定义性要另外证明 `intRel` 与 `addRep` 相容。`rfl` 不会自动生成相容性，二者也不是互斥关系，而是「先有公式、再能下降」的两步。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:7",
+      "difficulty": 0,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.rep.rfl",
+        "kp.ii1.int.addrep",
+        "kp.ii1.int.negrep",
+        "kp.ii1.int.subrep"
+      ]
+    },
+    {
+      "id": "II.1.reprfl-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "level": 3,
+      "tags": [
+        "int-reps",
+        "rfl"
+      ],
+      "prompt": "若 `addRep` 不是定义性展开，而要先引一条引理才能算出 `(a+c,b+d)`，`addRep_mk` 的证明会怎样？",
+      "options": [
+        "会变成假命题，`addRep` 不再有值。",
+        "不能再用 `Eq.refl`，要先应用那条引理。",
+        "仍然是 `Eq.refl`，因为引理只是把计算变快。",
+        "会自动改用 `Quot.sound` 证明。"
+      ],
+      "answer": 2,
+      "why": "`Eq.refl` 只认「两边定义性相同」；如果算出右边需要一条引理，目标就不再是自反等式，必须显式应用引理。引理不会只是性能优化，也不会把命题变成假；`Quot.sound` 处理的是商内相等，与代表元层的计算无关。",
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:44",
+      "difficulty": 1.5,
+      "variants": [],
+      "prereq": [],
+      "kps": [
+        "kp.ii1.int.rep.rfl"
+      ]
     }
   ]
 }

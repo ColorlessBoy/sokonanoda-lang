@@ -1,8 +1,8 @@
 {
   "schema": "soko.knowledge-cards/1",
-  "title": "卷 I 集合论 · 知识卡片库",
-  "version": 7,
-  "updated": "2026-11-24",
+  "title": "卷 I–III 知识卡片库（集合论 / 分析）",
+  "version": 9,
+  "updated": "2026-11-26",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
     {
@@ -780,6 +780,173 @@
         "forall"
       ],
       "prereq": []
+    },
+    {
+      "id": "int-as-quotient",
+      "kicker": "卷 II · II.1 整数",
+      "title": "整数 · Int = Quot intRel",
+      "oneLiner": "整数用一个自然数对的等价类表示：`(a,b)` 读作 `a−b`，`intRel` 规定什么时候两个代表元表示同一个整数。",
+      "definition": {
+        "lang": "lean",
+        "code": "def intRel (a b : Prod Nat Nat) : Prop :=\n  Nat.add (Prod.fst Nat Nat a) (Prod.snd Nat Nat b) =\n  Nat.add (Prod.fst Nat Nat b) (Prod.snd Nat Nat a)\n\ndef Int : Type := @Quot.{1} (Prod Nat Nat) intRel\n\ndef intOfNat (n : Nat) : Int :=\n  @Quot.mk.{1} (Prod Nat Nat) intRel (@prod_mk Nat Nat n Nat.zero)"
+      },
+      "sections": [
+        {
+          "heading": "人话拆解",
+          "kind": "table",
+          "columns": [
+            "写法",
+            "读法",
+            "例子"
+          ],
+          "rows": [
+            [
+              "`(a,b)`",
+              "`a - b`",
+              "`(2,0)` 表示 2"
+            ],
+            [
+              "`intRel (a,b) (c,d)`",
+              "`a + d = b + c`",
+              "`(2,0)` 与 `(3,1)` 相关，因为 `2+1=3+0`"
+            ],
+            [
+              "`intOfNat n`",
+              "`(n,0)` 的等价类",
+              "`intOfNat 2 = mk (3,1)`"
+            ]
+          ]
+        },
+        {
+          "heading": "常见误区",
+          "kind": "list",
+          "items": [
+            "以为整数相等要两个分量分别相等；`(2,0)` 与 `(3,1)` 就是反例。",
+            "以为 `intOfNat` 需要先证良定义性；它只是构造商元素。"
+          ]
+        }
+      ],
+      "tags": [
+        "int-quotient",
+        "intRel",
+        "intOfNat"
+      ],
+      "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:10",
+      "prereq": []
+    },
+    {
+      "id": "quot-lift-well-defined",
+      "kicker": "卷 II · II.1 商",
+      "title": "良定义性 · Quot.lift",
+      "oneLiner": "想从代表元函数得到商上的函数，必须先证明相关的代表元给出同一个值；这条义务就是良定义性。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem demo_quot_lift_iota (α β : Type) (r : α → α → Prop) (f : α → β)\n    (h : ∀ (a b : α), r a b → f a = f b) (a : α) :\n    @Quot.lift.{1, 1} α r β f h (@Quot.mk.{1} α r a) = f a :=\n  @Eq.refl.{1} β (f a)"
+      },
+      "sections": [
+        {
+          "heading": "三件套对照",
+          "kind": "table",
+          "columns": [
+            "商上的写法",
+            "先要交出的证明",
+            "结果"
+          ],
+          "rows": [
+            [
+              "`Quot.lift f h (mk a)`",
+              "`∀ a b, r a b → f a = f b`",
+              "`f a`（iota 归约）"
+            ],
+            [
+              "`Quot.ind C k q`",
+              "`∀ a, C (mk a)`",
+              "命题 `C q`"
+            ],
+            [
+              "`Quot.sound h`",
+              "`h : r a b`",
+              "`mk a = mk b`"
+            ]
+          ]
+        },
+        {
+          "heading": "边界",
+          "kind": "list",
+          "items": [
+            "良定义性义务不成立时，下降结果不是函数：同一商元素会给出两个值。",
+            "`Quot.ind` 只能证 `Prop`；要构造数据得用 `Quot.lift`。",
+            "本课程没有 `Quot.exact`，不能用商内相等反推代表元关系。"
+          ]
+        }
+      ],
+      "tags": [
+        "quotient",
+        "quot-lift",
+        "well-defined",
+        "quot-iota"
+      ],
+      "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
+      "prereq": [
+        "int-as-quotient"
+      ]
+    },
+    {
+      "id": "int-rep-formulas",
+      "kicker": "卷 II · II.1 代表元运算",
+      "title": "整数运算 · addRep / negRep / subRep",
+      "oneLiner": "整数加法、取负、减法先在代表元对上写成公式，这些公式都是定义性相等。",
+      "definition": {
+        "lang": "lean",
+        "code": "def addRep (a b : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat\n    (Nat.add (Prod.fst Nat Nat a) (Prod.fst Nat Nat b))\n    (Nat.add (Prod.snd Nat Nat a) (Prod.snd Nat Nat b))\n\ndef negRep (p : Prod Nat Nat) : Prod Nat Nat :=\n  @prod_mk Nat Nat (Prod.snd Nat Nat p) (Prod.fst Nat Nat p)\n\ndef subRep (a b : Prod Nat Nat) : Prod Nat Nat :=\n  addRep a (negRep b)"
+      },
+      "sections": [
+        {
+          "heading": "三条代表元公式",
+          "kind": "table",
+          "columns": [
+            "运算",
+            "代表元公式",
+            "读法"
+          ],
+          "rows": [
+            [
+              "加法",
+              "`addRep (a,b) (c,d) = (a+c, b+d)`",
+              "`(a-b)+(c-d)`"
+            ],
+            [
+              "取负",
+              "`negRep (a,b) = (b,a)`",
+              "`-(a-b)`"
+            ],
+            [
+              "减法",
+              "`subRep (a,b) (c,d) = (a+d, b+c)`",
+              "`(a-b)-(c-d)`"
+            ]
+          ]
+        },
+        {
+          "heading": "边界",
+          "kind": "list",
+          "items": [
+            "三条在代表元层都是定义性相等，`Eq.refl` 就能证。",
+            "要下降到 `Int` 上，还要另证 `intRel` 与公式相容（后续单元）。"
+          ]
+        }
+      ],
+      "tags": [
+        "int-reps",
+        "addRep",
+        "negRep",
+        "subRep",
+        "rfl"
+      ],
+      "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22",
+      "prereq": [
+        "int-as-quotient"
+      ]
     }
   ]
 }

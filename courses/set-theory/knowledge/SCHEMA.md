@@ -22,6 +22,10 @@
 **边界**：内容线只改 `data/` 与 `*.md`；不改 `engine.py`、不改 kernel、不改
 `crates/`；`out/`、`reports/` 是生成物，不手改。
 
+> **多课程（C9.3）**：本库同时承载卷 I 集合论与卷 II/III 分析课的选择题/KP；
+> 分析课按波次注册 KP 并同步出题（落盘即 0 红），id 用 `II.1.slug-n` /
+> `kp.ii1.slug`，其余字段与卷 I 相同。
+
 ## 1. `soko.knowledge-points/1`
 
 ### 1.1 顶层对象
@@ -41,8 +45,8 @@
 
 | 字段 | 类型 | 必填 | 判据 |
 |---|---|---|---|
-| `id` | string | 是 | `^kp\.[a-z0-9]+(\.[a-z0-9]+)*$`，如 `kp.i4.russell`；稳定、不重编号 |
-| `chapter` | string | 是 | 必须是 `questions.json.chapters` 里的章 id（`I.4`–`I.13` 已登记） |
+| `id` | string | 是 | `^kp\.[a-z0-9]+(\.[a-z0-9]+)*$`，如 `kp.i4.russell`、`kp.ii1.intrel`；稳定、不重编号 |
+| `chapter` | string | 是 | 必须是 `questions.json.chapters` 里的章 id（`I.1`–`I.13`、`II.1`–`III.9` 按批登记） |
 | `title` | string | 是 | 非空；一句话说清“这个 KP 是什么” |
 | `kind` | string | 是 | 六种枚举之一，语义见 §1.3 |
 | `prereq` | string[] | 是 | 只能引用**已存在**的 KP id；不自指、不成环（`validate.py` 新查环） |
@@ -104,7 +108,7 @@
 ```jsonc
 {
   "schema": "soko.choice-bank/1",
-  "title": "卷 I 集合论 · 选择题库",
+  "title": "卷 I–III 选择题题库（集合论 / 分析）",
   "version": 27,                // 每次加题递增
   "updated": "2026-11-22",
   "policy": "…",
@@ -117,7 +121,7 @@
 
 | 字段 | 类型 | 必填 | 判据 |
 |---|---|---|---|
-| `id` | string | 是 | `^I\.\d+\.[a-z0-9-]+$`，如 `I.4.russell-1`；稳定、不重编号 |
+| `id` | string | 是 | `^[IVX]+\.\d+\.[a-z0-9-]+$`，如 `I.4.russell-1`、`II.1.intrel-1`；稳定、不重编号 |
 | `chapter` | string | 是 | 必须在 `questions.json.chapters` |
 | `unit` | string | 是 | 课程单元标签（`course.json` 标题去掉“单元”前缀）；新题必须与课程一致，否则 lesson 挂不上 |
 | `level` | 1/2/3 | 是 | L1 回忆/展开 · L2 一步应用 · L3 辨析/边界 |
@@ -157,8 +161,11 @@
 
 ### 2.5 source 可复查规则（硬）
 
-1. 格式：`路径:行号`，路径相对 `courses/set-theory`（如
+1. 格式：`路径:行号`。卷 I 的路径相对 `courses/set-theory`（如
    `units/I.4/unit11-universe-russell.sokonanoda:73`、`lib/Set.sokonanoda:159`）。
+   跨课程（卷 II/III 分析课）的题写仓库根相对路径
+   `courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:11`；
+   `verify_batch.py` 先按课程根解析，失败再按仓库根解析。
 2. 行号必须是**落笔时打开文件核过的真实行**；该行非空，且答案/`why` 能由该行
    （连同紧邻上下文）核验。**不许**用占位行号、不许凭印象写、不许写“见某文件”。
 3. 一行不够就写多段 `文件:行号`；优先引用**声明行/演示行/练习行**。

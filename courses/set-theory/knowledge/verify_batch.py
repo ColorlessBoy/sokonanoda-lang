@@ -28,6 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
 COURSE_ROOT = ROOT.parent  # courses/set-theory（source 里的 lib/、units/ 相对它）
+REPO_ROOT = COURSE_ROOT.parent.parent  # 仓库根：跨课程 source 写 `courses/<course>/…`
 LEVELS = ("L1", "L2", "L3")
 KINDS = ("choice", "short", "explain", "proof")
 SOURCE_RE = re.compile(r"([A-Za-z0-9_][A-Za-z0-9_./-]*\.sokonanoda):(\d+)")
@@ -53,7 +54,11 @@ def check_source(raw_source, problems, qid):
         return False
     ok = True
     for rel, line_text in matches:
+        # 首选课程相对路径（卷 I 的 units/lib）；跨课程题写 `courses/<course>/…`，
+        # 在仓库根下解析（C9.3：题库同时承载卷 II/III 分析课）。
         candidate = (COURSE_ROOT / rel).resolve()
+        if not candidate.exists() and rel.startswith("courses/"):
+            candidate = (REPO_ROOT / rel).resolve()
         if not candidate.exists():
             problems.append(qid + ": source 文件不存在：" + rel)
             ok = False

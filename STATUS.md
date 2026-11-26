@@ -1,3 +1,11 @@
+## 当前快照（2026-11-26 · C9.3 B1–B2）
+C9.3（issue #101）卷 II 分析课开始落题：题库仍是同一份
+`courses/set-theory/knowledge`，新增 II.1 单元①–④ 的 15 KP / 61 题（L1 12 / L2 30 /
+L3 19，综合题 12）、4 lesson、3 卡片、10 术语；II.1 **15 绿 / 0 红**，缺口 0。
+`validate.py` OK；`engine.py selftest` 全绿、`simulate --questions 50` exit 0；
+全库仍有 107 红，全部是 C9.2 的 I.4–I.13 预期红（与 C9.3 无关）。16 章 / 30 批计划见
+`courses/set-theory/knowledge/CONTENT-PLAN.md` §2.2。
+
 ## 当前快照（2026-11-25 · C7b 卷 III capstone）
 分析课 **175/175** 单元（新增单元174 区间切分引擎、单元175 卷 III capstone，`lib/IntegralCatValue` 56 条 checked）；切分、前缀/后缀、非负 ⇒ 面积值不下降、可积性相加进库。边界：完整区间可加性还缺「替换切点」端点引擎；通用原函数版 Newton–Leibniz 与 Rolle/中值定理在 `ratRep` 层**不成立**（反例见 `courses/analysis/README.md` 单元175 条目），是数学边界而非待办。判据：`check.py --json` 0 rejected / 0 solutions_open / 0 lib_open（175 单元），`notation-lint`/`docs-lint` rc 0。
 

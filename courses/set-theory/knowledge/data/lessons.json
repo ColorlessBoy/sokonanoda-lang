@@ -1,7 +1,7 @@
 {
   "schema": "soko.lessons/1",
-  "version": 4,
-  "updated": "2026-11-25",
+  "version": 7,
+  "updated": "2026-11-26",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
     {
@@ -2311,6 +2311,143 @@
       "sources": [
         "units/I.13/unit52-rel-iteration.sokonanoda:1",
         "units/I.13/unit52-rel-iteration.sokonanoda:32"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "goal": "学完这一单元，你能够从「差相等」关系构造 ℤ，并把自然数嵌入为 (n,0) 的等价类。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.intrel",
+          "title": "差相等关系 intRel",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.quot",
+          "title": "整数类型 Int = Quot intRel",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.intofnat",
+          "title": "自然数的整数像 intOfNat",
+          "kind": "definition"
+        }
+      ],
+      "intuition": "本单元把整数定义成 ℕ×ℕ 按 intRel 作商，并先用 intRel 与 Quot.sound 把代表元相等写顺。",
+      "cards": [
+        "int-as-quotient"
+      ],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:1",
+        "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:11"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "goal": "学完这一单元，你能够用 Quot.sound、Quot.lift、Quot.ind 在商上做证明与定义，并说出没有 Quot.exact 的边界。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.quot.sound",
+          "title": "Quot.sound：关系到商内相等",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.quot.lift",
+          "title": "Quot.lift 与良定义性",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.quot.iota",
+          "title": "Quot.lift 的 iota 归约",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.quot.ind",
+          "title": "Quot.ind：对代表元归纳",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.quot.exact",
+          "title": "商的边界：没有 Quot.exact",
+          "kind": "boundary"
+        }
+      ],
+      "intuition": "本单元复习商的三件套：sound 把关系变成相等，lift 要求良定义性，ind 把商上的性质降到代表元。",
+      "cards": [
+        "quot-lift-well-defined"
+      ],
+      "questionTotal": 21,
+      "sources": [
+        "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:1",
+        "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "goal": "学完这一单元，你能够用 Nat.rec 的归纳证明加法的基本律，并用这些律重排等式。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.nat.rec",
+          "title": "Nat.rec 归纳与 Eq.subst 搬运",
+          "kind": "technique"
+        },
+        {
+          "id": "kp.ii1.nat.add",
+          "title": "ℕ 加法的递归律",
+          "kind": "concept"
+        },
+        {
+          "id": "kp.ii1.nat.mul",
+          "title": "ℕ 乘法与分配律",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元从 Nat.rec 自建 add 与 mul，用 Prop 动机做归纳，再用 Eq.subst 把假设搬到后继情形。",
+      "cards": [],
+      "questionTotal": 12,
+      "sources": [
+        "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:1",
+        "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:30"
+      ]
+    },
+    {
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "goal": "学完这一单元，你能够写出整数加法、取负、减法的代表元公式，并分清定义性相等与下降前的良定义性。",
+      "knowledgePoints": [
+        {
+          "id": "kp.ii1.int.addrep",
+          "title": "整数加法的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.negrep",
+          "title": "整数取负的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.subrep",
+          "title": "整数减法的代表元公式",
+          "kind": "definition"
+        },
+        {
+          "id": "kp.ii1.int.rep.rfl",
+          "title": "代表元公式是定义性相等",
+          "kind": "concept"
+        }
+      ],
+      "intuition": "本单元把 ℤ 上的运算先写成 ℕ×ℕ 代表元上的公式，这些公式在代表元层都是 rfl；下降到商上则需要后续单元证良定义性。",
+      "cards": [
+        "int-rep-formulas"
+      ],
+      "questionTotal": 16,
+      "sources": [
+        "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:1",
+        "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22"
       ]
     }
   ]
