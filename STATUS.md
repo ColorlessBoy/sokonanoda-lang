@@ -1,5 +1,11 @@
-## 当前快照（2026-11-25 · C7b 卷 III capstone）
-分析课 **175/175** 单元（新增单元174 区间切分引擎、单元175 卷 III capstone，`lib/IntegralCatValue` 56 条 checked）；切分、前缀/后缀、非负 ⇒ 面积值不下降、可积性相加进库。边界：完整区间可加性还缺「替换切点」端点引擎；通用原函数版 Newton–Leibniz 与 Rolle/中值定理在 `ratRep` 层**不成立**（反例见 `courses/analysis/README.md` 单元175 条目），是数学边界而非待办。判据：`check.py --json` 0 rejected / 0 solutions_open / 0 lib_open（175 单元），`notation-lint`/`docs-lint` rc 0。
+## 当前快照（2026-11-26 · C9.2 首批）
+C9.2（#100）先修门禁再扩题：`coverage.py` 改用**可服务题**口径（遵守
+`selection.exclude`，与 engine 同口径）；全库 `source` 检查进 `validate.py` 与 CI；
+`verify_batch` 卡选项长度与 `why` 句数。
+补 3 道门禁题（54 KP 全绿）+ B11/B12（I.8/I.9 各 18 题、4 绿 0 红）。
+题库 266（可服务 257），KP 绿 54→62、红 107→99，综合题 39，知识卡 16；
+text_audit 欠账 216/98/71 待按章清洗。
+下一批：B5（I.4 首波）或 B7（I.5，32 题可清零）；见 CONTENT-PLAN §0.2。
 
 ## C7b 切分引擎与 capstone（2026-11-25 · #97）
 - 引擎：`lib/IntegralCatValue`（56 条 checked）——`cutHead`/`cutTail`（在 c 处插入切点）、`cutHead_isPartition`/`cutTail_isPartition`、台阶搬运、`cutStepSum`（矩形和沿切开精确相加）、`prefixPart`/`suffixPart`、`sub_add_gap`、`hasIntegral_le_of_nonneg_right`（非负 ⇒ 面积值不下降）、`integrable_cat`（可积性沿切点相加）。

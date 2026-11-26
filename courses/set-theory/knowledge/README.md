@@ -14,10 +14,10 @@
 | `data/cards.json` | 知识卡（`soko.knowledge-cards/1`；含 tags/prereq） |
 | `data/params.json` | L2 调度参数（`soko.learn-params/1`：eta/权重/阈值） |
 | `engine.py` | **L2 引擎**：掌握度（Elo）+ 推荐式召回 + 去重/变式/复习/知识卡触发；含 `selftest`/`simulate` |
-| `validate.py` | 三份数据的结构自检（含交叉引用、权重和、参数范围、**每题 kps 引用/章节归属**、**KP keyPoint/prereq 无环**、**lessons 同步**），退出码 1 = 不合格 |
-| `coverage.py` | **知识点 × 题目覆盖门禁**：按 `saturation` 逐 KP 算红/黄/绿 + 章节汇总 + `reports/coverage-<时间>.json`；有红 exit 1 |
+| `validate.py` | 三份数据的结构自检（含交叉引用、权重和、参数范围、**每题 kps 引用/章节归属**、**KP keyPoint/prereq 无环**、**lessons 同步**、**全库 source 的文件:行号**），退出码 1 = 不合格；CI 的 `gates-course` 在重活前跑它 |
+| `coverage.py` | **知识点 × 题目覆盖门禁**（**按可服务题**：遵守 `params.selection.exclude`，与 `engine.py` 同口径；`--include-excluded` 切全库诊断）：按 `saturation` 逐 KP 算红/黄/绿 + 章节汇总 + `reports/coverage-<时间>.json`；有红 exit 1 |
 | `CONTENT-PLAN.md` | 覆盖计划：实测缺口、题量估算、分阶段批次与第一批题目清单 |
-| `verify_batch.py` | 批次验收：结构/source 行号逐条核验 + 内存注入预测覆盖变化（不改仓库） |
+| `verify_batch.py` | 批次验收：结构/source 行号/选项长度与 why 质量逐条核验 + 内存注入预测覆盖变化（不改仓库） |
 | `review.py` | **L3 复盘**：读导出日志/状态 → 薄弱 tag、错题、下一批建议、内容缺口 |
 | `render.py` | 知识卡 → `out/<id>.png`（Chrome 无头截图，2x） |
 | `build_quiz.py` | 题库 → `out/quiz.html`（零延迟自测页；离线可用） |

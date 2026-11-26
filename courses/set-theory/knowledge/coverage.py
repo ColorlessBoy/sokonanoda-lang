@@ -9,12 +9,17 @@
 - 黄 yellow ：达到了 min，但总题数低于 `saturation.target`（可以补）
 - 绿 green  ：总题数达到 target，且各档 min 都满足
 
+**只统计「可服务题」**：`engine.py` 选题时遵守 `params.json` 的
+`selection.exclude`（纯背名字/演示名的题不发给学习者），覆盖门禁必须用同一口径，
+否则「绿」是名义上的（被排除的题计入覆盖，学习者却永远见不到它们）。
+
 任一红存在 → 退出码 1（内容门禁）；报告写 `reports/coverage-<时间>.json`。
 
 用法：
-    python3 coverage.py                # 打印汇总 + 写报告，红则 exit 1
+    python3 coverage.py                # 打印汇总 + 写报告，红则 exit 1（按可服务题）
     python3 coverage.py --no-report    # 不写报告
     python3 coverage.py --json         # 只打印一份机器可读 JSON（不写报告）
+    python3 coverage.py --include-excluded   # 连被排除的题一起统计（诊断用）
     python3 coverage.py --fail-on-yellow   # 黄也算红（更严的内容门禁）
 """
 import argparse
@@ -33,8 +38,26 @@ def load_json(name):
     return json.loads((DATA / name).read_text(encoding="utf-8"))
 
 
-def build_report(questions_data, kp_data):
-    questions = questions_data.get("questions") or []
+def excluded_ids(params_data):
+    """`params.selection.exclude`：engine.py 选题时跳过的题。覆盖门禁必须同口径。"""
+    params_map = params_data if isinstance(params_data, dict) else {}
+    selection = params_map.get("selection") if isinstance(params_map.get("selection"), dict) else {}
+    raw = selection.get("exclude")
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, str)]
+
+
+def build_report(questions_data, kp_data, params_data=None, include_excluded=False):
+    all_questions = questions_data.get("questions") or []
+    if params_data is None:
+        params_path = DATA / "params.json"
+        params_data = json.loads(params_path.read_text(encoding="utf-8")) if params_path.exists() else {}
+    configured = excluded_ids(params_data)
+    bank_ids = {question.get("id") for question in all_questions}
+    excluded = [] if include_excluded else configured
+    excluded_set = set(excluded)
+    questions = [question for question in all_questions if question.get("id") not in excluded_set]
     kps = kp_data.get("kps") or []
     per_kp = {}
     for kp in kps:
@@ -134,9 +157,17 @@ def build_report(questions_data, kp_data):
         },
         "questions": {
             "total": len(questions),
+            "bank_total": len(all_questions),
+            "excluded": len([qid for qid in configured if qid in bank_ids]),
             "by_chapter": dict(sorted(questions_by_chapter.items())),
             "by_kind": dict(sorted(questions_by_kind.items())),
             "by_level": questions_by_level,
+        },
+        "selection": {
+            "mode": "all" if include_excluded else "served",
+            "configured": sorted(configured),
+            "excluded_in_bank": sorted(qid for qid in configured if qid in bank_ids),
+            "excluded_missing": sorted(qid for qid in configured if qid not in bank_ids),
         },
         "totals": dict(totals, saturation_ratio=saturation_ratio, unknown_refs=len(unknown_refs)),
         "kinds": dict(sorted(kind_totals.items())),
@@ -157,10 +188,13 @@ def print_summary(report):
     totals = report["totals"]
     questions = report["questions"]
     print("KNOWLEDGE COVERAGE  %s" % report["generated_at"])
-    print("  题目: %d 道（%s；level %s）" % (
+    print("  题目: %d 道（%s；level %s；题库共 %d，排除 %d）" % (
         questions["total"],
         ", ".join("%s=%d" % (key, value) for key, value in questions["by_kind"].items()),
-        " ".join("%s=%d" % (lv, questions["by_level"].get(lv, 0)) for lv in LEVELS)))
+        " ".join("%s=%d" % (lv, questions["by_level"].get(lv, 0)) for lv in LEVELS),
+        questions.get("bank_total", questions["total"]), questions.get("excluded", 0)))
+    if report["selection"]["mode"] == "all":
+        print("  ⚠ 诊断口径：连 selection.exclude 的题一起统计（不是服务口径）")
     print("  知识点: %d 个 → 绿 %d / 黄 %d / 红 %d（饱和率 %.1f%%）" % (
         totals["kps"], totals["green"], totals["yellow"], totals["red"],
         totals["saturation_ratio"] * 100))
@@ -193,10 +227,13 @@ def main():
     parser.add_argument("--report-dir", default=str(ROOT / "reports"), help="报告目录（默认 reports/）")
     parser.add_argument("--no-report", action="store_true", help="不写 JSON 报告")
     parser.add_argument("--json", action="store_true", help="只打印机器可读 JSON（不写报告）")
+    parser.add_argument("--include-excluded", action="store_true",
+                        help="连 params.selection.exclude 的题一起统计（诊断用；默认按可服务题）")
     parser.add_argument("--fail-on-yellow", action="store_true", help="黄也算红（更严门禁）")
     args = parser.parse_args()
 
-    report = build_report(load_json("questions.json"), load_json("knowledge-points.json"))
+    report = build_report(load_json("questions.json"), load_json("knowledge-points.json"),
+                          include_excluded=args.include_excluded)
     if report["unknown_refs"]:
         print("FAIL 存在未知 kp 引用，先跑 validate.py", file=sys.stderr)
     exit_code = 1 if report["status"] == "red" else 0

@@ -21,16 +21,15 @@
 import argparse
 import importlib.util
 import json
-import re
 import sys
 from pathlib import Path
 
+from source_check import check_source
+
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data"
-COURSE_ROOT = ROOT.parent  # courses/set-theory（source 里的 lib/、units/ 相对它）
 LEVELS = ("L1", "L2", "L3")
 KINDS = ("choice", "short", "explain", "proof")
-SOURCE_RE = re.compile(r"([A-Za-z0-9_][A-Za-z0-9_./-]*\.sokonanoda):(\d+)")
 
 
 def load_json(path):
@@ -44,38 +43,14 @@ def load_coverage_module():
     return module
 
 
-def check_source(raw_source, problems, qid):
-    """返回 (ok, detail)。source 至少要有 文件:行号 且文件/行真实存在。"""
-    text = str(raw_source or "")
-    matches = SOURCE_RE.findall(text)
-    if not matches:
-        problems.append(qid + ": source 缺少 `文件:行号` 格式：" + repr(text[:120]))
-        return False
-    ok = True
-    for rel, line_text in matches:
-        candidate = (COURSE_ROOT / rel).resolve()
-        if not candidate.exists():
-            problems.append(qid + ": source 文件不存在：" + rel)
-            ok = False
-            continue
-        try:
-            lines = candidate.read_text(encoding="utf-8").splitlines()
-        except Exception as error:  # noqa: BLE001 - 只报问题，不中断批次
-            problems.append(qid + ": source 文件读不了：" + rel + "（" + str(error) + "）")
-            ok = False
-            continue
-        line_no = int(line_text)
-        if line_no < 1 or line_no > len(lines):
-            problems.append(qid + ": source 行号越界：" + rel + ":" + str(line_no) + "（文件共 " + str(len(lines)) + " 行）")
-            ok = False
-            continue
-        if not lines[line_no - 1].strip():
-            problems.append(qid + ": source 指向空行：" + rel + ":" + str(line_no))
-            ok = False
-    return ok
+def load_text_audit_module():
+    spec = importlib.util.spec_from_file_location("knowledge_text_audit", ROOT / "text_audit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def validate_question(question, index, problems, kp_by_id, existing_ids):
+def validate_question(question, index, problems, kp_by_id, existing_ids, text_audit_module):
     qid = question.get("id")
     if not isinstance(qid, str) or not qid.strip():
         problems.append("batch[%d]: id missing" % index)
@@ -92,6 +67,8 @@ def validate_question(question, index, problems, kp_by_id, existing_ids):
         problems.append(qid + ": tags must be a non-empty string list")
     if not isinstance(question.get("prompt"), str) or not question["prompt"].strip():
         problems.append(qid + ": prompt missing")
+    elif not question["prompt"].strip().endswith(("？", "?")):
+        problems.append(qid + ": prompt 必须以问号结尾（STYLE §1）")
     kind = question.get("kind", "choice")
     if kind not in KINDS:
         problems.append(qid + ": unknown kind " + repr(kind))
@@ -106,6 +83,13 @@ def validate_question(question, index, problems, kp_by_id, existing_ids):
             answer = question.get("answer")
             if not isinstance(answer, int) or isinstance(answer, bool) or not (1 <= answer <= len(options)):
                 problems.append(qid + ": answer must be a 1-based option index")
+            for field, text in text_audit_module.option_length_issues(question):
+                problems.append(qid + ": " + field + " 长度 " + str(len(text))
+                               + " 字，含中文的选项须在 8–60 字（STYLE §2）")
+            leak = text_audit_module.option_leak_issue(question)
+            if leak is not None:
+                problems.append(qid + ": 正确项比最长干扰项长 " + str(leak)
+                               + " 字（>15）——选项长度会泄漏答案，请加长干扰项或压缩正确项")
     else:
         rubric = question.get("rubric")
         if not isinstance(rubric, dict):
@@ -125,6 +109,9 @@ def validate_question(question, index, problems, kp_by_id, existing_ids):
     for key in ("why", "source"):
         if not isinstance(question.get(key), str) or not question[key].strip():
             problems.append(qid + ": " + key + " missing")
+    if isinstance(question.get("why"), str) and question["why"].strip():
+        if text_audit_module.why_short_issue(question):
+            problems.append(qid + ": why 少于 2 个完整句子（STYLE §3 要 2–4 句）")
     if question.get("difficulty") not in (-1.5, 0, 0.0, 1.5):
         problems.append(qid + ": difficulty must be -1.5 / 0 / 1.5")
     for key in ("variants", "prereq"):
@@ -162,6 +149,7 @@ def main():
     existing_ids = {question.get("id") for question in existing}
     kp_data = load_json(DATA / "knowledge-points.json")
     kp_by_id = {kp.get("id"): kp for kp in (kp_data.get("kps") or [])}
+    text_audit_module = load_text_audit_module()
 
     raw = load_json(args.batch)
     batch = raw.get("questions") if isinstance(raw, dict) else raw
@@ -174,11 +162,25 @@ def main():
         if not isinstance(question, dict):
             problems.append("batch[%d]: not an object" % index)
             continue
-        qid = validate_question(question, index, problems, kp_by_id, existing_ids)
+        qid = validate_question(question, index, problems, kp_by_id, existing_ids, text_audit_module)
         if qid:
             if qid in batch_ids:
                 problems.append(qid + ": 批内 id 重复")
             batch_ids.append(qid)
+
+    # ---- 位置偏差（整批正确项都挤在同一个选项位 = 长度之外的另一条泄漏） ----
+    positions = {}
+    for question in batch:
+        if not isinstance(question, dict) or question.get("kind", "choice") != "choice":
+            continue
+        answer = question.get("answer")
+        if isinstance(answer, int) and 1 <= answer <= 4:
+            positions[answer] = positions.get(answer, 0) + 1
+    choice_count = sum(positions.values())
+    if choice_count >= 8 and max(positions.values()) / choice_count > 0.6:
+        top = max(positions, key=positions.get)
+        problems.append("批次的正确项位置过于集中：%d/%d 道都在第 %d 位——请打散选项顺序（位置也会泄漏答案）"
+                        % (positions[top], choice_count, top))
 
     # ---- 覆盖预测（内存注入，不写盘） ----
     coverage_summary = None

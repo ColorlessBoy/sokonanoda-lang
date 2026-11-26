@@ -5,6 +5,8 @@ import re
 import sys
 from pathlib import Path
 
+from source_check import check_source
+
 ROOT = Path(__file__).resolve().parent
 problems = []
 def fail(message):
@@ -137,6 +139,8 @@ for index, q in enumerate(questions):
     for key in ("why", "source"):
         if not isinstance(q.get(key), str) or not q[key].strip():
             fail(at + ": " + key + " missing")
+    if isinstance(q.get("source"), str) and q["source"].strip():
+        check_source(q["source"], problems, at)
     if q.get("difficulty") not in (-1.5, 0, 0.0, 1.5):
         fail(at + ": difficulty must be -1.5 / 0 / 1.5, got " + repr(q.get("difficulty")))
     for key in ("variants", "prereq"):

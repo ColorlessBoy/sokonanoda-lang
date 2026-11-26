@@ -10,6 +10,9 @@
   - 不以 。？！ 结尾，且长度 < 12
   - 结尾是「的 / 是 / 吧 / 呢 / ：」这类未完成形式
   - 含「是？」「用？」「取出？」这类无主语残句
+  - `option.length`：含中文的选项不在 8–60 字（STYLE §2）
+  - `option.length-leak`：正确项比最长干扰项长 >15 字（长度泄漏答案）
+  - `why.short`：`why` 少于 2 个完整句子（STYLE §3 要 2–4 句）
 """
 import json
 import re
@@ -53,6 +56,41 @@ def stem_ok(text: str) -> bool:
     return bool(STEM_MARKERS.search(t)) and is_sentence(t)
 
 
+ENDING = re.compile(r"[。！？!?]")
+OPTION_MIN, OPTION_MAX = 8, 60
+LEAK_MARGIN = 15
+
+
+def option_length_issues(question):
+    """含中文的选项不在 8–60 字（STYLE §2；纯代码/符号选项豁免）。"""
+    issues = []
+    for index, option in enumerate(question.get("options") or []):
+        text = str(option).strip()
+        if CJK_RE.search(text) and not (OPTION_MIN <= len(text) <= OPTION_MAX):
+            issues.append(("options[%d]" % index, text))
+    return issues
+
+
+def option_leak_issue(question):
+    """正确项比最长干扰项长 > LEAK_MARGIN 字 ⇒ 选项长度泄漏答案（返回 delta 或 None）。"""
+    options = question.get("options") or []
+    answer = question.get("answer")
+    if not isinstance(answer, int) or isinstance(answer, bool) or len(options) < 2:
+        return None
+    if not (1 <= answer <= len(options)):
+        return None
+    lengths = [len(str(option).strip()) for option in options]
+    others = [lengths[index] for index in range(len(lengths)) if index != answer - 1]
+    delta = lengths[answer - 1] - max(others)
+    return delta if delta > LEAK_MARGIN else None
+
+
+def why_short_issue(question):
+    """`why` 少于 2 个完整句子（STYLE §3 要 2–4 句）。"""
+    why = str(question.get("why") or "")
+    return why if len(ENDING.findall(why)) < 2 else None
+
+
 def scan():
     problems = {}
 
@@ -72,6 +110,14 @@ def scan():
             add("option", q["id"], "options[%d]" % index, option)
         if q.get("why") and not is_sentence(q["why"]):
             add("why", q["id"], "why", q["why"])
+        for field, text in option_length_issues(q):
+            add("option.length", q["id"], field, text)
+        delta = option_leak_issue(q)
+        if delta is not None:
+            add("option.length-leak", q["id"], "answer",
+                "正确项比最长干扰项长 %d 字" % delta)
+        if why_short_issue(q):
+            add("why.short", q["id"], "why", q.get("why", ""))
 
     cards = json.loads((DATA / "cards.json").read_text(encoding="utf-8"))
     for card in cards["cards"]:
