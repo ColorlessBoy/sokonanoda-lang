@@ -26,6 +26,9 @@
    `sokonanoda-cli-<rust-target>.tar.gz`，解包即得可执行文件
 3. 仓库内（任何 harness）：`scripts/soko setup` → `scripts/soko doctor --json`
    → `scripts/soko grade playground.sokonanoda`
+4. DeepSeek Harness 做题插件：`dsh plugin --profile web add <repo>/dsh/plugins/sokonanoda-dsh`
+   → `/sokonanoda-fast-think on` → 「开始做题」/「代码题」
+   （本地题库卡片 + 代码题真内核判卷；安装与排障见该目录 README）
 
 ## 核心特点
 
@@ -46,6 +49,16 @@
 （WASM）· 增量编译常驻（`file.didChange`、跨文件转播）· DeepSeek Harness 侧的
 goal / Infoview 通道 · `by` 块逐步判定的**前缀缓存**（现在是每步重判整份文档，
 代价超线性）· 项目模式剩余项（`watch` / `[deps]` / `namespace`）。
+
+## 题库、代码题与 DSH 插件
+
+- 选择题库：`courses/set-theory/knowledge/data/questions.json`（409 道，400 道可服务；
+  覆盖 I.1–I.3、I.8、I.9、II.1）；知识点 195 个（96 绿 / 99 红，红 = 题量未补）。
+- 代码题数据集：`courses/exercise-dataset/data/*.json`（2022 道 / 298 单元，来自
+  三门课程门禁判过的练习，解答 100%）。
+- 插件：`dsh/plugins/sokonanoda-dsh/`（本地题库做题卡 + 代码题真内核判卷；开关按会话
+  `/sokonanoda-fast-think on`）。运行时数据只在 `~/.dsh/state/sokonanoda-dsh/`，不进仓库。
+- 课程源是唯一真相，题库与数据集都是派生；插件只读，不写回仓库。
 
 ## 源码
 

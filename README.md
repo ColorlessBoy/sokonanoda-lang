@@ -20,6 +20,7 @@
 - [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 的 QA 已完成，发版待内核修复
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
+- [DSH plugin](dsh/plugins/sokonanoda-dsh/README.md) — 本地做题卡 + 2022 道代码题真内核判卷
 
 An independent, self-contained Lean-4 teaching stack built **on top of** the
 [sokonanoda](https://github.com/intgrah/sokonanoda) kernel.

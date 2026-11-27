@@ -43,7 +43,7 @@ DSH 的发现入口是对应的
 ## 数据目录（唯一位置）
 
 ```
-~/.dsh/state/sokonanoda-dsh/          # SOKO_DSH_DATA 可覆盖整个目录
+$DSH_HOME/state/sokonanoda-dsh/       # 默认 ~/.dsh；SOKO_DSH_DATA 可覆盖整个目录
 ├── config.json                       # 可选配置（bundle 行 config 覆盖它）
 ├── sessions.json                     # /sokonanoda-fast-think on 的会话白名单（默认空）
 ├── quiz/                             # 课程引擎状态（等价旧 quiz-proxy/state/）
@@ -54,6 +54,15 @@ DSH 的发现入口是对应的
 
 **不在仓库里**（`SOKO_DSH_DATA` 或 `~/.dsh/state/sokonanoda-dsh/`）：把 GitHub
 仓库交给别人时不会带上你的做题记录。旧位置的记录迁移命令见本文件末尾。
+
+## 隐私边界（仓库会公开分享）
+
+- 用户代码只在系统临时目录里落一份，判完即删；**不进** `history/decisions.jsonl`、
+  不进插件日志、不进仓库。
+- 做题进度、会话开关、决策历史只在 `$DSH_HOME/state/sokonanoda-dsh/`
+  （`SOKO_DSH_DATA` 可整体搬走）；分享 `git clone` 不会带上这些记录。
+- 插件对课程/数据集**只读**；`compose.py` 的产物也只落临时目录。
+- 公开材料（README / 技能 / 站点）只写路径与命令，不写个人目录、密钥或真实做题记录。
 
 ## 行为边界
 
@@ -84,27 +93,86 @@ DSH 的发现入口是对应的
 - 服务启动失败（引擎缺失、端口异常）不会阻断 Host 启动，插件保持 loaded，所有请求
   回落慢路径。
 
-## 安装（本机）
+## 从零安装（干净机器，一条路）
+
+前置：`git`、`node`（DSH 自带同版本即可）、`python3`（题库引擎与
+`compose.py` 用它）。**不需要 Rust/cargo**：`scripts/soko` 会按版本钉取已发布
+二进制（或复用仓库构建），插件本身只读课程与数据集。
 
 ```bash
-# 从仓库安装（plugin_manager 需要批准；无 build scripts）
+git clone https://github.com/ColorlessBoy/sokonanoda-lang.git
+cd sokonanoda-lang
+
+# 1) 环境：版本锁定的 CLI + LSP（幂等；零 cargo）
+scripts/soko setup
+scripts/soko doctor --json            # 期望 "ready": true
+
+# 2) 把插件装进 web profile（等价于会话里的 plugin_manager）
+dsh plugin --profile web add "$PWD/dsh/plugins/sokonanoda-dsh"
+
+# 3) 启动并开一个会话
+dsh web
+```
+
+安装是 pnpm 本地路径安装（**不需要网络**），产物在 `$DSH_HOME/profiles/web/`
+（`DSH_HOME` 未设时默认 `~/.dsh`）。
+装好后按顺序自查（缺一条就不是装好了）：
+
+1. `dsh plugin --profile web list` 能看到 `sokonanoda-dsh`；
+   `dsh --profile web --dump-config | grep -A1 sokonanoda-dsh` 有该行；
+2. 新会话里 `sokonanoda_fast_think status` 能返回（工具已挂）；
+3. 输入 `/sokonanoda-fast-think on`，再说「开始做题」→ 1 秒内出题卡；
+   说「代码题」→ 代码练习卡。
+
+Host 半改动需要**重启 `dsh web`**；只改 `client.js` 时由 client HMR 热替换，
+没有 HMR 的安装刷新一次页面即可。
+
+### 在会话里安装 / 升级 / 卸载
+
+```bash
+# 会话内（需要批准；无 build scripts；与 CLI 等价）
 plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanoda-dsh" })
 ```
 
-或 CLI（等价）：
+升级：`git pull` 后重跑一次 `dsh plugin --profile web add "$PWD/dsh/plugins/sokonanoda-dsh"`，
+再重启 `dsh web`（client 半刷新页面）。卸载：
+`dsh plugin --profile web remove sokonanoda-dsh`。数据目录（见下）不随卸载删除；
+要一并清掉就删 `$DSH_HOME/state/sokonanoda-dsh/`。
 
-```bash
-dsh plugin --profile superagent add <repo>/dsh/plugins/sokonanoda-dsh
-```
+## 题库与代码题（数据从哪来）
 
-Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换。安装后：
+插件**不内置题目**，只消费仓库里的两份派生物；课程源是唯一真相，插件只读：
 
-- `Tool.listTools` 里应出现 `sokonanoda_fast_think`；
-- `Config.listConfigs`（name=`sokonanoda-dsh`）有该行（没有 Config schema 时状态是
-  `absent`，不影响挂载）；
-- 开新会话输入「开始做题」→ <1s 出卡片；输入字母 → 判卷 + 下一张卡；
-- 输入「代码题」→ 代码练习卡；贴围栏代码 → 真内核判卷（通过/首条诊断）；
-- 普通消息 → 仍走当前模型。
+| 题目类型 | 数据入口 | 当前基数（2026-11-27） |
+|---|---|---|
+| 选择题 / 问答题 | `courses/set-theory/knowledge/data/questions.json`（`engine.py` 调度） | 409 道（400 可服务；choice 392 / short 5 / explain 3） |
+| 知识点 | `courses/set-theory/knowledge/data/knowledge-points.json` | 195 个（96 绿 / 99 红；红 = 题量未补，见 `CONTENT-PLAN.md`） |
+| 代码题 | `courses/exercise-dataset/data/*.json`（`compose.py` 组装） | 2022 道 / 298 单元（三门课门禁判过的练习，解答 100%） |
+
+- 选择题库同时服务卷 I 与卷 II.1（分析课）；章节覆盖 I.1–I.3、I.8、I.9、II.1。
+- **改题改课程源**：数据集/题库都是派生物。改完课程画布/解答后跑
+  `python3 courses/exercise-dataset/build.py --check` 与
+  `python3 courses/set-theory/knowledge/validate.py`；不要手改生成物。
+- 代码题按 `engine.py code-next` 的确定顺序发放（默认 `set-theory`），同一道题
+  未完成时重复要「代码题」会重发当前题；「跳过这道代码题」记为 skipped。
+- 相关入口：`courses/exercise-dataset/README.md`（数据集 schema 与校验）、
+  `courses/set-theory/knowledge/README.md`（题库与调度引擎）、`sokonanoda-prep`
+  技能（备课/扩题流程）。
+
+### 代码题怎么提交
+
+1. 说「代码题」→ 卡片给出**题干 + 提示 + 带 `sorry` 的模板**；
+2. 在编辑器里补完目标声明，把它整条贴回聊天（` ```lean ` 或 ` ```sokonanoda `
+   围栏；只贴证明体也可以）；
+3. 插件只取**证明体**，贴回课程模板的可信签名（改签名/换命题不会生效），用
+   `compose.py` 组装完整文件，再跑 `scripts/soko grade --root courses/<course>
+   --json`；
+4. 只有目标声明 `decl.checked`、目标无 `exercise.open`、且 0 个 `diagnostic`
+   才显示「通过」并记 `mark-code`；否则显示首条内核诊断，可同题重试。
+
+判卷需要 `python3`、`courses/exercise-dataset/compose.py` 与 `scripts/soko`
+（都在仓库里）。超时（默认 45s）或工具缺失会 503 回落当前模型，**不会**把基础
+设施失败伪装成「没过」。
 
 ## 配置
 
@@ -113,12 +181,28 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `enabled` | `true` | 总开关（关闭后全部 `next()`） |
-| `dataDir` | `~/.dsh/state/sokonanoda-dsh/` | 数据根目录 |
+| `dataDir` | `$DSH_HOME/state/sokonanoda-dsh/`（默认 `~/.dsh/...`） | 数据根目录 |
 | `repoRoot` | 自动向上查找 | 含 `courses/set-theory/knowledge/engine.py` 的目录 |
 | `timeoutMs` | `8000` | 快路径超时（超时回落慢路径） |
 | `codeTimeoutMs` | `45000` | 代码题快路径超时（compose + 真内核判卷；超时回落 `next()`） |
 | `decisionsLimit` | `20` | `sokonanoda_fast_think status` 默认返回条数 |
 | `cards` | `true` | 让 quiz service 产出卡片 payload；关闭则退回纯文本快路径 |
+
+## 排障（先看这张表）
+
+| 症状 | 先查 | 处置 |
+|---|---|---|
+| 说了「开始做题」但模型直接回答 | 会话开关 | `sokonanoda_fast_think status`；`/sokonanoda-fast-think on`。普通/新会话默认关闭是设计 |
+| 卡片、工具都找不到 | 插件行是否挂上 | `dsh --profile web --dump-config \| grep sokonanoda-dsh`；没装就重跑安装；改过 Host 半要重启 `dsh web` |
+| 卡片出现但选项点不动 / 样式丢失 | client 半未加载 | 刷新页面；`client.js` 改动靠 HMR 或页面重载 |
+| 代码题总是回落模型 | 判卷依赖 | `scripts/soko doctor --json`；`python3 courses/exercise-dataset/compose.py --help`；缓存过期跑 `scripts/soko update`；必要时调大 `codeTimeoutMs` |
+| 判卷通过但进度没变 | 数据目录权限 | `mark-code` 写失败**不改变内核判定**；检查 `$DSH_HOME/state/sokonanoda-dsh/quiz/` 可写 |
+| 进度 / 答题记录像丢了 | 数据目录被换 | `DSH_HOME` / `SOKO_DSH_DATA` 变了；记录在 `$DSH_HOME/state/sokonanoda-dsh/` |
+| `dsh plugin add` 失败 | 路径 / 包结构 | 目标目录必须有 `package.json` 与 `dsh.bundle.patch`；本地安装不需要网络 |
+| 引擎 / 题库报路径错 | 仓库根 | 从仓库目录启动 `dsh web`（或设 `repoRoot`）；插件向上找 `courses/set-theory/knowledge/engine.py` |
+
+运行日志在 `~/.dsh/state/sokonanoda-dsh/logs/`；代码题判卷的决策行只记题目 id、
+通过与否、字节数与耗时，**不记**用户代码。
 
 ## 内部结构
 
