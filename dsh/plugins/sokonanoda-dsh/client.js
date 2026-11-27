@@ -86,6 +86,17 @@ window.__ModuleLoader__.load({
     const PANEL_TYPE_ID = 'sokonanoda-dsh/exercise-panel'
     const PANEL_FETCH_TIMEOUT_MS = 90_000
 
+    /* Class notes: a page-type tab in the right sidebar. The body is a
+     * same-origin iframe served by the Host; the page polls the ledger's
+     * updatedAt itself, so the chat half never re-renders note content. */
+    const NOTES_KIND = 'sokonanoda-notes'
+    const NOTES_TYPE_ID = 'sokonanoda-dsh/class-notes'
+    const NOTES_VIEW_SRC = '/sokonanoda-notes-view'
+    const NOTES_META_SRC = '/sokonanoda-notes?meta=1'
+    const NOTES_SYNC_MS = 1500
+    let notesWatcher = null
+    let notesAutoOpenDone = false
+
     const NS = 'dshLearnCard'
     const KINDS = ['question', 'knowledge', 'lesson', 'progress', 'code']
     const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -246,6 +257,10 @@ window.__ModuleLoader__.load({
       '.dslc-panel-diag{margin:0;padding-left:16px;font-size:12px;line-height:1.5}',
       '.dslc-panel-diag li{margin:0 0 3px;overflow-wrap:anywhere}',
       '.dslc-panel-placeholder{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#6b7280)}',
+      /* Class-notes page tab: one same-origin iframe owns the scroll and polling. */
+      '.dslc-notes-body{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--dsw-alias-bg-base,#fff)}',
+      '.dslc-notes-frame{display:block;flex:1 1 auto;width:100%;height:100%;min-width:0;min-height:0;border:0;background:transparent}',
+      '.dslc-notes-chip{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     ]
 
     /* Inject the stylesheet once per page; HMR removes this module's styles
@@ -333,6 +348,10 @@ window.__ModuleLoader__.load({
       panelRetryLoad: '重新加载',
       dontKnowLabel: '我不知道',
       whyLabel: '解析',
+      notesTabTitle: '课堂笔记',
+      notesFrameTitle: '课堂笔记',
+      notesGuideTitle: '课堂笔记',
+      notesGuideDescription: '看过的知识卡 · 做过的题 · 易错',
       stateLine: '第 {line} 行',
       stateNoLine: '未选择行',
       stateIdleHint: '↑/↓ 移动光标行，点击任意行查看该位置的 goal',
@@ -418,6 +437,10 @@ window.__ModuleLoader__.load({
       panelRetryLoad: 'Reload',
       dontKnowLabel: "I don't know",
       whyLabel: 'Why',
+      notesTabTitle: 'Class notes',
+      notesFrameTitle: 'Class notes',
+      notesGuideTitle: 'Class notes',
+      notesGuideDescription: 'Knowledge cards you opened · questions you answered · mistakes',
       stateLine: 'Line {line}',
       stateNoLine: 'No line',
       stateIdleHint: 'Use ↑/↓ to move the cursor line; click any line to show its goal',
@@ -2235,7 +2258,161 @@ window.__ModuleLoader__.load({
       }))
     }
 
-        const CLIENT_BUILD = '2026-11-27T2310'
+    /* --------------------------------------------------- class-notes tab
+     * A page type in the right sidebar. The page is served by the Host and
+     * owns its own polling (`updatedAt`), so this component stays a frame.
+     * Opening is passive: the guide entry and the one-shot auto-open below. */
+
+    function ClassNotesPanel(props) {
+      const t = makeT(props)
+      return h('div', {
+        className: 'dslc-notes-body',
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          flex: '1 1 auto',
+          width: '100%',
+          height: '100%',
+          minHeight: 0,
+          background: 'var(--dsw-alias-bg-base,#fff)',
+        },
+      },
+        h('iframe', {
+          className: 'dslc-notes-frame',
+          src: NOTES_VIEW_SRC,
+          title: t('notesFrameTitle', '课堂笔记'),
+          loading: 'eager',
+          referrerPolicy: 'no-referrer',
+          allow: '',
+          style: {
+            display: 'block',
+            flex: '1 1 auto',
+            width: '100%',
+            height: '100%',
+            minWidth: 0,
+            minHeight: 0,
+            border: 0,
+            background: 'transparent',
+          },
+        }))
+    }
+
+    function ClassNotesPanelTitle(props) {
+      const t = makeT(props)
+      return h('span', { className: 'dslc-notes-chip' }, t('notesTabTitle', '课堂笔记'))
+    }
+
+    /** Whether this session already shows the notes tab (avoid a focus steal). */
+    function notesTabOpen() {
+      if (sidebarRight === null || typeof sidebarRight !== 'object') return false
+      try {
+        const inventory = sidebarRight.openTabs
+        const tabs = inventory !== null && inventory !== undefined && typeof inventory.getSnapshot === 'function'
+          ? inventory.getSnapshot()
+          : null
+        if (!Array.isArray(tabs)) return false
+        const mounted = sidebarRight.mounted !== null && sidebarRight.mounted !== undefined
+          && typeof sidebarRight.mounted.getSnapshot === 'function'
+          ? sidebarRight.mounted.getSnapshot()
+          : undefined
+        return tabs.some(function (tab) {
+          return tab !== null && tab !== undefined && tab.kind === NOTES_KIND
+            && (mounted === undefined || mounted === null || tab.sessionId === mounted)
+        })
+      } catch (error) {
+        return false
+      }
+    }
+
+    /** Register the page type, its guide entry and the frame/title seats. */
+    function registerClassNotes(ctx) {
+      let tabs = null
+      try { tabs = ctx.sidebarRightTabs !== undefined ? ctx.sidebarRightTabs : null } catch (error) { tabs = null }
+      if (tabs === null || tabs === undefined) {
+        try { tabs = typeof ctx.get === 'function' ? ctx.get('sidebarRightTabs') : undefined } catch (error) { tabs = null }
+      }
+      if (tabs === null || tabs === undefined || typeof tabs.register !== 'function') {
+        report('class-notes', 'key=no-tabs')
+        return
+      }
+      try {
+        ctx.effect(function () {
+          return tabs.register({
+            id: NOTES_TYPE_ID,
+            kind: NOTES_KIND,
+            keepMounted: true,
+            title: function () { return '课堂笔记' },
+            guide: [{
+              id: 'open',
+              order: 120,
+              title: function () { return '课堂笔记' },
+              description: function () { return '看过的知识卡 · 做过的题 · 易错' },
+            }],
+          })
+        }, 'sokonanoda-dsh: class-notes tab type')
+        ctx.effect(function () {
+          return ctx.slots.inject('sidebar.right.pane.tab', function () {
+            return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: NOTES_TYPE_ID, locale: NS }, ClassNotesPanel)
+          })
+        }, 'sokonanoda-dsh: class-notes body')
+        ctx.effect(function () {
+          return ctx.slots.inject('sidebar.right.pane.tab.title', function () {
+            return ctx.slots.register({ name: 'sidebar.right.pane.tab.title', key: NOTES_TYPE_ID, locale: NS }, ClassNotesPanelTitle)
+          })
+        }, 'sokonanoda-dsh: class-notes chip title')
+        report('class-notes', 'key=registered')
+      } catch (error) {
+        report('class-notes-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
+      }
+    }
+
+    /**
+     * One automatic reveal per page load: after the first new note, open the
+     * tab so the learner sees the review copy appear without hunting the guide.
+     * The baseline is captured on the first poll, so notes that already existed
+     * before this page loaded never pop the sidebar open. If the tab is already
+     * open, only its body's own poll runs.
+     */
+    function startClassNotesWatcher(ctx) {
+      if (notesWatcher !== null) return
+      if (typeof fetch !== 'function' || typeof setInterval !== 'function') return
+      if (sidebarRight === null || typeof sidebarRight.openTab !== 'function') return
+      let baseline = null
+      const timer = setInterval(function () {
+        if (notesAutoOpenDone) {
+          clearInterval(timer)
+          if (notesWatcher === timer) notesWatcher = null
+          return
+        }
+        fetch(NOTES_META_SRC, { cache: 'no-store' }).then(function (response) {
+          return response.ok === true ? response.json() : null
+        }).then(function (meta) {
+          if (meta === null || meta === undefined || meta.ok !== true || typeof meta.updatedAt !== 'string') return
+          if (baseline === null) { baseline = meta.updatedAt; return }
+          if (meta.updatedAt === baseline || !(Number(meta.count) > 0)) return
+          baseline = meta.updatedAt
+          notesAutoOpenDone = true
+          if (notesTabOpen()) return
+          try {
+            sidebarRight.openTab(NOTES_KIND)
+            report('class-notes-open', 'key=auto')
+          } catch (error) {
+            report('class-notes-open-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
+          }
+        }).catch(function () { /* local ledger poll; a miss retries next tick */ })
+      }, NOTES_SYNC_MS)
+      notesWatcher = timer
+      try {
+        ctx.effect(function () {
+          return function () {
+            if (notesWatcher !== null) clearInterval(notesWatcher)
+            notesWatcher = null
+          }
+        }, 'sokonanoda-dsh: class-notes watcher')
+      } catch (error) { /* non-effect test context */ }
+    }
+
+        const CLIENT_BUILD = '2026-11-27T2345'
 
     function apply(ctx) {
       hostCtx = ctx
@@ -2296,7 +2473,10 @@ window.__ModuleLoader__.load({
           ctx.inject(['sidebarRight'], function (scope) {
             let service
             try { service = scope?.sidebarRight ?? scope?.get?.('sidebarRight') } catch { service = undefined }
-            if (service !== undefined && service !== null) sidebarRight = service
+            if (service !== undefined && service !== null) {
+              sidebarRight = service
+              startClassNotesWatcher(ctx)
+            }
           })
         } catch (error) { /* non-Web client: links stay display-only */ }
       }
@@ -2348,6 +2528,8 @@ window.__ModuleLoader__.load({
       ctx.effect(function () {
         return ctx.locale.register(NS, { zh: zh, en: en })
       }, 'sokonanoda-dsh: dictionaries')
+      registerClassNotes(ctx)
+      startClassNotesWatcher(ctx)
       /**
        * Register one language layer on the Chat Markdown fence hoc slot.
        * @param key - lowercased fence language.
@@ -2393,13 +2575,25 @@ window.__ModuleLoader__.load({
         linesOfPage: linesOfPage,
         sourceRowsOf: sourceRowsOf,
         copySourceText: copySourceText,
-        resetSidebarRight: function () { sidebarRight = null; hostCtx = null },
         ExercisePanel: ExercisePanel,
         ExercisePanelTitle: ExercisePanelTitle,
         exercisePanelView: exercisePanelView,
         openExercisePanel: openExercisePanel,
         PANEL_KIND: PANEL_KIND,
         PANEL_TYPE_ID: PANEL_TYPE_ID,
+        ClassNotesPanel: ClassNotesPanel,
+        ClassNotesPanelTitle: ClassNotesPanelTitle,
+        registerClassNotes: registerClassNotes,
+        startClassNotesWatcher: startClassNotesWatcher,
+        notesTabOpen: notesTabOpen,
+        NOTES_KIND: NOTES_KIND,
+        resetSidebarRight: function () {
+          sidebarRight = null
+          hostCtx = null
+          notesAutoOpenDone = false
+          if (notesWatcher !== null) clearInterval(notesWatcher)
+          notesWatcher = null
+        },
         cardCss: CARD_CSS.join(''),
         zh: zh,
         en: en,

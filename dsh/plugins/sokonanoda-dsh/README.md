@@ -77,6 +77,30 @@ DSH 的发现入口是对应的
 > 预览的文件内容仍由 DSH 文档预览按页提供；光标行只在已加载的行内移动。文件超过一页时，
 > 滚动到底部会加载下一页（面板会给提示）。
 
+## 课堂笔记（右侧栏复习账本）
+
+聊天里看过的**知识卡**、做过的**题**、卡片自带的**图解**会自动沉淀成右侧栏
+「课堂笔记」；闲聊不进笔记。完整数据模型、匹配规则与信任边界见
+`dsh/plugins/sokonanoda-dsh/class-notes-design.md`。
+
+- 知识卡来自快路径的 `learn_card(kind=knowledge)`，按卡 id upsert；同一张卡重复看
+  只刷新，不重复建笔记。
+- 题目来自 `quiz/*.json` 的 `history`：**最新一次作答**是题目状态，**任意一次答错**
+  留在「易错」——先错后对的题显示 ✓，同时仍出现在「易错」。
+- 归属是**标签启发式**（与 `engine.py explain_for` 同规则：≥2 个共享标签，或至少
+  1 个非通用标签）；匹配不到的题跳过，不硬塞。
+- 右侧栏是 page tab `sokonanoda-notes`（guide 里也有入口）。body 是 same-origin iframe，
+  内部每秒轮询账本 `updatedAt`；变化时保留滚动位置重载。账本第一次变化时**自动打开**
+  一次（每个页面加载最多一次，用户关掉后不再抢焦点）。
+- 只读路由（都只接受本机 owner）：
+  - `GET /sokonanoda-notes`：JSON 账本；`?meta=1` 只回 `{updatedAt,count}`；
+  - `GET /sokonanoda-notes-view`：iframe 用的自包含 HTML；
+  - `GET /sokonanoda-notes.md`：Markdown 复制/导出；
+  - `GET /sokonanoda-notes-asset?path=<name>.png`：图解，**只服务白名单文件**
+    （`lib/class-notes-figures.mjs`），`..` / 其它后缀 / 白名单外一律拒绝。
+- 数据在 `$DSH_HOME/state/sokonanoda-dsh/notes/<course>.json`；图解源文件在
+  `docs/figures/`（TikZ 源码 + 220 dpi PNG，生成命令见该目录 README）。
+
 ## 数据目录（唯一位置）
 
 ```
@@ -84,6 +108,7 @@ $DSH_HOME/state/sokonanoda-dsh/       # 默认 ~/.dsh；SOKO_DSH_DATA 可覆盖�
 ├── config.json                       # 可选配置（bundle 行 config 覆盖它）
 ├── sessions.json                     # /sokonanoda-fast-think on 的会话白名单（默认空）
 ├── quiz/                             # 课程引擎状态（等价旧 quiz-proxy/state/）
+├── notes/set-theory.json             # 课堂笔记账本（知识点 / 题目 / 易错 / 图解）
 ├── history/
 │   └── decisions.jsonl               # 快/回落/开关决策 + sokonanoda_fast_think 调用记录
 └── logs/quiz-proxy/                  # 进程内 quiz service 的运行日志
@@ -96,8 +121,9 @@ $DSH_HOME/state/sokonanoda-dsh/       # 默认 ~/.dsh；SOKO_DSH_DATA 可覆盖�
 
 - 用户代码只在系统临时目录里落一份，判完即删；**不进** `history/decisions.jsonl`、
   不进插件日志、不进仓库。
-- 做题进度、会话开关、决策历史只在 `$DSH_HOME/state/sokonanoda-dsh/`
-  （`SOKO_DSH_DATA` 可整体搬走）；分享 `git clone` 不会带上这些记录。
+- 做题进度、会话开关、决策历史、**课堂笔记账本**只在
+  `$DSH_HOME/state/sokonanoda-dsh/`（`SOKO_DSH_DATA` 可整体搬走）；分享 `git clone`
+  不会带上这些记录。笔记路由只接受本机 owner，图片只服务白名单 PNG。
 - 插件对课程/数据集**只读**；`compose.py` 的产物也只落临时目录。
 - 公开材料（README / 技能 / 站点）只写路径与命令，不写个人目录、密钥或真实做题记录。
 
@@ -235,6 +261,8 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 | `sokoPath` | `<repoRoot>/scripts/soko` | 只读 goal 面板与代码题判卷共用的启动器路径 |
 | `decisionsLimit` | `20` | `sokonanoda_fast_think status` 默认返回条数 |
 | `cards` | `true` | 让 quiz service 产出卡片 payload；关闭则退回纯文本快路径 |
+| `notesCourse` | `set-theory` | 课堂笔记账本的课程键（`notes/<course>.json`） |
+| `notesFiguresDir` | `<plugin>/docs/figures` | 白名单图解 PNG 所在目录（测试可指到临时目录） |
 
 ## 排障（先看这张表）
 
@@ -262,8 +290,12 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 | `lib/quiz-proxy.mjs` | 从旧 `quiz-proxy/server.mjs` 迁入的本地题库服务（`startQuizService` 在进程内起 loopback 端口）；保留 I2/I3/I4 正确性不变量 |
 | `lib/code-grade.mjs` | C9.4 判卷桥：围栏提取 / 只取证明体贴回可信签名 / `scripts/soko grade --json` 事件判定；失败抛 `code` 交调用方 fail-open |
 | `lib/exercise-panel.mjs` | C9.7 面板的 Host 桥：可信题目解析（数据集 / 引擎小题库，白名单不含答案）、两条 loopback 路由、请求体上限；判卷复用 `code-grade.mjs` |
-| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行、只读 state 路由（owner/越权/超时）、面板路由 |
-| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS、光标行与 goal 面板、面板 deep link 与结果状态 |
+| `lib/class-notes.mjs` | 课堂笔记账本：知识卡提取/upsert、quiz history 对账、标签匹配、原子写 |
+| `lib/class-notes-view.mjs` | 课堂笔记 HTML / Markdown 渲染、iframe 轮询与主题镜像 |
+| `lib/class-notes-figures.mjs` | 知识卡 → 白名单 PNG 图解映射 |
+| `docs/figures/` | 课堂笔记图解（TikZ + PNG + 生成说明） |
+| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行、只读 state 路由（owner/越权/超时）、面板路由、课堂笔记账本/对账/四条路由 |
+| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS、光标行与 goal 面板、面板 deep link 与结果状态、课堂笔记 page tab/guide/iframe |
 | `docs/` 下的 `research.md` | 快思考方案调研（llm/stream、生态对照） |
 | `docs/` 下的 `cards-research.md` | 卡片渲染方案调研（fence 层、action-cards、槽位） |
 | `exercise-panel.md`（插件目录根） | C9.7 侧栏面板：表面、两条路由、信任边界、结果状态、已知限制 |
@@ -272,7 +304,7 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 33 + client 45
+node test/run.mjs     # host 40 + client 46
 ```
 
 ## 迁移与清理（一次性，2026-11-23）
