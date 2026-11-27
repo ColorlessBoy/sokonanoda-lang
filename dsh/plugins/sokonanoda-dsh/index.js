@@ -28,6 +28,13 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+import {
+  PANEL_EXERCISE_PATH,
+  PANEL_GRADE_PATH,
+  handleExerciseRequest,
+  handleGradeRequest,
+} from './lib/exercise-panel.mjs'
+
 export const name = 'sokonanoda-dsh'
 
 /** Only the tool registry is a hard dependency; the llm event is root-scoped. */
@@ -1074,6 +1081,40 @@ export async function apply(ctx, config = {}) {
       auth: 'required',
       handler: (request, response, peer) => handleStateRequest(request, response, peer),
     }), 'sokonanoda-dsh: read-only goal state route')
+
+    /* C9.7 侧栏做题面板：题目元数据 + 真内核判卷。两条都只读仓库、只读题目；
+     * 判卷仍走 C9.4 的 compose + `scripts/soko grade --json`，没有第二套路径。 */
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: PANEL_EXERCISE_PATH,
+      auth: 'anonymous',
+      handler(request, response) {
+        try {
+          handleExerciseRequest(settings.repoRoot, request, response)
+        } catch (error) {
+          try {
+            response.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+            response.end('{"ok":false,"code":"panel-failed"}')
+          } catch { /* response already gone */ }
+        }
+      },
+    }), 'sokonanoda-dsh: exercise panel metadata route')
+
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: PANEL_GRADE_PATH,
+      auth: 'anonymous',
+      handler(request, response) {
+        handleGradeRequest(settings.repoRoot, request, response, {
+          timeoutMs: settings.codeTimeoutMs,
+        }).catch(() => {
+          try {
+            response.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+            response.end('{"ok":false,"code":"grade-failed"}')
+          } catch { /* response already gone */ }
+        })
+      },
+    }), 'sokonanoda-dsh: exercise panel grade route')
   }
 
   if (webServer !== undefined && webServer !== null && typeof webServer.register === 'function') {

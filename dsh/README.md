@@ -155,6 +155,12 @@ cd dsh/plugins/sokonanoda-dsh && node test/run.mjs
   组装完整 `.sokonanoda` → `scripts/soko grade --json` → 只有目标声明 checked 且无诊断
   才显示「通过」，否则显示首条内核诊断并支持同题重试；通过后 `engine.py mark-code`
   记进度，放弃用 `skip-code`。用户代码不进日志/仓库；超时或工具缺失回落 `next()`。
+- **侧栏做题面板（C9.7）**：代码练习卡的「在侧栏面板中打开」在右栏开一个带编辑器的
+  `sokonanoda-exercise` 页面（题目 + 提示 + 编辑器 + 运行）。面板只把 `exerciseId`
+  交给 Host，模板/签名由 Host 从仓库题目集取（答案从不下发）；运行仍走上面同一条
+  `compose.py` + `scripts/soko grade --json` 判卷桥，只有 `passed:true` 显示通过，
+  服务异常显示「不可用」。没有右栏服务时按钮不渲染，聊天提交路径不变；
+  面板运行不写课程进度（`mark-code` 留在聊天路径）。
 - **显式开关**：快思考**默认关闭**，只在学习会话里执行 `/sokonanoda-fast-think on` 后才接管
   （`/sokonanoda-fast-think off` 关闭，`status` 查看）。开关按 session 持久化在
   `~/.dsh/state/sokonanoda-dsh/sessions.json`，普通会话不会触发。

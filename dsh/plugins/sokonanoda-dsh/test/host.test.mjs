@@ -18,6 +18,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -41,6 +42,16 @@ import {
   LEARN_CARD_TOOL_DECLARATION,
 } from '../index.js'
 import { assembleSubmission, evaluateGrade, expectedDeclarationName } from '../lib/code-grade.mjs'
+import {
+  PANEL_EXERCISE_PATH,
+  PANEL_GRADE_PATH,
+  normalizeExerciseId,
+  resolvePanelExercise,
+  panelExerciseView,
+  gradePanelSubmission,
+  handleExerciseRequest,
+  handleGradeRequest,
+} from '../lib/exercise-panel.mjs'
 
 const core = await loadQuizCore()
 const REPO = findRepoRoot()
@@ -828,7 +839,149 @@ test('apply(): a fenced code submission is graded locally when a code exercise i
   }
 })
 
+/* ------------------------------------------------------- exercise panel */
+
+test('exercise panel: the exercise comes from the repository, never the client, and never leaks the solution', () => {
+  const id = 'set-theory/I.1/unit01-sets-membership/mem_of_subset'
+  const resolved = resolvePanelExercise(REPO, id)
+  assert.equal(resolved.ok, true, 'dataset exercise must resolve')
+  assert.equal(resolved.exercise.dataset, true, 'dataset exercise must carry the compose path flag')
+  assert.match(resolved.exercise.template, /mem_of_subset/)
+  assert.match(resolved.exercise.template, /sorry/)
+  assert.equal(resolved.exercise.solution, undefined, 'internal exercise must not carry the solution')
+  assert.ok(resolved.exercise.hints.length > 0, 'trusted hints must survive')
+  const view = panelExerciseView(resolved.exercise)
+  assert.equal(view.id, id)
+  assert.ok(!JSON.stringify(view).includes('solution'), 'panel view must never carry the solution')
+  assert.ok(!JSON.stringify(view).includes('fun (ha : a ∈ A)'), 'the answer proof must not be sent to the client')
+
+  const bank = resolvePanelExercise(REPO, 'code.i1.subset-trans')
+  assert.equal(bank.ok, true, 'engine-bank exercise must resolve')
+  assert.equal(bank.exercise.dataset, false, 'engine-bank template is self-contained')
+  assert.match(bank.exercise.template, /theorem subset_trans/)
+
+  assert.equal(normalizeExerciseId('../etc/passwd'), null, 'path traversal must be rejected')
+  assert.equal(normalizeExerciseId('set-theory/../../x'), null, 'relative segments must be rejected')
+  assert.equal(resolvePanelExercise(REPO, 'set-theory/nope/nope').code, 'not-found')
+  assert.equal(resolvePanelExercise(REPO, '').code, 'bad-id')
+})
+
+test('exercise panel: real-kernel grading rejects a wrong proof and passes the course solution', async () => {
+  const id = 'set-theory/I.1/unit01-sets-membership/mem_of_subset'
+  const record = datasetRecord(id)
+  assert.ok(record !== undefined, 'fixture missing: ' + id)
+  const wrong = '```lean\n' + String(record.template).replace('sorry', 'exact h') + '\n```'
+  const rejected = await gradePanelSubmission(REPO, { exerciseId: id, code: wrong })
+  assert.equal(rejected.ok, true, 'a kernel rejection is a completed attempt, not an infrastructure failure')
+  assert.equal(rejected.result.ok, true)
+  assert.equal(rejected.result.passed, false, 'the wrong proof must not pass')
+  assert.ok(rejected.result.diagnostics.length > 0, 'the kernel diagnostic must be reported')
+  assert.ok(!JSON.stringify(rejected).includes(record.solution), 'the response must not embed the solution')
+
+  const accepted = await gradePanelSubmission(REPO, { exerciseId: id, code: String(record.solution) })
+  assert.equal(accepted.ok, true)
+  assert.equal(accepted.result.passed, true, 'the course solution must pass: ' + JSON.stringify(accepted.result.diagnostics))
+  assert.equal(accepted.result.target, 'mem_of_subset')
+
+  const tooLarge = await gradePanelSubmission(REPO, { exerciseId: id, code: 'x'.repeat(70 * 1024) })
+  assert.equal(tooLarge.ok, true, 'oversize input is a user error, not a service failure')
+  assert.equal(tooLarge.result.ok, false)
+  assert.equal(tooLarge.result.code, 'too-large')
+})
+
+test('exercise panel routes: metadata, content-type, body limits and grading', async () => {
+  const id = 'set-theory/I.1/unit01-sets-membership/mem_of_subset'
+  const record = datasetRecord(id)
+
+  const meta = await callPanelRoute(handleExerciseRequest, {
+    method: 'GET', url: '/sokonanoda-exercise?id=' + encodeURIComponent(id),
+  })
+  assert.equal(meta.status, 200)
+  assert.equal(meta.json.ok, true)
+  assert.equal(meta.json.exercise.id, id)
+  assert.ok(!JSON.stringify(meta.json).includes('solution'), 'metadata must not leak the solution')
+
+  const missing = await callPanelRoute(handleExerciseRequest, { method: 'GET', url: '/sokonanoda-exercise?id=nope' })
+  assert.equal(missing.status, 404)
+  assert.equal(missing.json.ok, false)
+
+  const wrongMethod = await callPanelRoute(handleExerciseRequest, { method: 'POST', url: '/sokonanoda-exercise' })
+  assert.equal(wrongMethod.status, 405)
+
+  const wrongType = await callPanelRoute(handleGradeRequest, {
+    method: 'POST', url: '/sokonanoda-grade', headers: { 'content-type': 'text/plain' }, body: '{}',
+  })
+  assert.equal(wrongType.status, 415)
+
+  const badJson = await callPanelRoute(handleGradeRequest, {
+    method: 'POST', url: '/sokonanoda-grade', headers: { 'content-type': 'application/json' }, body: '{oops',
+  })
+  assert.equal(badJson.status, 400)
+  assert.equal(badJson.json.ok, false)
+
+  const graded = await callPanelRoute(handleGradeRequest, {
+    method: 'POST',
+    url: '/sokonanoda-grade',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ exerciseId: id, code: String(record.solution) }),
+  })
+  assert.equal(graded.status, 200)
+  assert.equal(graded.json.ok, true)
+  assert.equal(graded.json.result.passed, true, 'route grading must come from the real kernel')
+  assert.equal(graded.json.exercise.id, id)
+})
+
+test('apply(): the Host registers both exercise-panel routes when the web server exists', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-panel-routes-'))
+  const host = captureHost()
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  try {
+    const paths = host.webServer.routes.map((route) => route.path)
+    assert.ok(paths.includes(PANEL_EXERCISE_PATH), 'metadata route missing: ' + JSON.stringify(paths))
+    assert.ok(paths.includes(PANEL_GRADE_PATH), 'grade route missing: ' + JSON.stringify(paths))
+    for (const path of [PANEL_EXERCISE_PATH, PANEL_GRADE_PATH]) {
+      const route = host.webServer.routes.find((candidate) => candidate.path === path)
+      assert.equal(route.kind, 'exact')
+      assert.equal(route.auth, 'anonymous')
+      assert.equal(typeof route.handler, 'function')
+    }
+  } finally {
+    await host.disposeAll()
+  }
+})
+
 /* ---------------------------------------------------------------- helpers */
+
+/** Drive one panel route handler with a fake Node request/response. */
+async function callPanelRoute(handler, input) {
+  const request = new EventEmitter()
+  request.method = input.method || 'GET'
+  request.url = input.url || '/'
+  request.headers = input.headers || {}
+  const response = {
+    status: 0,
+    headers: {},
+    body: '',
+    writeHead(status, headers) {
+      this.status = status
+      this.headers = headers || {}
+    },
+    end(body) {
+      this.body += typeof body === 'string' ? body : ''
+    },
+  }
+  if (input.method === 'POST') {
+    const body = input.body === undefined ? '' : input.body
+    process.nextTick(() => {
+      if (body !== '') request.emit('data', Buffer.from(body))
+      request.emit('end')
+    })
+  }
+  await handler(REPO, request, response)
+  let json = null
+  try { json = JSON.parse(response.body) } catch { json = null }
+  return { status: response.status, headers: response.headers, body: response.body, json }
+}
 
 /** One dataset record by id (fresh read; exercises are generated, not hand-edited). */
 function datasetRecord(id) {

@@ -1184,6 +1184,9 @@ export function codeCardPayload(exercise) {
     title: value.title || '',
     prompt: value.prompt || '',
     kind: value.kind || 'theorem',
+    name: value.name || '',
+    anonymous: value.anonymous === true,
+    dataset: value.dataset === true,
     hints: (Array.isArray(value.hints) ? value.hints : []).slice(0, 4).map((hint) => (
       typeof hint === 'string'
         ? { label: '', body: hint }

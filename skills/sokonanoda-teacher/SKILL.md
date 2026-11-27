@@ -288,6 +288,10 @@ question 卡渲染，判卷反馈与下一题也以卡片/文本返回。
   插件用 `compose.py` + `scripts/soko grade --json` **真内核判卷**：通过才显示
   checked 并 `mark-code` 记进度，未过显示首条诊断、可同题重试；「跳过这道代码题」
   = `skip-code`。**代码题判卷也是本地快路径**（判卷超时/工具缺失才回落模型）。
+  代码练习卡上还有「在侧栏面板中打开」：它把同一道题开进右栏编辑器（题目 + 提示 +
+  可编辑模板 + 运行），运行同样由 Host 调 `compose.py` + `scripts/soko grade --json`，
+  只有真内核 `passed` 才显示通过；服务不可用会明确报错。面板运行**不写**进度
+  （`mark-code` 仍在聊天提交路径），需要记进度时让学习者把通过结果回在聊天里。
 - **题目集入口（只读）**：选择题库 `courses/set-theory/knowledge/data/questions.json`
   （409 道 / 400 可服务；同时服务卷 I 与卷 II.1）、知识点
   `courses/set-theory/knowledge/data/knowledge-points.json`（195 个；96 绿 / 99 红

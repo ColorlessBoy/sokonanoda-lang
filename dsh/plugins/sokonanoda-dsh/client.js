@@ -79,6 +79,13 @@ window.__ModuleLoader__.load({
     let sourcePreviewReady = false
     const SOURCE_PREVIEW_ID = 'sokonanoda-dsh/source'
 
+    /* C9.7 exercise panel: a page-type tab in the right sidebar. The card deep
+     * link opens the kind; the body reads the exercise id from navigation
+     * params, and every Run goes through the Host's C9.4 grading bridge. */
+    const PANEL_KIND = 'sokonanoda-exercise'
+    const PANEL_TYPE_ID = 'sokonanoda-dsh/exercise-panel'
+    const PANEL_FETCH_TIMEOUT_MS = 90_000
+
     const NS = 'dshLearnCard'
     const KINDS = ['question', 'knowledge', 'lesson', 'progress', 'code']
     const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -211,6 +218,34 @@ window.__ModuleLoader__.load({
       '.dsls-run-keyword{color:var(--dsw-alias-state-business-primary,#0b57d0);font-weight:600}',
       '.dsls-run-unknown{color:var(--dsw-alias-state-warn-primary,#9a5b00)}',
       '.dsls-state-diag{margin:0;color:var(--dsw-alias-state-error-primary,#c4553d);overflow-wrap:anywhere}',
+      /* C9.7 side-panel exercise surface. */
+      '.dslc-panel{display:flex;flex-direction:column;gap:10px;width:100%;max-width:100%;min-height:100%;min-width:0;box-sizing:border-box;padding:12px;color:var(--dsw-alias-label-primary,#15171a);font-size:13.5px;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}',
+      '.dslc-panel-meta{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))}',
+      '.dslc-panel-title{margin:0;font-size:15px;line-height:1.45;font-weight:700;overflow-wrap:anywhere}',
+      '.dslc-panel-prompt{margin:0;font-size:13px;line-height:1.55;color:var(--dsw-alias-label-secondary,#4b5563)}',
+      '.dslc-panel-hints{margin:0;padding-left:18px;font-size:12.5px;line-height:1.55}',
+      '.dslc-panel-hints li{margin:0 0 3px;overflow-wrap:anywhere}',
+      '.dslc-panel-editor{display:block;width:100%;max-width:100%;min-width:0;min-height:220px;box-sizing:border-box;padding:10px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:10px;background:var(--dsw-alias-markdown-code-block,#f2f3f5);color:var(--dsw-alias-label-primary,#15171a);font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;tab-size:2;resize:vertical;white-space:pre;overflow:auto}',
+      '.dslc-panel-editor:focus{outline:2px solid var(--dsw-alias-state-business-primary,#0b57d0);outline-offset:1px}',
+      '.dslc-panel-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+      '.dslc-panel-run,.dslc-panel-reset,.dslc-panel-open{min-height:32px;box-sizing:border-box;padding:5px 12px;border-radius:8px;font-size:12.5px;line-height:1.2;cursor:pointer}',
+      '.dslc-panel-run{border:1px solid var(--dsw-alias-state-business-primary,#0b57d0);background:var(--dsw-alias-state-business-primary,#0b57d0);color:#fff;font-weight:600}',
+      '.dslc-panel-run:disabled{opacity:.55;cursor:progress}',
+      '.dslc-panel-reset{border:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:transparent;color:var(--dsw-alias-label-secondary,#4b5563)}',
+      '.dslc-panel-open{border:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));color:var(--dsw-alias-label-primary,#15171a);font-weight:600}',
+      '.dslc-panel-hint{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))}',
+      '.dslc-panel-result{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:rgba(127,127,127,0.06);font-size:12.5px;line-height:1.55}',
+      '.dslc-panel-result[data-state="pass"]{border-color:var(--dsw-alias-state-success-primary,#0f7b4a);background:rgba(15,123,74,.10)}',
+      '.dslc-panel-result[data-state="fail"]{border-color:var(--dsw-alias-state-danger-primary,#c4553d);background:rgba(196,85,61,.08)}',
+      '.dslc-panel-result[data-state="error"]{border-color:var(--dsw-alias-state-warn-primary,#9a5b00);background:rgba(154,91,0,.08)}',
+      '.dslc-panel-result-title{margin:0;font-weight:700;font-size:13px;line-height:1.4}',
+      '.dslc-panel-result[data-state="pass"] .dslc-panel-result-title{color:var(--dsw-alias-state-success-primary,#0f7b4a)}',
+      '.dslc-panel-result[data-state="fail"] .dslc-panel-result-title{color:var(--dsw-alias-state-danger-primary,#c4553d)}',
+      '.dslc-panel-result[data-state="error"] .dslc-panel-result-title{color:var(--dsw-alias-state-warn-primary,#9a5b00)}',
+      '.dslc-panel-line{margin:0;overflow-wrap:anywhere}',
+      '.dslc-panel-diag{margin:0;padding-left:16px;font-size:12px;line-height:1.5}',
+      '.dslc-panel-diag li{margin:0 0 3px;overflow-wrap:anywhere}',
+      '.dslc-panel-placeholder{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#6b7280)}',
     ]
 
     /* Inject the stylesheet once per page; HMR removes this module's styles
@@ -271,6 +306,31 @@ window.__ModuleLoader__.load({
       codeLabel: '代码练习',
       codeTemplateLabel: '模板',
       codeSubmitHint: '把完整声明贴回来（从 theorem/def 那行到证明结束），我用真内核判卷；想放弃回「跳过这道代码题」。',
+      codeOpenPanel: '在侧栏面板中打开',
+      panelTitle: '做题面板',
+      panelLoading: '题目加载中…',
+      panelLoadError: '题目加载失败',
+      panelEmpty: '从聊天里的代码练习卡点「在侧栏面板中打开」开始。',
+      panelRetry: '重试',
+      panelEditorLabel: '编辑声明（把 sorry 换成证明）',
+      panelRun: '运行（真内核判卷）',
+      panelRunning: '判卷中…',
+      panelReset: '恢复模板',
+      panelRunHint: '⌘/Ctrl + Enter 运行',
+      panelPass: '通过（真内核判卷）',
+      panelFail: '还没通过（真内核判卷）',
+      panelTarget: '目标',
+      panelChecked: 'checked',
+      panelOpenCount: 'open',
+      panelDiagnosticCount: 'diagnostic',
+      panelDiagnostics: '诊断',
+      panelSorry: '目标里还是 sorry：把证明补完再运行。',
+      panelNoChecked: '内核没有 checked 目标声明：检查证明体。',
+      panelServiceError: '判卷服务不可用',
+      panelEmptyCode: '没有可判的代码：把目标声明完整写在编辑器里。',
+      panelNameMismatch: '声明名对不上：这道题要求',
+      panelTooLarge: '代码太长，只保留目标声明即可。',
+      panelRetryLoad: '重新加载',
       dontKnowLabel: '我不知道',
       whyLabel: '解析',
       stateLine: '第 {line} 行',
@@ -331,6 +391,31 @@ window.__ModuleLoader__.load({
       codeLabel: 'Code exercise',
       codeTemplateLabel: 'Template',
       codeSubmitHint: 'Paste the full declaration back (from the theorem/def line to the end of the proof); the real kernel grades it. Say 「跳过这道代码题」 to skip.',
+      codeOpenPanel: 'Open in side panel',
+      panelTitle: 'Exercise panel',
+      panelLoading: 'Loading the exercise…',
+      panelLoadError: 'Could not load the exercise',
+      panelEmpty: 'Open a code-exercise card in chat and choose “Open in side panel”.',
+      panelRetry: 'Retry',
+      panelEditorLabel: 'Edit the declaration (replace sorry with your proof)',
+      panelRun: 'Run (real kernel)',
+      panelRunning: 'Grading…',
+      panelReset: 'Reset template',
+      panelRunHint: '⌘/Ctrl + Enter to run',
+      panelPass: 'Passed (real kernel)',
+      panelFail: 'Not passed yet (real kernel)',
+      panelTarget: 'Target',
+      panelChecked: 'checked',
+      panelOpenCount: 'open',
+      panelDiagnosticCount: 'diagnostic',
+      panelDiagnostics: 'Diagnostics',
+      panelSorry: 'The target is still `sorry`: finish the proof and run again.',
+      panelNoChecked: 'The kernel did not check the target declaration: inspect the proof.',
+      panelServiceError: 'Grading service unavailable',
+      panelEmptyCode: 'Nothing to grade: put the full declaration in the editor.',
+      panelNameMismatch: 'Declaration name mismatch: this exercise expects',
+      panelTooLarge: 'The code is too long; keep only the target declaration.',
+      panelRetryLoad: 'Reload',
       dontKnowLabel: "I don't know",
       whyLabel: 'Why',
       stateLine: 'Line {line}',
@@ -668,6 +753,25 @@ window.__ModuleLoader__.load({
       openHint: { margin: 0, padding: '8px 10px', borderRadius: '8px', border: '1px dashed rgba(127,127,127,0.32)', background: 'rgba(127,127,127,0.06)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', lineHeight: 1.5, overflowWrap: 'anywhere' },
       codeHint: { margin: 0, padding: '8px 10px', borderRadius: '8px', border: '1px dashed rgba(127,127,127,0.32)', background: 'rgba(127,127,127,0.06)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', lineHeight: 1.5, overflowWrap: 'anywhere' },
       codeMeta: { margin: 0, fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))', overflowWrap: 'anywhere' },
+      panel: { display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '100%', minWidth: 0, minHeight: '100%', boxSizing: 'border-box', padding: '12px', color: 'var(--dsw-alias-label-primary,#15171a)', fontSize: '13.5px', lineHeight: 1.55, overflowWrap: 'anywhere', wordBreak: 'break-word' },
+      panelMeta: { margin: 0, fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))' },
+      panelTitle: { margin: 0, fontSize: '15px', lineHeight: 1.45, fontWeight: 700, overflowWrap: 'anywhere' },
+      panelPrompt: { margin: 0, fontSize: '13px', lineHeight: 1.55, color: 'var(--dsw-alias-label-secondary,#4b5563)' },
+      panelHints: { margin: 0, paddingLeft: '18px', fontSize: '12.5px', lineHeight: 1.55 },
+      panelEditor: { display: 'block', width: '100%', maxWidth: '100%', minWidth: 0, minHeight: '220px', boxSizing: 'border-box', padding: '10px', border: '1px solid rgba(127,127,127,0.28)', borderRadius: '10px', background: 'rgba(127,127,127,0.08)', color: 'var(--dsw-alias-label-primary,#15171a)', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace', fontSize: '12.5px', lineHeight: 1.6, tabSize: 2, resize: 'vertical', whiteSpace: 'pre', overflow: 'auto' },
+      panelToolbar: { display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' },
+      panelRun: { minHeight: '32px', boxSizing: 'border-box', padding: '5px 12px', borderRadius: '8px', border: '1px solid var(--dsw-alias-state-business-primary,#0b57d0)', background: 'var(--dsw-alias-state-business-primary,#0b57d0)', color: '#fff', font: '600 12.5px/1.2 inherit', cursor: 'pointer' },
+      panelButton: { minHeight: '32px', boxSizing: 'border-box', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(127,127,127,0.28)', background: 'transparent', color: 'var(--dsw-alias-label-secondary,#4b5563)', font: '12.5px/1.2 inherit', cursor: 'pointer' },
+      panelOpenButton: { minHeight: '32px', boxSizing: 'border-box', padding: '5px 12px', borderRadius: '8px', border: '1px solid rgba(127,127,127,0.28)', background: 'rgba(127,127,127,0.06)', color: 'var(--dsw-alias-label-primary,#15171a)', font: '600 12.5px/1.2 inherit', cursor: 'pointer' },
+      panelHint: { margin: 0, fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))' },
+      panelResult: { display: 'flex', flexDirection: 'column', gap: '5px', padding: '10px 12px', borderRadius: '10px', border: '1px solid rgba(127,127,127,0.28)', background: 'rgba(127,127,127,0.06)', fontSize: '12.5px', lineHeight: 1.55 },
+      panelResultPass: { borderColor: 'var(--dsw-alias-state-success-primary,#0f7b4a)', background: 'rgba(15,123,74,.10)' },
+      panelResultFail: { borderColor: 'var(--dsw-alias-state-danger-primary,#c4553d)', background: 'rgba(196,85,61,.08)' },
+      panelResultError: { borderColor: 'var(--dsw-alias-state-warn-primary,#9a5b00)', background: 'rgba(154,91,0,.08)' },
+      panelResultTitle: { margin: 0, fontWeight: 700, fontSize: '13px', lineHeight: 1.4 },
+      panelLine: { margin: 0, overflowWrap: 'anywhere' },
+      panelDiag: { margin: 0, paddingLeft: '16px', fontSize: '12px', lineHeight: 1.5 },
+      panelPlaceholder: { margin: 0, fontSize: '12.5px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary,#6b7280)' },
       optionPick: { cursor: 'pointer' },
       optionPicked: { borderColor: 'var(--dsw-alias-state-business-primary,#0b57d0)', background: 'rgba(11,87,208,0.08)' },
     }
@@ -945,6 +1049,8 @@ window.__ModuleLoader__.load({
       )).filter(isRecord)
       const submitHint = textOf(payload.submitHint)
         || (t !== undefined && typeof t === 'function' ? t('codeSubmitHint', '') : '')
+      const panelOpenAvailable = textOf(payload.id) !== ''
+        && sidebarRight !== null && typeof sidebarRight.openTab === 'function'
       return cardShell('code', [
         chapter !== ''
           ? h('p', { className: 'dslc-code-meta', key: 'meta', style: S.codeMeta },
@@ -952,6 +1058,17 @@ window.__ModuleLoader__.load({
           : null,
         title !== '' ? h('p', { className: 'dslc-heading', key: 'title', style: S.heading }, inlineNodes(title)) : null,
         prompt !== '' ? h('p', { className: 'dslc-plain', key: 'prompt', style: S.plain }, inlineNodes(prompt)) : null,
+        panelOpenAvailable
+          ? h('div', { className: 'dslc-panel-open-row', key: 'panel-open-row', style: S.panelToolbar },
+            h('button', {
+              type: 'button',
+              className: 'dslc-panel-open',
+              style: S.panelOpenButton,
+              'data-action': 'open-exercise-panel',
+              'data-exercise-id': textOf(payload.id),
+              onClick: function () { openExercisePanel(payload) },
+            }, '▤ ' + (t !== undefined && typeof t === 'function' ? t('codeOpenPanel', '在侧栏面板中打开') : '在侧栏面板中打开')))
+          : null,
         hints.length > 0
           ? section(t, 'hints', t !== undefined && typeof t === 'function' ? t('pointsLabel', '提示') : '提示',
             h('ul', { className: 'dslc-slist', style: S.slist }, hints.map((hint, index) => {
@@ -970,6 +1087,357 @@ window.__ModuleLoader__.load({
           : null,
       ])
     }
+
+    /* ------------------------------------------------- C9.7 exercise panel
+     * The panel is a right-sidebar page: the card deep link opens
+     * `PANEL_KIND` with `{exerciseId}` params; the body fetches the trusted
+     * exercise from the Host, edits the template, and every Run posts back to
+     * the Host's C9.4 grading bridge. There is no client-side judgement here:
+     * a pass exists only when the Host returns `result.passed === true`, and a
+     * service failure is displayed as unavailable, never as a pass. */
+
+    /** Fetch JSON with a hard timeout; resolves `{ok, status, payload}`. */
+    function fetchPanelJson(url, init) {
+      if (typeof fetch !== 'function') return Promise.reject(new Error('fetch-unavailable'))
+      const controller = typeof AbortController === 'function' ? new AbortController() : null
+      let timer = null
+      if (controller !== null && typeof setTimeout === 'function') {
+        timer = setTimeout(function () {
+          try { controller.abort() } catch (error) { /* already settled */ }
+        }, PANEL_FETCH_TIMEOUT_MS)
+      }
+      const options = Object.assign({ cache: 'no-store' }, init || {})
+      if (controller !== null) options.signal = controller.signal
+      return fetch(url, options).then(function (response) {
+        if (timer !== null) clearTimeout(timer)
+        return response.json().then(function (payload) {
+          return { ok: response.ok === true, status: response.status, payload: payload }
+        }, function () {
+          return { ok: response.ok === true, status: response.status, payload: null }
+        })
+      }, function (error) {
+        if (timer !== null) clearTimeout(timer)
+        throw error
+      })
+    }
+
+    /** Human message for a Host failure payload; never a judgement. */
+    function panelFailureMessage(payload) {
+      if (isRecord(payload)) {
+        const message = textOf(payload.message)
+        if (message !== '') return message
+        const code = textOf(payload.code)
+        if (code !== '') return code
+      }
+      return 'request-failed'
+    }
+
+    /** One result box; states: running / pass / fail / error. */
+    function panelResult(t, attempt) {
+      if (!isRecord(attempt)) return null
+      if (attempt.phase === 'running') {
+        return h('div', {
+          className: 'dslc-panel-result', key: 'result', 'data-panel-result': 'running', 'data-state': 'running', style: S.panelResult,
+        }, h('p', { className: 'dslc-panel-result-title', style: S.panelResultTitle }, '⏳ ' + t('panelRunning', '判卷中…')))
+      }
+      if (attempt.phase === 'error') {
+        return h('div', {
+          className: 'dslc-panel-result', key: 'result', 'data-panel-result': 'error', 'data-state': 'error', style: Object.assign({}, S.panelResult, S.panelResultError),
+        },
+        h('p', { className: 'dslc-panel-result-title', style: S.panelResultTitle }, '⚠️ ' + t('panelServiceError', '判卷服务不可用')),
+        h('p', { className: 'dslc-panel-line', style: S.panelLine }, textOf(attempt.message) || 'request-failed'))
+      }
+      const result = isRecord(attempt.result) ? attempt.result : {}
+      if (result.ok !== true) {
+        const code = textOf(result.code)
+        let message = t('panelEmptyCode', '没有可判的代码：把目标声明完整写在编辑器里。')
+        if (code === 'name-mismatch') {
+          message = t('panelNameMismatch', '声明名对不上：这道题要求') + ' `' + textOf(result.expectedName) + '`'
+        } else if (code === 'too-large') {
+          message = t('panelTooLarge', '代码太长，只保留目标声明即可。')
+        } else if (code === 'empty' || code === 'no-target' || code === 'no-target-value') {
+          message = t('panelEmptyCode', '没有可判的代码：把目标声明完整写在编辑器里。')
+        }
+        return h('div', {
+          className: 'dslc-panel-result', key: 'result', 'data-panel-result': 'fail', 'data-state': 'fail', style: Object.assign({}, S.panelResult, S.panelResultFail),
+        },
+        h('p', { className: 'dslc-panel-result-title', style: S.panelResultTitle }, '❌ ' + t('panelFail', '还没通过（真内核判卷）')),
+        h('p', { className: 'dslc-panel-line', style: S.panelLine }, message))
+      }
+      const target = textOf(result.target)
+      const open = Array.isArray(result.open) ? result.open : []
+      const allDiagnostics = Array.isArray(result.diagnostics) ? result.diagnostics : []
+      const diagnostics = allDiagnostics.slice(0, 3)
+      if (result.passed === true) {
+        return h('div', {
+          className: 'dslc-panel-result', key: 'result', 'data-panel-result': 'pass', 'data-state': 'pass', style: Object.assign({}, S.panelResult, S.panelResultPass),
+        },
+        h('p', { className: 'dslc-panel-result-title', style: Object.assign({}, S.panelResultTitle, { color: 'var(--dsw-alias-state-success-primary,#0f7b4a)' }) }, '✅ ' + t('panelPass', '通过（真内核判卷）')),
+        target !== ''
+          ? h('p', { className: 'dslc-panel-line', style: S.panelLine }, t('panelChecked', 'checked') + '：`' + target + '` · ' + t('panelOpenCount', 'open') + '：0 · ' + t('panelDiagnosticCount', 'diagnostic') + '：0')
+          : h('p', { className: 'dslc-panel-line', style: S.panelLine }, t('panelChecked', 'checked') + ' · ' + t('panelOpenCount', 'open') + '：0 · ' + t('panelDiagnosticCount', 'diagnostic') + '：0'))
+      }
+      const failed = h('div', {
+        className: 'dslc-panel-result', key: 'result', 'data-panel-result': 'fail', 'data-state': 'fail', style: Object.assign({}, S.panelResult, S.panelResultFail),
+      },
+      h('p', { className: 'dslc-panel-result-title', style: Object.assign({}, S.panelResultTitle, { color: 'var(--dsw-alias-state-danger-primary,#c4553d)' }) }, '❌ ' + t('panelFail', '还没通过（真内核判卷）')),
+      target !== '' ? h('p', { className: 'dslc-panel-line', style: S.panelLine }, t('panelTarget', '目标') + '：`' + target + '`') : null,
+      diagnostics.length > 0
+        ? h('ul', { className: 'dslc-panel-diag', style: S.panelDiag }, diagnostics.map(function (diagnostic, index) {
+          const line = Number.isFinite(Number(diagnostic && diagnostic.line)) ? '（第 ' + Number(diagnostic.line) + ' 行）' : ''
+          return h('li', { key: 'diag-' + index },
+            '`' + textOf(diagnostic && diagnostic.code) + '`' + line + ' ' + textOf(diagnostic && diagnostic.message))
+        }))
+        : h('p', { className: 'dslc-panel-line', style: S.panelLine },
+          open.length > 0 && open.includes(target)
+            ? t('panelSorry', '目标里还是 sorry：把证明补完再运行。')
+            : t('panelNoChecked', '内核没有 checked 目标声明：检查证明体。')),
+      h('p', { className: 'dslc-panel-hint', style: S.panelHint },
+        t('panelOpenCount', 'open') + '：' + open.length + ' · ' + t('panelDiagnosticCount', 'diagnostic') + '：' + allDiagnostics.length))
+      return failed
+    }
+
+    /**
+     * Pure panel view (exported for the smoke test): the component's state is
+     * passed in, so the user-visible contract can be asserted without a browser.
+     * @param input - `{t, phase, exercise, code, attempt, busy, errorMessage, onCode, onRun, onReset, onRetry}`.
+     */
+    function exercisePanelView(input) {
+      const value = isRecord(input) ? input : {}
+      const t = typeof value.t === 'function' ? value.t : makeT(null)
+      const phase = textOf(value.phase)
+      const exercise = isRecord(value.exercise) ? value.exercise : null
+      if (phase !== 'ready' || exercise === null) {
+        const failed = phase === 'error'
+        return h('div', { className: 'dslc-panel', 'data-panel-state': phase === '' ? 'empty' : phase, style: S.panel },
+          h('p', { className: 'dslc-panel-meta', style: S.panelMeta }, '🧩 ' + t('codeLabel', '代码练习')),
+          failed
+            ? h('p', { className: 'dslc-panel-result-title', style: S.panelResultTitle }, '⚠️ ' + t('panelLoadError', '题目加载失败'))
+            : h('p', { className: 'dslc-panel-placeholder', style: S.panelPlaceholder },
+              phase === 'loading' ? t('panelLoading', '题目加载中…') : t('panelEmpty', '从聊天里的代码练习卡点「在侧栏面板中打开」开始。')),
+          failed && textOf(value.errorMessage) !== ''
+            ? h('p', { className: 'dslc-panel-line', style: S.panelLine }, textOf(value.errorMessage))
+            : null,
+          typeof value.onRetry === 'function'
+            ? h('div', { className: 'dslc-panel-toolbar', style: S.panelToolbar },
+              h('button', { type: 'button', className: 'dslc-panel-reset', style: S.panelButton, 'data-action': 'retry-exercise-load', onClick: value.onRetry },
+                t('panelRetryLoad', '重新加载')))
+            : null)
+      }
+      const hints = (Array.isArray(exercise.hints) ? exercise.hints : []).slice(0, 4).filter(isRecord)
+      const meta = [textOf(exercise.chapter), textOf(exercise.unit)].filter(function (part) { return part !== '' }).join(' · ')
+      const code = typeof value.code === 'string' ? value.code : ''
+      const running = value.busy === true
+      return h('div', { className: 'dslc-panel', 'data-panel-state': 'ready', 'data-exercise-id': textOf(exercise.id), style: S.panel },
+        h('p', { className: 'dslc-panel-meta', style: S.panelMeta }, '🧩 ' + t('codeLabel', '代码练习') + (meta !== '' ? ' · ' + meta : '')),
+        textOf(exercise.title) !== ''
+          ? h('p', { className: 'dslc-panel-title', style: S.panelTitle }, textOf(exercise.title))
+          : null,
+        textOf(exercise.prompt) !== ''
+          ? h('p', { className: 'dslc-panel-prompt', style: S.panelPrompt }, inlineNodes(textOf(exercise.prompt)))
+          : null,
+        hints.length > 0
+          ? h('ul', { className: 'dslc-panel-hints', style: S.panelHints }, hints.map(function (hint, index) {
+            const label = textOf(hint.label)
+            return h('li', { key: 'panel-hint-' + index }, (label !== '' ? label + '：' : '') + textOf(hint.body))
+          }))
+          : null,
+        h('p', { className: 'dslc-sheading', style: S.sheading }, t('panelEditorLabel', '编辑声明（把 sorry 换成证明）')),
+        h('textarea', {
+          className: 'dslc-panel-editor',
+          style: S.panelEditor,
+          value: code,
+          spellCheck: false,
+          'data-exercise-editor': '1',
+          onChange: typeof value.onCode === 'function'
+            ? function (event) { value.onCode(event !== null && event !== undefined && event.target !== undefined ? event.target.value : '') }
+            : undefined,
+          onKeyDown: function (event) {
+            if (value.onRun === undefined || typeof value.onRun !== 'function') return
+            if (event !== null && event !== undefined && event.key === 'Enter' && (event.metaKey === true || event.ctrlKey === true)) {
+              try { event.preventDefault() } catch (error) { /* synthetic event without preventDefault */ }
+              value.onRun()
+            }
+          },
+        }),
+        h('div', { className: 'dslc-panel-toolbar', style: S.panelToolbar },
+          h('button', {
+            type: 'button',
+            className: 'dslc-panel-run',
+            style: S.panelRun,
+            'data-action': 'run-exercise',
+            disabled: running,
+            onClick: typeof value.onRun === 'function' ? value.onRun : undefined,
+          }, running ? '⏳ ' + t('panelRunning', '判卷中…') : '▶ ' + t('panelRun', '运行（真内核判卷）')),
+          h('button', {
+            type: 'button',
+            className: 'dslc-panel-reset',
+            style: S.panelButton,
+            'data-action': 'reset-exercise',
+            disabled: running,
+            onClick: typeof value.onReset === 'function' ? value.onReset : undefined,
+          }, t('panelReset', '恢复模板')),
+          h('p', { className: 'dslc-panel-hint', style: S.panelHint }, t('panelRunHint', '⌘/Ctrl + Enter 运行'))),
+        panelResult(t, value.attempt))
+    }
+
+    /** Panel body: loads the trusted exercise and runs the Host grading bridge. */
+    function ExercisePanel(props) {
+      const t = makeT(props)
+      const info = isRecord(props) && typeof props.useTabInfo === 'function' ? props.useTabInfo() : null
+      const navigation = info !== null && info !== undefined && isRecord(info.tab) ? info.tab.navigation : null
+      const params = navigation !== null && navigation !== undefined && isRecord(navigation.params) ? navigation.params : null
+      const exerciseId = textOf(params !== null ? params.exerciseId : '')
+      const revision = navigation !== null && navigation !== undefined && Number.isFinite(Number(navigation.revision))
+        ? Number(navigation.revision) : 0
+      const [exercise, setExercise] = React.useState(null)
+      const [code, setCode] = React.useState('')
+      const [phase, setPhase] = React.useState(exerciseId === '' ? 'empty' : 'loading')
+      const [errorMessage, setErrorMessage] = React.useState('')
+      const [attempt, setAttempt] = React.useState(null)
+      const [reloadKey, setReloadKey] = React.useState(0)
+      React.useEffect(function () {
+        if (exerciseId === '') {
+          setExercise(null)
+          setCode('')
+          setPhase('empty')
+          setAttempt(null)
+          return undefined
+        }
+        let alive = true
+        setPhase('loading')
+        setErrorMessage('')
+        setAttempt(null)
+        fetchPanelJson('/sokonanoda-exercise?id=' + encodeURIComponent(exerciseId)).then(function (response) {
+          if (!alive) return
+          const payload = response.payload
+          if (response.ok === true && isRecord(payload) && payload.ok === true && isRecord(payload.exercise)) {
+            setExercise(payload.exercise)
+            setCode(textOf(payload.exercise.template))
+            setPhase('ready')
+            return
+          }
+          setErrorMessage(panelFailureMessage(payload) + (payload === null ? ' (HTTP ' + response.status + ')' : ''))
+          setPhase('error')
+        }, function () {
+          if (!alive) return
+          setErrorMessage('network')
+          setPhase('error')
+        })
+        return function () { alive = false }
+      }, [exerciseId, revision, reloadKey])
+      const busy = isRecord(attempt) && attempt.phase === 'running'
+      const run = function () {
+        if (!isRecord(exercise) || busy || phase !== 'ready') return
+        const id = textOf(exercise.id)
+        if (id === '') return
+        setAttempt({ phase: 'running' })
+        fetchPanelJson('/sokonanoda-grade', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ exerciseId: id, code: code }),
+        }).then(function (response) {
+          const payload = response.payload
+          if (response.ok === true && isRecord(payload) && payload.ok === true && isRecord(payload.result)) {
+            setAttempt({ phase: 'done', result: payload.result })
+            return
+          }
+          setAttempt({ phase: 'error', message: panelFailureMessage(payload) })
+        }, function () {
+          setAttempt({ phase: 'error', message: 'network' })
+        })
+      }
+      return exercisePanelView({
+        t: t,
+        phase: phase,
+        exercise: exercise,
+        code: code,
+        attempt: attempt,
+        busy: busy,
+        errorMessage: errorMessage,
+        onCode: function (next) { setCode(typeof next === 'string' ? next : '') },
+        onRun: run,
+        onReset: function () {
+          if (isRecord(exercise)) setCode(textOf(exercise.template))
+        },
+        onRetry: function () { setReloadKey(function (value) { return Number(value) + 1 }) },
+      })
+    }
+
+    /** Chip title: the exercise title from navigation params, else the panel name. */
+    function ExercisePanelTitle(props) {
+      const t = makeT(props)
+      const info = isRecord(props) && typeof props.useTabInfo === 'function' ? props.useTabInfo() : null
+      const navigation = info !== null && info !== undefined && isRecord(info.tab) ? info.tab.navigation : null
+      const params = navigation !== null && navigation !== undefined && isRecord(navigation.params) ? navigation.params : null
+      const title = textOf(params !== null ? params.title : '')
+      return h('span', { className: 'dslc-panel-chip' }, title !== '' ? title : t('panelTitle', '做题面板'))
+    }
+
+    /**
+     * Deep link: open (or reveal) the sidebar panel on one exercise. Returns
+     * false when the sidebar service is missing (non-web host) or the card has
+     * no dataset id; the card keeps its chat path either way.
+     */
+    function openExercisePanel(payload) {
+      if (!isRecord(payload)) return false
+      const exerciseId = textOf(payload.id)
+      if (exerciseId === '' || sidebarRight === null || typeof sidebarRight.openTab !== 'function') return false
+      try {
+        sidebarRight.openTab(PANEL_KIND, {
+          params: {
+            exerciseId: exerciseId,
+            course: textOf(payload.course),
+            title: textOf(payload.title),
+          },
+        })
+        return true
+      } catch (error) {
+        report('exercise-panel-open-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
+        return false
+      }
+    }
+
+    /** Register the page type + body/title seats; absence of the service is not an error. */
+    function registerExercisePanel(ctx) {
+      let tabs = null
+      try {
+        tabs = ctx.sidebarRightTabs !== undefined ? ctx.sidebarRightTabs : null
+      } catch (error) { tabs = null }
+      if (tabs === null || tabs === undefined) {
+        try {
+          tabs = typeof ctx.get === 'function' ? ctx.get('sidebarRightTabs') : undefined
+        } catch (error) { tabs = null }
+      }
+      if (tabs === null || tabs === undefined || typeof tabs.register !== 'function') {
+        report('exercise-panel', 'key=no-tabs')
+        return
+      }
+      try {
+        ctx.effect(function () {
+          return tabs.register({
+            id: PANEL_TYPE_ID,
+            kind: PANEL_KIND,
+            keepMounted: true,
+            title: function () { return '做题面板' },
+          })
+        }, 'sokonanoda-dsh: exercise panel tab type')
+        ctx.effect(function () {
+          return ctx.slots.inject('sidebar.right.pane.tab', function () {
+            return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: PANEL_TYPE_ID, locale: NS }, ExercisePanel)
+          })
+        }, 'sokonanoda-dsh: exercise panel body')
+        ctx.effect(function () {
+          return ctx.slots.inject('sidebar.right.pane.tab.title', function () {
+            return ctx.slots.register({ name: 'sidebar.right.pane.tab.title', key: PANEL_TYPE_ID, locale: NS }, ExercisePanelTitle)
+          })
+        }, 'sokonanoda-dsh: exercise panel chip title')
+        report('exercise-panel', 'key=registered')
+      } catch (error) {
+        report('exercise-panel-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
+      }
+    }
+
 
     function placeholderCard(t, phase, unsupportedKind) {
       const message = unsupportedKind !== undefined
@@ -1767,7 +2235,7 @@ window.__ModuleLoader__.load({
       }))
     }
 
-        const CLIENT_BUILD = '2026-11-27T2140'
+        const CLIENT_BUILD = '2026-11-27T2310'
 
     function apply(ctx) {
       hostCtx = ctx
@@ -1845,6 +2313,10 @@ window.__ModuleLoader__.load({
           })
         } catch (error) { /* non-Web client: the stock preview still works */ }
       }
+      /* C9.7: the exercise panel is a page-type tab in the right sidebar. When
+       * the sidebar service is absent (non-web host) the card keeps its chat
+       * path: no deep-link button, no panel registration, nothing breaks. */
+      registerExercisePanel(ctx)
       /* A client update can land in an already-open page through the HMR carrier,
        * but markdown nodes mounted by the previous module instance keep their old
        * component. Bump CLIENT_BUILD when a release needs the page to reconcile;
@@ -1902,7 +2374,11 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots', 'locale'],
+      /* `sidebarRight` / `sidebarRightTabs` are the Web app's navigation and tab
+       * registries (see DSH `subsystems/sidebar-right.md`). Declaring them as
+       * services makes the panel available at activation time, the same way
+       * every shipped sidebar tab package does. */
+      inject: ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs'],
       apply: apply,
       __test: {
         LearnCardFence: LearnCardFence,
@@ -1918,6 +2394,12 @@ window.__ModuleLoader__.load({
         sourceRowsOf: sourceRowsOf,
         copySourceText: copySourceText,
         resetSidebarRight: function () { sidebarRight = null; hostCtx = null },
+        ExercisePanel: ExercisePanel,
+        ExercisePanelTitle: ExercisePanelTitle,
+        exercisePanelView: exercisePanelView,
+        openExercisePanel: openExercisePanel,
+        PANEL_KIND: PANEL_KIND,
+        PANEL_TYPE_ID: PANEL_TYPE_ID,
         cardCss: CARD_CSS.join(''),
         zh: zh,
         en: en,

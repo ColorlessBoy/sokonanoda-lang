@@ -1,6 +1,7 @@
 # sokonanoda-dsh — 统一的 DSH 语言服务插件
 
-一个插件同时提供 **自动快思考** 与 **卡片渲染 / Lean 高亮**，替代此前分离的
+一个插件同时提供 **自动快思考**、**卡片渲染 / Lean 高亮** 与 **侧栏做题面板**，
+替代此前分离的
 `@local/dsh-learn-card`、`@local/dsh-fast-think`、`@local/dsh-quiz-keeper` 三个
 插件和 `quiz-auto` model provider / 独立 `quiz-proxy` 进程。
 
@@ -16,8 +17,9 @@
                                                 │ 普通 assistant/message（字符流不变）
                  ┌──────────────────────────────▼──── DSH Web（本插件 client 半）──────┐
                  │ conversation.chat.markdown.fence                                  │
-                 │   key=learn-card → question / knowledge / lesson 卡片（纯展示）    │
+                 │   key=learn-card → question / knowledge / lesson / code 卡片       │
                  │   key=lean / sokonanoda → 自定义语法高亮                           │
+                 │ 右栏 page tab（sokonanoda-exercise）→ 编辑器 + 运行 + 真内核结果   │
                  └───────────────────────────────────────────────────────────────────┘
 ```
 
@@ -119,6 +121,13 @@ $DSH_HOME/state/sokonanoda-dsh/       # 默认 ~/.dsh；SOKO_DSH_DATA 可覆盖�
   内核诊断并可**同题重试**。「跳过这道代码题」调 `engine.py skip-code` 记 skipped。
   通过后调 `engine.py mark-code --solved` 记进度。用户代码/诊断**不写日志**；判卷
   超时、缺 `compose.py`/`scripts/soko` 时 503 让 Host 回落 `next()`。
+- **侧栏做题面板（C9.7）**：代码练习卡的「在侧栏面板中打开」在右栏开一个
+  `sokonanoda-exercise` page tab（题目 + 提示 + 编辑器 + 运行）。面板只把
+  `exerciseId` 交给 Host，签名/模板由 Host 从仓库题目集取（**答案从不下发**），
+  「运行」仍走 C9.4 的 `compose.py` + `scripts/soko grade --json`；只有
+  `passed:true` 才显示通过，`diagnostic/sorry` 显示失败，服务异常显示「不可用」。
+  没有右栏服务时按钮不出现，聊天提交路径（上一条）原样保留。面板运行**不写**
+  课程进度（`mark-code` 仍在聊天路径）；详见 `dsh/plugins/sokonanoda-dsh/exercise-panel.md`。
 - 最后一条消息必须是 user（工具结果触发的续轮一律 `next()`）。
 - 非 agent-loop 调用（`purpose` 非空，如 compaction / session-title / auto-review）
   一律放行；loop 请求深度冻结，只读、不修改。
@@ -158,7 +167,8 @@ dsh web
    `dsh --profile web --dump-config | grep -A1 sokonanoda-dsh` 有该行；
 2. 新会话里 `sokonanoda_fast_think status` 能返回（工具已挂）；
 3. 输入 `/sokonanoda-fast-think on`，再说「开始做题」→ 1 秒内出题卡；
-   说「代码题」→ 代码练习卡。
+   说「代码题」→ 代码练习卡；卡片上的「在侧栏面板中打开」→ 右栏面板
+   （题目 + 编辑器 + 运行），运行结果同样来自真内核，服务不可用时明确报错、不显示通过。
 
 Host 半改动需要**重启 `dsh web`**；只改 `client.js` 时由 client HMR 热替换，
 没有 HMR 的安装刷新一次页面即可。
@@ -251,16 +261,18 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 | `client.js` | Client 半：`learn-card` / `lean` / `sokonanoda` 三个 fence 层 + 卡片表面 CSS + `.sokonanoda` 只读预览（光标行 / goal 面板） |
 | `lib/quiz-proxy.mjs` | 从旧 `quiz-proxy/server.mjs` 迁入的本地题库服务（`startQuizService` 在进程内起 loopback 端口）；保留 I2/I3/I4 正确性不变量 |
 | `lib/code-grade.mjs` | C9.4 判卷桥：围栏提取 / 只取证明体贴回可信签名 / `scripts/soko grade --json` 事件判定；失败抛 `code` 交调用方 fail-open |
-| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行、只读 state 路由（owner/越权/超时） |
-| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS、光标行与 goal 面板 |
+| `lib/exercise-panel.mjs` | C9.7 面板的 Host 桥：可信题目解析（数据集 / 引擎小题库，白名单不含答案）、两条 loopback 路由、请求体上限；判卷复用 `code-grade.mjs` |
+| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行、只读 state 路由（owner/越权/超时）、面板路由 |
+| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS、光标行与 goal 面板、面板 deep link 与结果状态 |
 | `docs/` 下的 `research.md` | 快思考方案调研（llm/stream、生态对照） |
 | `docs/` 下的 `cards-research.md` | 卡片渲染方案调研（fence 层、action-cards、槽位） |
+| `exercise-panel.md`（插件目录根） | C9.7 侧栏面板：表面、两条路由、信任边界、结果状态、已知限制 |
 
 ## 测试
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 29 + client 28
+node test/run.mjs     # host 33 + client 45
 ```
 
 ## 迁移与清理（一次性，2026-11-23）
