@@ -347,28 +347,40 @@ def excluded_ids(data: dict) -> set:
     return {item for item in raw if isinstance(item, str)}
 
 
-def pick(state: dict, data: dict, chapter: str = None, seed: int = None) -> dict:
+def pick(state: dict, data: dict, chapter: str = None, seed: int = None,
+         level: int = None, kp: str = None) -> dict:
     cfg = params(data)
     window = cfg["recent_window"]
     recent = recent_ids(state, window)
     exclude = excluded_ids(data)
     skipped = set(state.get("skipped") or [])
+
+    def matches(question: dict) -> bool:
+        if chapter is not None and question.get("chapter") != chapter:
+            return False
+        if level is not None and int(question.get("level", 0)) != int(level):
+            return False
+        if kp is not None and kp not in (question.get("kps") or []):
+            return False
+        return True
+
     pool = [q for q in data["questions"]
-            if (chapter is None or q["chapter"] == chapter) and q["id"] not in recent
+            if matches(q) and q["id"] not in recent
             and q["id"] not in exclude and q["id"] not in skipped]
     if not pool:
         # 只剩被跳过的题：允许回头，但优先选最久没碰的
         pool = [q for q in data["questions"]
-                if (chapter is None or q["chapter"] == chapter) and q["id"] not in exclude
+                if matches(q) and q["id"] not in exclude
                 and q["id"] not in recent]
     relaxed = False
     if not pool:
         recent = recent_ids(state, max(5, window // 4))
         pool = [q for q in data["questions"]
-                if (chapter is None or q["chapter"] == chapter) and q["id"] not in recent]
+                if matches(q) and q["id"] not in recent]
         relaxed = True
     if not pool:
-        pool = [q for q in data["questions"] if chapter is None or q["chapter"] == chapter] or data["questions"]
+        pool = [q for q in data["questions"] if matches(q)] or data["questions"]
+        relaxed = True
 
     due = review_due(state, data)
     coverage = chapter_coverage(state, data)
@@ -401,23 +413,51 @@ def pick(state: dict, data: dict, chapter: str = None, seed: int = None) -> dict
     return {"question": question, "decision": {
         "qid": question["id"], "reason": reason, "score": best_score,
         "relaxed": relaxed, "p": round(expected(state, data, question), 3),
+        "filters": {key: value for key, value in
+                    (("chapter", chapter), ("level", level), ("kp", kp)) if value is not None},
     }}
 
 
-CALIBRATION_LADDER = [
-    ("I.1", 1), ("I.1", 3),
-    ("I.2", 1), ("I.2", 3),
-    ("I.3", 1), ("I.3", 3),
-]
+def calibration_ladder(data: dict) -> list:
+    """校准阶梯由题库数据推导：按课程脊取前 3 个「有 L1/L3 选择题」的章。
+
+    不再硬编码 I.1/I.2/I.3 —— 换课程/扩章后阶梯自动跟着题库走。
+    """
+    cached = data.get("_calibration_ladder")
+    if isinstance(cached, list):
+        return cached
+    chapters = []
+    for chapter, _unit in data.get("_spine") or []:
+        if chapter not in chapters:
+            chapters.append(chapter)
+    excluded = excluded_ids(data)
+    ladder = []
+    for chapter in chapters:
+        has_levels = []
+        for level in (1, 3):
+            found = any(q.get("chapter") == chapter and q.get("level") == level
+                        and q.get("kind", "choice") == "choice"
+                        and q["id"] not in excluded
+                        for q in data.get("questions", []))
+            if found:
+                has_levels.append(level)
+        if has_levels:
+            for level in has_levels:
+                ladder.append((chapter, level))
+        if len({entry[0] for entry in ladder}) >= 3:
+            break
+    data["_calibration_ladder"] = ladder
+    return ladder
 
 
 def calibration_question(state: dict, data: dict) -> dict:
-    """校准阶梯：先用 6 道题快速定位水平（每章 L1 + L3），再进入自适应。"""
+    """校准阶梯：先用题库推导出的首几章（每章 L1 + L3）快速定位水平，再进入自适应。"""
+    ladder = calibration_ladder(data)
     step = state.get("calibration", {}).get("step", 0)
-    if step >= len(CALIBRATION_LADDER):
+    if step >= len(ladder):
         state["calibration"]["done"] = True
         return {}
-    chapter, level = CALIBRATION_LADDER[step]
+    chapter, level = ladder[step]
     pool = [q for q in data["questions"]
             if q.get("chapter") == chapter and q.get("level") == level
             and q.get("kind", "choice") == "choice"
@@ -430,6 +470,7 @@ def calibration_question(state: dict, data: dict) -> dict:
         return calibration_question(state, data)
     pool.sort(key=lambda q: q["id"])
     question = pool[0]
+    state["calibration"]["qid"] = question["id"]
     return {"question": question, "decision": {
         "qid": question["id"], "reason": "calibration", "step": step + 1,
         "ladder": chapter + " L" + str(level), "p": 0.5,
@@ -650,12 +691,22 @@ def probe_observe(state: dict, data: dict, question: dict, correct: bool) -> dic
     return {"kp": kp_id, "level": entry.get("level"), "done": entry.get("done", False)}
 
 
+def issue_question(state: dict, question: dict) -> None:
+    """记录「当前发的是哪道题 + 什么时候发的」——耗时指标因此可结构化统计。"""
+    if state.get("issued_qid") != question["id"] or not state.get("issued_at"):
+        state["issued_at"] = now_iso()
+    state["issued_qid"] = question["id"]
+
+
 def next_step(state: dict, data: dict, advance: bool = False, chapter: str = None, no_lesson: bool = False,
-              ignore_probe: bool = False) -> dict:
+              ignore_probe: bool = False, level: int = None, kp: str = None) -> dict:
     """客户端取卡：默认**恢复已发出的卡**（刷新不换题）；advance=True 才推进。
 
     返回 {"kind": "question"|"card", ...}；调用方负责持久化 state。
+    `chapter`/`level`/`kp` 是显式钻取过滤（数据驱动，不硬编码章节）：给了就跳过
+    校准/教学/探针，直接按过滤选题。
     """
+    drill = level is not None or kp is not None
     if advance:
         previous = state.get("issued_qid")
         if previous:
@@ -667,6 +718,7 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
                 # 只保留最近 30 个，避免状态无限增长
                 del skipped[:-30]
         state["issued_qid"] = None
+        state["issued_at"] = None
         state["issued_card"] = None
     # a) 恢复已发出的知识卡
     issued_card = state.get("issued_card")
@@ -689,32 +741,35 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
         question = data["by_id"].get(issued_qid)
         answered = any(entry.get("qid") == issued_qid for entry in state["history"])
         if question is not None and not answered:
+            issue_question(state, question)
             return {"kind": "question", "question": question,
                     "decision": {"qid": question["id"], "reason": "resume", "p": round(expected(state, data, question), 3)}}
         state["issued_qid"] = None
-    # c) 校准阶梯（前 6 题快速评估水平）
-    if not state.get("calibration", {}).get("done"):
+        state["issued_at"] = None
+    # c) 校准阶梯（题库推导；显式钻取时跳过，不改 calibration 状态）
+    if not drill and not state.get("calibration", {}).get("done"):
         picked = calibration_question(state, data)
         if picked:
-            state["issued_qid"] = picked["question"]["id"]
+            issue_question(state, picked["question"])
             return {"kind": "question", **picked}
     # c2.5) 先服务 primer 卡之后挂的那道题（保证「卡 → 题」相邻）
     after = state.get("after_primer_qid")
-    if after:
+    if after and not drill:
         question = data["by_id"].get(after)
         state["after_primer_qid"] = None
         if question is not None:
-            state["issued_qid"] = question["id"]
+            issue_question(state, question)
             return {"kind": "question", "question": question,
                     "decision": {"qid": question["id"], "reason": "after-primer",
                                  "p": round(expected(state, data, question), 3)}}
-    # c2) 无限瀑布流：每 3 个条目插入一次代码练习（若还有未完成的）
+    # c2) 无限瀑布流：每 3 个条目插入一次代码练习（若还有未完成的）；显式钻取不插
     flow = state.setdefault("flow", {"served": 0})
     code_every = 0
     flow_params = data.get("params", {}).get("flow", {}) if isinstance(data.get("params"), dict) else {}
     if isinstance(flow_params.get("codeEvery"), (int, float)) and flow_params.get("codeEvery") >= 1:
         code_every = int(flow_params.get("codeEvery"))
-    if code_every > 0 and state.get("calibration", {}).get("done") and (flow.get("served", 0) + 1) % code_every == 0:
+    if (not drill and code_every > 0 and state.get("calibration", {}).get("done")
+            and (flow.get("served", 0) + 1) % code_every == 0):
         done = state.setdefault("code_done", {})
         kp_theta = state.setdefault("kp_theta", {})
         pool = [ex for ex in data.get("code_exercises", []) if not done.get(ex["id"])]
@@ -744,11 +799,11 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
     # d3) 教学环节：进入一个没上过课的单元 → 先给「微课」，题目排在后面
     taught = state.setdefault("taught", {})
     try:
-        peek = pick(state, data, chapter=chapter)
+        peek = pick(state, data, chapter=chapter, level=level, kp=kp)
         peek_unit = (peek["question"]["chapter"], peek["question"]["unit"])
     except Exception:
         peek_unit = (None, None)
-    if not no_lesson and peek_unit[0] is not None and taught.get("|".join(peek_unit)) is not True:
+    if not drill and not no_lesson and peek_unit[0] is not None and taught.get("|".join(peek_unit)) is not True:
         lesson = (data.get("lesson_by_unit") or {}).get(peek_unit)
         question = data["by_id"].get(peek["question"]["id"])
         if lesson is not None and question is not None:
@@ -761,20 +816,20 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
                                  "then": question["id"], "p": round(expected(state, data, question), 3)}}
     # d4) 上完课之后要出的那道题
     after_lesson = state.get("after_lesson_qid")
-    if after_lesson:
+    if after_lesson and not drill:
         question = data["by_id"].get(after_lesson)
         state["after_lesson_qid"] = None
         if question is not None:
-            state["issued_qid"] = question["id"]
+            issue_question(state, question)
             return {"kind": "question", "question": question,
                     "decision": {"qid": question["id"], "reason": "after-lesson",
                                  "p": round(expected(state, data, question), 3)}}
     # d4) 探针：按知识点依赖顺序 + 难度阶梯选题（用户要求「设计探针，而不是随机出题」）
-    if state.get("calibration", {}).get("done") and not ignore_probe:
+    if not drill and state.get("calibration", {}).get("done") and not ignore_probe:
         probed = probe_question(state, data)
         if probed is not None:
             question = probed["question"]
-            state["issued_qid"] = question["id"]
+            issue_question(state, question)
             flow = state.setdefault("flow", {"served": 0})
             flow["served"] = flow.get("served", 0) + 1
             state["probe_last"] = {
@@ -788,7 +843,7 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
                                  "p": round(expected(state, data, question), 3)}}
 
     # e) 自适应选题（确定性，无随机）
-    picked = pick(state, data, chapter=chapter)
+    picked = pick(state, data, chapter=chapter, level=level, kp=kp)
     question = picked["question"]
     # e2) primer：新知识点/没见过的题 → 先把对应的简洁知识卡放上来，题目排在它后面
     tags = tags_of(question)
@@ -804,7 +859,7 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
             break
     flow_cfg = (data.get("params") or {}).get("flow") or {}
     primer_enabled = flow_cfg.get("primerCards") is not False
-    if card is not None and primer_enabled and not (set(tags) & seen_tags) and not no_lesson:
+    if card is not None and primer_enabled and not (set(tags) & seen_tags) and not no_lesson and not drill:
         state["after_primer_qid"] = question["id"]
         state["issued_card"] = {"cardId": card["id"], "tag": sorted(set(card.get("tags") or []) & set(tags))[0]}
         state["cards_shown"][card["id"]] = state["cards_shown"].get(card["id"], 0) + 1
@@ -813,7 +868,7 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
         return {"kind": "card", "card": card,
                 "decision": {"kind": "card", "tag": state["issued_card"]["tag"], "reason": "primer",
                              "then": question["id"]}}
-    state["issued_qid"] = question["id"]
+    issue_question(state, question)
     return {"kind": "question", **picked}
 
 
@@ -979,6 +1034,196 @@ def mastery_snapshot(state: dict, data: dict) -> dict:
     return snapshot
 
 
+def map_thresholds(data: dict) -> dict:
+    """学习地图的「已解/薄弱」阈值（进 params.json，可调；不在代码里写死）。
+
+    口径是**结构计数**：已解 = 做过的题里正确率达标；薄弱 = 做过但正确率不达标；
+    待做 = 有可服务题但没作答。掌握度（Elo）只用于热力图/薄弱排序，不参与三态判定。
+    """
+    cfg = (params(data).get("map") or {}) if isinstance(params(data).get("map"), dict) else {}
+    return {"solved_accuracy_above": float(cfg.get("solved_accuracy_above", 0.6))}
+
+
+def kp_status(state: dict, data: dict) -> dict:
+    """知识点级「已解/待做/薄弱」：结构计数，全部来自题库与作答历史。
+
+    `todo` 只统计**有可服务题**的 KP（没有题的 KP 属于内容缺口，由 review.py 报）。
+    """
+    thresholds = map_thresholds(data)
+    solved_above = thresholds["solved_accuracy_above"]
+    rows = {}
+    for kp in data.get("kps") or []:
+        kp_id = kp.get("id")
+        if not isinstance(kp_id, str) or kp_id == "":
+            continue
+        rows[kp_id] = {
+            "id": kp_id,
+            "title": kp.get("title", ""),
+            "chapter": kp.get("chapter", ""),
+            "kind": kp.get("kind", ""),
+            "asked": 0,
+            "correct": 0,
+            "wrong": 0,
+        }
+    kp_theta = state.get("kp_theta") or {}
+    for entry in state.get("history", []):
+        question = data["by_id"].get(entry.get("qid"))
+        if not question:
+            continue
+        correct = entry.get("correct") is True
+        for kp_id in question.get("kps") or []:
+            row = rows.get(kp_id)
+            if row is None:
+                # 题库引用了未注册的 KP（validate 会拦；这里仍不崩，按题面归章）
+                row = rows[kp_id] = {
+                    "id": kp_id, "title": kp_id, "chapter": question.get("chapter", ""),
+                    "kind": "", "asked": 0, "correct": 0, "wrong": 0,
+                }
+            row["asked"] += 1
+            row["correct"] += 1 if correct else 0
+            row["wrong"] += 0 if correct else 1
+    servable = {kp_id: len(kp_questions(data, kp_id)) for kp_id in rows}
+    for kp_id, row in rows.items():
+        asked = row["asked"]
+        accuracy = round(row["correct"] / asked, 3) if asked else 0.0
+        row["total"] = servable.get(kp_id, 0)
+        row["mastery"] = round(sigmoid(kp_theta.get(kp_id, 0.0)), 3) if asked > 0 else 0.0
+        row["accuracy"] = accuracy
+        row["weak"] = bool(asked > 0 and accuracy < solved_above)
+        row["solved"] = bool(asked > 0 and not row["weak"])
+        row["todo"] = bool(asked == 0 and row["total"] > 0)
+    ordered = [rows[kp_id] for kp_id in sorted(rows, key=lambda item: (rows[item]["chapter"], item))]
+    with_questions = sum(1 for row in ordered if row["total"] > 0)
+    solved_count = sum(1 for row in ordered if row["solved"])
+    weak_count = sum(1 for row in ordered if row["weak"])
+    covered = solved_count + weak_count
+    summary = {
+        "total": len(ordered),
+        "withQuestions": with_questions,
+        "covered": covered,
+        "coverage": round(covered / with_questions, 3) if with_questions else 0.0,
+        "contentGaps": len(ordered) - with_questions,
+        "solved": solved_count,
+        "weak": weak_count,
+        "todo": sum(1 for row in ordered if row["todo"]),
+    }
+    return {"thresholds": thresholds, "summary": summary, "kps": ordered}
+
+
+def _code_chapter_index(data: dict, course: str = "set-theory") -> dict:
+    """代码题 id → chapter（数据集 + 自包含小题库），只用于地图/复盘的结构计数。"""
+    index = {}
+    for exercise in data.get("code_exercises") or []:
+        if isinstance(exercise, dict) and isinstance(exercise.get("id"), str):
+            index[exercise["id"]] = exercise.get("chapter", "")
+    for exercise in load_course_code_exercises(course):
+        if isinstance(exercise, dict) and isinstance(exercise.get("id"), str):
+            index[exercise["id"]] = exercise.get("chapter", "")
+    return index
+
+
+def code_progress(state: dict, data: dict, course: str = "set-theory") -> dict:
+    """代码题进度（C9.4 的 mark-code/skip-code 状态）合并进地图/复盘。"""
+    index = _code_chapter_index(data, course)
+    done = state.get("code_done") or {}
+    solved = []
+    skipped = []
+    for exercise_id, value in done.items():
+        if value is True:
+            solved.append(exercise_id)
+        elif value == "skipped":
+            skipped.append(exercise_id)
+    by_chapter = {}
+    for exercise_id, chapter in index.items():
+        row = by_chapter.setdefault(chapter, {"chapter": chapter, "total": 0, "solved": 0, "skipped": 0})
+        row["total"] += 1
+    for exercise_id in solved:
+        chapter = index.get(exercise_id)
+        if chapter is None:
+            continue
+        by_chapter[chapter]["solved"] += 1
+    for exercise_id in skipped:
+        chapter = index.get(exercise_id)
+        if chapter is None:
+            continue
+        by_chapter[chapter]["skipped"] += 1
+    known_solved = [item for item in solved if item in index]
+    known_skipped = [item for item in skipped if item in index]
+    other = {"solved": len(solved) - len(known_solved),
+             "skipped": len(skipped) - len(known_skipped)}
+    return {
+        "course": course,
+        "solved": len(known_solved),
+        "skipped": len(known_skipped),
+        "total": len(index),
+        "otherCourse": other,
+        "chapters": [by_chapter[key] for key in sorted(by_chapter)],
+    }
+
+
+def _timing_stats(values: list) -> dict:
+    cleaned = sorted(int(value) for value in values if isinstance(value, (int, float)) and value >= 0)
+    count = len(cleaned)
+    if count == 0:
+        return {"timed": 0, "untimed": 0, "totalMs": 0, "avgMs": 0, "medianMs": 0, "maxMs": 0}
+    middle = count // 2
+    median = cleaned[middle] if count % 2 == 1 else (cleaned[middle - 1] + cleaned[middle]) // 2
+    return {
+        "timed": count,
+        "untimed": 0,
+        "totalMs": sum(cleaned),
+        "avgMs": int(round(sum(cleaned) / count)),
+        "medianMs": median,
+        "maxMs": cleaned[-1],
+    }
+
+
+def metrics_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
+    """汇总指标：正确率、按 level/章、每题耗时（只汇总）、KP 覆盖、代码题。
+
+    **绝对毫秒只用于展示与排序，不设任何通过/失败判据**（仓库纪律：结构计数优先）。
+    """
+    history = state.get("history", [])
+    by_level = {}
+    by_chapter = {}
+    elapsed = []
+    timed_entries = 0
+    for entry in history:
+        question = data["by_id"].get(entry.get("qid"))
+        if not question:
+            continue
+        level = str(question.get("level", ""))
+        chapter = question.get("chapter", "")
+        for bucket, key in ((by_level, level), (by_chapter, chapter)):
+            row = bucket.setdefault(key, {"asked": 0, "correct": 0})
+            row["asked"] += 1
+            if entry.get("correct") is True:
+                row["correct"] += 1
+        if isinstance(entry.get("elapsed_ms"), (int, float)) and entry["elapsed_ms"] >= 0:
+            elapsed.append(entry["elapsed_ms"])
+            timed_entries += 1
+    for bucket in (by_level, by_chapter):
+        for row in bucket.values():
+            row["accuracy"] = round(row["correct"] / row["asked"], 3) if row["asked"] else 0.0
+    timing = _timing_stats(elapsed)
+    timing["untimed"] = len(history) - timed_entries
+    asked = len(history)
+    correct = sum(1 for entry in history if entry.get("correct") is True)
+    kp = kp_status(state, data)["summary"]
+    code = code_progress(state, data, course=course)
+    return {
+        "answers": asked,
+        "correct": correct,
+        "accuracy": round(correct / asked, 3) if asked else 0.0,
+        "timing": timing,
+        "byLevel": {key: by_level[key] for key in sorted(by_level)},
+        "byChapter": {key: by_chapter[key] for key in sorted(by_chapter)},
+        "kp": kp,
+        "code": {"solved": code["solved"], "skipped": code["skipped"],
+                 "total": code["total"], "otherCourse": code["otherCourse"]},
+    }
+
+
 def progress_snapshot(state: dict, data: dict) -> dict:
     history = state["history"]
     asked = len(history)
@@ -1059,7 +1304,8 @@ def _apply_auto(state: dict, data: dict, question: dict, correct: bool = True) -
         apply_answer(state, data, question, worse)
 
 
-def apply_answer(state: dict, data: dict, question: dict, choice: int, decision: str = None, text: str = None) -> dict:
+def apply_answer(state: dict, data: dict, question: dict, choice: int, decision: str = None,
+                 text: str = None, elapsed_ms: int = None) -> dict:
     cfg = params(data)
     eta = cfg["eta"]
     low, high = cfg["theta_bounds"]
@@ -1082,11 +1328,21 @@ def apply_answer(state: dict, data: dict, question: dict, choice: int, decision:
         value = theta_of(state, data, tag) + eta * ((1.0 if correct else 0.0) - p)
         state.setdefault("theta", {})[tag] = max(low, min(high, value))
     probe_after = probe_observe(state, data, question, correct)
+    # 每题耗时：优先用调用方给的显式值（客户端知道「卡片出现 → 提交」），否则用
+    # 「发出 → 作答」的服务端间隔。只记录、只汇总，**不作为判据**（见 metrics_snapshot）。
+    measured = None
+    if isinstance(elapsed_ms, (int, float)) and elapsed_ms >= 0:
+        measured = int(elapsed_ms)
+    elif state.get("issued_qid") == question["id"] and state.get("issued_at"):
+        issued = parse_iso(state["issued_at"])
+        if issued > 0:
+            measured = max(0, int((time.time() - issued) * 1000))
     history_entry = {
         "qid": question["id"], "choice": int(choice), "correct": correct,
         "at": now_iso(), "decision": decision,
         "_tags": tags_of(question),
         "probe": probe_after or None,
+        "elapsed_ms": measured,
     }
     if open_score is not None:
         history_entry["kind"] = question.get("kind")
@@ -1097,24 +1353,34 @@ def apply_answer(state: dict, data: dict, question: dict, choice: int, decision:
         state.setdefault("last_at", {})[tag] = now_iso()
     if state.get("issued_qid") == question["id"]:
         state["issued_qid"] = None
+        state["issued_at"] = None
     skipped = state.get("skipped")
     if isinstance(skipped, list) and question["id"] in skipped:
         skipped.remove(question["id"])
-    if not state.get("calibration", {}).get("done") and state["calibration"].get("step", 0) < len(CALIBRATION_LADDER):
-        state["calibration"]["step"] = state["calibration"].get("step", 0) + 1
-        if state["calibration"]["step"] >= len(CALIBRATION_LADDER):
-            state["calibration"]["done"] = True
+    ladder = calibration_ladder(data)
+    calibration = state.setdefault("calibration", {"step": 0, "done": False})
+    expected_qid = calibration.get("qid")
+    is_calibration_answer = expected_qid == question["id"] or (
+        expected_qid is None and decision == "calibration")
+    if not calibration.get("done") and is_calibration_answer and calibration.get("step", 0) < len(ladder):
+        calibration["step"] = calibration.get("step", 0) + 1
+        calibration.pop("qid", None)
+        if calibration["step"] >= len(ladder):
+            calibration["done"] = True
     state["seen"][question["id"]] = state["seen"].get(question["id"], 0) + 1
     if not correct:
         state["wrong"][question["id"]] = state["wrong"].get(question["id"], 0) + 1
         state["streak"] = 0
     else:
         state["streak"] = state.get("streak", 0) + 1
-    # 知识卡触发：连续两次答错且共享 tag
-    if len(state["history"]) >= 2:
-        last_two = state["history"][-2:]
-        if all(entry.get("correct") is False for entry in last_two):
-            common = set(last_two[0].get("_tags") or []) & set(last_two[1].get("_tags") or [])
+    # 知识卡触发：连续答错且共享 tag（次数由 params.wrong_card_threshold 调，默认 2）
+    threshold = int(cfg.get("wrong_card_threshold", 2))
+    if threshold >= 1 and len(state["history"]) >= threshold:
+        last_n = state["history"][-threshold:]
+        if all(entry.get("correct") is False for entry in last_n):
+            common = set(last_n[0].get("_tags") or [])
+            for entry in last_n[1:]:
+                common &= set(entry.get("_tags") or [])
             for tag in common:
                 if tag in data["card_by_tag"]:
                     state["pending_card"] = tag
@@ -1320,23 +1586,43 @@ def lemmas_of_question(data: dict, question: dict) -> list:
     return found
 
 
-def map_snapshot(state: dict, data: dict) -> dict:
-    """学习地图：按课程脊逐单元给出状态（✅ 稳 / ◐ 沾过 / · 未碰）+ 当前位置。"""
+def map_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
+    """学习地图：按课程脊逐单元给状态，并汇总知识点「已解/在学/待做/薄弱」与代码题。
+
+    既服务 `engine.py map` 的文本输出，也服务插件 progress 卡的同源数据
+    （单位状态 / touched / total / mastery 字段保持向后兼容）。
+    """
     spine = data.get("_spine") or []
     current_qid = state.get("issued_qid")
     current = data["by_id"].get(current_qid) if current_qid else None
     current_unit = (current.get("chapter"), current.get("unit")) if current else (None, None)
+    kp = kp_status(state, data)
+    kp_rows = {row["id"]: row for row in kp["kps"]}
+    code = code_progress(state, data, course=course)
+    code_by_chapter = {row["chapter"]: row for row in code["chapters"]}
+    history = state.get("history", [])
+    answered = {}
+    touched_by_unit = {}
+    for entry in history:
+        question = data["by_id"].get(entry.get("qid"))
+        if not question:
+            continue
+        key = (question.get("chapter"), question.get("unit"))
+        answered[key] = answered.get(key, 0) + 1
+        touched_by_unit.setdefault(key, set()).update(tags_of(question))
     rows = []
+    chapter_rows = {}
+    seen_chapters = []
     for chapter, unit in spine:
+        if chapter not in seen_chapters:
+            seen_chapters.append(chapter)
         unit_questions = [q for q in data["questions"] if q.get("chapter") == chapter and q.get("unit") == unit]
         tags = set()
+        unit_kps = set()
         for question in unit_questions:
             tags.update(tags_of(question))
-        touched = set()
-        for entry in state.get("history", []):
-            question = data["by_id"].get(entry.get("qid"))
-            if question and question.get("chapter") == chapter and question.get("unit") == unit:
-                touched.update(tags_of(question))
+            unit_kps.update(question.get("kps") or [])
+        touched = touched_by_unit.get((chapter, unit), set())
         values = [mastery(state, data, tag) for tag in tags]
         avg = sum(values) / len(values) if values else 0.0
         if not touched:
@@ -1351,27 +1637,84 @@ def map_snapshot(state: dict, data: dict) -> dict:
         else:
             status = "刚起步"
             mark = "◔"
+        unit_counts = {"solved": 0, "weak": 0, "todo": 0}
+        for kp_id in unit_kps:
+            row = kp_rows.get(kp_id)
+            if row is None:
+                continue
+            for key in unit_counts:
+                if row.get(key):
+                    unit_counts[key] += 1
         rows.append({
             "chapter": chapter, "unit": unit, "mark": mark, "status": status,
             "touched": len(touched & tags), "total": len(tags),
-            "answered": sum(1 for entry in state.get("history", [])
-                            if (data["by_id"].get(entry.get("qid")) or {}).get("chapter") == chapter
-                            and (data["by_id"].get(entry.get("qid")) or {}).get("unit") == unit),
+            "answered": answered.get((chapter, unit), 0),
             "mastery": round(avg, 3),
             "current": (chapter, unit) == current_unit,
+            "kpsTotal": len(unit_kps),
+            "kpsSolved": unit_counts["solved"],
+            "kpsWeak": unit_counts["weak"],
+            "kpsTodo": unit_counts["todo"],
+            "codeSolved": (code_by_chapter.get(chapter) or {}).get("solved", 0),
+            "codeTotal": (code_by_chapter.get(chapter) or {}).get("total", 0),
         })
+        chapter_row = chapter_rows.setdefault(chapter, {
+            "chapter": chapter, "units": 0, "unitDone": 0,
+            "kpsTotal": 0, "kpsSolved": 0, "kpsWeak": 0, "kpsTodo": 0,
+            "kpsNoQuestions": 0,
+        })
+        chapter_row["units"] += 1
+        if status == "稳":
+            chapter_row["unitDone"] += 1
+    for chapter in seen_chapters:
+        chapter_row = chapter_rows[chapter]
+        for row in kp["kps"]:
+            if row.get("chapter") != chapter:
+                continue
+            if row["total"] == 0:
+                chapter_row["kpsNoQuestions"] += 1
+                continue
+            chapter_row["kpsTotal"] += 1
+            for key in ("solved", "weak", "todo"):
+                if row.get(key):
+                    chapter_row["kps" + key[0].upper() + key[1:]] += 1
+        code_row = code_by_chapter.get(chapter) or {}
+        chapter_row["codeSolved"] = code_row.get("solved", 0)
+        chapter_row["codeTotal"] = code_row.get("total", 0)
+        chapter_row["unitTotal"] = chapter_row.pop("units")
     done_units = sum(1 for row in rows if row["status"] == "稳")
-    return {"units": rows, "unitTotal": len(rows), "unitDone": done_units,
-            "currentUnit": (current_unit[1] if current_unit[1] else "")}
+    weak_kps = sorted((row for row in kp["kps"] if row["weak"]),
+                      key=lambda row: (row["accuracy"], row["mastery"], row["id"]))[:20]
+    return {
+        "units": rows,
+        "unitTotal": len(rows),
+        "unitDone": done_units,
+        "currentUnit": (current_unit[1] if current_unit[1] else ""),
+        "chapters": [chapter_rows[chapter] for chapter in seen_chapters],
+        "kps": kp["summary"],
+        "thresholds": kp["thresholds"],
+        "weakKps": [{"id": row["id"], "title": row["title"], "chapter": row["chapter"],
+                     "mastery": row["mastery"], "accuracy": row["accuracy"],
+                     "wrong": row["wrong"]} for row in weak_kps],
+        "code": {"solved": code["solved"], "skipped": code["skipped"],
+                 "total": code["total"], "course": code["course"],
+                 "otherCourse": code["otherCourse"]},
+    }
 
 
 def format_map(snapshot: dict, data: dict) -> list:
-    """把学习地图排成几行文本（章内一行，单元用符号串联）。"""
+    """把学习地图排成可读文本：章内一行（单元符号）+ 知识点三态 + 代码题进度。"""
     lines = []
     by_chapter = {}
+    chapter_rows = {row["chapter"]: row for row in snapshot.get("chapters", [])}
     for row in snapshot.get("units", []):
         by_chapter.setdefault(row["chapter"], []).append(row)
-    lines.append("🗺️ 学习地图 · 共 %d 个单元，稳了 %d 个" % (snapshot.get("unitTotal", 0), snapshot.get("unitDone", 0)))
+    kps = snapshot.get("kps") or {}
+    lines.append("🗺️ 学习地图 · 共 %d 个单元，稳了 %d 个" % (
+        snapshot.get("unitTotal", 0), snapshot.get("unitDone", 0)))
+    lines.append("知识点：已解 %d · 待做 %d · 薄弱 %d（共 %d，%d 个已有题）" % (
+        kps.get("solved", 0), kps.get("todo", 0), kps.get("weak", 0),
+        kps.get("total", 0), kps.get("withQuestions", 0)))
     for chapter in sorted(by_chapter):
         rows = by_chapter[chapter]
         marks = []
@@ -1380,9 +1723,26 @@ def format_map(snapshot: dict, data: dict) -> list:
             if row["current"]:
                 mark = "▶" + mark
             marks.append(mark)
-        lines.append("%s  %s   （%d/%d 单元稳）" % (
-            chapter, " ".join(marks),
-            sum(1 for row in rows if row["status"] == "稳"), len(rows)))
+        extra = chapter_rows.get(chapter) or {}
+        parts = ["%d/%d 单元稳" % (sum(1 for row in rows if row["status"] == "稳"), len(rows))]
+        if extra:
+            parts.append("已解 %d · 待做 %d · 薄弱 %d" % (
+                extra.get("kpsSolved", 0), extra.get("kpsTodo", 0), extra.get("kpsWeak", 0)))
+            if extra.get("codeTotal", 0) > 0:
+                parts.append("代码 %d/%d" % (extra.get("codeSolved", 0), extra.get("codeTotal", 0)))
+        lines.append("%s  %s   （%s）" % (chapter, " ".join(marks), " · ".join(parts)))
+    weak = snapshot.get("weakKps") or []
+    if weak:
+        lines.append("薄弱知识点：" + "；".join(
+            "%s %s（正确率 %.0f%%，错 %d）" % (
+                row["id"], row["title"], row["accuracy"] * 100, row["wrong"])
+            for row in weak[:5]))
+    code = snapshot.get("code") or {}
+    if code and (code.get("total", 0) > 0 or code.get("solved", 0) > 0):
+        skipped = code.get("skipped", 0)
+        lines.append("代码题：已解 %d / 共 %d%s" % (
+            code.get("solved", 0), code.get("total", 0),
+            "（跳过 %d）" % skipped if skipped else ""))
     lines.append("")
     lines.append("图例：✅ 稳　◐ 在学　◔ 刚起步　· 未碰　▶ 当前")
     current = [row for row in snapshot.get("units", []) if row.get("current")]
@@ -1393,9 +1753,11 @@ def format_map(snapshot: dict, data: dict) -> list:
     return lines
 
 
-def cmd_next(state_path: Path, data: dict, chapter: str, seed: int, advance: bool, no_lesson: bool = False) -> int:
+def cmd_next(state_path: Path, data: dict, chapter: str, seed: int, advance: bool,
+             no_lesson: bool = False, level: int = None, kp: str = None) -> int:
     state = load_state(state_path)
-    step = next_step(state, data, advance=advance, chapter=chapter, no_lesson=no_lesson)
+    step = next_step(state, data, advance=advance, chapter=chapter, no_lesson=no_lesson,
+                     level=level, kp=kp)
     state["last_decision"] = step.get("decision")
     save_state(state_path, state)
     payload = {"ok": True, **step, "progress": progress_snapshot(state, data),
@@ -1415,7 +1777,7 @@ def cmd_next(state_path: Path, data: dict, chapter: str, seed: int, advance: boo
 
 
 def cmd_answer(state_path: Path, data: dict, qid: str, choice: int, text: str = None,
-               dry_run: bool = False) -> int:
+               dry_run: bool = False, elapsed_ms: int = None) -> int:
     state = load_state(state_path)
     question = data["by_id"].get(qid)
     if not question:
@@ -1453,7 +1815,8 @@ def cmd_answer(state_path: Path, data: dict, qid: str, choice: int, text: str = 
                           "qid": qid, "position": position_of(data, question)}, ensure_ascii=False))
         return 0
     decision = (state.get("last_decision") or {}).get("reason")
-    result = apply_answer(state, data, question, choice, decision=decision, text=text)
+    result = apply_answer(state, data, question, choice, decision=decision, text=text,
+                          elapsed_ms=elapsed_ms)
     save_state(state_path, state)
     print(json.dumps({"ok": True, **result, "position": position_of(data, question)}, ensure_ascii=False))
     return 0
@@ -1464,6 +1827,7 @@ def cmd_state(state_path: Path, data: dict) -> int:
     state = load_state(state_path)
     print(json.dumps({"ok": True,
                       "progress": progress_snapshot(state, data),
+                      "metrics": metrics_snapshot(state, data),
                       "mastery": mastery_snapshot(state, data),
                       "positive": positive_snapshot(state, data),
                       "coverage": coverage_snapshot(state, data),
@@ -1474,6 +1838,7 @@ def cmd_state(state_path: Path, data: dict) -> int:
                       "cards_shown": state.get("cards_shown", {}),
                       "pending_card": state.get("pending_card"),
                       "issued_qid": state.get("issued_qid"),
+                      "issued_at": state.get("issued_at"),
                       "calibration": state.get("calibration"),
                       "flow": state.get("flow"),
                       "afterPrimer": state.get("after_primer_qid"),
@@ -1587,9 +1952,18 @@ def cmd_selftest(data: dict) -> int:
             ladder_seen.append((step["question"]["chapter"], step["question"]["level"]))
             item = step["question"]
             apply_answer(s2, data, item, item["answer"])
-        expected_ladder = [("I.1", 1), ("I.1", 3), ("I.2", 1), ("I.2", 3), ("I.3", 1), ("I.3", 3)]
+        expected_ladder = calibration_ladder(data)
         check("calibration-ladder", ladder_seen == expected_ladder, str(ladder_seen))
         check("calibration-done", s2["calibration"]["done"] is True, str(s2["calibration"]))
+        # 阶梯必须由题库推导：换个题库（只有 I.9）就换成 I.9，不是代码里写死的 I.1/I.2/I.3
+        fake_questions = [
+            {"id": "fake.1", "chapter": "I.9", "level": 1, "kind": "choice"},
+            {"id": "fake.2", "chapter": "I.9", "level": 3, "kind": "choice"},
+        ]
+        fake = {"questions": fake_questions, "_spine": [("I.9", "假单元")],
+                "by_id": {q["id"]: q for q in fake_questions}, "params": data["params"]}
+        check("calibration-data-driven", calibration_ladder(fake) == [("I.9", 1), ("I.9", 3)],
+              str(calibration_ladder(fake)))
 
         # 11) explain fallback 会列出涉及的类型
         question = next(x for x in data["questions"] if "membership" in x["tags"])
@@ -1781,6 +2155,74 @@ def cmd_selftest(data: dict) -> int:
         state = load_state(bad)
         check("bad-state-degrades", state.get("version") == 1 and state["history"] == [])
 
+        # 17) C9.5 学习地图：KP 已解/待做/薄弱（结构计数）+ 代码题合并
+        map_state = new_state()
+        correct_q = None
+        wrong_q = None
+        for question in data["questions"]:
+            if question.get("kind", "choice") != "choice" or not (question.get("kps") or []):
+                continue
+            if correct_q is None:
+                correct_q = question
+            elif wrong_q is None and not (set(question.get("kps") or [])
+                                          & set(correct_q.get("kps") or [])):
+                wrong_q = question
+            if correct_q is not None and wrong_q is not None:
+                break
+        if correct_q is not None and wrong_q is not None:
+            apply_answer(map_state, data, correct_q, int(correct_q["answer"]), elapsed_ms=1500)
+            wrong_pick = 1 if int(wrong_q["answer"]) != 1 else 2
+            apply_answer(map_state, data, wrong_q, wrong_pick, elapsed_ms=2500)
+            code_bank = data.get("code_exercises") or []
+            if code_bank:
+                map_state.setdefault("code_done", {})[code_bank[0]["id"]] = True
+                map_state["code_done"]["other-course-exercise"] = True
+            snapshot = map_snapshot(map_state, data)
+            check("map-kp-buckets", snapshot["kps"]["solved"] >= 1 and snapshot["kps"]["weak"] >= 1,
+                  str(snapshot["kps"]))
+            check("map-text-buckets",
+                  any("已解" in line and "待做" in line and "薄弱" in line for line in format_map(snapshot, data)),
+                  str(format_map(snapshot, data)[:2]))
+            check("map-code-other-course",
+                  not code_bank or snapshot["code"]["otherCourse"]["solved"] == 1,
+                  str(snapshot["code"]))
+            metrics = metrics_snapshot(map_state, data)
+            check("metrics-timing", metrics["timing"]["timed"] == 2
+                  and metrics["timing"]["medianMs"] == 2000, str(metrics["timing"]))
+            check("metrics-by-level", sum(row["asked"] for row in metrics["byLevel"].values()) == 2,
+                  str(metrics["byLevel"]))
+            check("metrics-kp-code", metrics["kp"]["solved"] >= 1
+                  and (not code_bank or metrics["code"]["solved"] >= 1),
+                  str((metrics["kp"], metrics["code"])))
+            # 显式钻取：chapter/level/kp 是数据驱动的过滤，不写死章节
+            drill_state = new_state()
+            target_kp = correct_q["kps"][0]
+            step = next_step(drill_state, data, advance=True, level=int(correct_q["level"]),
+                             kp=target_kp, no_lesson=True)
+            check("drill-level-kp",
+                  step.get("kind") == "question"
+                  and target_kp in (step["question"].get("kps") or [])
+                  and int(step["question"].get("level", 0)) == int(correct_q["level"]),
+                  str((step.get("kind"), (step.get("question") or {}).get("id"))))
+            # 钻取的答案不能偷偷推进校准阶梯（校准只认自己发出的那道题）
+            apply_answer(drill_state, data, step["question"], int(step["question"]["answer"]))
+            check("drill-does-not-advance-calibration",
+                  drill_state["calibration"].get("step", 0) == 0,
+                  str(drill_state["calibration"]))
+            # 每题耗时：没有显式 elapsed 时用「发出 → 作答」间隔（只记录，不作判据）
+            timing_state = new_state()
+            timing_state["calibration"] = {"step": 99, "done": True}
+            timing_step = next_step(timing_state, data, advance=True, no_lesson=True, ignore_probe=True)
+            if timing_step.get("kind") == "question":
+                timing_state["issued_at"] = "2020-01-01T00:00:00Z"
+                apply_answer(timing_state, data, timing_step["question"],
+                             int(timing_step["question"]["answer"]))
+                entry = timing_state["history"][-1]
+                check("timing-from-issued-at",
+                      isinstance(entry.get("elapsed_ms"), int) and entry["elapsed_ms"] > 0
+                      and timing_state.get("issued_at") is None,
+                      str(entry.get("elapsed_ms")))
+
         del cfg
 
     if failures:
@@ -1852,6 +2294,9 @@ def main() -> int:
     p_next = sub.add_parser("next")
     p_next.add_argument("--state", required=True)
     p_next.add_argument("--chapter")
+    p_next.add_argument("--level", type=int, choices=(1, 2, 3),
+                        help="显式钻取：只看这个 level（数据驱动，不硬编码章节）")
+    p_next.add_argument("--kp", default=None, help="显式钻取：只看这个知识点 id")
     p_next.add_argument("--seed", type=int)
     p_next.add_argument("--advance", action="store_true", help="推进到下一张（默认恢复已发出的卡）")
     p_next.add_argument("--no-lesson", action="store_true", dest="no_lesson",
@@ -1864,6 +2309,8 @@ def main() -> int:
     p_answer.add_argument("--text", default=None)
     p_answer.add_argument("--dry-run", action="store_true", dest="dry_run",
                         help="只判分不记账（开放题给用户重答机会时用）")
+    p_answer.add_argument("--elapsed-ms", type=int, default=None, dest="elapsed_ms",
+                        help="客户端测得的本题耗时（毫秒；缺省用引擎的发出→作答间隔）")
 
     p_state = sub.add_parser("state")
     p_state.add_argument("--state", required=True)
@@ -1878,6 +2325,8 @@ def main() -> int:
 
     p_map = sub.add_parser("map")
     p_map.add_argument("--state", required=True)
+    p_map.add_argument("--course", default="set-theory", choices=list(CODE_COURSES),
+                       help="代码题进度按这个课程的数据集统计（默认 set-theory）")
 
     p_mark = sub.add_parser("mark-code")
     p_mark.add_argument("--state", required=True)
@@ -1910,10 +2359,12 @@ def main() -> int:
 
     if args.command == "next":
         return cmd_next(Path(args.state).expanduser(), data, args.chapter, args.seed, args.advance,
-                        no_lesson=getattr(args, "no_lesson", False))
+                        no_lesson=getattr(args, "no_lesson", False),
+                        level=getattr(args, "level", None), kp=getattr(args, "kp", None))
     if args.command == "answer":
         return cmd_answer(Path(args.state).expanduser(), data, args.qid, args.choice, args.text,
-                          dry_run=getattr(args, "dry_run", False))
+                          dry_run=getattr(args, "dry_run", False),
+                          elapsed_ms=getattr(args, "elapsed_ms", None))
     if args.command == "state":
         return cmd_state(Path(args.state).expanduser(), data)
     if args.command == "explain":
@@ -1938,7 +2389,7 @@ def main() -> int:
         return 0
     if args.command == "map":
         state = load_state(Path(args.state).expanduser())
-        snapshot = map_snapshot(state, data)
+        snapshot = map_snapshot(state, data, course=getattr(args, "course", "set-theory"))
         print(json.dumps({"ok": True, "map": snapshot, "lines": format_map(snapshot, data)}, ensure_ascii=False))
         return 0
     if args.command == "mark-code":

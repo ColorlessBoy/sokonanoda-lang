@@ -129,6 +129,7 @@ window.__ModuleLoader__.load({
       '.dslc-hl-op{color:var(--dsw-alias-label-secondary,#4b5563)}',
       '.dslc-progress-head{display:flex;flex-direction:column;gap:4px}',
       '.dslc-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+      '.dslc-map{margin:0;font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#4b5563);overflow-wrap:anywhere}',
       '.dslc-stat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:10px;background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));min-width:0}',
       '.dslc-stat-value{font-size:17px;font-weight:700;line-height:1.1}',
       '.dslc-stat-label{font-size:10.5px;color:var(--dsw-alias-label-secondary,#4b5563);white-space:nowrap}',
@@ -215,6 +216,11 @@ window.__ModuleLoader__.load({
       progressLevel2: '有点感觉',
       progressLevel3: '比较稳',
       progressLevel4: '很熟',
+      progressMapTitle: '学习地图',
+      progressMapSolved: '已解',
+      progressMapTodo: '待做',
+      progressMapWeak: '薄弱',
+      progressMapCode: '代码',
       fastBadge: '快思考',
       openAnswerHint: '直接在输入框写下你的回答，不用选字母。',
       codeLabel: '代码练习',
@@ -248,6 +254,11 @@ window.__ModuleLoader__.load({
       progressLevel2: 'getting it',
       progressLevel3: 'solid',
       progressLevel4: 'strong',
+      progressMapTitle: 'Learning map',
+      progressMapSolved: 'solved',
+      progressMapTodo: 'todo',
+      progressMapWeak: 'weak',
+      progressMapCode: 'code',
       fastBadge: 'fast path',
       openAnswerHint: 'Type your answer in the composer — no letter needed.',
       codeLabel: 'Code exercise',
@@ -493,6 +504,7 @@ window.__ModuleLoader__.load({
       stat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 4px', border: '1px solid rgba(127,127,127,0.25)', borderRadius: '10px', background: 'rgba(127,127,127,0.06)', minWidth: 0 },
       statValue: { fontSize: '17px', fontWeight: 700, lineHeight: 1.1 },
       statLabel: { fontSize: '10.5px', color: 'var(--dsw-alias-label-secondary,#4b5563)', whiteSpace: 'nowrap' },
+      mapLine: { margin: 0, fontSize: '11.5px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary,#4b5563)', overflowWrap: 'anywhere' },
       chapterList: { display: 'flex', flexDirection: 'column', gap: '6px' },
       chapterRow: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 72px 36px', alignItems: 'center', columnGap: '8px', fontSize: '12px' },
       chapterName: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 },
@@ -713,6 +725,21 @@ window.__ModuleLoader__.load({
       },
       h('span', { className: 'dslc-cell', 'data-level': level, style: Object.assign({}, S.cell, S.cellLevels[level]) }, ''),
       h('span', {}, t('progressLevel' + level, ['未接触', '刚起步', '有点感觉', '比较稳', '很熟'][level]))))
+      /* C9.5 学习地图：与 engine.py map 同一份结构计数（已解/待做/薄弱 + 代码题）。 */
+      const showMap = Number(summary.kpsTotal) > 0
+      const mapParts = [
+        t('progressMapSolved', '已解') + ' ' + (Number(summary.solvedKps) || 0),
+        t('progressMapTodo', '待做') + ' ' + (Number(summary.todoKps) || 0),
+        t('progressMapWeak', '薄弱') + ' ' + (Number(summary.weakKps) || 0),
+      ]
+      if (Number(summary.codeTotal) > 0) {
+        mapParts.push(t('progressMapCode', '代码') + ' ' + (Number(summary.codeSolved) || 0)
+          + '/' + Number(summary.codeTotal))
+      }
+      const mapLine = showMap
+        ? h('p', { className: 'dslc-map', key: 'map', style: S.mapLine },
+          t('progressMapTitle', '学习地图') + '：' + mapParts.join(' · '))
+        : null
       return cardShell('progress', [
         h('div', { className: 'dslc-progress-head', key: 'head', style: S.progressHead },
           h('p', { className: 'dslc-heading', style: S.heading }, '📈 ' + t('progressTitle', '学习进展')),
@@ -723,6 +750,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'dslc-stat', key: stat.key, style: S.stat },
             h('span', { className: 'dslc-stat-value', style: S.statValue }, String(stat.value)),
             h('span', { className: 'dslc-stat-label', style: S.statLabel }, stat.label)))),
+        mapLine,
         chapters.length > 0
           ? h('div', { className: 'dslc-chapters', key: 'chapters', style: S.chapterList },
             h('p', { className: 'dslc-sheading', style: S.sheading }, t('progressChapters', '章节进展')),

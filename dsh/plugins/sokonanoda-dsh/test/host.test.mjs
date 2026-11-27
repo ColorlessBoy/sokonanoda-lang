@@ -195,6 +195,12 @@ test('in-process quiz service + fence reply + letter grading', async () => {
     assert.ok(Array.isArray(progress.heatRows) && progress.heatRows.length > 0, 'mastery heat rows missing')
     assert.ok(Array.isArray(progress.hotspots), 'hotspots must be an array')
     assert.ok(Array.isArray(progress.recent) && progress.recent.length >= 1, 'recent answers missing')
+    /* C9.5 learning map fields come from engine.py map (one source of truth). */
+    assert.ok(Number(progress.summary.kpsTotal) > 0, 'learning map KP total missing')
+    assert.ok(Number(progress.summary.solvedKps) >= 1, 'learning map must count the solved KP')
+    assert.ok(Number(progress.summary.codeTotal) > 0, 'learning map must merge code-exercise totals')
+    assert.ok(progress.chapters.every((chapter) => 'solved' in chapter && 'todo' in chapter && 'weak' in chapter),
+      'chapter progress must carry learning-map counts')
 
     /* 「进度」 is a fast-path map turn that returns the progress card. */
     const progressMessages = [systemMsg(), userMsg('进度')]

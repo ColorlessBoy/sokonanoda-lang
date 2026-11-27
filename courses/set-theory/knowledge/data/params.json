@@ -1,7 +1,7 @@
 {
   "schema": "soko.learn-params/1",
-  "version": 5,
-  "updated": "2026-11-21",
+  "version": 6,
+  "updated": "2026-11-27",
   "eta": 0.3,
   "theta_init": 0.0,
   "theta_bounds": [
@@ -19,8 +19,17 @@
   },
   "review": {
     "mastery_below": 0.75,
+    "weak_mastery_below": 0.5,
+    "strong_mastery_above": 0.8,
     "interval_days_base": 1.0,
     "interval_days_slope": 2.0
+  },
+  "map": {
+    "solved_accuracy_above": 0.6,
+    "note": "学习地图的「已解/薄弱」阈值（C9.5）：已解 = 该 KP 做过的题正确率 ≥ solved_accuracy_above；薄弱 = 做过但正确率低于它；待做 = 有可服务题但没作答。掌握度只用于热力图/排序。"
+  },
+  "metrics": {
+    "note": "C9.5 指标口径：正确率/覆盖/已解待做薄弱用结构计数；每题耗时只汇总展示（avg/median/max），**不设绝对毫秒判据**。"
   },
   "coverage_target_per_chapter": 3,
   "variant_bonus": 0.2,

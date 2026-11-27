@@ -109,8 +109,11 @@ m_t = σ(θ_t)              # 掌握度 ∈ (0,1)
 
 - **不随机**：选题并列时按 id 排序取第一（确定性）；session 重新打开不会换题——
   `next` 默认 **resume**（返回已发出且未作答的卡），`--advance` 才推进；`state.issued_qid/issued_card` 记录在案；
-- **校准阶梯**：新会话前 6 题走固定阶梯（I.1 L1→L3、I.2 L1→L3、I.3 L1→L3，`reason='calibration'`），
-  快速定位水平；之后进自适应（盲区/最近发展区/复习/变体/去重）；客户端显示「校准中 x/6」；
+- **校准阶梯**：新会话的校准题由**题库数据推导**（按课程脊取前 3 个同时有 L1/L3 选择题的章，
+  `reason='calibration'`），新增/换章后阶梯自动跟着题库走，**不硬编码 I.1/I.2/I.3**；
+  快速定位水平后进自适应（盲区/最近发展区/复习/变体/去重）；
+- **显式钻取**（C9.5）：`next --chapter/--level/--kp` 是数据驱动过滤（默认仍走自适应/探针）；
+  给了 `--level`/`--kp` 就跳过校准/教学/探针，直接按过滤选题（`decision.filters` 回显）；
 - 引擎会话状态里 `calibration.done` 一旦为真不再回退。
 
 ### 3.2 召回打分（选出下一题）
@@ -141,6 +144,29 @@ score = w_gap·(1 − m_{tag})            # 盲区优先：掌握度最低的 ta
 - 每次调度输出 `decision = {qid, reason, m_snapshot, p}`；`reason ∈ gap|challenge|review|coverage|new|variant`；
 - 引擎是**纯函数**：`next(state, data, seed) → (question, decision)`；同输入同输出（测试可钉死）。
 
+### 3.5 学习地图与指标（C9.5，2026-11-27）
+
+`engine.py map` 是学习地图的**唯一数据源**，插件 progress 卡与聊天里的「学习地图」都读它。
+
+- **单元状态**：沿用 `✅ 稳 / ◐ 在学 / ◔ 刚起步 / · 未碰`（`status`/`mark`/`touched`/`total`/`mastery`；
+  progress 卡向后兼容读取这些字段）。
+- **知识点三态（结构计数）**：`已解` = 该 KP 做过的题正确率 ≥ `params.map.solved_accuracy_above`；
+  `薄弱` = 做过但正确率低于它；`待做` = 有可服务题但没作答。没有题的 KP **不算待做**，
+  由 `review.py` 的 `content_gaps` 报为内容缺口。掌握度（Elo）仍用于热力图和薄弱排序，
+  **不参与三态判定**——避免「答对一次但 Elo 还没爬上来」被误报成薄弱。
+- **代码题合并（C9.4）**：`code_done` 的 `true`/`"skipped"` 按课程数据集（默认 set-theory）
+  的 `chapter` 归章，地图/复盘显示「已解/总数/跳过」；其它课程的已做 id 单独计数（`otherCourse`），不丢。
+- **指标（`state.metrics`）**：正确率、按 level/章计数、每题耗时（avg/median/max，**只汇总、不作判据**）、
+  KP 覆盖（已解/待做/薄弱/有题 KP 数）、代码题进度。耗时优先用客户端 `answer --elapsed-ms`，
+  否则用引擎「发出 → 作答」间隔，随 history 的 `elapsed_ms` 落盘。
+- **调度参数全部进 `params.json`**：`wrong_card_threshold`（连续错几次出知识卡）与
+  `map.solved_accuracy_above` 均由参数驱动；校准阶梯/钻取过滤由题库数据驱动，不硬编码章节。
+
+**L3 复盘**（`review.py`）读同一份状态：薄弱 tag（`params.review.weak_mastery_below`）、
+薄弱 KP（正确率）、错题明细、指标、代码进度、内容缺口，以及数据驱动的下一批建议
+（错题 → 变式 → 薄弱 tag → 薄弱 KP → 未接触章节/KP）；报告落 `reports/`（gitignore）。
+`--selftest` 用合成状态核验聚合器，并断言报告不含家目录/个人路径。
+
 ## 4. L3 维护层（高思考 agent = 老师 / 维护者）
 
 职责（全部产物进 `knowledge/`，版本化）：
@@ -152,7 +178,7 @@ score = w_gap·(1 − m_{tag})            # 盲区优先：掌握度最低的 ta
 | 参数校准：η、权重、阈值 | `data/params.json` | 每周/每批 |
 | 质量门：答案核验、重复检测、覆盖报告 | `validate.py` + `reports/` | 每次改数据 |
 | 离线评测：模拟学习者（弱/中/强）跑引擎 | `reports/eval-*.json` | 每次参数变更 |
-| bad case 回流：从 L2 日志挑错题/低效调度 | 题目/参数 diff | 每轮 |
+| bad case 回流：从 L2 日志挑错题/低效调度 | `review.py` 报告 + 题目/参数 diff | 每轮 |
 
 **L3 不看屏幕、不看单次作答**——它读 L2 的日志摘要（JSONL → 聚合报告），做低频决策。
 

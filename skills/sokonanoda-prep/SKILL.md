@@ -38,7 +38,9 @@ python3 courses/set-theory/knowledge/engine.py simulate --questions 50
 ```
 
 可选：`python3 courses/set-theory/knowledge/review.py --state <状态文件>` 看真实错题、
-薄弱 tag 与内容缺口。报告基线：题量、kind/level 分布、知识点红黄绿、每章覆盖、
+薄弱 tag/知识点、每题耗时、KP 覆盖、代码题进度与下一批建议（`--selftest` 自检聚合器）；
+`python3 courses/set-theory/knowledge/engine.py map --state <状态文件>` 看已解/待做/薄弱。
+报告基线：题量、kind/level 分布、知识点红黄绿、每章覆盖、
 `kps` 引用数、重复/孤儿、`unknown_refs`。
 
 重点诊断：
