@@ -1,11 +1,22 @@
+## 当前快照（2026-11-27 · C9.5 调度、复盘与学习地图）
+C9.5（#103）：`engine.py` 校准阶梯改由题库推导（不再硬编码 I.1–I.3），`next` 加
+`--chapter/--level/--kp` 钻取；`map` 增加 KP **已解/待做/薄弱**（结构计数，阈值进
+`params.map`）、按章汇总与 **C9.4 代码题进度**，聊天与插件 progress 卡读同一份快照；
+每题耗时进 history（`--elapsed-ms` 优先，否则发出→作答间隔；只汇总、不作判据）；
+`state` 加 `metrics`（正确率/byLevel/耗时/KP 覆盖/代码），知识卡阈值改读
+`params.wrong_card_threshold`。`review.py` 读同一份状态出薄弱 tag/KP、错题、代码进度、
+内容缺口与下一批建议，报告落 gitignore 的 `reports/`。
+判据：engine selftest 45、simulate 50、review selftest、validate、插件 host 24 /
+client 22 全绿；coverage 99 红是 C9.2 预期欠账。
+
 ## 当前快照（2026-11-27 · C9.4 代码题真内核判卷）
-C9.4（#102）：插件新增「代码题」快路径 + `engine.py code-next`（从题目集数据集按
-确定顺序发具名代码题，默认 set-theory；懒加载，不改 `codeEvery` 瀑布）。代码练习卡
-显示题干/提示/带 `sorry` 模板；用户贴围栏代码后只取证明体、贴回课程模板的可信签名
-⇒ `compose.py` 组装完整文件 ⇒ `scripts/soko grade --json`；目标 `decl.checked` 且
-无 `exercise.open` 且 0 `diagnostic` 才算通过。通过调 `mark-code` 记进度，失败显示
-首条内核诊断并允许同题重试，「跳过这道代码题」调 `skip-code`。compose/soko 超时或
-缺失一律 503 回落 `next()`；用户代码不进日志/仓库。插件测试 host 24 / client 22 绿。
+C9.4（#102）：插件新增「代码题」快路径 + `engine.py code-next`（从题目集数据集发具名
+代码题，默认 set-theory；懒加载，不改 `codeEvery` 瀑布）。代码练习卡显示题干/提示/带
+`sorry` 模板；用户贴围栏代码后取证明体、贴回课程模板的可信签名 ⇒ `compose.py` 组装
+⇒ `scripts/soko grade --json`；目标 `decl.checked` 且无 `exercise.open` 且 0
+`diagnostic` 才算通过。通过调 `mark-code`，失败显示首条内核诊断并允许同题重试，
+「跳过」调 `skip-code`；compose/soko 缺失或超时 503 回落 `next()`，用户代码不进日志。
+插件测试 host 24 / client 22 绿。
 
 ## 当前快照（2026-11-26 · C9.3 卷 II.1 分析课）
 C9.3（#101）：同一份题库承载卷 II.1 分析课（单元①–⑲）——新增 34 KP / 143 题
@@ -14,12 +25,3 @@ C9.3（#101）：同一份题库承载卷 II.1 分析课（单元①–⑲）—
 （`courses/analysis/…`）解析补进 `source_check.py`；validate / selftest / simulate /
 notation-lint 绿，coverage 的 99 红是 C9.2 的 I.4–I.13 预期欠账。下一批见
 `knowledge/CONTENT-PLAN.md`。
-
-## 当前快照（2026-11-26 · C9.2 首批）
-C9.2（#100）先修门禁再扩题：`coverage.py` 改用**可服务题**口径（遵守
-`selection.exclude`，与 engine 同口径）；全库 `source` 检查进 `validate.py` 与 CI；
-`verify_batch` 卡选项长度与 `why` 句数。
-补 3 道门禁题（54 KP 全绿）+ B11/B12（I.8/I.9 各 18 题、4 绿 0 红）。
-题库 266（可服务 257），KP 绿 54→62、红 107→99，综合题 39，知识卡 16；
-text_audit 欠账 216/98/71 待按章清洗。
-下一批：B5（I.4 首波）或 B7（I.5，32 题可清零）；见 CONTENT-PLAN §0.2。
