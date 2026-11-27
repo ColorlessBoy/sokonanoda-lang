@@ -2,7 +2,7 @@
   "name": "sokonanoda-dsh",
   "version": "0.1.0",
   "private": true,
-  "description": "Unified DeepSeek Harness language-service plugin for sokonanoda: an automatic local fast path for quiz turns (llm/stream, no model provider), display-only learn cards rendered from Markdown fences (question / knowledge / lesson), and Lean syntax highlighting. Runtime config, quiz progress and history live in ~/.dsh/state/sokonanoda-dsh/, never in the repository.",
+  "description": "Unified DeepSeek Harness language-service plugin for sokonanoda: an automatic local fast path for quiz turns (llm/stream, no model provider), display-only learn cards rendered from Markdown fences (question / knowledge / lesson / progress / code), real-kernel grading for code exercises, and Lean syntax highlighting. Runtime config, quiz progress and history live in ~/.dsh/state/sokonanoda-dsh/, never in the repository.",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -18,6 +18,7 @@
     "index.js",
     "client.js",
     "lib/quiz-proxy.mjs",
+    "lib/code-grade.mjs",
     "cordis.patch.yml",
     "skills",
     "locale/*.json",

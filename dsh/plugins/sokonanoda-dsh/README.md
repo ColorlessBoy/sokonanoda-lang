@@ -66,6 +66,13 @@ DSH 的发现入口是对应的
   不计分、不推进、不写 history。
 - 「进度/学习地图」是只读快照：已开启会话里直接出进展热点卡；未开启会话走模型
   （模型可通过 `sokonanoda_fast_think` 工具读取同一份 payload）。
+- 「代码题 / 来道代码题 / 写代码」发一道**代码练习卡**：题干 + 提示 + 可信模板
+  （带 `sorry`）。把目标声明完整贴回围栏里（` ```lean ` / ` ```sokonanoda `）⇒
+  插件组装完整 `.sokonanoda` 并调 `scripts/soko grade --json`，只有目标声明
+  `decl.checked`、无 `exercise.open`、无 `diagnostic` 才显示「通过」；否则显示首条
+  内核诊断并可**同题重试**。「跳过这道代码题」调 `engine.py skip-code` 记 skipped。
+  通过后调 `engine.py mark-code --solved` 记进度。用户代码/诊断**不写日志**；判卷
+  超时、缺 `compose.py`/`scripts/soko` 时 503 让 Host 回落 `next()`。
 - 最后一条消息必须是 user（工具结果触发的续轮一律 `next()`）。
 - 非 agent-loop 调用（`purpose` 非空，如 compaction / session-title / auto-review）
   一律放行；loop 请求深度冻结，只读、不修改。
@@ -94,6 +101,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 - `Config.listConfigs`（name=`sokonanoda-dsh`）有该行（没有 Config schema 时状态是
   `absent`，不影响挂载）；
 - 开新会话输入「开始做题」→ <1s 出卡片；输入字母 → 判卷 + 下一张卡；
+- 输入「代码题」→ 代码练习卡；贴围栏代码 → 真内核判卷（通过/首条诊断）；
 - 普通消息 → 仍走当前模型。
 
 ## 配置
@@ -106,6 +114,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 | `dataDir` | `~/.dsh/state/sokonanoda-dsh/` | 数据根目录 |
 | `repoRoot` | 自动向上查找 | 含 `courses/set-theory/knowledge/engine.py` 的目录 |
 | `timeoutMs` | `8000` | 快路径超时（超时回落慢路径） |
+| `codeTimeoutMs` | `45000` | 代码题快路径超时（compose + 真内核判卷；超时回落 `next()`） |
 | `decisionsLimit` | `20` | `sokonanoda_fast_think status` 默认返回条数 |
 | `cards` | `true` | 让 quiz service 产出卡片 payload；关闭则退回纯文本快路径 |
 
@@ -116,6 +125,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 | `index.js` | Host 半：数据目录、进程内 quiz service、`llm/stream` 快路径、`sokonanoda_fast_think` 工具 |
 | `client.js` | Client 半：`learn-card` / `lean` / `sokonanoda` 三个 fence 层 + 卡片表面 CSS |
 | `lib/quiz-proxy.mjs` | 从旧 `quiz-proxy/server.mjs` 迁入的本地题库服务（`startQuizService` 在进程内起 loopback 端口）；保留 I2/I3/I4 正确性不变量 |
+| `lib/code-grade.mjs` | C9.4 判卷桥：围栏提取 / 只取证明体贴回可信签名 / `scripts/soko grade --json` 事件判定；失败抛 `code` 交调用方 fail-open |
 | `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行 |
 | `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS |
 | `docs/` 下的 `research.md` | 快思考方案调研（llm/stream、生态对照） |
@@ -125,7 +135,7 @@ Host 半改动需要重启 DSH；只改 `client.js` 时由 client HMR 热替换�
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 19 + client 21
+node test/run.mjs     # host 24 + client 22
 ```
 
 ## 迁移与清理（一次性，2026-11-23）

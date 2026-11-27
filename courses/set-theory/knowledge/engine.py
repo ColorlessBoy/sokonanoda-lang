@@ -69,6 +69,89 @@ def index_cards(data: dict) -> None:
     data["card_by_tag"] = mapping
 
 
+# ───────────────────────── 代码练习（C9.4） ─────────────────────────
+# 代码题有两个来源：
+#   1. 课程题目集数据集（courses/exercise-dataset/data/<course>.json，1995 道）；
+#   2. 引擎自带的小题库（data/code-exercises.json，6 道，自包含 template）。
+# 数据集只在真正需要时读（4.4 MB）；默认课 = set-theory。
+DATASET_ROOT = ROOT.parents[2] / "courses" / "exercise-dataset"
+CODE_COURSES = ("set-theory", "quick-start", "analysis")
+_CODE_DATASET_CACHE = {}
+
+
+def load_course_code_exercises(course: str) -> list:
+    """按课程读题目集数据集；缺文件/坏文件返回空表（不阻断出题）。"""
+    key = str(course)
+    if key in _CODE_DATASET_CACHE:
+        return _CODE_DATASET_CACHE[key]
+    path = DATASET_ROOT / "data" / (key + ".json")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        exercises = [ex for ex in payload.get("exercises", [])
+                     if isinstance(ex, dict) and isinstance(ex.get("id"), str)]
+    except Exception:
+        exercises = []
+    _CODE_DATASET_CACHE[key] = exercises
+    return exercises
+
+
+def public_code_exercise(exercise: dict) -> dict:
+    """给插件/卡片的公开字段：**绝不**带 solution。"""
+    keys = ("id", "course", "chapter", "chapter_title", "unit", "unit_index",
+            "kind", "name", "anonymous", "exercise_no", "title", "prompt",
+            "hints", "template", "source")
+    public = {key: exercise.get(key) for key in keys if exercise.get(key) is not None}
+    public.setdefault("course", "set-theory")
+    # dataset 记录有 source 映射（compose.py 能从课程源组装前缀）；小题库 template 自包含。
+    public["dataset"] = isinstance(exercise.get("source"), dict) and bool((exercise.get("source") or {}).get("file"))
+    return public
+
+
+def find_code_exercise(data: dict, exercise_id: str):
+    """按 id 找代码题：先小题库，再数据集（懒加载）。"""
+    if not exercise_id:
+        return None
+    for exercise in data.get("code_exercises") or []:
+        if exercise.get("id") == exercise_id:
+            return exercise
+    for course in CODE_COURSES:
+        for exercise in load_course_code_exercises(course):
+            if exercise.get("id") == exercise_id:
+                return exercise
+    return None
+
+
+def pick_code_exercise(state: dict, data: dict, course: str = "set-theory"):
+    """选下一道未做的代码题：数据集优先，小题库兜底；跳过匿名 example。"""
+    done = state.get("code_done") or {}
+    for exercise in load_course_code_exercises(course):
+        if exercise.get("anonymous"):
+            continue
+        if not done.get(exercise["id"]):
+            return exercise
+    for exercise in data.get("code_exercises") or []:
+        if not done.get(exercise.get("id")):
+            return exercise
+    return None
+
+
+def code_next_step(state: dict, data: dict, course: str = "set-theory") -> dict:
+    """恢复未完成的代码题，否则按确定顺序发下一道；没有可发的返回 kind=none。"""
+    issued = state.get("issued_code")
+    done = state.get("code_done") or {}
+    if issued and not done.get(issued):
+        exercise = find_code_exercise(data, issued)
+        if exercise is not None:
+            return {"kind": "code", "exercise": public_code_exercise(exercise),
+                    "decision": {"reason": "resume-code", "exerciseId": issued}}
+    exercise = pick_code_exercise(state, data, course=course)
+    if exercise is None:
+        return {"kind": "none", "decision": {"reason": "no-unsolved-code", "course": course}}
+    state["issued_code"] = exercise["id"]
+    return {"kind": "code", "exercise": public_code_exercise(exercise),
+            "decision": {"reason": "code-next", "exerciseId": exercise["id"]}}
+
+
 def params(data: dict) -> dict:
     return data["params"]
 
@@ -593,14 +676,13 @@ def next_step(state: dict, data: dict, advance: bool = False, chapter: str = Non
             return {"kind": "card", "card": card,
                     "decision": {"kind": "card", "tag": issued_card.get("tag"), "reason": "resume"}}
         state["issued_card"] = None
-    # a2) 恢复已发出但未完成的代码练习
+    # a2) 恢复已发出但未完成的代码练习（数据集 id 也认；懒加载）
     issued_code = state.get("issued_code")
     if issued_code and not state.get("code_done", {}).get(issued_code):
-        for exercise in data.get("code_exercises", []):
-            if exercise["id"] == issued_code:
-                public = {key: exercise.get(key) for key in ("id", "chapter", "unit", "title", "prompt", "hints", "template", "kps")}
-                return {"kind": "code", "exercise": public,
-                        "decision": {"reason": "resume-code", "exerciseId": issued_code}}
+        exercise = find_code_exercise(data, issued_code)
+        if exercise is not None:
+            return {"kind": "code", "exercise": public_code_exercise(exercise),
+                    "decision": {"reason": "resume-code", "exerciseId": issued_code}}
     # b) 恢复已发出但未作答的题（刷新不变题）
     issued_qid = state.get("issued_qid")
     if issued_qid:
@@ -1194,7 +1276,19 @@ def cmd_mark_code(state_path: Path, data: dict, exercise: str, solved: bool) -> 
             state["issued_code"] = None
     save_state(state_path, state)
     print(json.dumps({"ok": True, "exercise": exercise, "solved": bool(solved),
-                      "codeDone": len(state.get("code_done", {}))}, ensure_ascii=False))
+                      "codeDone": len(state.get("code_done", {})),
+                      "issuedCode": state.get("issued_code")}, ensure_ascii=False))
+    return 0
+
+
+def cmd_code_next(state_path: Path, data: dict, course: str) -> int:
+    """发一道代码练习（C9.4）：不改题目瀑布，只在用户明确要代码题时调用。"""
+    state = load_state(state_path)
+    step = code_next_step(state, data, course=course)
+    state["last_decision"] = step.get("decision")
+    save_state(state_path, state)
+    print(json.dumps({"ok": True, **step,
+                      "codeDone": len(state.get("code_done") or {})}, ensure_ascii=False))
     return 0
 
 
@@ -1543,6 +1637,28 @@ def cmd_selftest(data: dict) -> int:
         else:
             check("flow-code-disabled", "code" not in kinds, str(kinds))
 
+        # 14b) 代码练习发放（C9.4）：小题库兜底可发、按 id 恢复、已做/跳过不再发。
+        #      用不存在的课程名强制走小题库分支，不依赖数据集是否在 checkout 里。
+        s_code = new_state()
+        code_first = pick_code_exercise(s_code, data, course="__selftest__")
+        check("code-pick-nonempty", code_first is not None, "no code exercise")
+        if code_first is not None:
+            public = public_code_exercise(code_first)
+            check("code-public-has-template", bool(public.get("template")) and "solution" not in public,
+                  str(sorted(public.keys())))
+            s_code["issued_code"] = code_first["id"]
+            code_step = code_next_step(s_code, data, course="__selftest__")
+            check("code-next-resume",
+                  code_step.get("kind") == "code"
+                  and code_step["exercise"]["id"] == code_first["id"]
+                  and code_step["decision"]["reason"] == "resume-code",
+                  str(code_step.get("decision")))
+            s_code.setdefault("code_done", {})[code_first["id"]] = True
+            s_code["issued_code"] = None
+            nxt = pick_code_exercise(s_code, data, course="__selftest__")
+            check("code-next-skips-done", nxt is None or nxt["id"] != code_first["id"],
+                  str(nxt and nxt.get("id")))
+
         # 15) primer：新知识点题目之前先出简洁知识卡（卡 → 题）
         s6 = new_state(); s6["calibration"] = {"step": 6, "done": True}
         s6["taught"] = {"|".join(key): True for key in (data.get("lesson_by_unit") or {})}  # 跳过教学环节，专测 primer
@@ -1772,6 +1888,12 @@ def main() -> int:
     p_skip.add_argument("--state", required=True)
     p_skip.add_argument("--exercise", required=True)
 
+    p_code_next = sub.add_parser("code-next")
+    p_code_next.add_argument("--state", required=True)
+    p_code_next.add_argument("--course", default="set-theory",
+                             choices=list(CODE_COURSES),
+                             help="题目集数据集课程（默认 set-theory）")
+
     sub.add_parser("selftest")
 
     p_sim = sub.add_parser("simulate")
@@ -1823,6 +1945,8 @@ def main() -> int:
         return cmd_mark_code(Path(args.state).expanduser(), data, args.exercise, args.solved)
     if args.command == "skip-code":
         return cmd_skip_code(Path(args.state).expanduser(), data, args.exercise)
+    if args.command == "code-next":
+        return cmd_code_next(Path(args.state).expanduser(), data, args.course)
     if args.command == "selftest":
         return cmd_selftest(data)
     if args.command == "simulate":

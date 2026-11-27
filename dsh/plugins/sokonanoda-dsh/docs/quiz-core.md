@@ -200,6 +200,37 @@ payload 形状（照 card-dev README §Exact proxy change spec，逐条对齐）
 > R3 用户「继续」→ 下一张 `question` 卡片，payload 的
 > `unitNo/unitTotal/questionNo/questionTotal` 齐全。见 `.cache/quiz-proxy/test/` 与交付报告。
 
+## 代码练习：真内核判卷（C9.4）
+
+代码题不再交给慢模型：**发卡 → 用户贴围栏代码 → compose 完整文件 → `scripts/soko grade --json` → checked/open/diagnostic → `mark-code`**。
+
+```text
+用户：「代码题」
+  → engine.py code-next：恢复未完成的 issued_code，否则按确定顺序
+    从 courses/exercise-dataset/data/<course>.json（默认 set-theory）发一道；
+    没有数据集时退回 data/code-exercises.json 的自包含 template。
+  → learn-card {kind:"code", payload:{id,course,chapter,unit,title,prompt,
+    hints,template,submitHint}}（卡片纯展示，模板带 sorry）
+
+用户：```lean <完整声明> ```
+  → 命中 state.issued_code 才判；只取用户声明的**证明体**，贴回课程模板的
+    **可信签名**之后（用户写的签名一律丢弃 ⇒ 换签名/换命题骗不过判卷）。
+    数据集题用 courses/exercise-dataset/compose.py 组装前缀；小题库用自包含 template。
+  → scripts/soko grade --root courses/<course> <临时文件> --json
+  → 通过 = 目标声明 decl.checked + 目标无 exercise.open + 0 diagnostic
+    （exit 0 本身不算通过：模板里的 sorry 也 exit 0）
+  → 通过：engine.py mark-code --solved（code_done[id]=true，清 issued_code），
+    显示 checked/open/diagnostic 计数与已解题数；
+    未过：保留 issued_code，显示目标 + 首条诊断（code/message/行号），可同题重试。
+  → compose/soko 缺失、超时、输出不可解析 ⇒ 抛 code 错误 ⇒ 503，
+    Host 捕获后回落 next()（不伪造「没过」；用户代码写错仍是 diagnostic）。
+```
+
+- 命令：「代码题 / 来道代码题 / 写代码」发题；「跳过这道代码题」调 `skip-code` 记 skipped。
+- 临时文件只在系统临时目录，判完即删；用户代码不进日志、不进仓库。
+- 上课发题路径不变：`params.flow.codeEvery` 仍可控制瀑布流里插代码题（默认 0）；
+  C9.4 只增加显式 `code-next`，不改题目瀑布。
+
 ## DSH 接入
 
 1. 先启动本服务：`cd .cache/quiz-proxy && ./start.sh`，确认
@@ -281,6 +312,9 @@ payload 形状（照 card-dev README §Exact proxy change spec，逐条对齐）
 |---|---|
 | `A` / `B` / `C` / `D`（大小写、两侧空白都行） | 快路径判卷 → 正确答案 + 解析 + 出处 + **自动附下一题**（卡片模式：下一题作为卡片 tool_call 发出） |
 | `开始做题` / `练几题` / `出题` / `下一题` / `继续` / `再来一题` / `next` | 快路径出题（新对话新建 state；已有对话推进一题；卡片模式发卡片） |
+| `代码题` / `来道代码题` / `写代码` | 快路径发代码练习卡（`engine.py code-next`；不调模型） |
+| `跳过这道代码题` | 快路径 `engine.py skip-code`（记 skipped，清 issued_code） |
+| 已发代码题 + 带围栏代码 | 快路径 `scripts/soko grade` 真内核判卷（通过 `mark-code`；失败显示诊断可重试） |
 | `不懂` / `讲讲` / `解释一下` / `知识卡` … | 快路径给**知识卡文本**（`engine explain`，不判卷、不换题；卡片模式下再附一张原题卡片） |
 | 最后一条是 `role=tool` 且 `id` 前缀 `quiz-` | **卡片被点了**：按 `selected` 的 label 判卷 → 反馈文本 + 下一张卡片 |
 | 最后一条是 `role=tool` 但 `id` 不是 `quiz-` | 慢路径：原样转发 opencode-go（其它工具的结果） |
@@ -307,30 +341,28 @@ payload 形状（照 card-dev README §Exact proxy change spec，逐条对齐）
 | `QUIZ_PROXY_MAX_BODY_BYTES` | `8388608`（8MB） | 请求体上限 |
 | `QUIZ_PROXY_UPSTREAM_TIMEOUT_MS` | `120000` | 慢路径上游超时 |
 | `QUIZ_PROXY_ENGINE_TIMEOUT_MS` | `30000` | python 引擎子进程超时 |
+| `QUIZ_PROXY_CODE_GRADE_TIMEOUT_MS` | `30000` | 代码题 `scripts/soko grade` 超时（超时 fail-open 到 `next()`） |
+| `QUIZ_PROXY_CODE_COMPOSE_TIMEOUT_MS` | `10000` | 代码题 `compose.py` 超时 |
 | `QUIZ_PROXY_CREDENTIALS` | `~/.dsh/.credentials.yaml` | 读 key 的文件（**只读**） |
 | `OPENCODE_GO_API_KEY_6` | — | key 优先从环境变量取；没有才解析 credentials 文件 |
 
 ## 测试
 
 ```bash
-cd .cache/quiz-proxy
-node --test                                  # 自动发现 test/*.test.mjs（62 个用例）
-node --test test/quiz-proxy.test.mjs          # 或指定文件
+cd dsh/plugins/sokonanoda-dsh
+node test/run.mjs                 # host 24 + client 22
+node --test test/host.test.mjs    # 或只跑一半
 ```
 
-测试用本地 mock 上游（不联网、不花 key），覆盖：快路径出题/判卷/自动下一题、
-「不懂」知识卡、无效字母与未知消息走慢路径、共享学习流与并发串行锁、快路径 SSE、
-慢路径 JSON/SSE 透传（含 model 映射、Authorization、x-opencode 头）、上游错误映射、
-坏 JSON / 缺 messages / 请求体超限 / 缺 key / 上游超时、credentials 解析（断言日志不泄露 key），
-以及**卡片模式**：legacy `ask_user_question` 点选卡片全套（出卡/判卷/幂等/回退），
-和 **learn_card 真卡片**：`hasLearnCardTool` 判定、tool_call_id 回显认领（不解析 content）、
-lesson/question 出卡与 payload 形状（stem/options key/position 字段）、knowledge 知识卡、
-回显 → 空 content + stop + 不访问上游（流式/非流式）、字母判卷 + 下一张卡片、
-默认 off 纯文本回归、`QUIZ_PROXY_CARDS` 模式解析；
-以及**正确性不变量**：出题响应带 `x-quiz-qid`/`x-quiz-nonce`、显式句柄判分、
-nonce 不匹配不记分（响应头 `x-quiz-stale`）、代理句柄漂移不记分、同一 `(qid,nonce)`
-重复判分幂等（历史 +1、θ 不变）、per-state-key 隔离、慢路径「模型自作题」被拦
-（流式/非流式）并改回引擎题。
+测试覆盖：快路径出题/判卷/自动下一题、「不懂」知识卡、无效字母与未知消息走慢路径、
+共享学习流与并发串行锁、快路径 SSE、慢路径 JSON/SSE 透传（model 映射 / Authorization /
+x-opencode 头）、上游错误映射、坏 JSON / 缺 messages / 请求体超限 / 缺 key / 上游超时、
+credentials 解析（断言日志不泄露 key）；**卡片模式**的 learn_card 真卡片（payload 形状、
+tool_call_id 回显认领、knowledge/lesson 卡、字母判卷 + 下一张卡、默认 off 回归）；
+**正确性不变量**（I2 句柄 / I3 幂等 / I4 模型不自作题）；以及 **C9.4 代码题**：
+`代码题` 命令发数据集题卡（带 `sorry` 模板、无 solution）、错误提交显示内核诊断且
+`issued_code` 不变、同题重试用数据集 solution 通过并 `mark-code` 记进度、`skip-code`
+记 skipped、判卷基础设施失败返回 503 让 Host 回落 `next()`。
 
 ## 排错
 

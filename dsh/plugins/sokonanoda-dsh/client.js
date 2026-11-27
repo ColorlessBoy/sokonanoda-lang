@@ -77,7 +77,7 @@ window.__ModuleLoader__.load({
     const SOURCE_PREVIEW_ID = 'sokonanoda-dsh/source'
 
     const NS = 'dshLearnCard'
-    const KINDS = ['question', 'knowledge', 'lesson', 'progress']
+    const KINDS = ['question', 'knowledge', 'lesson', 'progress', 'code']
     const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
     /* --------------------------------------------------------------- styles */
@@ -163,6 +163,8 @@ window.__ModuleLoader__.load({
       '.dslc-fast-row{display:flex;justify-content:flex-end;margin:0 0 -6px}',
       '.dslc-fast-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;line-height:1;padding:3px 7px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280));background:var(--dsw-alias-bg-base,rgba(127,127,127,0.08));white-space:nowrap}',
       '.dslc-open-hint{margin:0;padding:8px 10px;border-radius:8px;border:1px dashed var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}',
+      '.dslc-code-hint{margin:0;padding:8px 10px;border-radius:8px;border:1px dashed var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}',
+      '.dslc-code-meta{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280));overflow-wrap:anywhere}',
     ]
 
     /* Inject the stylesheet once per page; HMR removes this module's styles
@@ -215,6 +217,9 @@ window.__ModuleLoader__.load({
       progressLevel4: '很熟',
       fastBadge: '快思考',
       openAnswerHint: '直接在输入框写下你的回答，不用选字母。',
+      codeLabel: '代码练习',
+      codeTemplateLabel: '模板',
+      codeSubmitHint: '把完整声明贴回来（从 theorem/def 那行到证明结束），我用真内核判卷；想放弃回「跳过这道代码题」。',
       dontKnowLabel: '我不知道',
       whyLabel: '解析',
     }
@@ -245,6 +250,9 @@ window.__ModuleLoader__.load({
       progressLevel4: 'strong',
       fastBadge: 'fast path',
       openAnswerHint: 'Type your answer in the composer — no letter needed.',
+      codeLabel: 'Code exercise',
+      codeTemplateLabel: 'Template',
+      codeSubmitHint: 'Paste the full declaration back (from the theorem/def line to the end of the proof); the real kernel grades it. Say 「跳过这道代码题」 to skip.',
       dontKnowLabel: "I don't know",
       whyLabel: 'Why',
     }
@@ -517,6 +525,8 @@ window.__ModuleLoader__.load({
       fastRow: { display: 'flex', justifyContent: 'flex-end', margin: '0 0 -6px' },
       fastBadge: { display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10.5px', lineHeight: 1, padding: '3px 7px', borderRadius: '999px', border: '1px solid rgba(127,127,127,0.22)', color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))', background: 'rgba(127,127,127,0.08)', whiteSpace: 'nowrap' },
       openHint: { margin: 0, padding: '8px 10px', borderRadius: '8px', border: '1px dashed rgba(127,127,127,0.32)', background: 'rgba(127,127,127,0.06)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', lineHeight: 1.5, overflowWrap: 'anywhere' },
+      codeHint: { margin: 0, padding: '8px 10px', borderRadius: '8px', border: '1px dashed rgba(127,127,127,0.32)', background: 'rgba(127,127,127,0.06)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '12.5px', lineHeight: 1.5, overflowWrap: 'anywhere' },
+      codeMeta: { margin: 0, fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))', overflowWrap: 'anywhere' },
       optionPick: { cursor: 'pointer' },
       optionPicked: { borderColor: 'var(--dsw-alias-state-business-primary,#0b57d0)', background: 'rgba(11,87,208,0.08)' },
     }
@@ -767,6 +777,43 @@ window.__ModuleLoader__.load({
       ])
     }
 
+    /** 代码练习卡：题干 + 提示 + 可信模板（带 sorry）；提交仍在输入框里贴围栏代码。 */
+    function codeCard(t, payload) {
+      const title = textOf(payload.title)
+      const prompt = textOf(payload.prompt)
+      const chapter = [textOf(payload.chapter), textOf(payload.unit)].filter((part) => part !== '').join(' · ')
+      const template = textOf(payload.template)
+      const hints = (Array.isArray(payload.hints) ? payload.hints : []).slice(0, 4).map((hint) => (
+        typeof hint === 'string' ? { label: '', body: hint } : hint
+      )).filter(isRecord)
+      const submitHint = textOf(payload.submitHint)
+        || (t !== undefined && typeof t === 'function' ? t('codeSubmitHint', '') : '')
+      return cardShell('code', [
+        chapter !== ''
+          ? h('p', { className: 'dslc-code-meta', key: 'meta', style: S.codeMeta },
+            '🧩 ' + (t !== undefined && typeof t === 'function' ? t('codeLabel', '代码练习') : '代码练习') + ' · ' + chapter)
+          : null,
+        title !== '' ? h('p', { className: 'dslc-heading', key: 'title', style: S.heading }, inlineNodes(title)) : null,
+        prompt !== '' ? h('p', { className: 'dslc-plain', key: 'prompt', style: S.plain }, inlineNodes(prompt)) : null,
+        hints.length > 0
+          ? section(t, 'hints', t !== undefined && typeof t === 'function' ? t('pointsLabel', '提示') : '提示',
+            h('ul', { className: 'dslc-slist', style: S.slist }, hints.map((hint, index) => {
+              const label = textOf(hint.label)
+              const body = textOf(hint.body)
+              return h('li', { key: 'hint-' + index }, (label !== '' ? label + '：' : '') + body)
+            })))
+          : null,
+        template !== ''
+          ? section(t, 'template', t !== undefined && typeof t === 'function' ? t('codeTemplateLabel', '模板') : '模板',
+            h('pre', { className: 'dslc-def', key: 'template', style: S.def },
+              h('code', {}, highlightLean(template))))
+          : null,
+        submitHint !== ''
+          ? h('p', { className: 'dslc-code-hint', key: 'submit-hint', style: S.codeHint }, submitHint)
+          : null,
+      ])
+    }
+
     function placeholderCard(t, phase, unsupportedKind) {
       const message = unsupportedKind !== undefined
         ? t('unsupportedKind', '未知卡片类型') + ' · ' + unsupportedKind
@@ -916,7 +963,8 @@ window.__ModuleLoader__.load({
           : card.kind === 'knowledge' ? knowledgeCard(t, card.payload)
             : card.kind === 'lesson' ? lessonCard(t, card.payload)
               : card.kind === 'progress' ? progressCard(t, card.payload)
-                : placeholderCard(t, '', card.unsupportedKind)
+                : card.kind === 'code' ? codeCard(t, card.payload)
+                  : placeholderCard(t, '', card.unsupportedKind)
       } catch (error) {
         report('render-error', 'kind=' + encodeURIComponent(card.kind) + '&message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
         return children === undefined ? null : children
