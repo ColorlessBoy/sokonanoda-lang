@@ -6,7 +6,7 @@ C9.5（#103）：`engine.py` 校准阶梯改由题库推导（不再硬编码 I.
 `state` 加 `metrics`（正确率/byLevel/耗时/KP 覆盖/代码），知识卡阈值改读
 `params.wrong_card_threshold`。`review.py` 读同一份状态出薄弱 tag/KP、错题、代码进度、
 内容缺口与下一批建议，报告落 gitignore 的 `reports/`。
-判据：engine selftest 45、simulate 50、review selftest、validate、插件 host 24 /
+判据：engine selftest 47、simulate 50、review selftest、validate、插件 host 24 /
 client 22 全绿；coverage 99 红是 C9.2 预期欠账。
 
 ## 当前快照（2026-11-27 · C9.4 代码题真内核判卷）
