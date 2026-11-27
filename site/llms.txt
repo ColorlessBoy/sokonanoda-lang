@@ -18,7 +18,7 @@
 
 ## 怎么安装
 
-三条路，都不需要 Rust／cargo（版本锁定到最新已发布 tag，永不使用 `latest`）：
+四条路，都不需要 Rust／cargo（版本锁定到最新已发布 tag，永不使用 `latest`）：
 
 1. VS Code 扩展：`code --install-extension sokonanoda-lang.sokonanoda`
    （8 个平台包 + 1 个 universal 回退包，包内内嵌 LSP 与 CLI）
@@ -57,7 +57,7 @@ goal / Infoview 通道 · `by` 块逐步判定的**前缀缓存**（现在是每
 - 代码题数据集：`courses/exercise-dataset/data/*.json`（2022 道 / 298 单元，来自
   三门课程门禁判过的练习，解答 100%）。
 - 插件：`dsh/plugins/sokonanoda-dsh/`（本地题库做题卡 + 代码题真内核判卷；开关按会话
-  `/sokonanoda-fast-think on`）。运行时数据只在 `~/.dsh/state/sokonanoda-dsh/`，不进仓库。
+  `/sokonanoda-fast-think on`）。运行时数据只在 `$DSH_HOME/state/sokonanoda-dsh/`（默认 `~/.dsh`），不进仓库。
 - 课程源是唯一真相，题库与数据集都是派生；插件只读，不写回仓库。
 
 ## 源码
