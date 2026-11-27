@@ -52,6 +52,19 @@ import {
   handleExerciseRequest,
   handleGradeRequest,
 } from '../lib/exercise-panel.mjs'
+import {
+  NOTES_SCHEMA,
+  attachHistory,
+  emptyBook,
+  extractKnowledgeCards,
+  matchNoteForQuestion,
+  noteFromCard,
+  readLedger,
+  readQuizHistory,
+  upsertKnowledgeCard,
+} from '../lib/class-notes.mjs'
+import { renderNotesHtml, renderNotesMarkdown } from '../lib/class-notes-view.mjs'
+import { allowedFigureFiles } from '../lib/class-notes-figures.mjs'
 
 const core = await loadQuizCore()
 const REPO = findRepoRoot()
@@ -1060,8 +1073,8 @@ function captureWebServer() {
 }
 
 /** Drive one route handler with a minimal IncomingMessage/ServerResponse pair. */
-function callRoute(route, params, peer) {
-  const request = { url: '/sokonanoda-state?' + new URLSearchParams(params).toString(), headers: {} }
+function callRouteUrl(route, url, peer, method = 'GET') {
+  const request = { url, method, headers: {} }
   return new Promise((resolve) => {
     let settled = false
     const response = {
@@ -1085,6 +1098,11 @@ function callRoute(route, params, peer) {
       })
     }
   })
+}
+
+/** State-route shortcut kept for the existing preview tests. */
+function callRoute(route, params, peer) {
+  return callRouteUrl(route, '/sokonanoda-state?' + new URLSearchParams(params).toString(), peer)
 }
 
 function slowStream() {
@@ -1272,6 +1290,297 @@ test('GET /sokonanoda-state: owner only, workspace-contained, structured answers
     assert.equal(badLine.status, 400)
     const missingParam = await callRoute(route, { line: '1' }, owner)
     assert.equal(missingParam.status, 400)
+  } finally {
+    await host.disposeAll()
+  }
+})
+
+/* ---------------------------------------------------------- class notes */
+
+const OWNER = { principal: { kind: 'owner' } }
+
+function courseCards() {
+  return JSON.parse(fs.readFileSync(
+    path.join(REPO, 'courses', 'set-theory', 'knowledge', 'data', 'cards.json'), 'utf8')).cards
+}
+
+function courseQuestions() {
+  return JSON.parse(fs.readFileSync(
+    path.join(REPO, 'courses', 'set-theory', 'knowledge', 'data', 'questions.json'), 'utf8')).questions
+}
+
+function cardPayload(id) {
+  const card = courseCards().find((candidate) => candidate.id === id)
+  assert.ok(card !== undefined, 'missing fixture card ' + id)
+  const payload = {
+    choices: [{
+      message: {
+        content: '',
+        tool_calls: [{
+          type: 'function',
+          function: { name: 'learn_card', arguments: JSON.stringify({ kind: 'knowledge', payload: card }) },
+        }],
+      },
+    }],
+  }
+  return { card, payload }
+}
+
+function routeOf(host, routePath) {
+  const route = host.webServer.routes.find((candidate) => candidate.path === routePath)
+  assert.ok(route !== undefined, 'missing route ' + routePath)
+  return route
+}
+
+test('class-notes: a seen knowledge card becomes one note with tags, points and a whitelisted figure', () => {
+  const { card, payload } = cardPayload('injective')
+  const extracted = extractKnowledgeCards(payload)
+  assert.equal(extracted.length, 1)
+  assert.equal(extracted[0].id, 'injective')
+
+  const book = emptyBook('set-theory', Date.parse('2026-11-27T00:00:00Z'))
+  assert.equal(upsertKnowledgeCard(book, extracted[0], Date.parse('2026-11-27T00:00:00Z')), true)
+  assert.equal(book.notes.length, 1)
+  const note = book.notes[0]
+  assert.equal(note.id, 'injective')
+  assert.deepEqual(note.tags, ['function', 'injective'])
+  assert.ok(note.keyPoints.length >= 3, 'one-liner + list sections must become review points')
+  assert.equal(note.figures.length, 1)
+  assert.equal(note.figures[0].file, 'injective.png')
+  assert.equal(note.figures[0].src, '/sokonanoda-notes-asset?path=injective.png')
+  assert.ok(allowedFigureFiles().has('injective.png'))
+  assert.equal(noteFromCard(card, Date.parse('2026-11-27T00:00:00Z')).title, card.title)
+
+  /* Seeing the same card again refreshes it without duplicating the note. */
+  assert.equal(upsertKnowledgeCard(book, extracted[0], Date.parse('2026-11-27T01:00:00Z')), true)
+  assert.equal(book.notes.length, 1)
+  assert.equal(book.notes[0].firstSeenAt, '2026-11-27T00:00:00.000Z')
+  assert.equal(book.notes[0].lastSeenAt, '2026-11-27T01:00:00.000Z')
+
+  /* Unknown knowledge kinds never create notes. */
+  const questionPayload = {
+    choices: [{ message: { content: '', tool_calls: [{
+      type: 'function',
+      function: { name: 'learn_card', arguments: JSON.stringify({ kind: 'question', payload: { id: 'x' } }) },
+    }] } }],
+  }
+  assert.deepEqual(extractKnowledgeCards(questionPayload), [])
+})
+
+test('class-notes: questions attach only to notes whose card the learner saw; latest answer wins', () => {
+  const { payload } = cardPayload('injective')
+  const book = emptyBook('set-theory', Date.parse('2026-11-27T00:00:00Z'))
+  upsertKnowledgeCard(book, extractKnowledgeCards(payload)[0], Date.parse('2026-11-27T00:00:00Z'))
+  const questions = courseQuestions()
+  const byId = Object.fromEntries(questions.map((question) => [question.id, question]))
+  const injectiveQuestion = byId['I.2.inj-1']
+  assert.ok(injectiveQuestion !== undefined)
+  assert.equal(matchNoteForQuestion(injectiveQuestion, book.notes), 'injective')
+  /* A membership question has no shared specific tag with the injective note. */
+  assert.equal(matchNoteForQuestion(byId['I.1.mem-1'], book.notes), '')
+
+  const history = [
+    { qid: 'I.2.inj-1', choice: 2, correct: false, at: '2026-11-27T01:00:00Z' },
+    { qid: 'I.2.inj-1', choice: 1, correct: true, at: '2026-11-27T02:00:00Z' },
+    { qid: 'I.1.mem-1', choice: 2, correct: false, at: '2026-11-27T03:00:00Z' },
+  ]
+  assert.equal(attachHistory(book, history, byId, Date.parse('2026-11-27T04:00:00Z')), true)
+  assert.equal(book.notes[0].questions.length, 1, 'only the seen-card question is attached')
+  assert.equal(book.notes[0].questions[0].questionId, 'I.2.inj-1')
+  assert.equal(book.notes[0].questions[0].correct, true)
+  assert.equal(book.notes[0].questions[0].answer, 'A')
+  assert.equal(book.notes[0].questions[0].chosen, 'A')
+  assert.equal(book.notes[0].mistakes.length, 1, 'a wrong attempt stays in 易错 after a later correct one')
+  assert.equal(book.notes[0].mistakes[0].questionId, 'I.2.inj-1')
+
+  /* Flip the latest answer: the same question moves into 易错. */
+  assert.equal(attachHistory(book, [
+    { qid: 'I.2.inj-1', choice: 2, correct: false, at: '2026-11-27T05:00:00Z' },
+  ], byId, Date.parse('2026-11-27T06:00:00Z')), true)
+  assert.equal(book.notes[0].questions[0].correct, false)
+  assert.equal(book.notes[0].mistakes.length, 1)
+  assert.equal(book.notes[0].mistakes[0].questionId, 'I.2.inj-1')
+})
+
+test('class-notes: readQuizHistory keeps a wrong attempt after a later correct replay', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-notes-history-'))
+  fs.writeFileSync(path.join(dir, 'default.json'), JSON.stringify({
+    history: [
+      { qid: 'I.2.inj-1', choice: 2, correct: false, at: '2026-11-27T01:00:00Z' },
+      { qid: 'I.2.inj-1', choice: 1, correct: true, at: '2026-11-27T02:00:00Z' },
+    ],
+  }), 'utf8')
+  fs.writeFileSync(path.join(dir, 'fingerprint.json'), JSON.stringify({
+    history: [{ qid: 'I.2.inj-1', choice: 2, correct: false, at: '2026-11-27T01:00:00Z' }],
+  }), 'utf8')
+  const history = readQuizHistory(dir)
+  assert.equal(history.length, 2, 'both attempts survive; the duplicate across state files is dropped once')
+  const { payload } = cardPayload('injective')
+  const book = emptyBook('set-theory')
+  upsertKnowledgeCard(book, extractKnowledgeCards(payload)[0])
+  const byId = Object.fromEntries(courseQuestions().map((question) => [question.id, question]))
+  attachHistory(book, history, byId)
+  assert.equal(book.notes[0].questions[0].correct, true, 'the latest attempt is the question status')
+  assert.equal(book.notes[0].mistakes[0].questionId, 'I.2.inj-1', 'the earlier wrong attempt stays in 易错')
+})
+
+test('class-notes: HTML and Markdown render ✓/×, why and the figure', () => {
+  const { payload } = cardPayload('injective')
+  const book = emptyBook('set-theory', Date.parse('2026-11-27T00:00:00Z'))
+  upsertKnowledgeCard(book, extractKnowledgeCards(payload)[0], Date.parse('2026-11-27T00:00:00Z'))
+  const byId = Object.fromEntries(courseQuestions().map((question) => [question.id, question]))
+  attachHistory(book, [
+    { qid: 'I.2.inj-1', choice: 1, correct: true, at: '2026-11-27T01:00:00Z' },
+  ], byId, Date.parse('2026-11-27T02:00:00Z'))
+
+  const html = renderNotesHtml(book)
+  assert.match(html, /课堂笔记/)
+  assert.match(html, /单射 · Injective/)
+  assert.match(html, /\/sokonanoda-notes-asset\?path=injective\.png/)
+  assert.match(html, /data-state="correct"/)
+  assert.match(html, /单射 = 不同输入不会撞到同一输出/)
+  assert.match(html, /sokonanoda-notes\?meta=1/, 'the page must poll updatedAt')
+  assert.equal(renderNotesHtml({ ...book, notes: [] }).includes('还没有课堂笔记'), true)
+
+  const markdown = renderNotesMarkdown(book)
+  assert.match(markdown, /^# 课堂笔记 · set-theory/m)
+  assert.match(markdown, /!\[[^\]]*\]\(\/sokonanoda-notes-asset\?path=injective\.png\)/)
+  assert.match(markdown, /✅/)
+})
+
+test('GET /sokonanoda-notes*: owner-only, read-only and whitelisted PNG assets', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-notes-routes-'))
+  const host = captureHost()
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  try {
+    const paths = host.webServer.routes.map((route) => route.path)
+    for (const routePath of ['/sokonanoda-notes', '/sokonanoda-notes-view', '/sokonanoda-notes.md', '/sokonanoda-notes-asset']) {
+      assert.ok(paths.includes(routePath), 'missing notes route ' + routePath)
+    }
+
+    const ledgerRoute = routeOf(host, '/sokonanoda-notes')
+    const mine = await callRouteUrl(ledgerRoute, '/sokonanoda-notes', OWNER)
+    assert.equal(mine.status, 200)
+    const body = JSON.parse(mine.body)
+    assert.equal(body.ok, true)
+    assert.equal(body.book.schema, NOTES_SCHEMA)
+    assert.deepEqual(body.book.notes, [])
+
+    const meta = await callRouteUrl(ledgerRoute, '/sokonanoda-notes?meta=1', OWNER)
+    assert.equal(meta.status, 200)
+    assert.equal(JSON.parse(meta.body).ok, true)
+    assert.equal(typeof JSON.parse(meta.body).updatedAt, 'string')
+    assert.equal(JSON.parse(meta.body).count, 0)
+
+    const forbidden = await callRouteUrl(ledgerRoute, '/sokonanoda-notes', { principal: { kind: 'visitor' } })
+    assert.equal(forbidden.status, 403)
+    const method = await callRouteUrl(ledgerRoute, '/sokonanoda-notes', OWNER, 'POST')
+    assert.equal(method.status, 405)
+    assert.match(method.headers.allow || '', /GET/)
+
+    const view = await callRouteUrl(routeOf(host, '/sokonanoda-notes-view'), '/sokonanoda-notes-view', OWNER)
+    assert.equal(view.status, 200)
+    assert.match(view.headers['content-type'], /text\/html/)
+    assert.match(view.body, /课堂笔记/)
+    assert.match(view.body, /sokonanoda-notes\?meta=1/)
+
+    const markdown = await callRouteUrl(routeOf(host, '/sokonanoda-notes.md'), '/sokonanoda-notes.md', OWNER)
+    assert.equal(markdown.status, 200)
+    assert.match(markdown.headers['content-type'], /text\/markdown/)
+    assert.match(markdown.body, /^# 课堂笔记/m)
+
+    const assetRoute = routeOf(host, '/sokonanoda-notes-asset')
+    const png = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=injective.png', OWNER)
+    assert.equal(png.status, 200)
+    assert.equal(png.headers['content-type'], 'image/png')
+    assert.ok(Number(png.headers['content-length']) > 1000, 'real PNG bytes expected')
+    const traversal = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=' + encodeURIComponent('../injective.png'), OWNER)
+    assert.equal(traversal.status, 400)
+    const outside = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=hero-vscode.png', OWNER)
+    assert.equal(outside.status, 404)
+    const notPng = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=notes.txt', OWNER)
+    assert.equal(notPng.status, 400)
+    const assetForbidden = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=injective.png', { principal: { kind: 'visitor' } })
+    assert.equal(assetForbidden.status, 403)
+    const assetPost = await callRouteUrl(assetRoute, '/sokonanoda-notes-asset?path=injective.png', OWNER, 'POST')
+    assert.equal(assetPost.status, 405)
+  } finally {
+    await host.disposeAll()
+  }
+})
+
+test('apply(): startup reconciliation attaches questions answered before this Host loaded', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-notes-startup-'))
+  fs.mkdirSync(path.join(dataDir, 'quiz'), { recursive: true })
+  fs.writeFileSync(path.join(dataDir, 'quiz', 'default.json'), JSON.stringify({
+    version: 1,
+    history: [{ qid: 'I.2.inj-1', choice: 2, correct: false, at: '2026-11-27T01:00:00Z' }],
+  }), 'utf8')
+  const { payload } = cardPayload('injective')
+  const book = emptyBook('set-theory')
+  upsertKnowledgeCard(book, extractKnowledgeCards(payload)[0])
+  fs.mkdirSync(path.join(dataDir, 'notes'), { recursive: true })
+  fs.writeFileSync(path.join(dataDir, 'notes', 'set-theory.json'), JSON.stringify(book), 'utf8')
+
+  const host = captureHost()
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  try {
+    const response = await callRouteUrl(routeOf(host, '/sokonanoda-notes'), '/sokonanoda-notes', OWNER)
+    assert.equal(response.status, 200)
+    const body = JSON.parse(response.body)
+    assert.equal(body.book.notes.length, 1)
+    assert.equal(body.book.notes[0].questions.length, 1)
+    assert.equal(body.book.notes[0].questions[0].questionId, 'I.2.inj-1')
+    assert.equal(body.book.notes[0].questions[0].correct, false)
+    assert.equal(body.book.notes[0].mistakes.length, 1)
+    const ledger = readLedger(path.join(dataDir, 'notes', 'set-theory.json'), 'set-theory')
+    assert.equal(ledger.notes[0].questions[0].questionId, 'I.2.inj-1', 'reconciliation must persist')
+  } finally {
+    await host.disposeAll()
+  }
+})
+
+test('apply(): a fast knowledge-card reply lands in the class-notes ledger', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-notes-fast-'))
+  const host = captureHost()
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  try {
+    const command = (rawInput) => host.commands[0].handler({
+      agent: { session: { id: 'notes-fast' } }, rawInput,
+    })
+    assert.equal(command('on').kind, 'success')
+    const base = {
+      provider: 'opencode-go-7',
+      model: 'deepseek-v4.1-flash',
+      sessionId: 'notes-fast',
+    }
+    /* Turn 1 opens the quiz (the service persists issued_qid). */
+    const opened = await collect(host.listeners[0](Object.freeze({
+      ...base,
+      messages: [systemMsg(), userMsg('开始做题')],
+      signal: new AbortController().signal,
+    }), slowStream()))
+    assert.ok(opened.some((chunk) => chunk.type === 'text-delta'), 'quiz opener must answer locally')
+    /* Turn 2 asks for the explanation card of the issued question. */
+    const request = Object.freeze({
+      ...base,
+      messages: [systemMsg(), userMsg('开始做题'), assistantMsg('…'), userMsg('不懂')],
+      signal: new AbortController().signal,
+    })
+    const slow = slowStream()
+    const chunks = await collect(host.listeners[0](request, slow))
+    const reply = chunks.filter((chunk) => chunk.type === 'text-delta').map((chunk) => chunk.text).join('')
+    assert.match(reply, /```learn-card\n/, '快路径 must answer locally: ' + reply.slice(0, 200))
+    assert.equal(slow.called, false)
+
+    const response = await callRouteUrl(routeOf(host, '/sokonanoda-notes'), '/sokonanoda-notes', OWNER)
+    assert.equal(response.status, 200)
+    const body = JSON.parse(response.body)
+    assert.ok(body.book.notes.length >= 1, 'a seen knowledge card must create a note')
+    const note = body.book.notes[0]
+    assert.ok(note.id !== '' && typeof note.title === 'string' && note.title !== '')
+    assert.ok(Array.isArray(note.keyPoints) && note.keyPoints.length > 0, 'review points must be extracted')
+    assert.ok(fs.existsSync(path.join(dataDir, 'notes', 'set-theory.json')), 'ledger must persist on disk')
   } finally {
     await host.disposeAll()
   }

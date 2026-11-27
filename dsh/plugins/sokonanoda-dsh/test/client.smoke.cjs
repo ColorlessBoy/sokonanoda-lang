@@ -158,6 +158,7 @@ function cssRule(selector) {
 /* --------------------------------------------------------- slot mounting */
 
 const registrations = []
+const tabRegistrations = []
 const injectedSlotNames = []
 const dictionaries = {}
 const openedTabs = []
@@ -170,6 +171,7 @@ const sidebarRightStub = {
 }
 const sidebarRightTabsStub = {
   register(definition) {
+    tabRegistrations.push(definition)
     panelTabDefinitions.push(definition)
     return () => {}
   },
@@ -205,6 +207,8 @@ expect(typeof plugin.apply === 'function', 'client module must export apply()')
 expect(Array.isArray(plugin.inject), 'client module must export inject[]')
 plugin.apply(pluginApplyCtx)
 
+const ClassNotesPanel = plugin.__test.ClassNotesPanel
+const ClassNotesPanelTitle = plugin.__test.ClassNotesPanelTitle
 const LearnCardFence = plugin.__test.LearnCardFence
 const LeanFence = plugin.__test.LeanFence
 const highlightLean = plugin.__test.highlightLean
@@ -340,6 +344,38 @@ test('module id + package manifest match what the profile loader expects', () =>
   expect(patch.includes('name: sokonanoda-dsh'), 'cordis.patch.yml must insert sokonanoda-dsh')
 })
 
+test('class-notes: right-sidebar page tab, guide entry and iframe body', () => {
+  const kind = plugin.__test.NOTES_KIND
+  expect(kind === 'sokonanoda-notes', 'notes kind must be sokonanoda-notes')
+  const definition = tabRegistrations.find((entry) => entry !== null && entry.kind === kind)
+  expect(definition !== undefined, 'class-notes page type must be registered')
+  expect(definition.id === 'sokonanoda-dsh/class-notes', 'class-notes type id must be stable')
+  expect(Array.isArray(definition.guide) && definition.guide.length === 1,
+    'the right-sidebar guide must list one class-notes entry')
+  expect(definition.guide[0].id === 'open', 'guide entry id must be open')
+  expect(typeof definition.guide[0].title === 'function' && definition.guide[0].title() === '课堂笔记',
+    'guide entry title must be 课堂笔记')
+
+  const rendered = render(h(ClassNotesPanel, { t: translator(zh) }))
+  const frame = nodesOf(rendered).find((node) => node.type === 'iframe')
+  expect(frame !== undefined, 'class-notes body must render an iframe')
+  expect(frame.props.src === '/sokonanoda-notes-view', 'iframe must point at the Host view route')
+  expect(frame.props.title === '课堂笔记', 'iframe needs an accessible title')
+  expect(frame.props.className === 'dslc-notes-frame', 'iframe must carry the panel class')
+
+  const title = render(h(ClassNotesPanelTitle, { t: translator(zh) }))
+  expect(textOf(title) === '课堂笔记', 'chip title must be 课堂笔记')
+  const moved = render(h(ClassNotesPanel, { t: translator(en) }))
+  const movedFrame = nodesOf(moved).find((node) => node.type === 'iframe')
+  expect(movedFrame.props.title === 'Class notes', 'English frame title must follow the dictionary')
+
+  const css = cssRule('.dslc-notes-frame')
+  expect(css.includes('width:100%') && css.includes('height:100%'), 'iframe CSS must fill the pane')
+  expect(cssRule('.dslc-notes-body').includes('height:100%'), 'notes body CSS must fill the pane')
+  expect(injectedSlotNames.includes('sidebar.right.pane.tab'), 'notes body must use the sidebar tab slot')
+  expect(injectedSlotNames.includes('sidebar.right.pane.tab.title'), 'notes chip must use the title slot')
+})
+
 test('a late document-preview service still receives the sokonanoda body', () => {
   const previews = []
   const slots = []
@@ -444,8 +480,9 @@ test('client registers exactly three fence layers, no tool view', () => {
 })
 
 test('exercise panel registers a sidebar page type + body and chip seats', () => {
-  expect(panelTabDefinitions.length === 1, 'expected one exercise-panel tab definition, got ' + panelTabDefinitions.length)
-  const definition = panelTabDefinitions[0]
+  const panelDefinitions = panelTabDefinitions.filter((entry) => entry !== null && entry.kind === plugin.__test.PANEL_KIND)
+  expect(panelDefinitions.length === 1, 'expected one exercise-panel tab definition, got ' + panelDefinitions.length)
+  const definition = panelDefinitions[0]
   expect(definition.kind === plugin.__test.PANEL_KIND, 'panel kind mismatch: ' + definition.kind)
   expect(definition.id === plugin.__test.PANEL_TYPE_ID, 'panel type id mismatch: ' + definition.id)
   expect(definition.keepMounted === true, 'the editor body should survive tab hiding')

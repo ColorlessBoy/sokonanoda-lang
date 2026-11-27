@@ -1,0 +1,25 @@
+\documentclass[border=6pt]{standalone}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,shapes.geometric}
+\begin{document}
+\begin{tikzpicture}[
+  set/.style={draw=black!70, thick, ellipse, minimum width=3.2cm, minimum height=2.1cm},
+  map/.style={-{Stealth[length=2.2mm,width=1.6mm]}, thick, black!80},
+  lab/.style={font=\footnotesize, text=black!94},
+]
+  \useasboundingbox (-0.4,-1.2) rectangle (12.2,5.6);
+  \node[font=\large\bfseries, text=black!96] at (6,5.05) {Extensionality};
+  \node[set] (A) at (3.5,2.45) {};
+  \node[set] (B) at (8.5,2.45) {};
+  \node[lab, font=\small] at (3.5,3.85) {$A$};
+  \node[lab, font=\small] at (8.5,3.85) {$B$};
+  \draw[map] (5.30,2.80) -- (6.70,2.80);
+  \node[lab] at (6.0,3.20) {$A \subseteq B$};
+  \draw[map] (6.70,2.10) -- (5.30,2.10);
+  \node[lab] at (6.0,1.70) {$B \subseteq A$};
+  \node[font=\small, text=black!96] at (6,0.55) {$A \subseteq B \;\land\; B \subseteq A \;\Rightarrow\; A = B$};
+  \node[font=\footnotesize, text=black!80] at (6,-0.55) {mutual inclusion makes the two sets the same};
+\end{tikzpicture}
+\end{document}

@@ -34,6 +34,9 @@ import {
   handleExerciseRequest,
   handleGradeRequest,
 } from './lib/exercise-panel.mjs'
+import { createClassNotes } from './lib/class-notes.mjs'
+import { allowedFigureFiles, FIGURE_ROUTE } from './lib/class-notes-figures.mjs'
+import { renderNotesHtml, renderNotesMarkdown } from './lib/class-notes-view.mjs'
 
 export const name = 'sokonanoda-dsh'
 
@@ -78,6 +81,11 @@ const MAX_STATE_DIAGNOSTICS = 3
 const FILE_RESOURCE_PREFIX = 'dsh-resource://file/'
 /** Same-origin read-only route the preview body polls while the cursor moves. */
 const STATE_ROUTE = '/sokonanoda-state'
+/** Class-notes ledger, read-only view/Markdown and whitelisted figure assets. */
+const NOTES_ROUTE = '/sokonanoda-notes'
+const NOTES_VIEW_ROUTE = '/sokonanoda-notes-view'
+const NOTES_MARKDOWN_ROUTE = '/sokonanoda-notes.md'
+const NOTES_ASSET_ROUTE = FIGURE_ROUTE
 
 /**
  * Repository root: the nearest ancestor that still contains the course engine.
@@ -144,11 +152,19 @@ export function normalizeConfig(config = {}, fileConfig = {}) {
   const sokoPath = typeof merged.sokoPath === 'string' && merged.sokoPath.trim() !== ''
     ? path.resolve(merged.sokoPath.trim())
     : path.join(repoRoot, 'scripts', 'soko')
+  const notesCourse = typeof merged.notesCourse === 'string' && /^[a-z0-9-]+$/.test(merged.notesCourse.trim())
+    ? merged.notesCourse.trim()
+    : 'set-theory'
+  const notesFiguresDir = typeof merged.notesFiguresDir === 'string' && merged.notesFiguresDir.trim() !== ''
+    ? path.resolve(merged.notesFiguresDir.trim())
+    : path.join(HERE, 'docs', 'figures')
   return {
     enabled: merged.enabled !== false,
     dataDir,
     repoRoot,
     sokoPath,
+    notesCourse,
+    notesFiguresDir,
     historyPath: path.join(dataDir, 'history', 'decisions.jsonl'),
     sessionsPath: path.join(dataDir, 'sessions.json'),
     quizStateDir: path.join(dataDir, 'quiz'),
@@ -968,11 +984,25 @@ export function createFastThinkTool(settings, record, service, enabledSessions =
 export async function apply(ctx, config = {}) {
   const fileConfig = readFileConfig(defaultDataDir())
   const settings = normalizeConfig(config, fileConfig)
-  for (const dir of [settings.quizStateDir, settings.logDir, path.dirname(settings.historyPath)]) {
+  for (const dir of [settings.quizStateDir, settings.logDir, path.dirname(settings.historyPath), path.join(settings.dataDir, 'notes')]) {
     try { fs.mkdirSync(dir, { recursive: true }) } catch { /* the service/tool report the real error later */ }
   }
   const record = makeRecorder(settings.historyPath)
   const enabledSessions = loadSessions(settings.sessionsPath)
+  /* Class notes live beside quiz progress, never in the repository. The
+   * startup pass attaches questions answered before this Host loaded. */
+  const notes = createClassNotes({
+    dataDir: settings.dataDir,
+    repoRoot: settings.repoRoot,
+    quizStateDir: settings.quizStateDir,
+    course: settings.notesCourse,
+  })
+  try {
+    const reconciled = notes.reconcileHistory()
+    if (reconciled.changed) record({ event: 'notes-reconcile', history: reconciled.history, course: settings.notesCourse })
+  } catch (error) {
+    record({ event: 'notes-error', phase: 'startup', message: String(error?.message || error) })
+  }
   let clientModules
   try { clientModules = ctx.get('clientModules') } catch { clientModules = undefined }
   let webServer
@@ -1050,6 +1080,118 @@ export async function apply(ctx, config = {}) {
     writeJson(response, 200, answer)
   }
 
+  /** Owner-only read guard shared by every class-notes route. */
+  const requireOwner = (response, peer) => {
+    if (peer !== null && peer !== undefined && peer?.principal?.kind === 'owner') return true
+    writeJson(response, 403, { ok: false, error: { code: 'forbidden', message: '只接受本机所有者' } })
+    return false
+  }
+
+  const requestMethod = (request) => String(request?.method || 'GET').toUpperCase()
+
+  const readOnlyMethod = (request, response) => {
+    const method = requestMethod(request)
+    if (method === 'GET' || method === 'HEAD') return method
+    try {
+      response.writeHead(405, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        allow: 'GET, HEAD',
+      })
+      response.end(JSON.stringify({ ok: false, error: { code: 'method-not-allowed', message: '只读路由只接受 GET/HEAD' } }))
+    } catch { /* the socket is already gone */ }
+    return ''
+  }
+
+  const writeText = (response, status, contentType, body, method) => {
+    try {
+      response.writeHead(status, {
+        'content-type': contentType,
+        'cache-control': 'no-store',
+      })
+      response.end(method === 'HEAD' ? '' : body)
+    } catch { /* the socket is already gone */ }
+  }
+
+  /** GET /sokonanoda-notes — owner-only JSON ledger; `?meta=1` is the poll card. */
+  const handleNotesRequest = (request, response, peer) => {
+    if (!requireOwner(response, peer)) return
+    const method = readOnlyMethod(request, response)
+    if (method === '') return
+    let url
+    try {
+      url = new URL(String(request?.url || '/'), 'http://dsh.invalid')
+    } catch {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-request', message: '无法解析请求地址' } })
+      return
+    }
+    if (url.searchParams.get('meta') === '1') {
+      writeJson(response, 200, { ok: true, ...notes.meta() })
+      return
+    }
+    writeJson(response, 200, { ok: true, book: notes.book() })
+  }
+
+  /** GET /sokonanoda-notes-view — the self-contained page the sidebar tab frames. */
+  const handleNotesViewRequest = (request, response, peer) => {
+    if (!requireOwner(response, peer)) return
+    const method = readOnlyMethod(request, response)
+    if (method === '') return
+    writeText(response, 200, 'text/html; charset=utf-8', renderNotesHtml(notes.book()), method)
+  }
+
+  /** GET /sokonanoda-notes.md — the same ledger for copy/export. */
+  const handleNotesMarkdownRequest = (request, response, peer) => {
+    if (!requireOwner(response, peer)) return
+    const method = readOnlyMethod(request, response)
+    if (method === '') return
+    writeText(response, 200, 'text/markdown; charset=utf-8', renderNotesMarkdown(notes.book()), method)
+  }
+
+  /** GET /sokonanoda-notes-asset?path=<whitelisted.png> — figures only. */
+  const handleNotesAssetRequest = (request, response, peer) => {
+    if (!requireOwner(response, peer)) return
+    const method = readOnlyMethod(request, response)
+    if (method === '') return
+    let url
+    try {
+      url = new URL(String(request?.url || '/'), 'http://dsh.invalid')
+    } catch {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-request', message: '无法解析请求地址' } })
+      return
+    }
+    const raw = String(url.searchParams.get('path') || '').trim()
+    if (raw === '' || raw !== path.basename(raw) || raw.includes('..') || raw.includes('/') || raw.includes('\\')
+      || !/^[A-Za-z0-9._-]+\.png$/.test(raw)) {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-asset', message: '只接受白名单 PNG 文件名' } })
+      return
+    }
+    if (!allowedFigureFiles().has(raw)) {
+      writeJson(response, 404, { ok: false, error: { code: 'not-found', message: '图解不存在' } })
+      return
+    }
+    const file = path.join(settings.notesFiguresDir, raw)
+    if (!isPathWithin(settings.notesFiguresDir, file)) {
+      writeJson(response, 403, { ok: false, error: { code: 'forbidden', message: '图解路径越界' } })
+      return
+    }
+    let bytes
+    try {
+      bytes = fs.readFileSync(file)
+    } catch {
+      writeJson(response, 404, { ok: false, error: { code: 'not-found', message: '图解不存在' } })
+      return
+    }
+    try {
+      response.writeHead(200, {
+        'content-type': 'image/png',
+        'content-length': String(bytes.length),
+        'cache-control': 'no-store',
+      })
+      response.end(method === 'HEAD' ? '' : bytes)
+    } catch { /* the socket is already gone */ }
+  }
+
   const registerWebRoutes = (server) => {
     if (server === null || server === undefined || typeof server.register !== 'function') return
     ctx.effect(() => server.register({
@@ -1115,6 +1257,30 @@ export async function apply(ctx, config = {}) {
         })
       },
     }), 'sokonanoda-dsh: exercise panel grade route')
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: NOTES_ROUTE,
+      auth: 'required',
+      handler: (request, response, peer) => handleNotesRequest(request, response, peer),
+    }), 'sokonanoda-dsh: class-notes ledger route')
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: NOTES_VIEW_ROUTE,
+      auth: 'required',
+      handler: (request, response, peer) => handleNotesViewRequest(request, response, peer),
+    }), 'sokonanoda-dsh: class-notes view route')
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: NOTES_MARKDOWN_ROUTE,
+      auth: 'required',
+      handler: (request, response, peer) => handleNotesMarkdownRequest(request, response, peer),
+    }), 'sokonanoda-dsh: class-notes markdown route')
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: NOTES_ASSET_ROUTE,
+      auth: 'required',
+      handler: (request, response, peer) => handleNotesAssetRequest(request, response, peer),
+    }), 'sokonanoda-dsh: class-notes figure route')
   }
 
   if (webServer !== undefined && webServer !== null && typeof webServer.register === 'function') {
@@ -1185,6 +1351,15 @@ export async function apply(ctx, config = {}) {
           tools: [LEARN_CARD_TOOL_DECLARATION],
         }, options.signal)
         const text = composeReplyText(payload)
+        /* The chat reply is the lesson; the notes ledger is the review copy.
+         * Record only local quiz replies (knowledge cards + answered questions),
+         * never model chatter. A ledger failure must not break the turn. */
+        try {
+          const recorded = notes.recordReply(payload)
+          if (recorded.changed) record({ event: 'notes', cards: recorded.cards, rule: decision.fast.type, sessionId: options.sessionId })
+        } catch (error) {
+          record({ event: 'notes-error', phase: 'reply', message: String(error?.message || error) })
+        }
         if (text.trim() === '') {
           record({ event: 'miss', mode: 'fallback', reason: 'empty-reply', rule: decision.fast.type, sessionId: options.sessionId })
           yield* next()
