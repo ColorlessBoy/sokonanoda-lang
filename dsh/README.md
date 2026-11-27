@@ -262,5 +262,6 @@ markdown 规则它不是围栏；把围栏写到行首即可）。**已知缺口
 | VS Code | `scripts/soko` 或扩展内置二进制 | 不适用（人用） | 完整 LSP 诊断 + Infoview |
 | 其他 / headless | `scripts/soko` | 手动加载 `skills/<name>/SKILL.md` | 判卷走 CLI `--json` |
 
+**题库卡片与代码题判卷只有 DSH 插件通道**；opencode / VS Code 走画布 + `scripts/soko grade`。
 `scripts/soko` 是**所有 harness 通用**的那一条命令：它解析版本匹配的二进制
 （仓库构建 → 缓存 → VS Code 扩展自带 → 版本锁定下载），缓存过期就拒绝运行。

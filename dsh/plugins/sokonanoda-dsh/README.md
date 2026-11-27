@@ -107,7 +107,7 @@ cd sokonanoda-lang
 scripts/soko setup
 scripts/soko doctor --json            # 期望 "ready": true
 
-# 2) 把插件装进 web profile（等价于会话里的 plugin_manager）
+# 2) 装进 web profile（等价于会话里的 plugin_manager；用别的 profile 就换名字）
 dsh plugin --profile web add "$PWD/dsh/plugins/sokonanoda-dsh"
 
 # 3) 启动并开一个会话
@@ -115,7 +115,8 @@ dsh web
 ```
 
 安装是 pnpm 本地路径安装（**不需要网络**），产物在 `$DSH_HOME/profiles/web/`
-（`DSH_HOME` 未设时默认 `~/.dsh`）。
+（`DSH_HOME` 未设时默认 `~/.dsh`）。`--profile` 必须与你启动的 profile 一致
+（`dsh web` 默认 `web`；自定义如 `superagent` 就换成 `superagent`），否则插件不会挂载。
 装好后按顺序自查（缺一条就不是装好了）：
 
 1. `dsh plugin --profile web list` 能看到 `sokonanoda-dsh`；
