@@ -216,6 +216,9 @@ function realPathOf(target) {
 export function resolveAllowedStatePath({ resource, workspaceRoot, repoRoot }) {
   const parsed = parseFileResource(resource)
   if (parsed === null) return { ok: false, code: 'bad-resource', message: '无法识别的文件资源地址' }
+  if (!/\.sokonanoda$/i.test(parsed.path)) {
+    return { ok: false, code: 'bad-resource', message: '只接受 .sokonanoda 源文件' }
+  }
   if (typeof workspaceRoot !== 'string' || workspaceRoot === '') {
     return { ok: false, code: 'workspace-unavailable', message: '当前会话没有可用的工作区' }
   }

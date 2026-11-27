@@ -1102,8 +1102,10 @@ test('GET /sokonanoda-state: owner only, workspace-contained, structured answers
 
     const notAnAddress = await callRoute(route, { resource: '../etc/passwd', line: '1' }, owner)
     assert.equal(notAnAddress.status, 400, 'a non-resource string is a bad request')
-    const escaped = await callRoute(route, { resource: resource('../../etc/passwd'), line: '1' }, owner)
+    const escaped = await callRoute(route, { resource: resource('../../etc/passwd.sokonanoda'), line: '1' }, owner)
     assert.equal(escaped.status, 403, 'a traversal inside a session address must be refused')
+    const wrongFile = await callRoute(route, { resource: resource('../../etc/passwd'), line: '1' }, owner)
+    assert.equal(wrongFile.status, 400, 'the read-only route only serves .sokonanoda source files')
 
     const outside = await callRoute(route, { resource: resource('outside.sokonanoda'), line: '1' }, owner)
     assert.equal(JSON.parse(outside.body).error.code, 'outside-declarations')
