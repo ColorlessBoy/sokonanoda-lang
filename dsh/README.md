@@ -134,10 +134,15 @@ cd dsh/plugins/sokonanoda-dsh && node test/run.mjs
   继续 / 不懂 / 地图…），交给**进程内**的本地课程引擎作答；不换模型、不新增
   provider、不改变普通消息的走向。命中失败、超时、服务没起来都回落 `next()`。
 - **卡片**：快路径回复里的 ```learn-card 围栏被客户端渲染成 question / knowledge /
-  lesson / **progress（进展热点）** 卡片；```lean / ```sokonanoda 渲染成高亮代码。
+  lesson / **progress（进展热点）** / **code（代码练习）** 卡片；```lean / ```sokonanoda 渲染成高亮代码。
   题目卡含选择题与问答题（问答题直接打字判分）；「不懂」出知识讲解卡；进展热点卡含连对/正确率/覆盖/章节进度/单元掌握热力与建议关注；快路径卡片右上角有 `⚡ 快思考` 小标记。
   当前题未作答时「下一题 / 继续」重发当前题（「换一题 / 再来一题」才推进）；
   「上一题 / 回看刚才那题」出只读回顾卡（正确答案绿色高亮 + 解析，不计分、不推进）。
+- **代码题真内核判卷**：说「代码题」发一道来自 `courses/exercise-dataset` 的代码练习卡
+  （题干 + 提示 + 带 `sorry` 的模板）；把目标声明贴回围栏里 → 插件用 `compose.py`
+  组装完整 `.sokonanoda` → `scripts/soko grade --json` → 只有目标声明 checked 且无诊断
+  才显示「通过」，否则显示首条内核诊断并支持同题重试；通过后 `engine.py mark-code`
+  记进度，放弃用 `skip-code`。用户代码不进日志/仓库；超时或工具缺失回落 `next()`。
 - **显式开关**：快思考**默认关闭**，只在学习会话里执行 `/sokonanoda-fast-think on` 后才接管
   （`/sokonanoda-fast-think off` 关闭，`status` 查看）。开关按 session 持久化在
   `~/.dsh/state/sokonanoda-dsh/sessions.json`，普通会话不会触发。

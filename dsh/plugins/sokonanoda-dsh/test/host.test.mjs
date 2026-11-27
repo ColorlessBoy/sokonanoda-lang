@@ -36,6 +36,7 @@ import {
   findRepoRoot,
   LEARN_CARD_TOOL_DECLARATION,
 } from '../index.js'
+import { assembleSubmission, evaluateGrade, expectedDeclarationName } from '../lib/code-grade.mjs'
 
 const core = await loadQuizCore()
 const REPO = findRepoRoot()
@@ -169,7 +170,16 @@ test('in-process quiz service + fence reply + letter grading', async () => {
     assert.equal(startCard.kind, 'question')
     assert.equal(startCard.payload.options.length, 4)
 
-    const second = [systemMsg(), userMsg('开始做题'), assistantMsg(startReply), userMsg('A')]
+    /* Pick the actually-correct letter from the bank instead of assuming "A":
+     * the bank was revised (2026-11-27) and answer positions moved. */
+    const stateFile = path.join(dataDir, 'quiz', 'default.json')
+    const issuedQid = JSON.parse(fs.readFileSync(stateFile, 'utf8')).issued_qid
+    const bank = JSON.parse(fs.readFileSync(
+      path.join(REPO, 'courses/set-theory/knowledge/data/questions.json'), 'utf8'))
+    const issuedQuestion = bank.questions.find((question) => question.id === issuedQid)
+    assert.ok(issuedQuestion !== undefined, 'issued question must exist in the bank: ' + issuedQid)
+    const correctLetter = 'ABCD'[Number(issuedQuestion.answer) - 1]
+    const second = [systemMsg(), userMsg('开始做题'), assistantMsg(startReply), userMsg(correctLetter)]
     assert.equal(decideFast({ messages: second }, core).fast.type, 'answer')
     const answerReply = composeReplyText(await callProxy(settings, {
       model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
@@ -178,7 +188,6 @@ test('in-process quiz service + fence reply + letter grading', async () => {
     assert.match(answerReply, /```learn-card\n/)
 
     /* Progress / hotspot card: the engine snapshots become a display-only payload. */
-    const stateFile = path.join(dataDir, 'quiz', 'default.json')
     const progress = await core.buildProgressCardPayload(service.app, stateFile)
     assert.ok(progress !== null, 'progress payload must exist after one answer')
     assert.ok(progress.summary.asked >= 1, 'progress must count the answered question')
@@ -528,6 +537,118 @@ test('card mode: an open question card retries with missed points, then grades a
   }
 })
 
+test('decideFast: 代码题 opens a session; fenced code is local only with an issued exercise', () => {
+  const codeCommand = decideFast({ messages: [systemMsg(), userMsg('代码题')] }, core)
+  assert.equal(codeCommand.fast.type, 'code-next', '代码题 must be a fast command even without prior start')
+  const fence = '看我的证明：\n```lean\ntheorem foo : True := by\n  trivial\n```'
+  const withoutIssued = decideFast({ messages: [systemMsg(), userMsg(fence)] }, core)
+  assert.equal(withoutIssued, null, 'fenced code without an issued exercise must reach the model')
+  const withIssued = decideFast({ messages: [systemMsg(), userMsg(fence)] }, core, { codeIssued: true })
+  assert.equal(withIssued.fast.type, 'code', 'fenced code with an issued exercise must be graded locally')
+  assert.equal(core.extractFencedCode('no fence'), null)
+  assert.equal(core.extractFencedCode(fence).includes('theorem foo'), true)
+})
+
+test('card mode: 代码题 issues a real dataset exercise; wrong, retry and pass use the real kernel', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-code-'))
+  const service = await core.startQuizService({
+    repoRoot: REPO,
+    stateDir: path.join(dataDir, 'quiz'),
+    runDir: path.join(dataDir, 'logs'),
+    cardsMode: 'learn',
+  })
+  const stateFile = path.join(dataDir, 'quiz', 'default.json')
+  const readState = () => JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  const fenceOf = (reply) => {
+    const match = reply.match(/```learn-card\n([\s\S]*?)\n```/)
+    return match === null ? null : JSON.parse(match[1])
+  }
+  const ask = async (texts) => composeReplyText(await callProxy({
+    proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 30000,
+  }, {
+    model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+    messages: toProxyMessages({ sessionId: 'code-test', messages: [systemMsg(), ...texts.map((text) => userMsg(text))] }, core),
+  }, undefined))
+  try {
+    const issueReply = await ask(['代码题'])
+    const codeCard = fenceOf(issueReply)
+    assert.ok(codeCard !== null, '代码题 must return a learn-card fence: ' + issueReply.slice(0, 200))
+    assert.equal(codeCard.kind, 'code')
+    assert.equal(typeof codeCard.payload.id, 'string')
+    assert.ok(codeCard.payload.template.includes('sorry'), 'code card must show the template with sorry')
+    assert.ok(Array.isArray(codeCard.payload.hints) && codeCard.payload.hints.length >= 1, 'code card must show hints')
+    assert.equal(codeCard.payload.solution, undefined, 'the solution must never reach the card')
+    const issued = codeCard.payload.id
+    assert.equal(readState().issued_code, issued, 'issuing a code card must set issued_code')
+
+    const record = datasetRecord(issued)
+    assert.ok(record !== undefined, 'issued exercise must exist in the dataset: ' + issued)
+
+    /* 1) wrong submission: kernel diagnostic, no mark-code, same exercise retryable. */
+    const wrongCode = '```lean\n' + String(record.template).replace('sorry', 'exact h') + '\n```'
+    const wrongReply = await ask(['代码题', wrongCode])
+    assert.match(wrongReply, /还没通过/)
+    assert.match(wrongReply, /诊断/)
+    assert.ok(!wrongReply.includes('```learn-card\n'), 'feedback is text, not a fake card')
+    const afterWrong = readState()
+    assert.equal(afterWrong.issued_code, issued, 'a failed submission must keep the exercise issued')
+    assert.ok(!afterWrong.code_done || afterWrong.code_done[issued] !== true, 'a failed submission must not mark it solved')
+
+    /* 2) retry the SAME exercise with the dataset solution: real kernel passes + progress. */
+    const correctCode = '```lean\n' + String(record.solution) + '\n```'
+    const passReply = await ask(['代码题', wrongCode, correctCode])
+    assert.match(passReply, /通过/)
+    assert.match(passReply, /checked/)
+    const afterPass = readState()
+    assert.equal(afterPass.issued_code, null, 'a passing submission must clear issued_code')
+    assert.equal(afterPass.code_done[issued], true, 'a passing submission must be recorded by mark-code')
+    assert.ok(passReply.includes('已解 1 道代码练习'), 'pass feedback must show progress: ' + passReply)
+
+    /* 3) skip the next code exercise: recorded as skipped, not solved. */
+    const nextReply = await ask(['代码题'])
+    const nextCard = fenceOf(nextReply)
+    assert.ok(nextCard !== null && nextCard.kind === 'code')
+    const nextId = nextCard.payload.id
+    assert.notEqual(nextId, issued, 'the next code exercise must be different')
+    const skipReply = await ask(['跳过这道代码题'])
+    assert.match(skipReply, /跳过/)
+    const afterSkip = readState()
+    assert.equal(afterSkip.issued_code, null, 'skip-code must clear issued_code')
+    assert.equal(afterSkip.code_done[nextId], 'skipped', 'skip-code must record skipped')
+  } finally {
+    await service.close()
+  }
+})
+
+test('card mode: code grading infrastructure failure returns 503 so the Host can fall back', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-code-fail-'))
+  const service = await core.startQuizService({
+    repoRoot: REPO,
+    stateDir: path.join(dataDir, 'quiz'),
+    runDir: path.join(dataDir, 'logs'),
+    cardsMode: 'learn',
+    codeGradeTimeoutMs: 1,
+    codeComposeTimeoutMs: 1,
+  })
+  const ask = async (texts) => callProxy({
+    proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 30000,
+  }, {
+    model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+    messages: toProxyMessages({ sessionId: 'code-fail-test', messages: [systemMsg(), ...texts.map((text) => userMsg(text))] }, core),
+  }, undefined)
+  try {
+    const issue = await ask(['代码题'])
+    const card = JSON.parse(composeReplyText(issue).match(/```learn-card\n([\s\S]*?)\n```/)[1])
+    await assert.rejects(
+      () => ask(['代码题', '```lean\n' + card.payload.template + '\n```']),
+      /HTTP 503/,
+      'grading infrastructure failure must surface as 503 (Host falls back to next())',
+    )
+  } finally {
+    await service.close()
+  }
+})
+
 test('apply(): /sokonanoda-fast-think gates the fast path per session; quiz hits fast only after opt-in', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-apply-'))
   const host = captureHost()
@@ -629,7 +750,83 @@ test('apply(): /sokonanoda-fast-think gates the fast path per session; quiz hits
   }
 })
 
+test('code-grade: self-contained bank templates get their name from a multi-line template', () => {
+  const exercise = {
+    id: 'code.i1.subset-trans',
+    template: 'import lib.Set\n\ntheorem subset_trans (α : Type) (A B C : Set α)\n    (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C := by\n  sorry\n',
+    anonymous: false,
+  }
+  assert.equal(expectedDeclarationName(exercise), 'subset_trans')
+  const assembled = assembleSubmission(exercise.template, 'by\n  intro x hx\n  exact h2 x (h1 x hx)', {
+    expectedName: 'subset_trans',
+  })
+  assert.equal(assembled.ok, true)
+  assert.ok(assembled.text.startsWith('import lib.Set'), 'trusted prefix must stay')
+  assert.ok(!assembled.text.includes('sorry'), 'user proof must replace the sorry')
+  const passed = evaluateGrade([
+    { type: 'decl.checked', name: 'subset_trans' },
+  ], exercise, 'subset_trans')
+  assert.equal(passed.passed, true)
+  const failed = evaluateGrade([
+    { type: 'decl.checked', name: 'subset_trans' },
+    { type: 'diagnostic', code: 'x', message: 'bad' },
+  ], exercise, 'subset_trans')
+  assert.equal(failed.passed, false, 'any diagnostic must block a pass')
+})
+
+test('apply(): a fenced code submission is graded locally when a code exercise is issued', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-apply-code-'))
+  const host = captureHost()
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  const request = (messages) => Object.freeze({
+    provider: 'opencode-go-7',
+    model: 'deepseek-v4.1-flash',
+    messages,
+    sessionId: 'apply-code-test',
+    signal: new AbortController().signal,
+  })
+  const textOfChunks = (chunks) => chunks
+    .filter((chunk) => chunk.type === 'text-delta')
+    .map((chunk) => chunk.text).join('')
+  try {
+    host.commands[0].handler({ agent: { session: { id: 'apply-code-test' } }, rawInput: 'on' })
+    const issued = await collect(host.listeners[0](request([systemMsg(), userMsg('代码题')]), slowStream()))
+    const issuedText = textOfChunks(issued)
+    const card = JSON.parse(issuedText.match(/```learn-card\n([\s\S]*?)\n```/)[1])
+    assert.equal(card.kind, 'code')
+    const record = datasetRecord(card.payload.id)
+    assert.ok(record !== undefined)
+
+    const wrongCode = '```lean\n' + String(record.template).replace('sorry', 'exact h') + '\n```'
+    const wrongSlow = slowStream()
+    const wrongChunks = await collect(host.listeners[0](request([
+      systemMsg(), userMsg('代码题'), userMsg(wrongCode),
+    ]), wrongSlow))
+    const wrongText = textOfChunks(wrongChunks)
+    assert.match(wrongText, /还没通过/, 'code submission must be answered locally: ' + wrongText.slice(0, 200))
+    assert.equal(wrongSlow.called, false, 'a code submission must not reach the model')
+
+    const correctCode = '```lean\n' + String(record.solution) + '\n```'
+    const passSlow = slowStream()
+    const passChunks = await collect(host.listeners[0](request([
+      systemMsg(), userMsg('代码题'), userMsg(wrongCode), userMsg(correctCode),
+    ]), passSlow))
+    assert.match(textOfChunks(passChunks), /通过/)
+    assert.equal(passSlow.called, false, 'a passing code submission must not reach the model')
+  } finally {
+    await host.disposeAll()
+  }
+})
+
 /* ---------------------------------------------------------------- helpers */
+
+/** One dataset record by id (fresh read; exercises are generated, not hand-edited). */
+function datasetRecord(id) {
+  const course = String(id).split('/')[0]
+  const payload = JSON.parse(fs.readFileSync(
+    path.join(REPO, 'courses', 'exercise-dataset', 'data', course + '.json'), 'utf8'))
+  return (payload.exercises || []).find((exercise) => exercise.id === id)
+}
 
 function captureHost() {
   const listeners = []

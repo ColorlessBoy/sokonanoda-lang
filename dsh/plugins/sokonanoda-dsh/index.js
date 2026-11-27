@@ -46,7 +46,7 @@ export const LEARN_CARD_TOOL_DECLARATION = {
     parameters: {
       type: 'object',
       properties: {
-        kind: { type: 'string', enum: ['question', 'knowledge', 'lesson', 'progress'] },
+        kind: { type: 'string', enum: ['question', 'knowledge', 'lesson', 'progress', 'code'] },
         payload: { type: 'object', additionalProperties: true },
       },
       required: ['kind', 'payload'],
@@ -57,6 +57,8 @@ export const LEARN_CARD_TOOL_DECLARATION = {
 
 const START_ONLY_RE = /^\s*(?:开始做题|练几题|出题|下一题|下一道|换一题|换一道|再来一题|再来一道|next)\s*[!！。.~～?？]*\s*$/i
 const DEFAULT_TIMEOUT_MS = 8000
+/** 代码题要 compose + 真内核判卷，快路径超时要比问答宽。 */
+const DEFAULT_CODE_TIMEOUT_MS = 45000
 const MAX_LOG_LINES = 2000
 
 /**
@@ -116,6 +118,7 @@ export function normalizeConfig(config = {}, fileConfig = {}) {
     ? path.resolve(merged.dataDir.trim())
     : defaultDataDir()
   const timeout = Number(merged.timeoutMs)
+  const codeTimeout = Number(merged.codeTimeoutMs)
   return {
     enabled: merged.enabled !== false,
     dataDir,
@@ -127,6 +130,9 @@ export function normalizeConfig(config = {}, fileConfig = {}) {
     quizStateDir: path.join(dataDir, 'quiz'),
     logDir: path.join(dataDir, 'logs'),
     timeoutMs: Number.isFinite(timeout) && timeout >= 500 ? Math.floor(timeout) : DEFAULT_TIMEOUT_MS,
+    codeTimeoutMs: Number.isFinite(codeTimeout) && codeTimeout >= 500
+      ? Math.floor(codeTimeout)
+      : DEFAULT_CODE_TIMEOUT_MS,
     decisionsLimit: Number.isFinite(Number(merged.decisionsLimit))
       ? Math.max(1, Math.min(MAX_LOG_LINES, Math.floor(Number(merged.decisionsLimit))))
       : 20,
@@ -300,12 +306,31 @@ export function lastAssistantQuestionCard(options, helpers) {
 }
 
 /**
+ * Read the currently issued code exercise (if any) from the shared quiz state.
+ * The fast path only treats a fenced-code message as a submission when the
+ * engine has an `issued_code`; otherwise the message falls through to `next()`.
+ * @param stateDir - quiz state directory (`settings.quizStateDir`).
+ * @returns the issued code id, or ''.
+ */
+export function readIssuedCode(stateDir) {
+  try {
+    const state = JSON.parse(fs.readFileSync(path.join(stateDir, 'default.json'), 'utf8'))
+    return state !== null && typeof state === 'object' && typeof state.issued_code === 'string'
+      ? state.issued_code
+      : ''
+  } catch {
+    return ''
+  }
+}
+
+/**
  * Decide whether this request is a fast-path candidate.
  * @param options - the loop request.
  * @param helpers - quiz-core helpers.
+ * @param extras - `{ codeIssued }`; enables fenced-code submissions when a code exercise is issued.
  * @returns `{fast, text, conversation}` or null.
  */
-export function decideFast(options, helpers) {
+export function decideFast(options, helpers, extras = {}) {
   const messages = options !== null && typeof options === 'object' ? options.messages : undefined
   if (!Array.isArray(messages) || messages.length === 0) return null
   const last = messages[messages.length - 1]
@@ -322,13 +347,19 @@ export function decideFast(options, helpers) {
     if (pending !== null && pending.open === true) {
       return { fast: { type: 'open' }, text, conversation }
     }
+    /* C9.4：已发出代码题 + 围栏代码 ⇒ 真内核判卷；否则回落模型。 */
+    if (extras.codeIssued === true && typeof helpers.extractFencedCode === 'function'
+      && helpers.extractFencedCode(text) !== null) {
+      return { fast: { type: 'code' }, text, conversation }
+    }
     return null
   }
   const priorStart = hasPriorStart(messages, helpers)
   if (fast.type === 'next') {
     if (!START_ONLY_RE.test(helpers.normalizeUserText(text)) && !priorStart) return null
-  } else if (!priorStart && fast.type !== 'map') {
-    /* 「进度/地图」是只读快照，可以在任何会话里直接看；其余需要已有 quiz 会话。 */
+  } else if (!priorStart && fast.type !== 'map' && fast.type !== 'code-next') {
+    /* 「进度/地图」是只读快照，可以在任何会话里直接看；「代码题」也能开局；
+     * 其余（字母/继续/跳过…）需要已有 quiz 会话。 */
     return null
   }
   return { fast, text, conversation }
@@ -731,13 +762,24 @@ export async function apply(ctx, config = {}) {
           return
         }
         const core = await loadQuizCore()
-        decision = decideFast(options, core)
+        /* 只有「已发出代码题 + 围栏代码」才读状态；普通消息不付这次 I/O。 */
+        const lastUser = core.extractConversation(options.messages).lastUserText
+        const codeIssued = typeof lastUser === 'string' && lastUser.includes('```')
+          ? readIssuedCode(settings.quizStateDir) !== ''
+          : false
+        decision = decideFast(options, core, { codeIssued })
         if (decision === null) {
           yield* next()
           return
         }
         const startedAt = Date.now()
-        const payload = await callProxy({ ...settings, proxyUrl: `${service.url}/v1/chat/completions` }, {
+        /* 代码题要 compose + 真内核判卷，超时比普通问答宽（仍由 codeTimeoutMs 兜住）。 */
+        const codeTurn = decision.fast.type === 'code' || decision.fast.type === 'code-next'
+        const payload = await callProxy({
+          ...settings,
+          timeoutMs: codeTurn ? settings.codeTimeoutMs : settings.timeoutMs,
+          proxyUrl: `${service.url}/v1/chat/completions`,
+        }, {
           model: 'quiz-auto',
           stream: false,
           messages: toProxyMessages(options, core),

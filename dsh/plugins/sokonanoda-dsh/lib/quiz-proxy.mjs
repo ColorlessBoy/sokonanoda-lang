@@ -23,8 +23,16 @@ import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
+import {
+  CODE_MAX_BYTES,
+  extractFencedCode,
+  gradeCodeSubmission,
+} from './code-grade.mjs';
 
 const execFileAsync = promisify(execFile);
+
+/* 供 Host 半的 decideFast 复用（围栏识别），不复制第二份正则。 */
+export { CODE_MAX_BYTES, extractFencedCode };
 
 // ───────────────────────── 常量 ─────────────────────────
 export const ENGINE_REL = path.join('courses', 'set-theory', 'knowledge', 'engine.py');
@@ -51,6 +59,9 @@ const BACK_RE = /^\s*(?:上一题|上一道(?:题)?|回上一题|回到上一题
 const SKIP_RE = /^(?:我会了|懂了不用做|太简单|跳过(?:这个|本)?知识点|跳过)$/;
 const MAP_RE = /^\s*(?:(?:学习)?地图|我在哪(?:里|儿)?|到哪(?:了|儿)?|进度|学到哪|还有多少|学习概况|学习进度|学习进展|看看?进度|看下进度)(?:了|啦|呀|呢)?\s*[!！。.?？~～]*\s*$/i;
 const EXPLAIN_RE = /^(?:我)?(?:不懂|不会|不明白|不知道|看不懂|没懂|不理解|讲讲|讲一下|讲解|解释(?:一下)?|知识卡|卡片|帮我讲(?:讲|解)?|这题(?:是)?(?:什么|怎么)|为什么这题)(?:这题|一下|下|吧|啊|呢|\?|？|。|!|！)*$/;
+/* C9.4：代码练习（真内核判卷）。命令是**短口令**，不做句子内匹配。 */
+const CODE_CMD_RE = /^\s*(?:来|出|给|看|练)?(?:一?道|个)?(?:代码题|代码练习|编程题|写代码|写代码题|code)\s*[!！。.~～?？]*\s*$/i;
+const CODE_SKIP_RE = /^\s*(?:跳过|放弃|不会|不做|不想做|先不)(?:这|本)?(?:道)?(?:代码)(?:题|练习)?\s*[!！。.~～?？]*\s*$/i;
 
 // 卡片模式常量
 export const ASK_TOOL_NAME = 'ask_user_question'; // legacy：点选卡片（QUIZ_PROXY_CARDS=1）
@@ -343,6 +354,15 @@ export function rememberQuestionHandle(app, stateKey, question) {
   app.questionHandles.set(stateKey, handle);
   trimOldest(app.questionHandles, HANDLE_LIMIT);
   return handle;
+}
+
+/** 记录「这个 state key 当前发到屏幕上的代码练习」（提交时对齐 issued_code 用）。 */
+export function rememberIssuedCode(app, stateKey, exercise) {
+  if (!exercise || typeof exercise.id !== 'string' || exercise.id === '') return null;
+  const entry = { ...exercise, at: Date.now() };
+  app.issuedCode.set(stateKey, entry);
+  trimOldest(app.issuedCode, HANDLE_LIMIT);
+  return entry;
 }
 
 /** 句柄 → 响应头（对用户不可见，DSH 忽略；测试/排障可断言）。 */
@@ -1133,15 +1153,94 @@ export function formatCard(card) {
 export function formatCodeExercise(exercise) {
   const value = exercise || {};
   const meta = [value.chapter, value.unit].filter(Boolean);
-  return [
-    `🧩 代码练习${meta.length ? '（' + meta.join(' · ') + '）' : ''}`,
-    value.title || '',
-    String(value.prompt || ''),
-    '',
-    '（这道题在编辑器里做；完成后告诉我，我会交给慢思考老师看）',
-  ]
-    .filter((line) => line !== '')
-    .join('\n');
+  const lines = [`🧩 代码练习${meta.length ? '（' + meta.join(' · ') + '）' : ''}`];
+  if (value.title) lines.push('', `**${value.title}**`);
+  if (value.prompt) lines.push('', String(value.prompt).trim());
+  const hints = Array.isArray(value.hints) ? value.hints : [];
+  for (const hint of hints.slice(0, 4)) {
+    if (typeof hint === 'string') {
+      if (hint.trim() !== '') lines.push('', `💡 ${hint.trim()}`);
+      continue;
+    }
+    if (hint === null || typeof hint !== 'object') continue;
+    const label = typeof hint.label === 'string' && hint.label !== '' ? hint.label : '提示';
+    const body = typeof hint.body === 'string' && hint.body !== '' ? hint.body : '';
+    if (body !== '') lines.push('', `💡 ${label}：${body}`);
+  }
+  const template = typeof value.template === 'string' ? value.template.trim() : '';
+  if (template !== '') lines.push('', '```sokonanoda', template, '```');
+  lines.push('', '把**完整声明贴回来**（从 `theorem`/`def` 那行到证明结束），我用**真内核**判卷；想放弃就回「跳过这道代码题」。');
+  return lines.join('\n');
+}
+
+/** 代码练习卡片的 payload（learn-card 的 `code` kind）。 */
+export function codeCardPayload(exercise) {
+  const value = exercise || {};
+  const payload = {
+    id: value.id || '',
+    course: value.course || '',
+    chapter: value.chapter || '',
+    unit: value.unit || '',
+    title: value.title || '',
+    prompt: value.prompt || '',
+    kind: value.kind || 'theorem',
+    hints: (Array.isArray(value.hints) ? value.hints : []).slice(0, 4).map((hint) => (
+      typeof hint === 'string'
+        ? { label: '', body: hint }
+        : { label: String((hint && hint.label) || ''), body: String((hint && hint.body) || '') }
+    )).filter((hint) => hint.body !== ''),
+    template: typeof value.template === 'string' ? value.template : '',
+    submitHint: '把完整声明贴回来（从 theorem/def 那行到证明结束），我用真内核判卷；想放弃回「跳过这道代码题」。',
+  };
+  const source = value.source;
+  if (source !== null && typeof source === 'object' && typeof source.file === 'string') {
+    payload.source = source.file + (Number.isFinite(Number(source.line)) ? ':' + Number(source.line) : '');
+  }
+  return payload;
+}
+
+/** 判卷结果文本：通过/未过都只报内核真实事件，不伪造。 */
+export function formatCodeFeedback(exercise, result, extras = {}) {
+  const value = exercise || {};
+  const data = result || {};
+  const name = data.target || value.name || value.id || '';
+  if (data.ok !== true) {
+    if (data.code === 'too-large') {
+      return `代码太长（${data.bytes} 字节，上限 ${data.max} 字节）。只贴目标声明就够了。`;
+    }
+    if (data.code === 'name-mismatch') {
+      return `声明名对不上：这道题要求 \`${data.expectedName}\`，你贴的是 \`${data.foundName || '（匿名）'}\`。把声明名保持不变再试。`;
+    }
+    if (data.code === 'empty') {
+      return '没读到可判的代码：把目标声明（含 `theorem`/`def` 那行和证明）完整贴在一个围栏里。';
+    }
+    return '这次没能判卷（代码格式没认出来）。把目标声明完整贴在一个 ` ```lean ` 围栏里再试。';
+  }
+  const lines = [];
+  if (data.passed === true) {
+    lines.push('✅ **通过**（真内核判卷）');
+    lines.push(`· checked：\`${name}\``);
+    lines.push(`· open：${data.open.length} · diagnostic：0`);
+    const solved = extras.solved;
+    const done = solved !== null && solved !== undefined && Number.isFinite(Number(solved.codeDone))
+      ? Number(solved.codeDone) : null;
+    if (done !== null) lines.push('', `进度：已解 ${done} 道代码练习。`);
+    lines.push('', '回「代码题」再来一道，或「开始做题」继续选择题。');
+    return lines.join('\n');
+  }
+  lines.push('❌ **还没通过**（真内核判卷）');
+  if (name !== '') lines.push(`· 目标：\`${name}\``);
+  const first = Array.isArray(data.diagnostics) && data.diagnostics.length > 0 ? data.diagnostics[0] : null;
+  if (first !== null) {
+    const where = Number.isFinite(Number(first.line)) ? `（第 ${first.line} 行）` : '';
+    lines.push(`· 首条诊断：\`${first.code}\`${where} ${first.message}`);
+  } else if (Array.isArray(data.open) && name !== '' && data.open.includes(name)) {
+    lines.push('· 目标声明里还是 `sorry`：把证明补完再贴。');
+  } else {
+    lines.push('· 内核没有 checked 目标声明：检查声明名与证明体。');
+  }
+  lines.push('', '改好后把完整声明再贴在围栏里；想放弃回「跳过这道代码题」。');
+  return lines.join('\n');
 }
 
 export function formatFeedback(answer) {
@@ -1607,8 +1706,9 @@ async function cardNextQuestion(app, stateFile, stateKey, { advance, noLesson = 
       continue;
     }
     if (step.kind === 'code') {
-      blocks.push(formatCodeExercise(step.exercise));
-      return { blocks, question: null, position: step.position || null };
+      rememberIssuedCode(app, stateKey, step.exercise);
+      if (!learn) blocks.push(formatCodeExercise(step.exercise));
+      return { blocks, question: null, position: step.position || null, codeExercise: step.exercise };
     }
     throw new Error('engine.py 返回了未知步骤：' + String(step && step.kind));
   }
@@ -1631,6 +1731,8 @@ function cardReplyFromNext(app, stateKey, stateFile, next, leadingText, kind, he
     } else {
       blocks.push(formatQuestion(next.question, heading || '📝 题目', next.position));
     }
+  } else if (learn && next.codeExercise) {
+    toolCall = buildLearnCardToolCall('code', codeCardPayload(next.codeExercise));
   } else if (learn && next.knowledgeCard) {
     toolCall = buildLearnCardToolCall('knowledge', next.knowledgeCard);
   } else if (learn && next.lessonObject) {
@@ -1666,6 +1768,86 @@ async function cardNextFlow(app, stateKey, stateFile, noLesson = false, force = 
     noLesson,
   });
   return cardReplyFromNext(app, stateKey, stateFile, next, '', 'next', '📝 题目');
+}
+
+/**
+ * C9.4「代码题」：从课程数据集（compose）或引擎小题库发一道代码练习。
+ * 不改题目瀑布：只有用户明确要代码题时才走这里。
+ */
+async function codeNextFlow(app, stateKey, stateFile, cardMode) {
+  const step = await runEngine(app, ['code-next', '--state', stateFile]);
+  if (step.kind !== 'code' || !step.exercise || typeof step.exercise.id !== 'string') {
+    return {
+      kind: 'code',
+      text: '没有更多可以发的代码练习了。回「开始做题」继续选择题吧。',
+      toolCall: null,
+    };
+  }
+  rememberIssuedCode(app, stateKey, step.exercise);
+  if (cardMode && app.cardsMode === 'learn') {
+    return {
+      kind: 'code',
+      text: '',
+      toolCall: buildLearnCardToolCall('code', codeCardPayload(step.exercise)),
+    };
+  }
+  return { kind: 'code', text: formatCodeExercise(step.exercise), toolCall: null };
+}
+
+/** 「跳过这道代码题」：记 skipped 并清 issued_code（不记已解）。 */
+async function codeSkipFlow(app, stateFile) {
+  const state = readStateJson(stateFile) || {};
+  const exercise = typeof state.issued_code === 'string' ? state.issued_code : '';
+  if (exercise === '') {
+    return { kind: 'code', text: '现在没有正在做的代码题。回「代码题」来一道。', toolCall: null };
+  }
+  await runEngine(app, ['skip-code', '--state', stateFile, '--exercise', exercise]);
+  return {
+    kind: 'code',
+    text: `好，\`${exercise}\` 记为跳过。回「代码题」再来一道，或「开始做题」继续选择题。`,
+    toolCall: null,
+  };
+}
+
+/**
+ * 用户提交围栏代码：命中 issued_code 才判；resume 失败/判卷基础设施失败返回 null，
+ * 调用方据此回落到 `next()`（绝不把超时/缺工具伪装成「没过」）。
+ */
+async function codeSubmitFlow(app, stateKey, stateFile, text) {
+  const userCode = extractFencedCode(text);
+  if (userCode === null) return null;
+  const state = readStateJson(stateFile) || {};
+  const issued = typeof state.issued_code === 'string' ? state.issued_code : '';
+  if (issued === '') return null;
+  const step = await runEngine(app, ['code-next', '--state', stateFile]); // resume issued
+  if (step.kind !== 'code' || !step.exercise || step.exercise.id !== issued) return null;
+  const exercise = step.exercise;
+  rememberIssuedCode(app, stateKey, exercise);
+  let result = null;
+  try {
+    result = await gradeCodeSubmission({
+      repoRoot: app.repoRoot,
+      exercise,
+      userCode,
+      maxBytes: CODE_MAX_BYTES,
+      timeoutMs: app.codeGradeTimeoutMs,
+      composeTimeoutMs: app.codeComposeTimeoutMs,
+    });
+  } catch (error) {
+    app.log(`code-grade fallback id=${issued} code=${String((error && error.code) || 'unknown')}`);
+    return null;
+  }
+  app.log(`code-grade id=${issued} passed=${result.passed === true ? 1 : 0} bytes=${result.bytes || 0} ms=${result.ms || 0}`);
+  if (result.ok === true && result.passed === true) {
+    let solved = null;
+    try {
+      solved = await runEngine(app, ['mark-code', '--state', stateFile, '--exercise', issued, '--solved']);
+    } catch {
+      solved = null; // 进度写失败不改变「内核已 checked」这个事实
+    }
+    return { kind: 'code', text: formatCodeFeedback(exercise, result, { solved }), toolCall: null };
+  }
+  return { kind: 'code', text: formatCodeFeedback(exercise, result), toolCall: null };
 }
 
 /** 用户直接打字回字母（没点卡片）：判卷 + 下一张卡片。 */
@@ -2118,6 +2300,8 @@ async function cardFastReply(app, fingerprint, fast, requestHandle = null) {
     return cardNextFlow(app, stateKey, stateFile, fast.noLesson === true, fast.forceNext === true);
   }
   if (fast.type === 'back') return cardReviewFlow(app, stateKey, stateFile);
+  if (fast.type === 'code-next') return codeNextFlow(app, stateKey, stateFile, true);
+  if (fast.type === 'code-skip') return codeSkipFlow(app, stateFile);
   return cardAnswerByLetterFlow(app, stateKey, stateFile, fast.letter, requestHandle);
 }
 
@@ -2157,6 +2341,11 @@ async function fastReply(app, fingerprint, fast, rawText, requestHandle = null) 
   if (fast.type === 'skip') return skipFlow(app, stateFile, fingerprint);
   if (fast.type === 'map') return mapReply(app, stateFile);
   if (fast.type === 'explain') return explainReply(app, stateFile);
+  if (fast.type === 'code-next') {
+    const reply = await codeNextFlow(app, stateKeyOf(app, fingerprint), stateFile, false);
+    return { kind: 'code', text: reply.text };
+  }
+  if (fast.type === 'code-skip') return codeSkipFlow(app, stateFile);
   return answerFlow(app, fingerprint, stateFile, fast.letter, requestHandle);
 }
 
@@ -2176,6 +2365,8 @@ export function classifyFast(model, lastUserText) {
     return { type: 'next', noLesson: wantsQuestion, forceNext };
   }
   if (BACK_RE.test(normalized)) return { type: 'back' };
+  if (CODE_CMD_RE.test(normalized)) return { type: 'code-next' };
+  if (CODE_SKIP_RE.test(normalized)) return { type: 'code-skip' };
   if (SKIP_RE.test(normalized)) return { type: 'skip' };
   if (MAP_RE.test(normalized)) return { type: 'map' };
   if (EXPLAIN_RE.test(normalized)) return { type: 'explain' };
@@ -2714,6 +2905,37 @@ async function handleChat(req, res, app) {
     return;
   }
 
+  /* C9.4 代码题提交：当前 issued_code + 围栏代码 ⇒ 真内核判卷。
+   * 判卷基础设施失败（超时/缺工具/输出坏）返回 null ⇒ 503，让 Host 回落 next()；
+   * 用户代码本身写错是 diagnostic，照常显示，不回落。 */
+  if (fast === null && quizModel && !endsWithTool) {
+    const codeText = String(conversation.lastUserText || '');
+    const codeFence = extractFencedCode(codeText);
+    const stateSnapshot = readStateJson(stateFileOf(app, fingerprintOf(messages)));
+    const issuedCode = stateSnapshot && typeof stateSnapshot.issued_code === 'string'
+      ? stateSnapshot.issued_code : '';
+    if (codeFence !== null && issuedCode !== '') {
+      const fingerprint = fingerprintOf(messages);
+      const stateKey = stateKeyOf(app, fingerprint);
+      const handleBefore = app.questionHandles.get(stateKey) || null;
+      try {
+        const reply = await withStateLock(app, stateKey, () =>
+          codeSubmitFlow(app, stateKey, stateFileOf(app, fingerprint), codeText),
+        );
+        if (reply !== null) {
+          app.log(`route=fast:code-submit fp=${fingerprint.slice(0, 8)} id=${issuedCode} bytes=${Buffer.byteLength(codeFence, 'utf8')}`);
+          await sendFastReply(fingerprint, reply, 'fast', handleBefore);
+          return;
+        }
+      } catch (error) {
+        app.log(`code-submit error fp=${fingerprint.slice(0, 8)} ${String((error && error.message) || error)}`);
+      }
+      app.log(`code-submit fallback fp=${fingerprintOf(messages).slice(0, 8)} id=${issuedCode}`);
+      sendJson(res, 503, errorPayload(503, '代码判卷暂时不可用', 'server_error', 'code_grade_unavailable'));
+      return;
+    }
+  }
+
   /* 非命令、非字母：如果当前 issued 题是开放题，这段文字就是它的回答 —— 本地判分，
    * 不交给慢模型（否则模型会自己编下一题，displayed ≠ issued）。 */
   if (fast === null && quizModel && !endsWithTool) {
@@ -2898,6 +3120,13 @@ export function createQuizProxy(options = {}) {
     engineTimeoutMs: Number.isFinite(options.engineTimeoutMs)
       ? options.engineTimeoutMs
       : Number(process.env.QUIZ_PROXY_ENGINE_TIMEOUT_MS || DEFAULT_ENGINE_TIMEOUT_MS),
+    /* C9.4 真内核判卷：compose + soko grade 的外层超时（失败 fail-open）。 */
+    codeGradeTimeoutMs: Number.isFinite(options.codeGradeTimeoutMs)
+      ? options.codeGradeTimeoutMs
+      : Number(process.env.QUIZ_PROXY_CODE_GRADE_TIMEOUT_MS || 30_000),
+    codeComposeTimeoutMs: Number.isFinite(options.codeComposeTimeoutMs)
+      ? options.codeComposeTimeoutMs
+      : Number(process.env.QUIZ_PROXY_CODE_COMPOSE_TIMEOUT_MS || 10_000),
     stats: { fastturns: 0, slowturns: 0 },
     // 卡片模式：learn = 真卡片插件 learn_card（QUIZ_PROXY_CARDS=learn 才开）；
     // ask = 旧的点选卡片 ask_user_question（QUIZ_PROXY_CARDS=1，legacy）；
@@ -2907,6 +3136,7 @@ export function createQuizProxy(options = {}) {
     /* I2/I3：默认单学习流（stateKey='default'）；perConversation 供隔离/调试用。 */
     perConversation: options.perConversation === true,
     questionHandles: new Map(), // stateKey → { qid, nonce, issueId, at }（屏幕上的题）
+    issuedCode: new Map(), // stateKey → 当前代码练习（提交时对齐 issued_code）
     gradeResults: new Map(), // stateKey+\u0001+qid+\u0001+nonce → 第一次判分结果（I3 幂等）
     pendingCards: new Map(),
     cardReplies: new Map(),

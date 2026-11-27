@@ -277,6 +277,23 @@ const PROGRESS = {
   ],
 }
 
+const CODE = {
+  id: 'set-theory/I.1/unit01-sets-membership/mem_of_subset',
+  course: 'set-theory',
+  chapter: 'I.1',
+  unit: '① 集合与隶属',
+  title: '元素落在子集里。',
+  prompt: '练习 1（T 类）：元素落在子集里。',
+  kind: 'theorem',
+  hints: [
+    { label: '思路', body: '手里 h 是 A ⊆ B，把 h 当函数用。' },
+    { label: '关键件', body: '先 intro 掉 a ∈ A。' },
+  ],
+  template: 'theorem mem_of_subset (α : Type) (A B : Set α) (h : A ⊆ B) (a : α) :\n    a ∈ A → a ∈ B := by\n  sorry',
+  submitHint: '把完整声明贴回来（从 theorem/def 那行到证明结束），我用真内核判卷；想放弃回「跳过这道代码题」。',
+  source: 'courses/set-theory/units/I.1/unit01-sets-membership.sokonanoda:44',
+}
+
 /* -------------------------------------------------------------- the tests */
 
 test('module id + package manifest match what the profile loader expects', () => {
@@ -539,6 +556,28 @@ test('open question fence renders the typing hint instead of option rows', () =>
   expect(textOf(hint).includes('输入框'), 'open card must tell the learner to type the answer')
   expect(textOf(view).includes('只需要一个方向'), 'open card lost the stem')
   expect(nodesOf(view).every((node) => node.type !== 'button'), 'open card stays non-interactive')
+})
+
+test('code fence renders prompt, hints and the trusted template without interaction', () => {
+  const view = render(LearnCardFence(fenceProps('code', CODE)))
+  oneByClass(view, 'dslc-fence')
+  const text = textOf(view)
+  for (const needle of ['代码练习', 'I.1', '元素落在子集里。', '思路', '关键件', 'mem_of_subset', 'sorry', '真内核']) {
+    expect(text.includes(needle), 'code card missing ' + needle)
+  }
+  const template = oneByClass(view, 'dslc-def')
+  expect(textOf(template).includes('theorem mem_of_subset'), 'template must keep the declaration')
+  expect(nodesOf(view).every((node) => node.props?.onClick === undefined), 'code card stays non-interactive')
+  expect(!text.includes('```'), 'the fence JSON must not leak into the code card')
+  expect(!text.includes('RAW CODE'), 'settled code fence must replace the raw block')
+  expect(byClass(view, 'dslc-fast-badge').length === 1, 'code card must carry the fast-path badge')
+  expect(cardCss.includes('.dslc-code-hint{'), 'code submit-hint CSS rule missing')
+  expect(cardCss.includes('.dslc-code-meta{'), 'code meta CSS rule missing')
+  for (const dict of [zh, en]) {
+    for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint']) {
+      expect(typeof dict[key] === 'string' && dict[key] !== '', 'locale missing ' + key)
+    }
+  }
 })
 
 test('progress fence renders summary, chapter bars, heat cells, hotspots and recent dots', () => {
