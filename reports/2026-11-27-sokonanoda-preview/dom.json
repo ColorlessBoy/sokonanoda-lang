@@ -1,0 +1,13 @@
+{
+  "capture": "real DSH Web (isolated profile, 1440x913) + real kernel state; same repository worktree",
+  "baseline": "origin/main fcf6f72f dsh/plugins/sokonanoda-dsh (before this branch)",
+  "changed": "agent/soko-preview-full-2e3be05b64a1",
+  "openUnit10Cantor": {
+    "before": { "rows": 207, "gutterNumbers": 207, "nativeAnchors": 0, "targetMarks": [], "copyButton": false, "scrollBottomLoadsMore": false, "note": "rows came from content.text split; the document owner cannot locate a line" },
+    "after": { "rows": 207, "gutterNumbers": 207, "nativeAnchors": 207, "targetMarks": [], "copyButton": true, "scrollBottomLoadsMore": false, "note": "every row exposes data-textpreview-line for the owner's scrollToLine/markLine" }
+  },
+  "sourceLink": {
+    "before": { "previewRoots": 0, "textPreviewStates": [], "fileTabOpened": false, "linkHref": "dsh-resource://file/absolute/.../unit60-compl-algebra.sokonanoda", "note": "client-report logged sidebar-right: missing, so the click was a dead href" },
+    "after": { "previewRoots": 1, "rows": 115, "nativeAnchors": 115, "targetMarks": ["58"], "active": ["58"], "targetVisible": true, "scrollTop": 1219, "linkHref": "dsh-resource://file/session/<session>/courses/set-theory/units/I.1/unit60-compl-algebra.sokonanoda", "goalPanel": "第 58 行 mem_compl_of_not_mem theorem 待证明 步骤 1/-1", "copyButton": true }
+  }
+}
