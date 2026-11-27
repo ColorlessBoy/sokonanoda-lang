@@ -73,6 +73,9 @@ window.__ModuleLoader__.load({
       : null
 
     let sidebarRight = null
+    /* The owning Cordis context, kept so a source link can resolve the Sidebar
+     * service even when the card was clicked before its late injection ran. */
+    let hostCtx = null
     let sourcePreviewReady = false
     const SOURCE_PREVIEW_ID = 'sokonanoda-dsh/source'
 
@@ -168,6 +171,13 @@ window.__ModuleLoader__.load({
       '.dslc-code-meta{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280));overflow-wrap:anywhere}',
       /* Read-only source preview: active cursor row + goal panel. */
       '.dsls-source-scroll:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#0b57d0);outline-offset:-2px}',
+      '.dsls-source-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:none;box-sizing:border-box;padding:3px 10px;border-bottom:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:var(--dsw-alias-label-secondary,#4b5563);font-family:var(--dsw-font-family,inherit);font-size:11.5px;line-height:1.4}',
+      '.dsls-source-meta{font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:11px;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))}',
+      '.dsls-source-copy{flex:none;padding:1px 8px;border:1px solid var(--dsw-alias-border-l2,#d5d8dd);border-radius:var(--dsw-radius-sm,6px);background:var(--dsw-alias-bg-base,#fff);color:var(--dsw-alias-label-primary,#15171a);font:inherit;cursor:pointer}',
+      '.dsls-source-copy:disabled{cursor:default;color:var(--dsw-alias-label-tertiary,#6b7280)}',
+      '.dsls-source-copy[data-copy-state="failed"]{color:var(--dsw-alias-state-error-primary,#c4553d);border-color:var(--dsw-alias-state-error-primary,#c4553d)}',
+      '.dsls-source-empty{margin:0;padding:18px 12px;color:var(--dsw-alias-label-secondary,#4b5563);text-align:center;font-size:12.5px;line-height:1.6}',
+      '.dsls-source-line[data-textpreview-target]{background:var(--dsw-alias-interactive-bg-hover-accent,rgba(11,87,208,.12))}',
       '.dsls-source-line[data-source-active="1"]{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.14));box-shadow:inset 3px 0 0 var(--dsw-alias-state-business-primary,#0b57d0)}',
       '.dsls-source-line:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.08))}',
       '.dsls-source-panel{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;max-height:44%;overflow-y:auto;box-sizing:border-box;padding:8px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:var(--dsw-alias-label-primary,#15171a);font-family:var(--dsw-font-family,inherit);font-size:12px;line-height:1.5}',
@@ -280,6 +290,11 @@ window.__ModuleLoader__.load({
       stateStatusFailed: '失败',
       stateAria: '只读源码预览：上下方向键移动光标行并显示该位置的 goal',
       stateLoadMore: '文件较长：先滚动到底部加载更多行',
+      sourceCopy: '复制',
+      sourceCopied: '已复制',
+      sourceCopyFailed: '复制失败',
+      sourceEmpty: '空文件（0 行）',
+      sourceToolbarLabel: 'Lean · 只读',
     }
 
     const en = {
@@ -335,6 +350,11 @@ window.__ModuleLoader__.load({
       stateStatusFailed: 'failed',
       stateAria: 'Read-only source preview: arrow keys move the cursor line and show its goal',
       stateLoadMore: 'Long file: scroll to the bottom to load more lines',
+      sourceCopy: 'Copy',
+      sourceCopied: 'Copied',
+      sourceCopyFailed: 'Copy failed',
+      sourceEmpty: 'Empty file (0 lines)',
+      sourceToolbarLabel: 'Lean · read-only',
     }
 
     /* -------------------------------------------------------------- helpers */
@@ -428,13 +448,32 @@ window.__ModuleLoader__.load({
         .split('/').filter((segment) => segment !== '').map(encodeURIComponent).join('/')
     }
 
+    /**
+     * Read the Sidebar service, retrying through the owning context. A plugin
+     * can apply before the Sidebar's client service exists; the late `inject`
+     * in {@link apply} normally fills it, and this covers a click in between.
+     * @returns the service, or null when this host has none.
+     */
+    function resolveSidebarRight() {
+      if (sidebarRight !== null) return sidebarRight
+      if (hostCtx === null) return null
+      try {
+        const service = hostCtx.sidebarRight !== undefined
+          ? hostCtx.sidebarRight
+          : (typeof hostCtx.get === 'function' ? hostCtx.get('sidebarRight') : undefined)
+        if (service !== undefined && service !== null) sidebarRight = service
+      } catch (error) { /* service not available in this host */ }
+      return sidebarRight
+    }
+
     /** Build the sidebar address for one source link, preferring the session scope. */
     function sourceAddress(link) {
       if (link === null || typeof link !== 'object') return ''
       let sessionId = ''
+      const service = resolveSidebarRight()
       try {
-        if (sidebarRight !== null && sidebarRight.mounted !== undefined && typeof sidebarRight.mounted.getSnapshot === 'function') {
-          sessionId = sidebarRight.mounted.getSnapshot() || ''
+        if (service !== null && service.mounted !== undefined && typeof service.mounted.getSnapshot === 'function') {
+          sessionId = service.mounted.getSnapshot() || ''
         }
       } catch (error) { sessionId = '' }
       if (sessionId !== '' && typeof link.relativePath === 'string' && link.relativePath !== '') {
@@ -451,19 +490,20 @@ window.__ModuleLoader__.load({
       if (link === null || typeof link !== 'object') return
       const address = sourceAddress(link)
       if (address === '') return
+      const service = resolveSidebarRight()
       try {
-        if (sidebarRight !== null && typeof sidebarRight.openResource === 'function') {
+        if (service !== null && typeof service.openResource === 'function') {
           /* The file resource params are `{ line }` (SidebarRightResourceParamsMap
            * `file: WorkspaceFileParams`); a nested `{ file: { line } }` is ignored. */
           const line = Number(link.line)
           const params = Number.isFinite(line) && line > 0 ? { line } : undefined
           if (sourcePreviewReady) {
             try {
-              sidebarRight.openResource(address, { kind: SOURCE_PREVIEW_ID, params })
+              service.openResource(address, { kind: SOURCE_PREVIEW_ID, params })
               return
             } catch (error) { /* fall back to the stock preview type */ }
           }
-          sidebarRight.openResource(address, params === undefined ? {} : { params })
+          service.openResource(address, params === undefined ? {} : { params })
           return
         }
       } catch (error) {
@@ -555,7 +595,12 @@ window.__ModuleLoader__.load({
       leanWrap: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', border: '1px solid var(--dsw-alias-border-l1,#e6e8ec)', borderRadius: '12px', background: 'var(--dsw-alias-markdown-code-block,#f2f3f5)', overflow: 'hidden' },
       lean: { margin: 0, padding: '10px 12px', overflowX: 'auto', font: '12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace', whiteSpace: 'pre', color: 'var(--dsw-alias-label-primary,#15171a)' },
       sourceRoot: { display: 'flex', flexDirection: 'column', width: '100%', height: '100%', minHeight: 0, background: 'var(--dsw-alias-bg-base,#fff)', color: 'var(--dsw-alias-label-primary,#15171a)' },
-      sourceScroll: { flex: 1, minHeight: 0, overflowY: 'auto', font: '12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace' },
+      sourceToolbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flex: '0 0 auto', boxSizing: 'border-box', padding: '3px 10px', borderBottom: '1px solid var(--dsw-alias-border-l1,#e6e8ec)', background: 'var(--dsw-alias-bg-layer-2,#f7f8fa)', color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '11.5px', lineHeight: 1.4 },
+      sourceMeta: { fontFamily: 'var(--dsw-font-mono,ui-monospace,monospace)', fontSize: '11px', color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))' },
+      sourceCopy: { flex: '0 0 auto', padding: '1px 8px', border: '1px solid var(--dsw-alias-border-l2,#d5d8dd)', borderRadius: '6px', background: 'var(--dsw-alias-bg-base,#fff)', color: 'var(--dsw-alias-label-primary,#15171a)', font: 'inherit', cursor: 'pointer' },
+      sourceCopyDisabled: { cursor: 'default', opacity: 0.6 },
+      sourceEmpty: { margin: 0, padding: '18px 12px', color: 'var(--dsw-alias-label-secondary,#4b5563)', textAlign: 'center', fontSize: '12.5px', lineHeight: 1.6 },
+      sourceScroll: { flex: 1, minHeight: 0, position: 'relative', overflowY: 'auto', font: '12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace' },
       sourceLines: { display: 'flex', flexDirection: 'column', minWidth: 'max-content', padding: '8px 0' },
       sourceLine: { display: 'flex', alignItems: 'flex-start', minHeight: '1.7em' },
       sourceLineFlash: { background: 'rgba(255,206,84,0.25)' },
@@ -1339,6 +1384,100 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * One loaded page's source lines. A zero-line page is how the Host reports
+     * an empty file, so it contributes no rows; a one-line empty page keeps the
+     * blank line it stands for.
+     * @param page - document page `{offset, text, lines}`.
+     * @returns its lines in source order.
+     */
+    function linesOfPage(page) {
+      if (!isRecord(page)) return []
+      const lines = Number(page.lines)
+      if (Number.isFinite(lines) && Math.floor(lines) <= 0) return []
+      const text = typeof page.text === 'string' ? page.text : ''
+      return text === '' ? [''] : text.split('\n')
+    }
+
+    /**
+     * Flatten the owner's loaded pages into absolute-numbered rows. A page's
+     * offset is the file's real 1-based line, so a lazily appended page keeps
+     * every row's true number instead of restarting at 1. `content.text` is only
+     * a fallback for a host that delivers no page table; it is never re-split
+     * when pages are present.
+     * @param content - document content delivered to the body.
+     * @returns rows and the loaded prefix's last line number.
+     */
+    function sourceRowsOf(content) {
+      const rows = []
+      if (isRecord(content) && Array.isArray(content.pages) && content.pages.length > 0) {
+        const pages = content.pages.slice().sort(function (left, right) {
+          const a = isRecord(left) ? Number(left.offset) : NaN
+          const b = isRecord(right) ? Number(right.offset) : NaN
+          return (Number.isFinite(a) ? a : 0) - (Number.isFinite(b) ? b : 0)
+        })
+        for (const page of pages) {
+          if (!isRecord(page)) continue
+          const offset = Number(page.offset)
+          const start = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1
+          const lines = linesOfPage(page)
+          for (let index = 0; index < lines.length; index += 1) {
+            rows.push({ number: start + index, text: lines[index] })
+          }
+        }
+      } else if (isRecord(content) && typeof content.text === 'string') {
+        const lines = content.text.split('\n')
+        for (let index = 0; index < lines.length; index += 1) rows.push({ number: index + 1, text: lines[index] })
+      }
+      return { rows: rows, lastLine: rows.length === 0 ? 0 : rows[rows.length - 1].number }
+    }
+
+    /**
+     * Classic selection copy, used when the async Clipboard API is unavailable
+     * or refused. Nothing is left in the document.
+     * @param value - text to copy.
+     * @param doc - owning document.
+     * @returns whether the copy command reported success.
+     */
+    function legacyCopySource(value, doc) {
+      if (doc === undefined || doc === null || typeof doc.createElement !== 'function') return false
+      try {
+        const area = doc.createElement('textarea')
+        area.value = value
+        area.setAttribute('readonly', '')
+        area.style.position = 'fixed'
+        area.style.top = '0'
+        area.style.opacity = '0'
+        doc.body.appendChild(area)
+        area.select()
+        const copied = typeof doc.execCommand === 'function' && doc.execCommand('copy') === true
+        doc.body.removeChild(area)
+        return copied
+      } catch (error) {
+        return false
+      }
+    }
+
+    /**
+     * Copy the loaded source (the same text the native code body copies) and
+     * report success instead of failing silently.
+     * @param value - loaded source text.
+     * @returns resolves to whether any copy path succeeded.
+     */
+    function copySourceText(value) {
+      const doc = typeof document !== 'undefined' ? document : undefined
+      try {
+        if (typeof navigator !== 'undefined' && navigator !== null && navigator.clipboard !== undefined
+          && typeof navigator.clipboard.writeText === 'function') {
+          return navigator.clipboard.writeText(value).then(
+            function () { return true },
+            function () { return legacyCopySource(value, doc) },
+          )
+        }
+      } catch (error) { /* fall through to the selection path */ }
+      return Promise.resolve(legacyCopySource(value, doc))
+    }
+
+    /**
      * Clamp one arrow-key move to loaded source lines.
      * @param current - active line (0 = none yet).
      * @param direction - +1 down / -1 up.
@@ -1359,55 +1498,65 @@ window.__ModuleLoader__.load({
       const navigation = tabInfo !== null && tabInfo.tab !== undefined ? tabInfo.tab.navigation : null
       const params = navigation !== null && navigation !== undefined ? navigation.params : null
       const targetLine = params !== null && params !== undefined && Number.isFinite(Number(params.line))
-        ? Number(params.line)
+        ? Math.max(0, Math.floor(Number(params.line)))
         : 0
       const navRevision = navigation !== null && navigation !== undefined ? navigation.revision : undefined
       const content = input.content
-      const text = isRecord(content) && content.kind === 'text' && typeof content.text === 'string'
-        ? content.text
-        : ''
-      const lines = text === '' ? [''] : text.split('\n')
+      /* Rows keep the file's absolute line numbers; `lastLine` is the loaded
+       * prefix's end, used to clamp arrow moves and to grow the gutter. */
+      const source = sourceRowsOf(content)
+      const rows = source.rows
+      const lastLine = source.lastLine
       const resourceAddress = typeof input.resourceAddress === 'string' ? input.resourceAddress : ''
       const bodyRef = React.useRef(null)
       const navApplied = React.useRef(null)
+      const copyTimer = React.useRef(0)
       const requestSeq = React.useRef(0)
       const [activeLine, setActiveLine] = React.useState(targetLine > 0 ? targetLine : 0)
       const [flashLine, setFlashLine] = React.useState(0)
       const [loadHint, setLoadHint] = React.useState(false)
+      const [copyState, setCopyState] = React.useState('idle')
       const [panel, setPanel] = React.useState({ phase: 'idle', state: null, error: null, diagnostics: [] })
       const attach = function (node) {
         bodyRef.current = node
         if (typeof input.scrollportRef === 'function') input.scrollportRef(node)
       }
+      /* Rows carry `data-textpreview-line`, the anchor the document owner's
+       * `scrollToLine`/`markLine` use; `data-source-line` stays for the cursor
+       * panel and older tests. */
+      const lineRow = function (body, number) {
+        if (body === null || body === undefined || typeof body.querySelector !== 'function') return null
+        const row = body.querySelector('[data-textpreview-line="' + number + '"]')
+        if (row !== null && row !== undefined) return row
+        return body.querySelector('[data-source-line="' + number + '"]')
+      }
       const revealLine = function (number) {
         const port = bodyRef.current
-        if (port === null || port === undefined || typeof port.querySelector !== 'function') return
-        const row = port.querySelector('[data-source-line="' + number + '"]')
+        const row = lineRow(port, number)
         if (row === null || row === undefined || typeof row.getBoundingClientRect !== 'function'
-          || typeof port.getBoundingClientRect !== 'function') return
+          || port === null || typeof port.getBoundingClientRect !== 'function') return
         const rowRect = row.getBoundingClientRect()
         const portRect = port.getBoundingClientRect()
         if (rowRect.top < portRect.top) port.scrollTop -= (portRect.top - rowRect.top)
         else if (rowRect.bottom > portRect.bottom) port.scrollTop += (rowRect.bottom - portRect.bottom)
       }
       /* A new navigation target (source link / hole) moves the active cursor and
-       * flashes the line once, even when the row arrives with a later page. */
+       * flashes the line once. The document owner reveals the same target
+       * through the loaded pages, so this body must not scroll a not-yet-loaded
+       * line itself; it waits for the row and re-runs when a page arrives. */
       React.useEffect(function () {
         if (targetLine <= 0) return undefined
-        const body = bodyRef.current
-        if (body === null || body === undefined || typeof body.querySelector !== 'function') return undefined
-        const row = body.querySelector('[data-source-line="' + targetLine + '"]')
+        const row = lineRow(bodyRef.current, targetLine)
         if (row === null || row === undefined) return undefined
         const marker = navRevision === undefined ? 'line:' + targetLine : 'rev:' + navRevision
         if (navApplied.current === marker) return undefined
         navApplied.current = marker
         setActiveLine(targetLine)
         setLoadHint(false)
-        body.scrollTop = Math.max(0, Number(row.offsetTop) - 32)
         setFlashLine(targetLine)
         const timer = setTimeout(function () { setFlashLine(0) }, 2000)
         return function () { clearTimeout(timer) }
-      }, [targetLine, navRevision, text])
+      }, [targetLine, navRevision, content])
       /* Debounced, single-flight cursor probe; a newer active line aborts the
        * older request and its sequence number drops any late answer. */
       React.useEffect(function () {
@@ -1480,11 +1629,13 @@ window.__ModuleLoader__.load({
         }
       }, [activeLine, resourceAddress])
       const moveLine = function (direction) {
-        const next = nextActiveLine(activeLine, direction, lines.length)
+        const next = nextActiveLine(activeLine, direction, lastLine)
         if (next === activeLine || next === 0) {
           if (direction > 0 && content !== null && content !== undefined && content.eof === false) {
             setLoadHint(true)
             const port = bodyRef.current
+            /* Programmatic bottom scroll reaches the owner's paged reader, which
+             * requests the next page; the target-line effect then re-runs. */
             if (port !== null && port !== undefined) port.scrollTop = port.scrollHeight
           }
           return
@@ -1496,8 +1647,26 @@ window.__ModuleLoader__.load({
        * height (a panel opens/closes on the first arrow), not only at the move. */
       React.useEffect(function () {
         if (activeLine > 0) revealLine(activeLine)
-      }, [activeLine, panel.phase, text])
+      }, [activeLine, panel.phase, content])
+      React.useEffect(function () {
+        return function () {
+          if (copyTimer.current !== 0) {
+            try { clearTimeout(copyTimer.current) } catch (error) { /* no timer */ }
+          }
+        }
+      }, [])
       const t = makeT(input)
+      const onCopy = function () {
+        if (rows.length === 0) return
+        const text = rows.map(function (row) { return row.text }).join('\n')
+        copySourceText(text).then(function (ok) {
+          setCopyState(ok ? 'copied' : 'failed')
+          if (copyTimer.current !== 0) {
+            try { clearTimeout(copyTimer.current) } catch (error) { /* no timer */ }
+          }
+          copyTimer.current = setTimeout(function () { setCopyState('idle') }, 1500)
+        })
+      }
       const onKeyDown = function (event) {
         if (event === null || typeof event !== 'object') return
         /* Never steal browser/OS chords (Cmd/Ctrl/Alt/Shift + arrows). */
@@ -1526,15 +1695,36 @@ window.__ModuleLoader__.load({
         }
       }
       if (!isRecord(content) || content.kind !== 'text') return null
-      const gutter = String(lines.length).length
       const wrapped = input.wrap === true
+      /* Gutter width follows the loaded prefix's largest real line number. */
+      const gutter = Math.max(2, String(Math.max(lastLine, 1)).length)
+      const copyLabel = copyState === 'copied'
+        ? t('sourceCopied', '已复制')
+        : copyState === 'failed'
+          ? t('sourceCopyFailed', '复制失败')
+          : t('sourceCopy', '复制')
+      const empty = rows.length === 0
       return h('div', {
         className: 'dsls-source',
         style: S.sourceRoot,
         'data-active-line': activeLine > 0 ? activeLine : undefined,
       },
+      h('div', { className: 'dsls-source-toolbar', key: 'toolbar', style: S.sourceToolbar, 'data-source-toolbar': '1' },
+        h('span', { className: 'dsls-source-meta', key: 'meta', style: S.sourceMeta },
+          t('sourceToolbarLabel', 'Lean · 只读')),
+        h('button', {
+          className: 'dsls-source-copy',
+          key: 'copy',
+          type: 'button',
+          'data-copy-state': copyState,
+          'aria-label': copyLabel,
+          disabled: empty,
+          style: empty ? Object.assign({}, S.sourceCopy, S.sourceCopyDisabled) : S.sourceCopy,
+          onClick: empty ? undefined : onCopy,
+        }, copyLabel)),
       h('div', {
         className: 'dsls-source-scroll',
+        key: 'scroll',
         ref: attach,
         tabIndex: 0,
         role: 'region',
@@ -1545,23 +1735,27 @@ window.__ModuleLoader__.load({
           overflowX: wrapped ? 'hidden' : 'auto',
         }),
       },
-      h('div', { className: 'dsls-source-lines', style: S.sourceLines },
-        lines.map(function (line, index) {
-          const number = index + 1
-          return h('div', {
-            className: 'dsls-source-line',
-            key: 'source-line-' + number,
-            'data-source-line': number,
-            'data-source-active': number === activeLine ? '1' : undefined,
-            onClick: function () { onLineClick(number) },
-            style: number === flashLine ? Object.assign({}, S.sourceLine, S.sourceLineFlash) : S.sourceLine,
-          },
-          h('span', { className: 'dsls-source-no', style: Object.assign({}, S.sourceNo, { minWidth: gutter + 'ch' }) }, String(number)),
-          h('span', { className: 'dsls-source-text', style: S.sourceText },
-            line === '' ? ' ' : highlightLean(line))
-          )
-        })
-      )),
+      empty
+        ? h('p', { className: 'dsls-source-empty', key: 'empty', style: S.sourceEmpty },
+          t('sourceEmpty', '空文件（0 行）'))
+        : h('div', { className: 'dsls-source-lines', key: 'lines', style: S.sourceLines },
+          rows.map(function (row) {
+            const number = row.number
+            const marked = number === flashLine
+            return h('div', {
+              className: 'dsls-source-line',
+              key: 'source-line-' + number,
+              'data-source-line': number,
+              'data-textpreview-line': number,
+              'data-textpreview-target': number === targetLine ? number : undefined,
+              'data-source-active': number === activeLine ? '1' : undefined,
+              onClick: function () { onLineClick(number) },
+              style: marked ? Object.assign({}, S.sourceLine, S.sourceLineFlash) : S.sourceLine,
+            },
+            h('span', { className: 'dsls-source-no', style: Object.assign({}, S.sourceNo, { minWidth: gutter + 'ch' }) }, String(number)),
+            h('span', { className: 'dsls-source-text', style: S.sourceText },
+              row.text === '' ? ' ' : highlightLean(row.text)))
+          }))),
       h(SourceGoalPanel, {
         line: activeLine,
         phase: panel.phase,
@@ -1573,9 +1767,10 @@ window.__ModuleLoader__.load({
       }))
     }
 
-        const CLIENT_BUILD = '2026-11-27T2110'
+        const CLIENT_BUILD = '2026-11-27T2140'
 
     function apply(ctx) {
+      hostCtx = ctx
       try {
         if (ctx.sidebarRight !== undefined && ctx.sidebarRight !== null) sidebarRight = ctx.sidebarRight
       } catch (error) { /* service not injected in this host */ }
@@ -1625,6 +1820,17 @@ window.__ModuleLoader__.load({
         } catch (error) {
           report('document-preview-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
         }
+      }
+      if (sidebarRight === null && typeof ctx.inject === 'function') {
+        /* A card source link must open the right-sidebar viewer; that service
+         * can also register after this plugin applies. */
+        try {
+          ctx.inject(['sidebarRight'], function (scope) {
+            let service
+            try { service = scope?.sidebarRight ?? scope?.get?.('sidebarRight') } catch { service = undefined }
+            if (service !== undefined && service !== null) sidebarRight = service
+          })
+        } catch (error) { /* non-Web client: links stay display-only */ }
       }
       if (documentPreviews !== null) {
         registerSourcePreview(documentPreviews)
@@ -1708,6 +1914,10 @@ window.__ModuleLoader__.load({
         SourceGoalPanel: SourceGoalPanel,
         semanticRuns: semanticRuns,
         nextActiveLine: nextActiveLine,
+        linesOfPage: linesOfPage,
+        sourceRowsOf: sourceRowsOf,
+        copySourceText: copySourceText,
+        resetSidebarRight: function () { sidebarRight = null; hostCtx = null },
         cardCss: CARD_CSS.join(''),
         zh: zh,
         en: en,

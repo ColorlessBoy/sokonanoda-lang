@@ -353,6 +353,59 @@ test('a late document-preview service still receives the sokonanoda body', () =>
   expect(body.definition.locale === plugin.__test.NS, 'the body must receive the card locale namespace')
 })
 
+test('a late sidebar-right service opens a card source at its line', () => {
+  const opened = []
+  let sidebarReady = null
+  const late = {
+    effect(callback) {
+      const cleanup = callback()
+      return typeof cleanup === 'function' ? cleanup : () => {}
+    },
+    locale: { register() { return () => {} } },
+    slots: {
+      inject(name, callback) { return callback() },
+      register() { return () => {} },
+    },
+    get() { return undefined },
+    inject(deps, callback) {
+      if (deps.includes('sidebarRight')) {
+        sidebarReady = callback
+        return
+      }
+      if (deps.includes('documentPreviews')) {
+        callback({ documentPreviews: { register() { return () => {} } } })
+      }
+    },
+  }
+  plugin.__test.resetSidebarRight()
+  plugin.apply(late)
+  expect(typeof sidebarReady === 'function', 'the client must wait for documentPreviews and sidebarRight')
+  sidebarReady({
+    sidebarRight: {
+      mounted: { getSnapshot: () => 'session-1' },
+      openResource(address, options) { opened.push({ address, options }) },
+    },
+  })
+  const payload = {
+    title: '量词换序',
+    source: 'units/I.2/unit07-functions.sokonanoda:194',
+    sourceLink: {
+      path: '/tmp/soko/units/I.2/unit07-functions.sokonanoda',
+      relativePath: 'courses/set-theory/units/I.2/unit07-functions.sokonanoda',
+      line: 194,
+    },
+  }
+  const view = render(LearnCardFence(fenceProps('knowledge', payload)))
+  oneByClass(view, 'dslc-link').props.onClick({ preventDefault() {} })
+  expect(opened.length === 1, 'the source link must reach the late sidebar service')
+  expect(opened[0].address.startsWith('dsh-resource://file/session/session-1/'),
+    'a mounted session must produce a session-scoped file address, got ' + opened[0].address)
+  expect(opened[0].address.includes('unit07-functions.sokonanoda'), 'address lost the source file')
+  expect(opened[0].options.kind === 'sokonanoda-dsh/source', 'the plugin preview must be requested')
+  expect(opened[0].options.params.line === 194, 'the real line must travel as params.line')
+})
+
+
 test('client registers exactly three fence layers, no tool view', () => {
   expect(registrations.length === 3, 'expected 3 registrations, got ' + registrations.length)
   const keys = registrations.map((item) => item.definition.key).sort()
@@ -565,6 +618,148 @@ test('source cursor: arrow moves clamp to loaded lines without escaping the file
   expect(next(1, -1, 10) === 1, 'up clamps at line 1')
   expect(next(0, 1, 0) === 0, 'an empty file has no active line')
 })
+
+test('source preview numbers every row from its page offset, not from 1', () => {
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: {
+      kind: 'text',
+      text: 'THIS TEXT MUST NOT BE USED',
+      pages: [
+        { offset: 1, text: 'theorem a : True := by\n  trivial', lines: 2 },
+        { offset: 3, text: '  -- page two\n  exact True.intro', lines: 2 },
+      ],
+      eof: true,
+    },
+    wrap: false,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { revision: 1, params: {} } } }),
+  }))
+  const numbers = byClass(view, 'dsls-source-no').map((node) => textOf(node))
+  expect(JSON.stringify(numbers) === JSON.stringify(['1', '2', '3', '4']),
+    'absolute line numbers must follow page offsets, got ' + numbers.join(','))
+  const rows = byClass(view, 'dsls-source-line')
+  expect(rows.length === 4, 'one row per loaded source line')
+  expect(rows[0].props['data-textpreview-line'] === 1 && rows[3].props['data-textpreview-line'] === 4,
+    'rows must expose the native owner anchor data-textpreview-line')
+  expect(!textOf(view).includes('THIS TEXT MUST NOT BE USED'),
+    'loaded pages must be the source of truth, not a re-split content.text')
+})
+
+test('source preview navigation marks the absolute target row', () => {
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: {
+      kind: 'text',
+      text: '',
+      pages: [
+        { offset: 1, text: 'theorem a : True := by', lines: 1 },
+        { offset: 41, text: '  exact True.intro\n  -- tail', lines: 2 },
+      ],
+      eof: true,
+    },
+    wrap: false,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { revision: 9, params: { line: 41 } } } }),
+  }))
+  const rows = byClass(view, 'dsls-source-line')
+  const target = rows.find((node) => node.props['data-textpreview-target'] === 41)
+  expect(target !== undefined, 'the target row needs data-textpreview-target')
+  expect(target.props['data-textpreview-line'] === 41, 'the target anchor must be the absolute line')
+  expect(target.props['data-source-active'] === '1', 'the cursor must sit on the navigation target')
+  expect(rows.every((node) => node.props['data-textpreview-target'] === undefined || node.props['data-textpreview-line'] === 41),
+    'only the target row carries the target marker')
+})
+
+test('a target in a not-yet-loaded page activates when that page arrives', () => {
+  const firstOnly = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: { kind: 'text', text: '', pages: [{ offset: 1, text: 'theorem long : True := by', lines: 1 }], eof: false },
+    wrap: true,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { revision: 2, params: { line: 41 } } } }),
+  }))
+  expect(byClass(firstOnly, 'dsls-source-line').length === 1, 'only the loaded page renders at first')
+  expect(nodesOf(firstOnly).every((node) => node.props?.['data-textpreview-target'] === undefined),
+    'a page that is not loaded yet cannot paint its target row')
+  const loaded = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: {
+      kind: 'text',
+      text: '',
+      pages: [
+        { offset: 1, text: 'theorem long : True := by', lines: 1 },
+        { offset: 41, text: '  exact True.intro', lines: 1 },
+      ],
+      eof: true,
+    },
+    wrap: true,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { revision: 2, params: { line: 41 } } } }),
+  }))
+  const target = byClass(loaded, 'dsls-source-line').find((node) => node.props['data-textpreview-line'] === 41)
+  expect(target !== undefined && target.props['data-textpreview-target'] === 41,
+    'the arrived page must reveal and mark the target line')
+  expect(target.props['data-source-active'] === '1', 'the landed target becomes the active cursor line')
+})
+
+test('source preview gutter widens with the largest loaded absolute line', () => {
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: { kind: 'text', text: '', pages: [{ offset: 99, text: 'a\nb\nc', lines: 3 }], eof: true },
+    wrap: true,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { params: {} } } }),
+  }))
+  const numbers = byClass(view, 'dsls-source-no')
+  expect(numbers.map((node) => textOf(node)).join(',') === '99,100,101', 'loaded line numbers must stay absolute')
+  expect(numbers.every((node) => node.props.style.minWidth === '3ch'), 'a three-digit line needs a three-character gutter')
+})
+
+test('an empty file renders an empty state instead of a bogus line 1', () => {
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: { kind: 'text', text: '', pages: [{ offset: 1, text: '', lines: 0 }], eof: true },
+    wrap: true,
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { params: {} } } }),
+  }))
+  expect(byClass(view, 'dsls-source-line').length === 0, 'a zero-line page must not render a row')
+  expect(textOf(oneByClass(view, 'dsls-source-empty')).includes('空文件'), 'the empty state must say the file is empty')
+  const copy = oneByClass(view, 'dsls-source-copy')
+  expect(copy.props.disabled === true, 'copy is disabled when there is nothing to copy')
+})
+
+test('copy button copies the loaded pages', () => {
+  let copied = ''
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { clipboard: { writeText(value) { copied = value; return Promise.resolve() } } },
+  })
+  try {
+    const view = render(h(plugin.__test.SokonanodaSourceBody, {
+      content: {
+        kind: 'text',
+        text: 'unused',
+        pages: [{ offset: 1, text: 'theorem a : True := by\n  trivial', lines: 2 }],
+        eof: true,
+      },
+      wrap: false,
+      scrollportRef: () => {},
+      useTabInfo: () => ({ tab: { navigation: { params: {} } } }),
+    }))
+    const copy = oneByClass(view, 'dsls-source-copy')
+    expect(typeof copy.props.onClick === 'function', 'a non-empty preview must offer copy')
+    copy.props.onClick()
+    expect(copied === 'theorem a : True := by\n  trivial', 'copy must join exactly the loaded pages')
+  } finally {
+    if (previous === undefined) delete globalThis.navigator
+    else Object.defineProperty(globalThis, 'navigator', previous)
+  }
+})
+
+test('source preview CSS covers toolbar, copy and empty states', () => {
+  for (const selector of ['.dsls-source-toolbar{', '.dsls-source-copy{', '.dsls-source-empty{',
+    '.dsls-source-line[data-textpreview-target]{']) {
+    expect(cardCss.includes(selector), 'stylesheet missing ' + selector)
+  }
+})
+
 
 test('goal panel renders declaration, step, hypotheses and semantic goal runs', () => {
   const state = {
