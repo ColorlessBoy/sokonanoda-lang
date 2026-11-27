@@ -1,8 +1,8 @@
 {
   "schema": "soko.knowledge-cards/1",
   "title": "卷 I–III 知识卡片库（集合论 / 分析）",
-  "version": 10,
-  "updated": "2026-11-26",
+  "version": 12,
+  "updated": "2026-11-27",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
     {
@@ -80,8 +80,8 @@
           "heading": "怎么用",
           "kind": "list",
           "items": [
-            "证 `IsStrictOrder r`：`constructor` 拆两半 → ① `intro a h` 从 `h : r a a` 找矛盾；② `intro a b c hab hbc` 证 `r a c`。",
-            "用 `h : IsStrictOrder r`：`And.left h : Irreflexive r`，`And.right h : Transitive r`。"
+            "证 `IsStrictOrder α r`：`constructor` 拆两半 → ① `intro a h` 从 `h : r a a` 找矛盾；② `intro a b c hab hbc` 证 `r a c`。",
+            "用 `h : IsStrictOrder α r`：`And.left h : Irreflexive α r`，`And.right h : Transitive α r`。"
           ]
         }
       ],
@@ -338,8 +338,8 @@
           "heading": "怎么用",
           "kind": "list",
           "items": [
-            "要证 `Antisymmetric r`：`intro a b hab hba`，目标变成 `a = b`；",
-            "拿到 `h : Antisymmetric r`：`h a b hab hba : a = b`。"
+            "要证 `Antisymmetric α r`：`intro a b hab hba`，目标变成 `a = b`；",
+            "拿到 `h : Antisymmetric α r`：`h a b hab hba : a = b`。"
           ]
         },
         {
@@ -427,7 +427,7 @@
           "heading": "怎么用",
           "kind": "list",
           "items": [
-            "`h : IsPartialOrder r` → `h.1 : Reflexive r`、`h.2.1 : Antisymmetric r`、`h.2.2 : Transitive r`；",
+            "`h : IsPartialOrder α r` → `h.1 : Reflexive α r`、`h.2.1 : Antisymmetric α r`、`h.2.2 : Transitive α r`；",
             "证的时候用 `constructor` 拆成三个子目标，逐个证。"
           ]
         }
@@ -1156,6 +1156,232 @@
       "prereq": [
         "int-as-quotient"
       ]
+    },
+    {
+      "id": "linear-order",
+      "kicker": "卷 I · I.2 关系",
+      "title": "全序 · IsLinearOrder",
+      "oneLiner": "偏序 + 任意两个元素至少一个方向可比；样板是 `Nat` 上的 `≤`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def IsLinearOrder (α : Type) (r : α → α → Prop) : Prop :=\n  IsPartialOrder α r ∧ Total α r"
+      },
+      "tags": [
+        "order",
+        "linear-order",
+        "total"
+      ],
+      "prereq": [
+        "partial-order"
+      ],
+      "sections": [
+        {
+          "heading": "偏序的三条 + 全",
+          "kind": "table",
+          "columns": [
+            "条件",
+            "人话",
+            "`≤` 的例子"
+          ],
+          "rows": [
+            [
+              "自反",
+              "`a ≤ a`",
+              "3 ≤ 3"
+            ],
+            [
+              "反对称",
+              "`a ≤ b`、`b ≤ a` ⇒ `a = b`",
+              ""
+            ],
+            [
+              "传递",
+              "`a ≤ b`、`b ≤ c` ⇒ `a ≤ c`",
+              "1≤2、2≤3 ⇒ 1≤3"
+            ],
+            [
+              "全",
+              "任意 a、b 至少一个方向可比：`r a b ∨ r b a`",
+              "1、2 可比"
+            ]
+          ]
+        },
+        {
+          "heading": "和严格序的区别",
+          "kind": "list",
+          "items": [
+            "全序 `IsLinearOrder` 是**非严格**序，关系自反，样板 `≤`；",
+            "严格序 `IsStrictOrder` 是**非自反** + 传递，样板 `<`，它不自动是全的；",
+            "「全序只要求非自反 + 传递」把严格序的定义误当成了全序。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "`h : IsLinearOrder α r` → `h.1 : IsPartialOrder α r`、`h.2 : Total α r`；",
+            "要比较任意两个元素：`linearOrder_total α r h a b : r a b ∨ r b a`；",
+            "要取出自反/反对称/传递：用 `partialOrder_refl` / `partialOrder_antisymm` / `partialOrder_trans`。"
+          ]
+        }
+      ],
+      "source": "lib/Order.sokonanoda:84"
+    },
+    {
+      "id": "rel-comp",
+      "kicker": "卷 I · I.2 关系",
+      "title": "关系复合 · Rel.comp / comp_apply",
+      "oneLiner": "`(r • s) a c` 展开为：存在中间点 `b`，先 `r a b`、再 `s b c`。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem Rel.comp_apply {A B C : Type} (r : Rel A B) (s : Rel B C) (a : A) (c : C) :\n    (r • s) a c ↔ ∃ (b : B), r a b ∧ s b c :=  Iff.rfl"
+      },
+      "tags": [
+        "rel",
+        "compose",
+        "apply",
+        "composition"
+      ],
+      "prereq": [],
+      "sections": [
+        {
+          "heading": "人话",
+          "kind": "paragraph",
+          "text": "两个关系串起来：从 `a` 走 `r` 到某个 `b`，再从 `b` 走 `s` 到 `c`。中间点 `b` 只需要存在，不需要指定是哪一个。"
+        },
+        {
+          "heading": "为什么证明是 Iff.rfl",
+          "kind": "paragraph",
+          "text": "`Rel.comp` 的定义体就是 `∃ b, r a b ∧ s b c`，所以 `comp_apply` 只是把定义照抄一遍，没有额外数学内容。"
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "`Rel.comp_apply.mp h`：从 `(r • s) a c` 得到 `∃ b, r a b ∧ s b c`；",
+            "`Rel.comp_apply.mpr h`：从某个中间点的证据回到 `(r • s) a c`；",
+            "注意参数顺序：`r : Rel A B` 先走，`s : Rel B C` 后走，所以 `r • s : Rel A C`。"
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "list",
+          "items": [
+            "`r • s` 不是集合复合，也不是函数复合；它是关系复合（存在中间点）。",
+            "复合不要求中间点唯一；同一个 `a, c` 可以有多个 `b`。"
+          ]
+        }
+      ],
+      "source": "lib/Rel.sokonanoda:87"
+    },
+    {
+      "id": "rel-inv",
+      "kicker": "卷 I · I.2 关系",
+      "title": "逆关系 · Rel.inv",
+      "oneLiner": "`r ⁻¹` 把两个参数对调：`(r ⁻¹) b a` 就是 `r a b`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Rel.inv (A B : Type) (r : Rel A B) : Rel B A :=\n  fun (b : B) => fun (a : A) => r a b"
+      },
+      "tags": [
+        "rel",
+        "inverse",
+        "apply"
+      ],
+      "prereq": [
+        "rel"
+      ],
+      "sections": [
+        {
+          "heading": "人话",
+          "kind": "paragraph",
+          "text": "`r : Rel A B` 说的是从 `A` 到 `B` 的关系；逆关系 `r ⁻¹ : Rel B A` 只是把两个位置对调：先收 `B` 的元素，再收 `A` 的元素。"
+        },
+        {
+          "heading": "展开式",
+          "kind": "list",
+          "items": [
+            "定义：`(r ⁻¹) b a` 就是 `r a b`；",
+            "库里的引理：`Rel.inv_apply r b a : (r ⁻¹) b a ↔ r a b`，证明是 `Iff.rfl`；",
+            "所以 `(r ⁻¹) b a` 和 `r a b` 不只是等价，是同一个命题换了个写法。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "拿到 `h : (r ⁻¹) b a`：`Rel.inv_apply.mp h` 得到 `r a b`；",
+            "要证 `(r ⁻¹) b a`：`Rel.inv_apply.mpr h` 把 `r a b` 转回去。"
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "list",
+          "items": [
+            "逆关系不是否定关系：`r ⁻¹` 不改变 `r` 的真假，只交换参数顺序；",
+            "参数顺序：`r : Rel A B`，所以 `r ⁻¹ : Rel B A`，第一个参数是 `B` 的元素。"
+          ]
+        }
+      ],
+      "source": "lib/Rel.sokonanoda:46"
+    },
+    {
+      "id": "cardinal-mk",
+      "kicker": "I.3 · ⑩ 基数初步",
+      "title": "基数 · Cardinal.mk",
+      "oneLiner": "把类型送到它的基数：`Cardinal.mk : Type → Cardinal`，底层就是 `Quot.mk`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def Cardinal : Type 1 :=\n  @Quot.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y)\n\ndef Cardinal.mk (α : Type) : Cardinal :=\n  @Quot.mk.{2} ((Type)) (fun (x : Type) (y : Type) => Type.Equiv x y) α"
+      },
+      "tags": [
+        "cardinal",
+        "type",
+        "quotient",
+        "mk"
+      ],
+      "prereq": [
+        "equiv"
+      ],
+      "sections": [
+        {
+          "heading": "签名",
+          "kind": "list",
+          "items": [
+            "定义域：`Type`（所有类型）；",
+            "值域：`Cardinal`（`Type 1`，是「类型按等势取商」得到的类型）；",
+            "读法：`Cardinal.mk α` 就是类型 `α` 的基数。"
+          ]
+        },
+        {
+          "heading": "为什么是商",
+          "kind": "list",
+          "items": [
+            "`Cardinal := Quot (fun x y => Type.Equiv x y)`：把所有等势的类型粘成一个基数；",
+            "`Cardinal.mk` 是把一个具体类型送进这个商的代表映射（`Quot.mk`）；",
+            "所以 `Type.Equiv α β` 时 `Cardinal.mk α = Cardinal.mk β`——这正是 `Cardinal.sound`。"
+          ]
+        },
+        {
+          "heading": "易混",
+          "kind": "list",
+          "items": [
+            "`Cardinal.mk` 不是 `Type → Type`：它返回的是 `Cardinal`，不是某个类型；",
+            "`Cardinal` 不是 `Type` 的子集，而是 `Type` 的一个商；",
+            "`Cardinal` 自身在 `Type 1`，因为 `Type` 是 `Sort 2`。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "写 `Cardinal.mk α` 得到 `α` 的基数；",
+            "要证两个基数相等：用 `Cardinal.sound α β h`（`h : Type.Equiv α β`）；",
+            "要从基数定义函数：用 `Cardinal.lift`，给出对类型定义的函数和它尊重等势的证明。"
+          ]
+        }
+      ],
+      "source": "lib/Cardinal.sokonanoda:77"
     }
   ]
 }
