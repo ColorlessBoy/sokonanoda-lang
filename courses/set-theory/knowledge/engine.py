@@ -1110,7 +1110,7 @@ def position_of(data: dict, question: dict) -> dict:
 # Tags too generic to identify a knowledge card: a question tagged only
 # `logic` must not inherit the Or.elim card, and a question tagged only
 # `function` must not inherit the injective card (2026-11-24).
-GENERIC_CARD_TAGS = {"function", "logic", "types", "glossary"}
+GENERIC_CARD_TAGS = {"function", "logic", "types", "glossary", "order"}
 
 
 def explain_for(state: dict, data: dict, qid: str) -> dict:
@@ -1601,6 +1601,20 @@ def cmd_selftest(data: dict) -> int:
                   right["correct"] is True and wrong["correct"] is False,
                   str((probe_q["id"], probe_q["answer"], right["correct"], wrong["correct"])))
 
+        # 15d3) 题干必须是直给中文：禁掉元语言黑话
+        jargon = ("取用子", "消去子", "全称命题", "定义体", "正确组合",
+                  "需要同时交出", "关键件", "应当", "把 `h` 换成",
+                  "展开成谓词", "这属于？", "正确做法", "精确卡", "是什么什么", "输入与返回类型", "接收与返回", "定义域与值域")
+        jargon_left = [q["id"] for q in data["questions"]
+                       if any(word in (q.get("prompt") or "") for word in jargon)]
+        check("prompts-plain-language", not jargon_left, str(jargon_left[:5]))
+
+        # 15d2) 定义展开题必须直接问定义，不能套「已知 h…要…对应哪个命题」的场景壳
+        indirect = [q["id"] for q in data["questions"]
+                    if any(marker in (q.get("prompt") or "")
+                           for marker in ("对应下面哪个命题", "定义体是哪个函数", "需要被看成"))]
+        check("definition-prompts-direct", not indirect, str(indirect[:5]))
+
         # 15e) 「定义级相等」必须能通过 rfl（防止再出「让学习者证明 rfl 能过的东西」的坏题）
         definitional = [q for q in data["questions"]
                         if "A \\ B = A ∩ Bᶜ" in (q.get("prompt") or "") and q.get("kind") == "choice"]
@@ -1616,6 +1630,21 @@ def cmd_selftest(data: dict) -> int:
         check("explain-keeps-specific-card",
               rel.get("kind") == "knowledge-card" and (rel.get("card") or {}).get("id") == "rel",
               str((rel.get("kind"), (rel.get("card") or {}).get("id"))))
+        linear = explain_for(new_state(), data, "I.2.linear-1")
+        linear_card = linear.get("card") or {}
+        check("explain-linear-order-card",
+              linear.get("kind") == "knowledge-card" and linear_card.get("id") == "linear-order",
+              str((linear.get("kind"), linear_card.get("id"))))
+        rel_inv = explain_for(new_state(), data, "I.2.rel-inv-1")
+        check("explain-rel-inv-card",
+              rel_inv.get("kind") == "knowledge-card"
+              and (rel_inv.get("card") or {}).get("id") == "rel-inv",
+              str((rel_inv.get("kind"), (rel_inv.get("card") or {}).get("id"))))
+        linear_total = explain_for(new_state(), data, "I.2.linear-2")
+        check("explain-linear-total-card",
+              linear_total.get("kind") == "knowledge-card"
+              and (linear_total.get("card") or {}).get("id") == "linear-order",
+              str((linear_total.get("kind"), (linear_total.get("card") or {}).get("id"))))
 
         # 15f) 离线评测必须容忍开放题（short/explain 没有 answer 字段）
         open_only = dict(data)

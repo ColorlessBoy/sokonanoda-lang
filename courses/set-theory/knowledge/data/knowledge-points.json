@@ -1,7 +1,7 @@
 {
   "schema": "soko.knowledge-points/1",
-  "version": 9,
-  "updated": "2026-11-26",
+  "version": 10,
+  "updated": "2026-11-27",
   "saturation_policy": {
     "min": "每种 kind 的最低题目数（gate，低于即红）",
     "target": "饱和目标（达到即绿；min 与 target 之间为黄）",
@@ -507,7 +507,7 @@
         "target": 5
       },
       "note": "",
-      "keyPoint": "能用「双向压成相等」识别序关系，并用反例区分对称与反对称。"
+      "keyPoint": "能用「两个方向都成立 ⇒ 相等」识别序关系，并用反例区分对称与反对称。"
     },
     {
       "id": "kp.i2.order.partial",
