@@ -15,6 +15,16 @@ cd <这个仓库>
 SOKO_REPO=$PWD dsh web --patch ./dsh/cordis.patch.yml
 ```
 
+**做题插件另装**（本地题库卡片 + 代码题真内核判卷；不改上面的 LSP 接线）：
+
+```bash
+dsh plugin --profile web add "$PWD/dsh/plugins/sokonanoda-dsh"
+dsh web      # 重启后在新会话里 /sokonanoda-fast-think on → 「开始做题」
+```
+
+完整安装、开关、数据目录、代码题提交与排障见
+`dsh/plugins/sokonanoda-dsh/README.md`（干净机器一条路）。
+
 - **工作区必须是本仓库根**：`lsp` 工具只在会话 workspace 内解析 `file_path`，
   DSH 启动目录默认就是 workspace root，所以"`cd` 进仓库再启动"即可；
   从别处启动时用 `SOKO_REPO=<仓库绝对路径>` 告诉 patch 去哪找 `scripts/soko`。
@@ -33,6 +43,7 @@ SOKO_REPO=$PWD dsh web --patch ./dsh/cordis.patch.yml
 |---|---|---|
 | `/sokonanoda-teacher`、`/sokonanoda-dev`、`/sokonanoda-ci` | ✅ 零配置 | 技能名的斜杠命令；模型目录也能自动发现 |
 | `/sokonanoda-update`、`/sokonanoda-doctor` | ✅ 零配置 | **人工**运维命令（`disable-model-invocation`）：刷新缓存 / 只读就绪诊断。DSH 命令名不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在这里写作 `/sokonanoda-update`。`update` 的退出码有语义：`0` = 缓存写成了，**`3` = 缓存没写成**（stderr 给 `download:` 原因，即使有可用回退也照报）——DSH 的沙箱常让 `~/.local/share` 不可写，这时按 `skills/sokonanoda-update/SKILL.md` 的"常见失败"处置 |
+| **做题卡 + 代码题真内核判卷** | ✅ 装插件 | `dsh/plugins/sokonanoda-dsh`（`dsh plugin --profile web add …`）：本地题库出选择题卡；代码题贴围栏 ⇒ `compose.py` + `scripts/soko grade --json`。开关是按会话的 `/sokonanoda-fast-think on`，默认关闭 |
 | 模型的 `lsp` 工具 hover `.sokonanoda` | ✅ 需 `--patch` | hover 文本来自内核 pretty printer（真类型/真目标态） |
 | 跳定义 / 找引用 / 找实现 | ✅ 需 `--patch` | 比纯文本 grep 精确 |
 | **编辑器内诊断（`publishDiagnostics`）** | ❌ | DSH 的 LSP host 明确忽略服务端通知（`packages/lsp/lsp-stdio/src/connection.ts`） |
@@ -151,6 +162,15 @@ cd dsh/plugins/sokonanoda-dsh && node test/run.mjs
 - **感知/开关**：注册 `sokonanoda_fast_think` 工具（status / explain / progress / log / enable / disable），
   模型可查看快路径状态与决策历史、对一段话做 dry-run 分类；学习者明确要求时可切换当前会话开关。
 
+**题目集与代码题（C9）**：插件不内置题目，只读仓库里的两份派生物——
+选择题库 `courses/set-theory/knowledge/data/questions.json`（409 道 / 400 可服务，
+同时服务卷 I 与卷 II.1）与代码题数据集 `courses/exercise-dataset/data/*.json`
+（2022 道 / 298 单元，三门课程门禁判过的练习）。课程源是唯一真相：改题改课程源，
+再跑 `build.py --check` / `validate.py`；插件从不写回仓库。代码题提交只取**证明体**
+并贴回课程模板的可信签名，判卷结论只有内核的 `decl.checked` / `exercise.open` /
+`diagnostic`。数据入口与校验命令见 `courses/exercise-dataset/README.md` 与
+`courses/set-theory/knowledge/README.md`。
+
 **运行时数据不在仓库里**（仓库会公开分享）：
 
 ```
@@ -242,5 +262,6 @@ markdown 规则它不是围栏；把围栏写到行首即可）。**已知缺口
 | VS Code | `scripts/soko` 或扩展内置二进制 | 不适用（人用） | 完整 LSP 诊断 + Infoview |
 | 其他 / headless | `scripts/soko` | 手动加载 `skills/<name>/SKILL.md` | 判卷走 CLI `--json` |
 
+**题库卡片与代码题判卷只有 DSH 插件通道**；opencode / VS Code 走画布 + `scripts/soko grade`。
 `scripts/soko` 是**所有 harness 通用**的那一条命令：它解析版本匹配的二进制
 （仓库构建 → 缓存 → VS Code 扩展自带 → 版本锁定下载），缓存过期就拒绝运行。

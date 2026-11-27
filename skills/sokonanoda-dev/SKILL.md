@@ -155,6 +155,10 @@ cargo fmt -p sokonanoda-front -p sokonanoda-cli -p sokonanoda-lsp -- --check
 cargo clippy --workspace --all-targets      # 教学 crates 经 [lints] deny；kernel 只 warning
 cargo test --workspace --locked             # 4 个 lib test target + 13 个集成测试文件
 cd editor/vscode && npm run test:unit       # Infoview webview/server 纯 Node 行为测试
+python3 courses/exercise-dataset/build.py --check   # C9 数据集漂移（改过课程源就要跑）
+python3 courses/exercise-dataset/check.py           # 数据集结构 / 来源 / 解答
+python3 courses/set-theory/knowledge/validate.py    # 题库结构 / source / lessons
+(cd dsh/plugins/sokonanoda-dsh && node test/run.mjs)  # DSH 插件 host + client 契约
 python3 courses/set-theory/tools/check.py --selftest   # 课程门禁（卷 I，判据 G1–G6；gate 已含，单跑用这条）
 python3 scripts/gap.py selftest             # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
 python3 scripts/gap.py check                # 台账契约：缺口复现必须与 status 一致（gate 已含，单跑用这条）

@@ -53,8 +53,26 @@ python3 courses/set-theory/knowledge/engine.py simulate --questions 50
   `kps` 是否指向真实知识点。
 - **卡片/课**：`cards.json`、`lessons.json` 的 tags/prereq/source 与 KP 是否对齐。
 
-卷 I 现状（2026-11-24）：227 题，choice 219、short 5、explain 3——优先补
-short/explain/proof，而不是继续堆同构选择题。
+题库现状（2026-11-27，全库）：409 题、400 可服务（choice 392 / short 5 / explain 3），
+195 个 KP（96 绿 / 99 红；红 = C9.2/C9.3 的预期欠账）。优先补 short/explain/proof
+与 red KP，而不是继续堆同构选择题。
+
+## 2.5 代码题数据集（派生，勿手改）
+
+课程画布/解答里带 `sorry` 的声明会同时派生到 `courses/exercise-dataset/`
+（当前 2022 道 / 298 单元，三门课）。改过任何课程源后：
+
+```bash
+python3 courses/exercise-dataset/build.py --check   # 提交的数据必须等于重新生成
+python3 courses/exercise-dataset/check.py           # 结构 / 来源 / 解答
+python3 courses/exercise-dataset/check.py --selftest
+```
+
+- 数据集只由 `build.py` 生成，**不手改 `data/*.json`**；题面/提示/解答的真相在课程源。
+- 代码题 id 形如 `set-theory/I.1/unit01-sets-membership/mem_of_subset`；插件按
+  `engine.py code-next` 发放。新练习不写 `soko:hint` 也合法（照实记录，不补造）。
+- 选择题的覆盖门禁 `coverage.py` 只对题库判红；代码题以 `build.py --check` +
+  `check.py` 为准。数据入口与 schema 见 `courses/exercise-dataset/README.md`。
 
 ## 3. 批次工作流（一次只做一批）
 

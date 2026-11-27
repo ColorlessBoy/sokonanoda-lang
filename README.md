@@ -20,6 +20,7 @@
 - [Analysis](courses/analysis/README.md) — 卷 II/III《从集合论到实分析》，171/171 单元；M5 的 21 个单元已在 2026-11-19 落盘，M6 的 QA 已完成，发版待内核修复
 - [Documentation](docs/README.md) — 架构 / 协议 / 测试地图 / 发布手册
 - [Agent Skills](skills/README.md) — 给 code agent 的教学与开发技能
+- [DSH plugin](dsh/plugins/sokonanoda-dsh/README.md) — 本地做题卡 + 2022 道代码题真内核判卷
 
 An independent, self-contained Lean-4 teaching stack built **on top of** the
 [sokonanoda](https://github.com/intgrah/sokonanoda) kernel.
@@ -45,7 +46,7 @@ Every version bump runs the frozen kernel against the latest arena corpus
 it downloads prebuilt NDJSON, never the official Lean toolchain.
 
 <!-- arena-summary:begin -->
-**Latest gate:** Lean Kernel Arena `master@9867c5929` (run `45072628159`, 2026-11-22) — **135/138** accept (3 performance-only timeouts), **90/92** reject (2 known unsupported declined).
+**Latest gate:** Lean Kernel Arena `master@30e64c1b2` (run `45909777715`, 2026-11-26) — **135/138** accept (3 performance-only timeouts), **90/92** reject (2 known unsupported declined).
 Reproduce `python3 scripts/arena-gate.py`; public artifact = scored tests ≤10MB (big cases need `LEAN_KERNEL_ARENA`); no official Lean toolchain.
 <!-- arena-summary:end -->
 

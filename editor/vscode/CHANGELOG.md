@@ -1,4 +1,40 @@
 <!-- doc-refs: history-only（旧版本的 `docs/**` 指针是历史位置；恢复方式：原文 ⇒ git log --all -- <path>） -->
+## [0.100.0] - 2026-11-27
+
+### Added
+
+- **C9 题目集与 DSH 做题插件发布**（大计划 [#96](https://github.com/ColorlessBoy/sokonanoda-lang/issues/96)；
+  C9.0 [#98](https://github.com/ColorlessBoy/sokonanoda-lang/issues/98) · C9.4
+  [#102](https://github.com/ColorlessBoy/sokonanoda-lang/issues/102) · C9.6
+  [#104](https://github.com/ColorlessBoy/sokonanoda-lang/issues/104)）：
+  - **代码题数据集** `courses/exercise-dataset/`：三门课 2022 道 / 298 单元（解答 100%、
+    5030 条提示），由课程源确定性派生；`build.py --check` 判漂移，`check.py`
+    `--selftest` 判结构/来源/坏数据。
+  - **插件「代码题」快路径与真内核判卷**：代码练习卡（题干 / 提示 / 带 `sorry` 的可信
+    模板）→ 围栏提交 → `compose.py` 组装 → `scripts/soko grade --json`；只有目标
+    `decl.checked`、无 `exercise.open`、0 个 `diagnostic` 才显示「通过」，否则显示首条
+    内核诊断并允许同题重试。用户代码只落系统临时目录，不写日志/仓库。
+  - **选择题库扩容到 409 道 / 400 可服务**（卷 I I.1–I.3、I.8、I.9 与卷 II.1），
+    195 个知识点 96 绿；139 道旧题题面/选项全量复核。
+  - **发布与文档包**（C9.6）：插件安装（干净机器一条路）、开关、数据目录、代码题
+    提交与排障写进 README；`dsh/README`、根 README、`site/llms.txt` 加题库/代码题
+    入口；teacher / prep / dev 技能同步题库与数据集用法（DSH 薄入口路由词同步）。
+- **C9.5 调度、复盘与学习地图**（[#103](https://github.com/ColorlessBoy/sokonanoda-lang/issues/103)）：
+  `engine.py` 校准阶梯改由题库推导；`next` 支持 `--chapter/--level/--kp` 钻取；
+  `map` 增加知识点**已解/待做/薄弱**、按章汇总与代码题进度（聊天与插件 progress 卡
+  读同一份快照）；`state.metrics` 与 `review.py` 用同一份状态出薄弱点/错题/下一批建议。
+- **DSH 快路径上下文导航**（[#110](https://github.com/ColorlessBoy/sokonanoda-lang/issues/110)）：
+  未作答题「下一题」重发当前题而不是推进；「上一题」出只读回顾卡（正确项高亮 + 解析）。
+- **卷 III capstone 与 FTC**（[#97](https://github.com/ColorlessBoy/sokonanoda-lang/issues/97)）：
+  区间切分/拼接引擎 + 单元 172–175 进库，课程门禁 0 判负。
+
+### Known limitations
+
+- 选择题只覆盖卷 I I.1–I.3、I.8、I.9 与卷 II.1；I.4–I.13 与卷 II 其余章仍有
+  **99/195** 知识点无题（C9.2 / C9.3 继续补，见 `CONTENT-PLAN.md`）。
+- C9.7 的 DSH 编辑器面板未做（可选、不阻塞主线）；插件测试目前是本地手动
+  `node test/run.mjs`，尚未接 CI 常驻 job。
+
 ## [0.99.0] - 2026-11-23
 
 ### Added
