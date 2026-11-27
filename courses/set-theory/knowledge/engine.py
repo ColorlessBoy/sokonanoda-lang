@@ -1147,12 +1147,14 @@ def code_progress(state: dict, data: dict, course: str = "set-theory") -> dict:
         if chapter is None:
             continue
         by_chapter[chapter]["skipped"] += 1
-    other = {"solved": sum(1 for item in solved if item not in index),
-             "skipped": sum(1 for item in skipped if item not in index)}
+    known_solved = [item for item in solved if item in index]
+    known_skipped = [item for item in skipped if item in index]
+    other = {"solved": len(solved) - len(known_solved),
+             "skipped": len(skipped) - len(known_skipped)}
     return {
         "course": course,
-        "solved": len(solved),
-        "skipped": len(skipped),
+        "solved": len(known_solved),
+        "skipped": len(known_skipped),
         "total": len(index),
         "otherCourse": other,
         "chapters": [by_chapter[key] for key in sorted(by_chapter)],
@@ -2174,12 +2176,16 @@ def cmd_selftest(data: dict) -> int:
             code_bank = data.get("code_exercises") or []
             if code_bank:
                 map_state.setdefault("code_done", {})[code_bank[0]["id"]] = True
+                map_state["code_done"]["other-course-exercise"] = True
             snapshot = map_snapshot(map_state, data)
             check("map-kp-buckets", snapshot["kps"]["solved"] >= 1 and snapshot["kps"]["weak"] >= 1,
                   str(snapshot["kps"]))
             check("map-text-buckets",
                   any("已解" in line and "待做" in line and "薄弱" in line for line in format_map(snapshot, data)),
                   str(format_map(snapshot, data)[:2]))
+            check("map-code-other-course",
+                  not code_bank or snapshot["code"]["otherCourse"]["solved"] == 1,
+                  str(snapshot["code"]))
             metrics = metrics_snapshot(map_state, data)
             check("metrics-timing", metrics["timing"]["timed"] == 2
                   and metrics["timing"]["medianMs"] == 2000, str(metrics["timing"]))
