@@ -160,11 +160,30 @@ function cssRule(selector) {
 const registrations = []
 const injectedSlotNames = []
 const dictionaries = {}
+const openedTabs = []
+const openedResources = []
+const panelTabDefinitions = []
+const sidebarRightStub = {
+  mounted: { getSnapshot: () => 'session-panel-test' },
+  openTab(kind, options) { openedTabs.push({ kind, options }) },
+  openResource(address, options) { openedResources.push({ address, options }) },
+}
+const sidebarRightTabsStub = {
+  register(definition) {
+    panelTabDefinitions.push(definition)
+    return () => {}
+  },
+}
 const pluginApplyCtx = {
   effect(callback) {
     const cleanup = callback()
     return typeof cleanup === 'function' ? cleanup : () => {}
   },
+  get(name) {
+    return name === 'sidebarRightTabs' ? sidebarRightTabsStub : undefined
+  },
+  sidebarRight: sidebarRightStub,
+  sidebarRightTabs: sidebarRightTabsStub,
   locale: {
     register(namespace, value) {
       dictionaries[namespace] = value
@@ -306,8 +325,8 @@ const CODE = {
 
 test('module id + package manifest match what the profile loader expects', () => {
   expect(loaded.id === 'sokonanoda-dsh', 'ModuleLoader id must equal the package name, got ' + loaded.id)
-  expect(JSON.stringify(plugin.inject) === JSON.stringify(['slots', 'locale']),
-    'client plugin must inject slots + locale')
+  expect(JSON.stringify(plugin.inject) === JSON.stringify(['slots', 'locale', 'sidebarRight', 'sidebarRightTabs']),
+    'client plugin must inject slots + locale + the sidebar services, got ' + JSON.stringify(plugin.inject))
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
   expect(pkg.name === loaded.id, 'package.json name must match the ModuleLoader id')
   expect(pkg.dsh.bundle.patch === './cordis.patch.yml', 'dsh.bundle.patch must point at cordis.patch.yml')
@@ -316,6 +335,7 @@ test('module id + package manifest match what the profile loader expects', () =>
     'exports["./client"] must point at client.js (the loader reads it)')
   expect(pkg.files.includes('client.js') && pkg.files.includes('index.js') && pkg.files.includes('lib/quiz-proxy.mjs'),
     'both halves and the in-process quiz core must be published')
+  expect(pkg.files.includes('lib/exercise-panel.mjs'), 'the panel Host bridge must be published')
   const patch = fs.readFileSync(path.join(__dirname, '..', 'cordis.patch.yml'), 'utf8')
   expect(patch.includes('name: sokonanoda-dsh'), 'cordis.patch.yml must insert sokonanoda-dsh')
 })
@@ -407,21 +427,38 @@ test('a late sidebar-right service opens a card source at its line', () => {
 
 
 test('client registers exactly three fence layers, no tool view', () => {
-  expect(registrations.length === 3, 'expected 3 registrations, got ' + registrations.length)
-  const keys = registrations.map((item) => item.definition.key).sort()
+  const fences = registrations.filter((item) => item.definition.name === 'conversation.chat.markdown.fence')
+  expect(fences.length === 3, 'expected 3 fence registrations, got ' + fences.length)
+  const keys = fences.map((item) => item.definition.key).sort()
   expect(JSON.stringify(keys) === JSON.stringify(['lean', 'learn-card', 'sokonanoda']),
     'fence keys must be lean / learn-card / sokonanoda, got ' + JSON.stringify(keys))
-  for (const item of registrations) {
-    expect(item.definition.name === 'conversation.chat.markdown.fence',
-      'slot name must be conversation.chat.markdown.fence, got ' + item.definition.name)
+  for (const item of fences) {
     expect(typeof item.definition.id === 'string' && item.definition.id !== '', 'hoc layer needs an id')
     expect(typeof item.component === 'function', 'fence layer must be a component')
   }
-  const cardFence = registrations.find((item) => item.definition.key === 'learn-card')
+  const cardFence = fences.find((item) => item.definition.key === 'learn-card')
   expect(cardFence.definition.locale === plugin.__test.NS, 'the card fence needs the card locale')
   expect(injectedSlotNames.includes('conversation.chat.markdown.fence'), 'must inject the fence slot')
   expect(!registrations.some((item) => item.definition.name === 'tool.call.toolview'),
     'cards are display-only: no tool view may be registered')
+})
+
+test('exercise panel registers a sidebar page type + body and chip seats', () => {
+  expect(panelTabDefinitions.length === 1, 'expected one exercise-panel tab definition, got ' + panelTabDefinitions.length)
+  const definition = panelTabDefinitions[0]
+  expect(definition.kind === plugin.__test.PANEL_KIND, 'panel kind mismatch: ' + definition.kind)
+  expect(definition.id === plugin.__test.PANEL_TYPE_ID, 'panel type id mismatch: ' + definition.id)
+  expect(definition.keepMounted === true, 'the editor body should survive tab hiding')
+  expect(typeof definition.title === 'function' && definition.title('') !== '', 'panel type needs a chip title')
+  const body = registrations.find((item) => item.definition.name === 'sidebar.right.pane.tab')
+  expect(body !== undefined, 'panel body must register into sidebar.right.pane.tab')
+  expect(body.definition.key === plugin.__test.PANEL_TYPE_ID, 'panel body key must be the tab type id')
+  expect(typeof body.component === 'function', 'panel body must be a component')
+  const title = registrations.find((item) => item.definition.name === 'sidebar.right.pane.tab.title')
+  expect(title !== undefined, 'panel chip title seat must be registered')
+  expect(title.definition.key === plugin.__test.PANEL_TYPE_ID, 'chip title key must be the tab type id')
+  expect(injectedSlotNames.includes('sidebar.right.pane.tab'), 'must inject the panel body slot')
+  expect(injectedSlotNames.includes('sidebar.right.pane.tab.title'), 'must inject the panel title slot')
 })
 
 test('locale dictionaries cover the same chrome keys in zh and en', () => {
@@ -881,27 +918,61 @@ test('open question fence renders the typing hint instead of option rows', () =>
   expect(nodesOf(view).every((node) => node.type !== 'button'), 'open card stays non-interactive')
 })
 
-test('code fence renders prompt, hints and the trusted template without interaction', () => {
+/** Rebind the module-level sidebar service after the late-service test resets it. */
+function restoreSidebar() {
+  plugin.apply({
+    effect(callback) { const cleanup = callback(); return typeof cleanup === 'function' ? cleanup : () => {} },
+    get(name) { return name === 'sidebarRightTabs' ? sidebarRightTabsStub : undefined },
+    sidebarRight: sidebarRightStub,
+    sidebarRightTabs: sidebarRightTabsStub,
+    locale: { register() { return () => {} } },
+    slots: {
+      inject(name, callback) { return callback() },
+      register() { return () => {} },
+    },
+  })
+}
+
+test('code fence renders prompt, hints, template and the panel deep link', () => {
+  restoreSidebar()
   const view = render(LearnCardFence(fenceProps('code', CODE)))
   oneByClass(view, 'dslc-fence')
   const text = textOf(view)
-  for (const needle of ['代码练习', 'I.1', '元素落在子集里。', '思路', '关键件', 'mem_of_subset', 'sorry', '真内核']) {
+  for (const needle of ['代码练习', 'I.1', '元素落在子集里。', '思路', '关键件', 'mem_of_subset', 'sorry', '真内核', '在侧栏面板中打开']) {
     expect(text.includes(needle), 'code card missing ' + needle)
   }
   const template = oneByClass(view, 'dslc-def')
   expect(textOf(template).includes('theorem mem_of_subset'), 'template must keep the declaration')
-  expect(nodesOf(view).every((node) => node.props?.onClick === undefined), 'code card stays non-interactive')
+  const openers = nodesOf(view).filter((node) => node.props?.['data-action'] === 'open-exercise-panel')
+  expect(openers.length === 1, 'code card must carry exactly one panel deep-link button, got ' + openers.length)
+  expect(openers[0].props['data-exercise-id'] === CODE.id, 'deep link must name the exercise id')
+  const before = openedTabs.length
+  expect(typeof openers[0].props.onClick === 'function', 'deep link must be clickable')
+  openers[0].props.onClick()
+  expect(openedTabs.length === before + 1, 'clicking the deep link must open one sidebar tab')
+  const opened = openedTabs[openedTabs.length - 1]
+  expect(opened.kind === plugin.__test.PANEL_KIND, 'deep link must open the exercise panel kind, got ' + opened.kind)
+  expect(opened.options.params.exerciseId === CODE.id, 'deep link params lost the exercise id')
+  expect(opened.options.params.title === CODE.title, 'deep link params lost the exercise title')
+  expect(nodesOf(view).every((node) => node.props?.onClick === undefined
+    || node.props?.['data-action'] === 'open-exercise-panel'), 'only the panel deep link may be clickable')
   expect(!text.includes('```'), 'the fence JSON must not leak into the code card')
   expect(!text.includes('RAW CODE'), 'settled code fence must replace the raw block')
   expect(byClass(view, 'dslc-fast-badge').length === 1, 'code card must carry the fast-path badge')
   expect(cardCss.includes('.dslc-code-hint{'), 'code submit-hint CSS rule missing')
   expect(cardCss.includes('.dslc-code-meta{'), 'code meta CSS rule missing')
   for (const dict of [zh, en]) {
-    for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint',
+    for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint', 'codeOpenPanel',
       'progressMapTitle', 'progressMapSolved', 'progressMapTodo', 'progressMapWeak', 'progressMapCode']) {
       expect(typeof dict[key] === 'string' && dict[key] !== '', 'locale missing ' + key)
     }
   }
+})
+
+test('code card without a sidebar service or exercise id keeps the chat-only path', () => {
+  const noId = render(LearnCardFence(fenceProps('code', Object.assign({}, CODE, { id: '' }))))
+  expect(nodesOf(noId).every((node) => node.props?.['data-action'] !== 'open-exercise-panel'),
+    'a card without an exercise id must not offer the panel')
 })
 
 test('progress fence renders summary, chapter bars, heat cells, hotspots and recent dots', () => {
@@ -951,6 +1022,130 @@ test('fast-path cards carry a top-right provenance badge', () => {
   expect(cardCss.includes('.dslc-open-hint{'), 'open-hint CSS rule missing')
   expect(cardCss.includes('.dslc-bold{'), 'bold CSS rule missing')
   expect(cardCss.includes('.dslc-opt-skip{'), 'skip CSS rule missing')
+})
+
+/* --------------------------------------------------------- exercise panel */
+
+const { exercisePanelView, ExercisePanelTitle, PANEL_TYPE_ID } = plugin.__test
+
+function panelView(attempt, extra) {
+  return render(exercisePanelView(Object.assign({
+    t: translator(zh),
+    phase: 'ready',
+    exercise: CODE,
+    code: CODE.template,
+    attempt,
+    busy: false,
+    errorMessage: '',
+    onCode: () => {},
+    onRun: () => {},
+    onReset: () => {},
+    onRetry: () => {},
+  }, extra || {})))
+}
+
+test('exercise panel: loads the trusted template into a real editor and offers Run', () => {
+  const view = panelView(null)
+  const root = view
+  expect(root.props['data-panel-state'] === 'ready', 'panel must enter the ready state')
+  expect(root.props['data-exercise-id'] === CODE.id, 'panel root must name the exercise id')
+  const text = textOf(view)
+  for (const needle of ['代码练习', '元素落在子集里。', '思路', '编辑声明', '运行（真内核判卷）', '恢复模板']) {
+    expect(text.includes(needle), 'panel missing ' + needle)
+  }
+  const editor = nodesOf(view).find((node) => node.props?.['data-exercise-editor'] === '1')
+  expect(editor !== undefined, 'panel must render a real editor')
+  expect(editor.props.value === CODE.template, 'editor must start from the trusted template')
+  expect(editor.props.readOnly !== true, 'editor must be editable')
+  const run = nodesOf(view).find((node) => node.props?.['data-action'] === 'run-exercise')
+  expect(run !== undefined && typeof run.props.onClick === 'function', 'Run must be clickable')
+  expect(nodesOf(view).every((node) => node.props?.['data-panel-result'] === undefined), 'no result before a run')
+})
+
+test('exercise panel: a pass comes only from the kernel result', () => {
+  const view = panelView({ phase: 'done', result: {
+    ok: true,
+    passed: true,
+    target: 'mem_of_subset',
+    checked: ['mem_of_subset'],
+    open: [],
+    diagnostics: [],
+    exampleChecked: 0,
+  } })
+  const result = nodesOf(view).find((node) => node.props?.['data-panel-result'] === 'pass')
+  expect(result !== undefined, 'a kernel pass must render the pass box')
+  const text = textOf(view)
+  for (const needle of ['通过（真内核判卷）', 'mem_of_subset', 'open：0', 'diagnostic：0']) {
+    expect(text.includes(needle), 'pass box missing ' + needle)
+  }
+})
+
+test('exercise panel: diagnostics, sorry and service failures never show a pass', () => {
+  const failed = panelView({ phase: 'done', result: {
+    ok: true,
+    passed: false,
+    target: 'mem_of_subset',
+    checked: [],
+    open: [],
+    diagnostics: [{ code: 'elab-tactic-failed', message: '期望 x ∈ C，实际是 x ∈ B', line: 6 }],
+  } })
+  const failBox = nodesOf(failed).find((node) => node.props?.['data-panel-result'] === 'fail')
+  expect(failBox !== undefined, 'a kernel rejection must render the fail box')
+  const failText = textOf(failed)
+  for (const needle of ['还没通过', '目标', 'elab-tactic-failed', '第 6 行', '期望 x ∈ C']) {
+    expect(failText.includes(needle), 'fail box missing ' + needle)
+  }
+  expect(!failText.includes('✅'), 'a rejection must not claim a pass')
+  expect(nodesOf(failed).every((node) => node.props?.['data-panel-result'] !== 'pass'), 'a rejection must not render a pass box')
+
+  const sorry = panelView({ phase: 'done', result: {
+    ok: true, passed: false, target: 'mem_of_subset', checked: [], open: ['mem_of_subset'], diagnostics: [],
+  } })
+  expect(textOf(sorry).includes('还是 sorry'), 'an open target must explain the sorry')
+
+  const service = panelView({ phase: 'error', message: 'timeout' })
+  const errorBox = nodesOf(service).find((node) => node.props?.['data-panel-result'] === 'error')
+  expect(errorBox !== undefined, 'a service failure must render the unavailable box')
+  expect(textOf(service).includes('判卷服务不可用'), 'service failure must be explicit')
+  expect(textOf(service).includes('timeout'), 'service failure must keep the Host reason')
+  expect(!textOf(service).includes('通过（真内核判卷）'), 'a service failure must never look like a pass')
+})
+
+test('exercise panel: user-level submission errors are explicit, not infrastructure failures', () => {
+  const mismatch = panelView({ phase: 'done', result: { ok: false, code: 'name-mismatch', expectedName: 'mem_of_subset', foundName: 'foo' } })
+  expect(textOf(mismatch).includes('声明名对不上'), 'name mismatch must be explained')
+  expect(textOf(mismatch).includes('mem_of_subset'), 'name mismatch must name the expected declaration')
+  expect(textOf(mismatch).includes('还没通过'), 'a rejected submission stays "not passed yet"')
+})
+
+test('exercise panel: load failure is explicit and retryable', () => {
+  const view = render(exercisePanelView({
+    t: translator(zh), phase: 'error', exercise: null, code: '', attempt: null, busy: false,
+    errorMessage: 'not-found', onRetry: () => {},
+  }))
+  expect(view.props['data-panel-state'] === 'error', 'load failure state missing')
+  const text = textOf(view)
+  expect(text.includes('题目加载失败') && text.includes('not-found'), 'load failure text missing: ' + text)
+  const retry = nodesOf(view).find((node) => node.props?.['data-action'] === 'retry-exercise-load')
+  expect(retry !== undefined && typeof retry.props.onClick === 'function', 'load failure must offer retry')
+})
+
+test('exercise panel: chip title prefers the exercise title from navigation params', () => {
+  const chip = ExercisePanelTitle({
+    useTabInfo: () => ({ tab: { navigation: { params: { title: '子集传递' } } } }),
+    t: translator(zh),
+  })
+  expect(textOf(chip) === '子集传递', 'chip must show the exercise title')
+  const fallback = ExercisePanelTitle({ useTabInfo: () => ({ tab: { navigation: { params: {} } } }), t: translator(zh) })
+  expect(textOf(fallback) === zh.panelTitle, 'chip must fall back to the panel title')
+})
+
+test('exercise panel CSS rules exist (surface, editor, result states)', () => {
+  for (const selector of ['.dslc-panel{', '.dslc-panel-editor{', '.dslc-panel-run{',
+    '.dslc-panel-open{', '.dslc-panel-result[data-state="pass"]{', '.dslc-panel-result[data-state="fail"]{',
+    '.dslc-panel-result[data-state="error"]{']) {
+    expect(cardCss.includes(selector), 'stylesheet missing ' + selector)
+  }
 })
 
 console.log('')

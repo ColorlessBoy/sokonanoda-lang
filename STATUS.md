@@ -1,3 +1,11 @@
+## 当前快照（2026-11-27 · C9.7 侧栏做题面板）
+C9.7（#105）：代码练习卡「在侧栏面板中打开」→ 右栏 `sokonanoda-exercise`。
+Host 两条 loopback 路由（题目元数据 / 判卷）只从仓库题目集解析（白名单，不含
+solution），判卷复用 C9.4 `compose.py` + `scripts/soko grade --json`；仅
+`passed:true` 通过，诊断/sorry 失败，服务异常显示不可用；无右栏服务时按钮不渲染；
+面板不写 `mark-code`。判据：host 33 / client 45，Before/After 见
+`reports/2026-11-27-c97-exercise-panel/`。
+
 ## 当前快照（2026-11-27 · DSH 源码预览行号 / 跳行 / 懒加载）
 
 #116：`.sokonanoda` 右侧预览正式对齐普通代码预览。行号改为按 owner 分页的
@@ -16,10 +24,3 @@ status、`step/total`、假设、`⊢ goal`（`goal_runs`/`ty_runs` 上色，不
 `GET /sokonanoda-state`：只读、路径限工作区/仓库（拒 `..`、绝对路径、符号链接逃逸）、
 参数数组调 `scripts/soko query state`、3 s 超时杀进程组；client 120 ms 去抖 + 单飞 + seq。
 判据：插件 host 29 / client 28；真 DSH Web + 真内核 e2e；docs/status lint。
-
-## 当前快照（2026-11-27 · C9.6 发布与文档包）
-C9.6：把 C9 产物做成可安装、可发现的发布。插件 README 补干净安装、
-题库/代码题入口与基数、代码题提交、排障表与隐私边界；`dsh/README`、根 README、
-`site/llms.txt` 加入口；技能同步题库/代码题。bump 到 0.100.0，CHANGELOG 列 C9 范围
-与已知限制。判据：docs-lint / status-lint / check-site / skill+dsh / 插件测试 /
-preflight --fast
