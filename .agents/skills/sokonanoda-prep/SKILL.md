@@ -1,6 +1,6 @@
 ---
 name: sokonanoda-prep
-description: Curriculum preparation (备课) role for sokonanoda — audit and improve knowledge-point organization and the question bank in courses/set-theory/knowledge/data, validate with validate.py / coverage.py / verify_batch.py / engine.py selftest+simulate, and report coverage and batch deltas. Load this when the user wants to add or improve knowledge points, lessons, cards, or exercises for the course. The full manual lives at skills/sokonanoda-prep/SKILL.md from the repository root.
+description: Curriculum preparation (备课) role for sokonanoda — audit and improve knowledge-point organization and the question bank in courses/set-theory/knowledge/data, keep the derived code-exercise dataset in courses/exercise-dataset in sync (build.py --check / check.py), validate with validate.py / coverage.py / verify_batch.py / engine.py selftest+simulate, and report coverage and batch deltas. Load this when the user wants to add or improve knowledge points, lessons, cards, exercises, or the code-exercise dataset for the course. The full manual lives at skills/sokonanoda-prep/SKILL.md from the repository root.
 ---
 
 # sokonanoda-prep (DeepSeek Harness entry)

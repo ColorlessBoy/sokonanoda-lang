@@ -288,6 +288,14 @@ question 卡渲染，判卷反馈与下一题也以卡片/文本返回。
   插件用 `compose.py` + `scripts/soko grade --json` **真内核判卷**：通过才显示
   checked 并 `mark-code` 记进度，未过显示首条诊断、可同题重试；「跳过这道代码题」
   = `skip-code`。**代码题判卷也是本地快路径**（判卷超时/工具缺失才回落模型）。
+- **题目集入口（只读）**：选择题库 `courses/set-theory/knowledge/data/questions.json`
+  （409 道 / 400 可服务；同时服务卷 I 与卷 II.1）、知识点
+  `courses/set-theory/knowledge/data/knowledge-points.json`（195 个；96 绿 / 99 红
+  是 C9.2/C9.3 的预期欠账）、代码题 `courses/exercise-dataset/data/*.json`（2022 道 /
+  298 单元）。课程源是唯一真相，题库/数据集都是派生 —— **教学会话里不要改它们**；
+  要扩题/补覆盖转 `sokonanoda-prep`（`validate.py` / `coverage.py` /
+  `build.py --check`）。代码题判卷依赖 `python3` + `compose.py` + `scripts/soko`；
+  环境不全会回落模型，不要因此改判卷结论。
 - 普通聊天、追问仍由你（模型）回答；只有「已发代码题 + 围栏代码」由快路径判卷。
 - **你的角色变成教练**：卡片由引擎生成后，你读卡片内容做鼓励、解释、追问；
   **不要**自己再出同一道题，也不要重复判卷。需要看引擎状态/进展时调用
