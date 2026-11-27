@@ -1,0 +1,13 @@
+# dsh-inline-image: one Host row (owner-authenticated workspace image route)
+# plus one Client half (the `dsh-image` Markdown fence renderer).
+- insert:
+    - id: dsh-inline-image
+      name: dsh-inline-image
+      config:
+        # Optional extra roots this route may serve from. Omitted (the norm) the
+        # route serves the plugin's bundled `public/` samples plus the Host
+        # process working directory (normally the active workspace). Never
+        # commit a machine-specific absolute path here.
+        # roots:
+        #   - /path/to/workspace/images
+        maxBytes: 10485760
