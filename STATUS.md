@@ -1,12 +1,9 @@
 ## 当前快照（2026-11-27 · C9.6 发布与文档包）
-C9.6（#104）：把 C9 产物做成可安装、可发现的发布。插件 README 补**干净机器一条路**
-（`scripts/soko setup` → `dsh plugin --profile web add` → `dsh web`）、
-题库/代码题入口（409 题 / 400 可服务；2022 道代码题）、代码题提交口径、
-排障表与隐私边界；`dsh/README`、根 README、`site/llms.txt` 加插件/题库入口；
-teacher/prep/dev 技能同步题库与代码题用法（DSH 薄入口路由词同步）。
-版本 bump 到 0.100.0，CHANGELOG 列清 C9 范围与已知限制。判据：docs-lint /
-status-lint / check-site / skill+dsh 契约（8+5）/ 插件 host 24 + client 22 /
-`release-preflight.sh`。
+C9.6：把 C9 产物做成可安装、可发现的发布。插件 README 补干净安装、
+题库/代码题入口与基数、代码题提交、排障表与隐私边界；`dsh/README`、根 README、
+`site/llms.txt` 加入口；技能同步题库/代码题。bump 到 0.100.0，CHANGELOG 列 C9 范围
+与已知限制。判据：docs-lint / status-lint / check-site / skill+dsh / 插件测试 /
+preflight --fast
 
 ## 当前快照（2026-11-27 · C9.5 调度、复盘与学习地图）
 C9.5（#103）：`engine.py` 校准阶梯改由题库推导（不再硬编码 I.1–I.3），`next` 加
