@@ -48,6 +48,8 @@ globalThis.window = {
   addEventListener: () => {},
   removeEventListener: () => {},
 }
+globalThis.fetch = undefined
+
 globalThis.document = {
   querySelector: () => null,
   createElement: () => ({ dataset: {}, textContent: '' }),
@@ -193,7 +195,11 @@ const en = plugin.__test.en
 const cardCss = plugin.__test.cardCss
 
 function translator(dict) {
-  return (key) => (typeof dict[key] === 'string' ? dict[key] : key)
+  return (key, vars) => {
+    const value = typeof dict[key] === 'string' ? dict[key] : key
+    if (vars === undefined) return value
+    return value.replace(/\{(\w+)\}/g, (whole, name) => vars[name] === undefined ? whole : String(vars[name]))
+  }
 }
 
 /** Props shaped like the real keyed toolview owner (phase + settled result node). */
@@ -312,6 +318,39 @@ test('module id + package manifest match what the profile loader expects', () =>
     'both halves and the in-process quiz core must be published')
   const patch = fs.readFileSync(path.join(__dirname, '..', 'cordis.patch.yml'), 'utf8')
   expect(patch.includes('name: sokonanoda-dsh'), 'cordis.patch.yml must insert sokonanoda-dsh')
+})
+
+test('a late document-preview service still receives the sokonanoda body', () => {
+  const previews = []
+  const slots = []
+  const late = {
+    effect(callback) {
+      const cleanup = callback()
+      return typeof cleanup === 'function' ? cleanup : () => {}
+    },
+    locale: { register() { return () => {} } },
+    slots: {
+      inject(name, callback) { return callback() },
+      register(definition, component) { slots.push({ definition, component }); return () => {} },
+    },
+    get(name) { return name === 'sidebarRight' ? { openResource() {} } : undefined },
+    inject(deps, callback) {
+      expect(deps.includes('documentPreviews'), 'the client must wait for documentPreviews')
+      callback({
+        documentPreviews: {
+          register(definition) { previews.push(definition); return () => {} },
+        },
+      })
+    },
+  }
+  plugin.apply(late)
+  const preview = previews.find((definition) => definition.id === 'sokonanoda-dsh/source')
+  expect(preview !== undefined, 'late documentPreviews must still register the source preview')
+  expect(preview.extensions.includes('sokonanoda'), 'preview must claim the sokonanoda suffix')
+  expect(preview.loading === 'text-pages' && preview.sourceLines === true, 'preview must use paged text with line anchors')
+  const body = slots.find((entry) => entry.definition.name === 'sidebar.right.tab.document')
+  expect(body !== undefined, 'the source body must register on the document slot')
+  expect(body.definition.locale === plugin.__test.NS, 'the body must receive the card locale namespace')
 })
 
 test('client registers exactly three fence layers, no tool view', () => {
@@ -493,6 +532,93 @@ test('.sokonanoda source preview renders a line-numbered Lean view', () => {
   expect(textOf(view).includes('swap_exists_forall'), 'source preview lost the file text')
   expect(byClass(view, 'dsls-source-line').length === 4, 'source preview must render one row per line')
   expect(byClass(view, 'dslc-hl').length >= 1, 'source preview must run the Lean highlighter')
+})
+
+test('source cursor: navigation target becomes the active row, focusable for arrows', () => {
+  const source = 'theorem demo : True := by\n  trivial'
+  const view = render(h(plugin.__test.SokonanodaSourceBody, {
+    content: { kind: 'text', text: source, pages: [], eof: true },
+    wrap: false,
+    resourceAddress: 'dsh-resource://file/session/s1/demo.sokonanoda',
+    scrollportRef: () => {},
+    useTabInfo: () => ({ tab: { navigation: { revision: 7, params: { line: 2 } } } }),
+  }))
+  const active = nodesOf(view).filter((node) => node.props?.['data-source-active'] === '1')
+  expect(active.length === 1, 'exactly one row must be active')
+  expect(active[0].props['data-source-line'] === 2, 'navigation line 2 must be the active row')
+  const root = nodesOf(view).find((node) => node.props?.className === 'dsls-source')
+  expect(root !== undefined && root.props['data-active-line'] === 2, 'preview root must expose the active line')
+  const scroll = nodesOf(view).find((node) => node.props?.className === 'dsls-source-scroll')
+  expect(scroll !== undefined && scroll.props.tabIndex === 0, 'preview must be focusable so arrows reach it')
+  expect(scroll.props.role === 'region', 'preview must expose a region role')
+  expect(typeof scroll.props.onKeyDown === 'function', 'preview must handle arrow keys')
+  oneByClass(view, 'dsls-source-panel')
+})
+
+test('source cursor: arrow moves clamp to loaded lines without escaping the file', () => {
+  const next = plugin.__test.nextActiveLine
+  expect(next(0, 1, 10) === 1, 'down from no line starts at line 1')
+  expect(next(0, -1, 10) === 10, 'up from no line starts at the last loaded line')
+  expect(next(5, 1, 10) === 6, 'down moves one line')
+  expect(next(5, -1, 10) === 4, 'up moves one line')
+  expect(next(10, 1, 10) === 10, 'down clamps at the last loaded line')
+  expect(next(1, -1, 10) === 1, 'up clamps at line 1')
+  expect(next(0, 1, 0) === 0, 'an empty file has no active line')
+})
+
+test('goal panel renders declaration, step, hypotheses and semantic goal runs', () => {
+  const state = {
+    decl: { name: 'demo_diag', kind: 'theorem', status: 'checked' },
+    binders: [{ name: 'α', ty: 'Type', ty_runs: [{ text: 'Type', kind: 'sort' }] }],
+    goals: [{
+      goal: 'False',
+      goal_runs: [{ text: 'False', kind: 'keyword' }],
+      binders: [{ name: 'h', ty: '¬ True', ty_runs: [{ text: '¬', kind: 'keyword' }, { text: ' ' }, { text: 'True', kind: 'keyword' }] }],
+    }],
+    goal: 'False',
+    step: 4,
+    total: 6,
+  }
+  const view = render(h(plugin.__test.SourceGoalPanel, { line: 88, phase: 'ready', state, t: translator(zh) }))
+  const text = textOf(view)
+  for (const needle of ['第 88 行', 'demo_diag', 'theorem', '已检查', '步骤 4/6', 'h', '¬ True', '⊢', 'False']) {
+    expect(text.includes(needle), 'goal panel missing ' + needle + ' in ' + text)
+  }
+  oneByClass(view, 'dsls-goal')
+  oneByClass(view, 'dsls-hyp')
+  expect(byClass(view, 'dsls-run-keyword').length >= 2, 'semantic runs must colour the goal/hypothesis')
+  const chip = byClass(view, 'dsls-state-chip').find((node) => node.props['data-status'] === 'checked')
+  expect(chip !== undefined, 'checked status chip missing')
+})
+
+test('goal panel distinguishes closed, outside and broken-file states', () => {
+  const closed = render(h(plugin.__test.SourceGoalPanel, {
+    line: 4, phase: 'ready', t: translator(zh),
+    state: { decl: { name: 'done', kind: 'theorem', status: 'checked' }, goals: [], step: 2, total: 2 },
+  }))
+  expect(textOf(closed).includes('已无目标'), 'a closed proof must say so')
+  const outside = render(h(plugin.__test.SourceGoalPanel, {
+    line: 1, phase: 'outside', t: translator(zh),
+    error: { code: 'outside-declarations', message: 'x' },
+  }))
+  expect(textOf(outside).includes('光标不在任何声明内'), 'outside state must be explicit')
+  const broken = render(h(plugin.__test.SourceGoalPanel, {
+    line: 3, phase: 'file-errors', t: translator(zh),
+    error: { code: 'file-errors', message: '源码有 1 处错误' },
+    diagnostics: [{ line: 3, message: 'unexpected token' }],
+  }))
+  expect(textOf(broken).includes('第 3 行'), 'diagnostic line must be visible')
+  expect(textOf(broken).includes('unexpected token'), 'diagnostic message must be visible')
+})
+
+test('semantic runs never re-tokenize: mismatched runs fall back to the field text', () => {
+  const exact = plugin.__test.semanticRuns(
+    [{ text: 'α', kind: 'binder' }, { text: ' → ' }, { text: 'β', kind: 'binder' }],
+    'α → β',
+  )
+  expect(textOf(render(h('div', {}, exact))) === 'α → β', 'run rendering must preserve the exact text')
+  expect(plugin.__test.semanticRuns([{ text: 'wrong' }], 'α → β') === 'α → β',
+    'mismatched runs must fall back to plain text')
 })
 
 test('lesson fence renders goal, points and intuition', () => {

@@ -47,7 +47,8 @@ dsh web      # 重启后在新会话里 /sokonanoda-fast-think on → 「开始�
 | 模型的 `lsp` 工具 hover `.sokonanoda` | ✅ 需 `--patch` | hover 文本来自内核 pretty printer（真类型/真目标态） |
 | 跳定义 / 找引用 / 找实现 | ✅ 需 `--patch` | 比纯文本 grep 精确 |
 | **编辑器内诊断（`publishDiagnostics`）** | ❌ | DSH 的 LSP host 明确忽略服务端通知（`packages/lsp/lsp-stdio/src/connection.ts`） |
-| **`soko/goals`、`soko/stateAt`、`soko/nextHole`、`soko/hints`** | ❌ | 自定义请求需要宿主插件；见设计文档 H5 backlog |
+| **只读源码预览 + 光标 goal 面板** | ✅ 装插件 | 右侧侧栏打开 `.sokonanoda`，`↑/↓`（或点击行）移动光标行，下方面板显示该位置的声明、假设、`step/total` 与目标；数据走 `scripts/soko query state`（CLI），只读、owner-only、路径限制在会话工作区/仓库内 |
+| **LSP 自定义请求 `soko/goals`、`soko/stateAt`、`soko/nextHole`、`soko/hints`** | ❌ | 宿主 LSP 仍不消费自定义请求；预览面板不走 LSP，改走 CLI `query state`（见上一行）。其余见设计文档 H5 backlog |
 | 判卷（内核判定 + 结构化事件） | ✅ 走 CLI | `scripts/soko grade playground.sokonanoda --json` |
 
 > **判卷永远走 CLI `--json` 或 `query`**，别等 LSP 诊断。这是 DSH 与

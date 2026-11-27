@@ -22,6 +22,7 @@
  * (`SOKO_DSH_DATA` overrides the whole directory).
  */
 
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -60,6 +61,16 @@ const DEFAULT_TIMEOUT_MS = 8000
 /** 代码题要 compose + 真内核判卷，快路径超时要比问答宽。 */
 const DEFAULT_CODE_TIMEOUT_MS = 45000
 const MAX_LOG_LINES = 2000
+/** Read-only goal state probe: hot `query state` answers in ~0.12 s; cold compile may be slower. */
+const DEFAULT_STATE_TIMEOUT_MS = 3000
+/** Cap on child output so a runaway compile can never grow the Host heap. */
+const MAX_QUERY_BYTES = 8 * 1024 * 1024
+/** Only the first few diagnostics travel to the preview panel. */
+const MAX_STATE_DIAGNOSTICS = 3
+/** Resource address prefix shared with the Sidebar document preview. */
+const FILE_RESOURCE_PREFIX = 'dsh-resource://file/'
+/** Same-origin read-only route the preview body polls while the cursor moves. */
+const STATE_ROUTE = '/sokonanoda-state'
 
 /**
  * Repository root: the nearest ancestor that still contains the course engine.
@@ -119,12 +130,18 @@ export function normalizeConfig(config = {}, fileConfig = {}) {
     : defaultDataDir()
   const timeout = Number(merged.timeoutMs)
   const codeTimeout = Number(merged.codeTimeoutMs)
+  const stateTimeout = Number(merged.stateTimeoutMs)
+  const repoRoot = typeof merged.repoRoot === 'string' && merged.repoRoot.trim() !== ''
+    ? path.resolve(merged.repoRoot.trim())
+    : REPO
+  const sokoPath = typeof merged.sokoPath === 'string' && merged.sokoPath.trim() !== ''
+    ? path.resolve(merged.sokoPath.trim())
+    : path.join(repoRoot, 'scripts', 'soko')
   return {
     enabled: merged.enabled !== false,
     dataDir,
-    repoRoot: typeof merged.repoRoot === 'string' && merged.repoRoot.trim() !== ''
-      ? path.resolve(merged.repoRoot.trim())
-      : REPO,
+    repoRoot,
+    sokoPath,
     historyPath: path.join(dataDir, 'history', 'decisions.jsonl'),
     sessionsPath: path.join(dataDir, 'sessions.json'),
     quizStateDir: path.join(dataDir, 'quiz'),
@@ -133,11 +150,258 @@ export function normalizeConfig(config = {}, fileConfig = {}) {
     codeTimeoutMs: Number.isFinite(codeTimeout) && codeTimeout >= 500
       ? Math.floor(codeTimeout)
       : DEFAULT_CODE_TIMEOUT_MS,
+    stateTimeoutMs: Number.isFinite(stateTimeout) && stateTimeout >= 300
+      ? Math.floor(stateTimeout)
+      : DEFAULT_STATE_TIMEOUT_MS,
     decisionsLimit: Number.isFinite(Number(merged.decisionsLimit))
       ? Math.max(1, Math.min(MAX_LOG_LINES, Math.floor(Number(merged.decisionsLimit))))
       : 20,
     cards: merged.cards !== false,
   }
+}
+
+/**
+ * Read the Sidebar file resource address into the Session and path it names.
+ * Mirrors `dsh-util-workspace-path`'s session scope: every segment is
+ * component-encoded, query/fragment suffixes are ignored, and a malformed
+ * escape is not a usable address.
+ * @param address - `dsh-resource://file/session/<id>/<path>` (or absolute scope).
+ * @returns `{ sessionId, path }`, or null when it is not a session file address.
+ */
+export function parseFileResource(address) {
+  if (typeof address !== 'string' || !address.startsWith(FILE_RESOURCE_PREFIX)) return null
+  const end = address.search(/[?#]/)
+  const tail = address.slice(FILE_RESOURCE_PREFIX.length, end === -1 ? undefined : end)
+  const parts = tail.split('/')
+  if (parts[0] !== 'session' || parts.length < 3) return null
+  try {
+    const sessionId = decodeURIComponent(parts[1])
+    const filePath = parts.slice(2).map(decodeURIComponent).join('/')
+    if (sessionId === '' || filePath === '') return null
+    return { sessionId, path: filePath }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Whether `target` is `root` itself or sits below it (separator-aware, so
+ * `/repo-other` never counts as inside `/repo`).
+ * @param root - absolute container path.
+ * @param target - absolute candidate path.
+ * @returns true when the candidate stays inside the container.
+ */
+export function isPathWithin(root, target) {
+  const relative = path.relative(path.resolve(root), path.resolve(target))
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))
+}
+
+/** Resolve symlinks when possible; a missing path keeps its lexical resolution. */
+function realPathOf(target) {
+  try {
+    return typeof fs.realpathSync.native === 'function' ? fs.realpathSync.native(target) : fs.realpathSync(target)
+  } catch {
+    return path.resolve(target)
+  }
+}
+
+/**
+ * Resolve a preview resource to the one file the read-only state route may ask
+ * the kernel about. A relative address resolves against the Session workspace;
+ * an absolute one stays itself. The canonical file must sit inside either the
+ * Session workspace or the repository, and must exist as a regular file.
+ * @param options - resource address, Session workspace root and repository root.
+ * @returns `{ ok: true, path, sessionId }` or `{ ok: false, code, message }`.
+ */
+export function resolveAllowedStatePath({ resource, workspaceRoot, repoRoot }) {
+  const parsed = parseFileResource(resource)
+  if (parsed === null) return { ok: false, code: 'bad-resource', message: '无法识别的文件资源地址' }
+  if (!/\.sokonanoda$/i.test(parsed.path)) {
+    return { ok: false, code: 'bad-resource', message: '只接受 .sokonanoda 源文件' }
+  }
+  if (typeof workspaceRoot !== 'string' || workspaceRoot === '') {
+    return { ok: false, code: 'workspace-unavailable', message: '当前会话没有可用的工作区' }
+  }
+  const lexical = path.isAbsolute(parsed.path)
+    ? path.resolve(parsed.path)
+    : path.resolve(workspaceRoot, parsed.path)
+  let info = null
+  try {
+    info = fs.statSync(lexical)
+  } catch {
+    info = null
+  }
+  /* A missing file is judged lexically (it cannot be read yet); an existing
+   * one must also survive symlink resolution inside the real root. */
+  const realTarget = info === null ? lexical : realPathOf(lexical)
+  const allowedRoots = [workspaceRoot, repoRoot]
+    .filter((root) => typeof root === 'string' && root !== '')
+  const within = allowedRoots.some((root) => {
+    if (!isPathWithin(root, lexical)) return false
+    return info === null || isPathWithin(realPathOf(root), realTarget)
+  })
+  if (!within) return { ok: false, code: 'forbidden', message: '路径不在当前工作区或仓库内' }
+  if (info === null) return { ok: false, code: 'not-found', message: '目标文件不存在' }
+  if (!info.isFile()) return { ok: false, code: 'not-found', message: '目标不是普通文件' }
+  return { ok: true, path: realTarget, sessionId: parsed.sessionId }
+}
+
+/**
+ * Run one read-only `scripts/soko` query with an argument vector (never a
+ * shell string) and a hard timeout that kills the whole child process group.
+ * @param options - launcher path, working directory, arguments and timeout.
+ * @returns `{ ok: true, envelope }` with the parsed JSON, or a structured error.
+ */
+export function runSokoCommand({ sokoPath, cwd, args, timeoutMs = DEFAULT_STATE_TIMEOUT_MS }) {
+  return new Promise((resolve) => {
+    if (typeof sokoPath !== 'string' || !fs.existsSync(sokoPath)) {
+      resolve({ ok: false, error: { code: 'backend', message: '找不到 scripts/soko 启动器' } })
+      return
+    }
+    const child = spawn(process.execPath, [sokoPath, ...args], {
+      cwd: cwd === undefined ? path.dirname(sokoPath) : cwd,
+      detached: process.platform !== 'win32',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      env: process.env,
+    })
+    let stdout = ''
+    let stderr = ''
+    let settled = false
+    const finish = (result) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(result)
+    }
+    const killTree = (signal) => {
+      try {
+        if (process.platform !== 'win32' && child.pid !== undefined) process.kill(-child.pid, signal)
+        else child.kill(signal)
+      } catch {
+        try { child.kill(signal) } catch { /* already gone */ }
+      }
+    }
+    const timer = setTimeout(() => {
+      killTree('SIGKILL')
+      finish({ ok: false, error: { code: 'timeout', message: `状态查询超过 ${timeoutMs} ms` } })
+    }, timeoutMs)
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk
+      if (stdout.length > MAX_QUERY_BYTES) {
+        killTree('SIGKILL')
+        finish({ ok: false, error: { code: 'backend', message: '状态查询输出过大' } })
+      }
+    })
+    child.stderr.on('data', (chunk) => {
+      if (stderr.length < 64 * 1024) stderr += chunk
+    })
+    child.on('error', (error) => {
+      finish({ ok: false, error: { code: 'backend', message: String(error?.message || error) } })
+    })
+    child.on('close', (code) => {
+      const text = stdout.trim()
+      if (text === '') {
+        finish({
+          ok: false,
+          error: {
+            code: code === 0 ? 'invalid-response' : 'backend',
+            message: (stderr.trim() || `query 退出码 ${code}`).slice(0, 300),
+          },
+        })
+        return
+      }
+      let envelope
+      try {
+        envelope = JSON.parse(text)
+      } catch {
+        finish({ ok: false, error: { code: 'invalid-response', message: 'query 输出不是 JSON' } })
+        return
+      }
+      finish({ ok: true, envelope, code: code === null ? -1 : code })
+    })
+  })
+}
+
+/** Last-on-disk `query check` answer by file identity; avoids re-checking on every outside line. */
+const diagnosticsCache = new Map()
+
+/**
+ * Kernel diagnostics for one file, cached by (path, mtime, size). The preview
+ * uses them only to tell "cursor outside every declaration" from "the source
+ * does not parse"; the answer never gates a declaration.
+ * @param settings - resolved plugin settings.
+ * @param file - absolute source path.
+ * @returns up to {@link MAX_STATE_DIAGNOSTICS} `{ line, message }` entries.
+ */
+export async function diagnosticsForFile(settings, file) {
+  if (diagnosticsCache.size > 40) diagnosticsCache.clear()
+  let key = file
+  try {
+    const stat = fs.statSync(file)
+    key = `${file}\u0000${stat.mtimeMs}\u0000${stat.size}`
+  } catch {
+    return []
+  }
+  if (diagnosticsCache.has(key)) return diagnosticsCache.get(key)
+  const result = await runSokoCommand({
+    sokoPath: settings.sokoPath,
+    cwd: settings.repoRoot,
+    args: ['query', 'check', '--file', file],
+    timeoutMs: settings.stateTimeoutMs,
+  })
+  const failed = result.ok === true && result.envelope !== null && typeof result.envelope === 'object'
+    ? result.envelope?.data?.failed
+    : undefined
+  const diagnostics = Array.isArray(failed)
+    ? failed.slice(0, MAX_STATE_DIAGNOSTICS).map((item) => ({
+      line: Number(item?.start_line) || 0,
+      message: String(item?.message || '').slice(0, 240),
+    }))
+    : []
+  diagnosticsCache.set(key, diagnostics)
+  return diagnostics
+}
+
+/**
+ * Answer one preview cursor position: a successful kernel state, or a
+ * structured reason there is none (outside every declaration, file errors,
+ * timeout, backend failure). The route only ever reads; nothing is written.
+ * @param settings - resolved plugin settings.
+ * @param file - absolute source path.
+ * @param line - 1-based source line.
+ * @param col - 1-based source column.
+ * @returns the response body the client renders.
+ */
+export async function stateAnswer(settings, file, line, col) {
+  const result = await runSokoCommand({
+    sokoPath: settings.sokoPath,
+    cwd: settings.repoRoot,
+    args: ['query', 'state', '--file', file, '--line', String(line), '--col', String(col)],
+    timeoutMs: settings.stateTimeoutMs,
+  })
+  if (result.ok !== true) return { ok: false, error: result.error }
+  const envelope = result.envelope
+  if (envelope !== null && typeof envelope === 'object' && envelope.ok === true
+    && envelope.data !== null && typeof envelope.data === 'object') {
+    return { ok: true, line, col, path: file, state: envelope.data }
+  }
+  const code = typeof envelope?.error?.code === 'string' ? envelope.error.code : 'invalid-response'
+  const message = typeof envelope?.error?.message === 'string'
+    ? envelope.error.message
+    : '内核没有返回可读的状态'
+  if (code === 'outside-declarations') {
+    const diagnostics = await diagnosticsForFile(settings, file)
+    if (diagnostics.length > 0) {
+      return {
+        ok: false,
+        error: { code: 'file-errors', message: `源码有 ${diagnostics.length} 处错误` },
+        diagnostics,
+      }
+    }
+    return { ok: false, error: { code, message: '该位置不在任何声明内部' } }
+  }
+  return { ok: false, error: { code, message } }
 }
 
 /**
@@ -706,8 +970,82 @@ export async function apply(ctx, config = {}) {
   try { clientModules = ctx.get('clientModules') } catch { clientModules = undefined }
   let webServer
   try { webServer = ctx.get('webServer') } catch { webServer = undefined }
-  if (webServer !== undefined && webServer !== null && typeof webServer.register === 'function') {
-    ctx.effect(() => webServer.register({
+
+  const writeJson = (response, status, body) => {
+    try {
+      const text = JSON.stringify(body)
+      response.writeHead(status, {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+      })
+      response.end(text)
+    } catch {
+      try { response.writeHead(500); response.end() } catch { /* the socket is already gone */ }
+    }
+  }
+
+  /** The Session workspace the resource address speaks for, when the Host knows it. */
+  const workspaceRootOf = async (sessionId) => {
+    let files
+    try { files = ctx.get('workspaceFiles') } catch { files = undefined }
+    if (files !== undefined && files !== null && typeof files.scopeOf === 'function') {
+      try {
+        const scope = await files.scopeOf(sessionId)
+        if (scope !== null && scope !== undefined && typeof scope.workspaceRoot === 'string') {
+          return scope.workspaceRoot
+        }
+      } catch { /* the sandbox fallback below still has the deployment root */ }
+    }
+    try {
+      const policy = ctx.get('sandboxPolicy')
+      if (policy !== undefined && policy !== null && typeof policy.workspaceRoot === 'string') {
+        return policy.workspaceRoot
+      }
+    } catch { /* no policy in this composition */ }
+    return null
+  }
+
+  /** GET /sokonanoda-state — owner-only, same-origin read of one cursor position. */
+  const handleStateRequest = async (request, response, peer) => {
+    if (peer === null || peer === undefined || peer?.principal?.kind !== 'owner') {
+      writeJson(response, 403, { ok: false, error: { code: 'forbidden', message: '只接受本机所有者' } })
+      return
+    }
+    let url
+    try {
+      url = new URL(String(request?.url || '/'), 'http://dsh.invalid')
+    } catch {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-request', message: '无法解析请求地址' } })
+      return
+    }
+    const resource = String(url.searchParams.get('resource') || '')
+    const line = Number(url.searchParams.get('line'))
+    const colRaw = url.searchParams.get('col')
+    const col = colRaw === null ? 1 : Number(colRaw)
+    if (resource === '' || !Number.isInteger(line) || line < 1 || line > 10_000_000
+      || !Number.isInteger(col) || col < 1 || col > 1_000_000) {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-request', message: '需要 resource 与正整数 line/col' } })
+      return
+    }
+    const parsed = parseFileResource(resource)
+    if (parsed === null) {
+      writeJson(response, 400, { ok: false, error: { code: 'bad-resource', message: '无法识别的文件资源地址' } })
+      return
+    }
+    const workspaceRoot = await workspaceRootOf(parsed.sessionId)
+    const target = resolveAllowedStatePath({ resource, workspaceRoot, repoRoot: settings.repoRoot })
+    if (!target.ok) {
+      const status = target.code === 'not-found' ? 404 : target.code === 'bad-resource' ? 400 : 403
+      writeJson(response, status, { ok: false, error: { code: target.code, message: target.message } })
+      return
+    }
+    const answer = await stateAnswer(settings, target.path, line, col)
+    writeJson(response, 200, answer)
+  }
+
+  const registerWebRoutes = (server) => {
+    if (server === null || server === undefined || typeof server.register !== 'function') return
+    ctx.effect(() => server.register({
       kind: 'exact',
       path: '/sokonanoda-client-report',
       auth: 'anonymous',
@@ -730,6 +1068,26 @@ export async function apply(ctx, config = {}) {
         }
       },
     }), 'sokonanoda-dsh: client report route')
+    ctx.effect(() => server.register({
+      kind: 'exact',
+      path: STATE_ROUTE,
+      auth: 'required',
+      handler: (request, response, peer) => handleStateRequest(request, response, peer),
+    }), 'sokonanoda-dsh: read-only goal state route')
+  }
+
+  if (webServer !== undefined && webServer !== null && typeof webServer.register === 'function') {
+    registerWebRoutes(webServer)
+  } else if (typeof ctx.inject === 'function') {
+    /* The Web composition registers `webServer` after some plugins apply; a
+     * one-shot ctx.get would silently lose both routes. Wait for the service. */
+    try {
+      ctx.inject(['webServer'], (scope) => {
+        let server
+        try { server = scope?.webServer ?? scope?.get?.('webServer') } catch { server = undefined }
+        registerWebRoutes(server)
+      })
+    } catch { /* non-Web compositions get no routes */ }
   }
   const service = { url: '', close: null }
   try {

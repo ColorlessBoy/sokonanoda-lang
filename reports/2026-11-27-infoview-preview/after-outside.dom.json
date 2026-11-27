@@ -1,0 +1,9 @@
+{
+  "capture": "after: click line 1 (outside every declaration)",
+  "roots": 1,
+  "rows": 207,
+  "panels": 1,
+  "active": ["1"],
+  "phase": "outside",
+  "panel": "第 1 行\n\n光标不在任何声明内"
+}
