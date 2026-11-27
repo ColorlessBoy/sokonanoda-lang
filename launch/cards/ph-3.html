@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sokonanoda — Product Hunt gallery 3</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body { width: 1270px; height: 760px; }
+  .top { position: absolute; top: 56px; left: 56px; right: 56px; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; }
+  .ver { font-family: var(--font-mono); font-size: 13px; color: var(--acc); letter-spacing: 0.08em; }
+  h1 { font-size: 54px; margin-top: 18px; }
+  .cols { position: absolute; top: 330px; left: 56px; right: 56px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 44px; }
+  .col { border-top: 1px solid var(--rule-strong); padding-top: 18px; }
+  .course { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+  .num { font-size: 92px; line-height: 1; margin-top: 10px; letter-spacing: -0.02em; }
+  .lab { font-family: var(--font-mono); font-size: 14px; color: var(--ink-2); margin-top: 2px; }
+  .desc { margin-top: 18px; font-size: 17px; line-height: 1.5; color: var(--ink-2); }
+  .units { margin-top: 14px; font-family: var(--font-mono); font-size: 13px; color: var(--acc); }
+  .footer { position: absolute; left: 56px; right: 56px; bottom: 46px; border-top: 1px solid var(--rule); padding-top: 16px; display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 14px; color: var(--ink-3); }
+  .footer b { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="top">
+    <div class="row">
+      <div class="eyebrow">Three courses <span class="dot">·</span> one kernel</div>
+      <div class="ver">298 UNITS · v0.100.0</div>
+    </div>
+    <h1>2,022 exercises.<br><em>Every one kernel-checked.</em></h1>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <div class="course">Quick start</div>
+      <div class="num">66</div>
+      <div class="lab">exercises</div>
+      <p class="desc">Propositions, equality, functions, induction, quantifiers — the first proofs in an afternoon.</p>
+      <div class="units">11 units · English mirror</div>
+    </div>
+    <div class="col">
+      <div class="course">Set theory · Vol. I</div>
+      <div class="num">910</div>
+      <div class="lab">exercises</div>
+      <p class="desc">From membership and extensionality to ordinals, cardinals, choice and quotient constructions.</p>
+      <div class="units">112 units · 13 chapters</div>
+    </div>
+    <div class="col">
+      <div class="course">Real analysis · Vol. II–III</div>
+      <div class="num">1,046</div>
+      <div class="lab">exercises</div>
+      <p class="desc">ℤ → ℚ → ℝ, sequences, continuity, derivatives and the FTC — all in the same kernel.</p>
+      <div class="units">175 units · capstone included</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span><b>2022</b> exercises with kernel-checked solutions · <b>5,030</b> hints</span>
+    <span><b>409</b> quiz questions · <b>195</b> knowledge points</span>
+  </div>
+</div>
+</body>
+</html>

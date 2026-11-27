@@ -83,6 +83,11 @@ DEMO_DARK = "assets/demo-vscode-dark.gif"
 DEMO_MIN_FRAMES = 10          # 静态图不算演示
 DEMO_MIN_SECONDS = 3.0
 DEMO_MAX_SECONDS = 20.0
+# 社交分享卡（2026-11-27，launch kit）：链接在 HN / Product Hunt / 飞书 / 微信里
+# 展开时的预览图，也是 `og:image` 指的那张。它是**生成物**（launch/cards/render.sh
+# 用真头图 + 真文案渲染），不是手画的装饰图；尺寸固定 1200×630。
+OG = "assets/og-card.png"
+OG_SIZE = (1200, 630)
 BITMAP_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico")
 
 
@@ -528,15 +533,17 @@ def gif_info(path: str) -> dict:
 
 def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     bitmaps = {os.path.relpath(f, SITE): f for f in files if f.lower().endswith(BITMAP_EXT)}
-    allowed = {HERO, HERO_DARK, DEMO, DEMO_DARK}
+    allowed = {HERO, HERO_DARK, DEMO, DEMO_DARK, OG}
     unexpected = [k for k in bitmaps if k not in allowed]
     if unexpected:
-        raise Failure(f"位图只允许两版头图 + 两版演示 GIF（都必须由 scripts/site-screenshot.mjs / "
-                      f"site-demo.mjs 生成）：{unexpected}")
+        raise Failure(f"位图只允许两版头图 + 两版演示 GIF + 一张分享卡（头图/GIF 必须由 "
+                      f"scripts/site-screenshot.mjs / site-demo.mjs 生成；分享卡由 "
+                      f"launch/cards/render.sh 生成）：{unexpected}")
     missing = sorted(allowed - set(bitmaps))
     if missing:
         raise Failure(f"缺大图 {missing}（头图两版：`node scripts/site-screenshot.mjs [--theme dark]`；"
-                      f"演示两版：`node scripts/site-demo.mjs [--theme dark]`）")
+                      f"演示两版：`node scripts/site-demo.mjs [--theme dark]`；"
+                      f"分享卡：`launch/cards/render.sh`）")
 
     # ── 头图：真 PNG，两版同一裁切几何 ──
     sizes = {}
@@ -611,9 +618,21 @@ def check_assets(files: list[str], pages: dict[str, PageParser]) -> str:
     light_kb = sizes[HERO][0] // 1024
     dark_kb = sizes[HERO_DARK][0] // 1024
     demo_kb = max(demo_sizes[DEMO][0], demo_sizes[DEMO_DARK][0]) // 1024
+    # ── 社交分享卡：尺寸固定、预算同档；`og:image` 必须真的指到它 ──
+    og_size = os.path.getsize(bitmaps[OG])
+    if og_size > IMAGE_BUDGET:
+        raise Failure(f"{OG} 有 {og_size} 字节，超过每张大图预算 {IMAGE_BUDGET}")
+    got = png_size(bitmaps[OG])
+    if got != OG_SIZE:
+        raise Failure(f"{OG} 是 {got[0]}×{got[1]}，分享卡固定为 {OG_SIZE[0]}×{OG_SIZE[1]}")
+    og_meta = pages["index.html"].meta.get("og:image", "")
+    if not og_meta.endswith("/" + OG):
+        raise Failure(f"index.html 的 og:image 必须指向 /{OG}，实测 {og_meta!r}")
+    og_kb = og_size // 1024
     detail = (f"头图两版 {light_kb}+{dark_kb} KB（{width}×{height}，尺寸一致）· "
               f"演示 GIF {demo_kb} KB（{dw}×{dh}，{demo_sizes[DEMO][1]['frames']} 帧 / "
-              f"{demo_sizes[DEMO][1]['duration']:.1f}s，两版尺寸一致）· 每张 ≤{IMAGE_BUDGET // 1024} KB")
+              f"{demo_sizes[DEMO][1]['duration']:.1f}s，两版尺寸一致）· "
+              f"分享卡 {og_kb} KB（{OG_SIZE[0]}×{OG_SIZE[1]}）· 每张 ≤{IMAGE_BUDGET // 1024} KB")
     total = size_readings(files)["site_text_bytes"]   # 读数**一处定义**（与 ratchet --measure 同源 ✓）
     if total > SIZE_BUDGET:
         raise Failure(f"html+css+js 共 {total} 字节，超过预算 {SIZE_BUDGET}")

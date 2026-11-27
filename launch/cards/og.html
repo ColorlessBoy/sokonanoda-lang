@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sokonanoda — social card</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body { width: 1200px; height: 630px; }
+  .top { position: absolute; top: 40px; left: 48px; right: 48px; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; }
+  .ver { font-family: var(--font-mono); font-size: 13px; color: var(--acc); letter-spacing: 0.08em; }
+  h1 { font-size: 42px; margin-top: 18px; }
+  .sub { margin-top: 12px; font-size: 18px; max-width: 1060px; }
+  .shot { left: 48px; right: 48px; bottom: 18px; height: 350px; }
+  .shot img { width: 1104px; }
+  .credit { position: absolute; right: 48px; bottom: 380px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="top">
+    <div class="row">
+      <div class="eyebrow">Sokonanoda <span class="dot">·</span> formal proof teaching language</div>
+      <div class="ver">v0.100.0 · OPEN SOURCE</div>
+    </div>
+    <h1>Learn formal proofs,<br><em>one line at a time.</em></h1>
+    <p class="sub">A Lean-4-style language with real kernel grading, guided exercises, and no toolchain to install — inside VS Code.</p>
+  </div>
+  <div class="credit">Real VS Code capture · published extension v0.100.0</div>
+  <div class="shot"><img src="../../site/assets/hero-vscode.png" alt=""></div>
+</div>
+</body>
+</html>
