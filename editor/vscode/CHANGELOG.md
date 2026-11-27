@@ -19,6 +19,10 @@
   - **发布与文档包**（C9.6）：插件安装（干净机器一条路）、开关、数据目录、代码题
     提交与排障写进 README；`dsh/README`、根 README、`site/llms.txt` 加题库/代码题
     入口；teacher / prep / dev 技能同步题库与数据集用法（DSH 薄入口路由词同步）。
+- **C9.5 调度、复盘与学习地图**（[#103](https://github.com/ColorlessBoy/sokonanoda-lang/issues/103)）：
+  `engine.py` 校准阶梯改由题库推导；`next` 支持 `--chapter/--level/--kp` 钻取；
+  `map` 增加知识点**已解/待做/薄弱**、按章汇总与代码题进度（聊天与插件 progress 卡
+  读同一份快照）；`state.metrics` 与 `review.py` 用同一份状态出薄弱点/错题/下一批建议。
 - **DSH 快路径上下文导航**（[#110](https://github.com/ColorlessBoy/sokonanoda-lang/issues/110)）：
   未作答题「下一题」重发当前题而不是推进；「上一题」出只读回顾卡（正确项高亮 + 解析）。
 - **卷 III capstone 与 FTC**（[#97](https://github.com/ColorlessBoy/sokonanoda-lang/issues/97)）：
