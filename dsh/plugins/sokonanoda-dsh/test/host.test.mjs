@@ -34,6 +34,10 @@ import {
   isLoopRequestShape,
   apply,
   findRepoRoot,
+  parseFileResource,
+  isPathWithin,
+  resolveAllowedStatePath,
+  runSokoCommand,
   LEARN_CARD_TOOL_DECLARATION,
 } from '../index.js'
 import { assembleSubmission, evaluateGrade, expectedDeclarationName } from '../lib/code-grade.mjs'
@@ -834,11 +838,14 @@ function datasetRecord(id) {
   return (payload.exercises || []).find((exercise) => exercise.id === id)
 }
 
-function captureHost() {
+function captureHost(options = {}) {
   const listeners = []
   const tools = []
   const commands = []
   const disposers = []
+  const services = { ...(options.services || {}) }
+  const webServer = options.webServer || captureWebServer()
+  if (options.deferWebServer !== true && services.webServer === undefined) services.webServer = webServer
   const ctx = {
     effect(callback) {
       const disposer = callback()
@@ -847,6 +854,13 @@ function captureHost() {
     },
     on(event, listener) {
       if (event === 'llm/stream') listeners.push(listener)
+      return () => {}
+    },
+    get(name) {
+      return services[name]
+    },
+    inject(deps, callback) {
+      if (options.deferWebServer === true && deps.includes('webServer')) callback({ webServer })
       return () => {}
     },
     commands: {
@@ -867,6 +881,7 @@ function captureHost() {
     listeners,
     tools,
     commands,
+    webServer,
     async disposeAll() {
       for (const disposer of disposers.reverse()) {
         try { disposer() } catch { /* best effort */ }
@@ -874,6 +889,49 @@ function captureHost() {
       await new Promise((resolve) => setTimeout(resolve, 30))
     },
   }
+}
+
+/** Fake named-route table: registration order is preserved for route lookup. */
+function captureWebServer() {
+  const routes = []
+  return {
+    routes,
+    register(route) {
+      routes.push(route)
+      return () => {
+        const index = routes.indexOf(route)
+        if (index >= 0) routes.splice(index, 1)
+      }
+    },
+  }
+}
+
+/** Drive one route handler with a minimal IncomingMessage/ServerResponse pair. */
+function callRoute(route, params, peer) {
+  const request = { url: '/sokonanoda-state?' + new URLSearchParams(params).toString(), headers: {} }
+  return new Promise((resolve) => {
+    let settled = false
+    const response = {
+      status: 0,
+      headers: null,
+      body: '',
+      writeHead(status, headers) { this.status = status; this.headers = headers },
+      end(text) {
+        if (settled) return
+        settled = true
+        this.body = text === undefined ? '' : String(text)
+        resolve(this)
+      },
+    }
+    const result = route.handler(request, response, peer)
+    if (result !== null && typeof result === 'object' && typeof result.then === 'function') {
+      result.catch(() => {
+        if (settled) return
+        settled = true
+        resolve(response)
+      })
+    }
+  })
 }
 
 function slowStream() {
@@ -892,3 +950,174 @@ async function collect(iterable) {
   for await (const chunk of iterable) chunks.push(chunk)
   return chunks
 }
+
+test('apply(): routes wait for a webServer that registers after the plugin', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-late-web-'))
+  const host = captureHost({ deferWebServer: true })
+  await apply(host.ctx, { dataDir, timeoutMs: 20000 })
+  try {
+    const paths = host.webServer.routes.map((route) => route.path)
+    assert.ok(paths.includes('/sokonanoda-client-report'), 'late webServer must still get the report route')
+    assert.ok(paths.includes('/sokonanoda-state'), 'late webServer must still get the read-only state route')
+  } finally {
+    await host.disposeAll()
+  }
+})
+
+/* ------------------------------------------------ read-only goal state route */
+
+/** Write a fake `scripts/soko` driven by the queried file's basename. */
+function writeFakeSoko(root) {
+  const scripts = path.join(root, 'scripts')
+  fs.mkdirSync(scripts, { recursive: true })
+  const file = path.join(scripts, 'soko')
+  fs.writeFileSync(file, `#!/usr/bin/env node
+const args = process.argv.slice(2)
+const file = args[args.indexOf('--file') + 1] || ''
+const base = file.split('/').pop()
+if (args[1] === 'state') {
+  if (base.startsWith('outside') || base.startsWith('broken')) {
+    console.log(JSON.stringify({ schema: 'soko.query/1', op: 'state', version: 1, ok: false, error: { code: 'outside-declarations', message: 'outside' } }))
+  } else {
+    console.log(JSON.stringify({ schema: 'soko.query/1', op: 'state', version: 1, ok: true, data: { decl: { name: 'demo', kind: 'theorem', status: 'checked' }, binders: [], goals: [{ goal: 'True', goal_runs: [{ text: 'True', kind: 'keyword' }], binders: [] }], goal: 'True', goal_runs: [{ text: 'True', kind: 'keyword' }], step: 1, total: 2, messages: [] } }))
+  }
+  process.exit(0)
+}
+if (args[1] === 'check') {
+  const failed = base.startsWith('broken') ? [{ start_line: 3, message: 'unexpected token' }] : []
+  console.log(JSON.stringify({ ok: true, data: { failed, warnings: [], counts: {} } }))
+  process.exit(0)
+}
+console.log(JSON.stringify({ ok: false, error: { code: 'bad', message: 'unexpected op' } }))
+`, 'utf8')
+  return file
+}
+
+test('state route helpers: address parsing and separator-aware containment', () => {
+  const parsed = parseFileResource('dsh-resource://file/session/s1/courses/a.sokonanoda?x=1')
+  assert.deepEqual(parsed, { sessionId: 's1', path: 'courses/a.sokonanoda' })
+  assert.deepEqual(
+    parseFileResource('dsh-resource://file/session/s1//tmp/a.sokonanoda'),
+    { sessionId: 's1', path: '/tmp/a.sokonanoda' },
+    'an absolute session path keeps its leading slash',
+  )
+  assert.deepEqual(
+    parseFileResource('dsh-resource://file/session/s1/a%20b/c.sokonanoda'),
+    { sessionId: 's1', path: 'a b/c.sokonanoda' },
+  )
+  assert.equal(parseFileResource('dsh-resource://file/absolute/tmp/a.sokonanoda'), null)
+  assert.equal(parseFileResource('https://example.com/a'), null)
+  assert.equal(parseFileResource('dsh-resource://file/session/s1/%E0%A4%A'), null, 'a malformed escape is not an address')
+  assert.equal(isPathWithin('/repo', '/repo/a.sokonanoda'), true)
+  assert.equal(isPathWithin('/repo', '/repo'), true)
+  assert.equal(isPathWithin('/repo', '/repo-other/a.sokonanoda'), false)
+  assert.equal(isPathWithin('/repo', '/etc/passwd'), false)
+})
+
+test('state route helpers: only existing files inside the workspace/repo resolve', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-state-root-'))
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-state-outside-'))
+  fs.writeFileSync(path.join(root, 'demo.sokonanoda'), 'theorem demo : True := by\n  trivial\n')
+  fs.writeFileSync(path.join(outside, 'secret.sokonanoda'), 'theorem secret : True := by\n  trivial\n')
+  const resource = (value) => 'dsh-resource://file/session/s1/' + value.split('/').map(encodeURIComponent).join('/')
+  const inside = resolveAllowedStatePath({ resource: resource('demo.sokonanoda'), workspaceRoot: root, repoRoot: root })
+  assert.equal(inside.ok, true)
+  assert.equal(inside.path, fs.realpathSync(path.join(root, 'demo.sokonanoda')))
+  const escape = resolveAllowedStatePath({ resource: resource('../' + path.basename(outside) + '/secret.sokonanoda'), workspaceRoot: root, repoRoot: root })
+  assert.equal(escape.ok, false)
+  assert.equal(escape.code, 'forbidden')
+  const absolute = resolveAllowedStatePath({
+    resource: 'dsh-resource://file/session/s1/' + outside.split('/').map(encodeURIComponent).join('/'),
+    workspaceRoot: root,
+    repoRoot: root,
+  })
+  assert.equal(absolute.ok, false, 'an absolute path outside both roots must be refused')
+  const symlink = path.join(root, 'link.sokonanoda')
+  fs.symlinkSync(path.join(outside, 'secret.sokonanoda'), symlink)
+  const throughLink = resolveAllowedStatePath({ resource: resource('link.sokonanoda'), workspaceRoot: root, repoRoot: root })
+  assert.equal(throughLink.ok, false, 'a symlink must not escape the workspace')
+  assert.equal(throughLink.code, 'forbidden')
+  assert.equal(resolveAllowedStatePath({ resource: resource('missing.sokonanoda'), workspaceRoot: root, repoRoot: root }).code, 'not-found')
+  assert.equal(resolveAllowedStatePath({ resource: resource('demo.sokonanoda'), workspaceRoot: undefined, repoRoot: root }).code, 'workspace-unavailable')
+})
+
+test('runSokoCommand: JSON envelope, invalid output and a hard timeout', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-soko-cmd-'))
+  const okScript = path.join(root, 'ok.js')
+  fs.writeFileSync(okScript, 'console.log(JSON.stringify({ok:true,n:1}))\n')
+  const ok = await runSokoCommand({ sokoPath: okScript, cwd: root, args: [], timeoutMs: 2000 })
+  assert.equal(ok.ok, true)
+  assert.equal(ok.envelope.n, 1)
+  const badScript = path.join(root, 'bad.js')
+  fs.writeFileSync(badScript, "console.log('not json')\n")
+  const bad = await runSokoCommand({ sokoPath: badScript, cwd: root, args: [], timeoutMs: 2000 })
+  assert.equal(bad.ok, false)
+  assert.equal(bad.error.code, 'invalid-response')
+  const slowScript = path.join(root, 'slow.js')
+  fs.writeFileSync(slowScript, 'setTimeout(() => console.log(JSON.stringify({ok:true})), 5000)\n')
+  const started = Date.now()
+  const slow = await runSokoCommand({ sokoPath: slowScript, cwd: root, args: [], timeoutMs: 250 })
+  assert.equal(slow.ok, false)
+  assert.equal(slow.error.code, 'timeout')
+  assert.ok(Date.now() - started < 3000, 'timeout must kill the query promptly')
+})
+
+test('GET /sokonanoda-state: owner only, workspace-contained, structured answers', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-state-route-'))
+  const soko = writeFakeSoko(root)
+  for (const name of ['demo.sokonanoda', 'outside.sokonanoda', 'broken.sokonanoda']) {
+    fs.writeFileSync(path.join(root, name), 'theorem demo : True := by\n  trivial\n')
+  }
+  const host = captureHost({
+    services: {
+      workspaceFiles: {
+        async scopeOf(sessionId) {
+          return sessionId === 's1' ? { sessionId, workspaceRoot: root } : undefined
+        },
+      },
+    },
+  })
+  await apply(host.ctx, {
+    dataDir: path.join(root, 'data'),
+    repoRoot: root,
+    sokoPath: soko,
+    stateTimeoutMs: 2000,
+  })
+  const route = host.webServer.routes.find((candidate) => candidate.path === '/sokonanoda-state')
+  assert.ok(route !== undefined, 'the read-only state route must register')
+  assert.equal(route.auth, 'required', 'the route must require a live Peer')
+  const owner = { principal: { kind: 'owner' } }
+  const resource = (name) => 'dsh-resource://file/session/s1/' + encodeURIComponent(name)
+  try {
+    const answered = await callRoute(route, { resource: resource('demo.sokonanoda'), line: '2', col: '1' }, owner)
+    assert.equal(answered.status, 200)
+    const body = JSON.parse(answered.body)
+    assert.equal(body.ok, true)
+    assert.equal(body.line, 2)
+    assert.equal(body.state.decl.name, 'demo')
+    assert.equal(body.state.step, 1)
+
+    const anonymous = await callRoute(route, { resource: resource('demo.sokonanoda'), line: '2' }, { principal: { kind: 'guest' } })
+    assert.equal(anonymous.status, 403, 'only the Host owner may read goal state')
+
+    const notAnAddress = await callRoute(route, { resource: '../etc/passwd', line: '1' }, owner)
+    assert.equal(notAnAddress.status, 400, 'a non-resource string is a bad request')
+    const escaped = await callRoute(route, { resource: resource('../../etc/passwd'), line: '1' }, owner)
+    assert.equal(escaped.status, 403, 'a traversal inside a session address must be refused')
+
+    const outside = await callRoute(route, { resource: resource('outside.sokonanoda'), line: '1' }, owner)
+    assert.equal(JSON.parse(outside.body).error.code, 'outside-declarations')
+
+    const broken = await callRoute(route, { resource: resource('broken.sokonanoda'), line: '1' }, owner)
+    const brokenBody = JSON.parse(broken.body)
+    assert.equal(brokenBody.error.code, 'file-errors')
+    assert.equal(brokenBody.diagnostics[0].line, 3)
+
+    const badLine = await callRoute(route, { resource: resource('demo.sokonanoda'), line: '0' }, owner)
+    assert.equal(badLine.status, 400)
+    const missingParam = await callRoute(route, { line: '1' }, owner)
+    assert.equal(missingParam.status, 400)
+  } finally {
+    await host.disposeAll()
+  }
+})

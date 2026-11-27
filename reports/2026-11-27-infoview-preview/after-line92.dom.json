@@ -1,0 +1,10 @@
+{
+  "capture": "after: click line 92",
+  "roots": 1,
+  "rows": 207,
+  "panels": 1,
+  "active": ["92"],
+  "phase": "ready",
+  "status": "checked",
+  "panel": "第 92 行\ndemo_diag\ntheorem\n已检查\n步骤 4/6\nα\n : \nType\nf\n : \nα → Set α\nx\n : \nα\nh\n : \n(fun (y : α) => ¬ (f y y)) = f x\ne\n : \n(¬ (f x x)) = f x x\nhnp\n : \n¬ f x x\n⊢ \nFalse"
+}

@@ -166,6 +166,41 @@ window.__ModuleLoader__.load({
       '.dslc-open-hint{margin:0;padding:8px 10px;border-radius:8px;border:1px dashed var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}',
       '.dslc-code-hint{margin:0;padding:8px 10px;border-radius:8px;border:1px dashed var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,rgba(127,127,127,0.06));color:var(--dsw-alias-label-secondary,#4b5563);font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}',
       '.dslc-code-meta{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280));overflow-wrap:anywhere}',
+      /* Read-only source preview: active cursor row + goal panel. */
+      '.dsls-source-scroll:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#0b57d0);outline-offset:-2px}',
+      '.dsls-source-line[data-source-active="1"]{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.14));box-shadow:inset 3px 0 0 var(--dsw-alias-state-business-primary,#0b57d0)}',
+      '.dsls-source-line:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(127,127,127,.08))}',
+      '.dsls-source-panel{display:flex;flex-direction:column;gap:6px;flex:0 0 auto;max-height:44%;overflow-y:auto;box-sizing:border-box;padding:8px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:var(--dsw-alias-label-primary,#15171a);font-family:var(--dsw-font-family,inherit);font-size:12px;line-height:1.5}',
+      '.dsls-state-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;font-size:11.5px;color:var(--dsw-alias-label-secondary,#4b5563)}',
+      '.dsls-state-line{font-weight:700;color:var(--dsw-alias-label-primary,#15171a);font-variant-numeric:tabular-nums;white-space:nowrap}',
+      '.dsls-state-decl{font-weight:600;color:var(--dsw-alias-label-primary,#15171a);overflow-wrap:anywhere}',
+      '.dsls-state-chip{display:inline-flex;align-items:center;padding:0 6px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);background:var(--dsw-alias-bg-base,#fff);font-size:10.5px;line-height:16px;white-space:nowrap}',
+      '.dsls-state-chip[data-status="checked"]{color:var(--dsw-alias-state-success-primary,#0f7b4a);border-color:var(--dsw-alias-state-success-primary,#0f7b4a)}',
+      '.dsls-state-chip[data-status="failed"]{color:var(--dsw-alias-state-error-primary,#c4553d);border-color:var(--dsw-alias-state-error-primary,#c4553d)}',
+      '.dsls-state-chip[data-status="open"]{color:var(--dsw-alias-state-warn-primary,#9a5b00);border-color:var(--dsw-alias-state-warn-primary,#9a5b00)}',
+      '.dsls-state-updating{color:var(--dsw-alias-label-tertiary,#6b7280);white-space:nowrap}',
+      '.dsls-state-body{display:flex;flex-direction:column;gap:5px;min-width:0}',
+      '.dsls-state-hint,.dsls-state-note{margin:0;color:var(--dsw-alias-label-secondary,#4b5563);overflow-wrap:anywhere}',
+      '.dsls-state-note[data-kind="closed"]{color:var(--dsw-alias-state-success-primary,#0f7b4a);font-weight:600}',
+      '.dsls-state-note[data-kind="error"]{color:var(--dsw-alias-state-error-primary,#c4553d)}',
+      '.dsls-goal{display:flex;flex-direction:column;gap:2px;min-width:0;padding:5px 0}',
+      '.dsls-goal+.dsls-goal{border-top:1px dashed var(--dsw-alias-border-l1,#e6e8ec)}',
+      '.dsls-goal-head{margin:0;font-size:10.5px;font-weight:700;color:var(--dsw-alias-label-tertiary,#6b7280)}',
+      '.dsls-hyp{display:flex;gap:5px;min-width:0;align-items:baseline;overflow-wrap:anywhere}',
+      '.dsls-hyp-name{flex:none;font-weight:600;color:var(--dsw-alias-label-primary,#15171a)}',
+      '.dsls-hyp-ty{min-width:0;font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:12px;overflow-wrap:anywhere}',
+      '.dsls-goal-text{display:flex;gap:5px;min-width:0;align-items:baseline}',
+      '.dsls-turnstile{flex:none;color:var(--dsw-alias-label-secondary,#4b5563)}',
+      '.dsls-goal-ty{min-width:0;font-family:var(--dsw-font-mono,ui-monospace,monospace);font-size:12px;font-weight:600;overflow-wrap:anywhere}',
+      '.dsls-run-name{color:var(--dsw-alias-state-business-primary,#0b57d0);font-weight:600}',
+      '.dsls-run-use{color:var(--dsw-alias-state-business-primary,#0b57d0)}',
+      '.dsls-run-binder{color:var(--dsw-alias-label-primary,#15171a)}',
+      '.dsls-run-sort{color:var(--dsw-alias-label-primary,#15171a);font-weight:600}',
+      '.dsls-run-hole{color:var(--dsw-alias-state-warn-primary,#9a5b00);font-weight:600}',
+      '.dsls-run-num{color:var(--dsw-alias-label-secondary,#4b5563)}',
+      '.dsls-run-keyword{color:var(--dsw-alias-state-business-primary,#0b57d0);font-weight:600}',
+      '.dsls-run-unknown{color:var(--dsw-alias-state-warn-primary,#9a5b00)}',
+      '.dsls-state-diag{margin:0;color:var(--dsw-alias-state-error-primary,#c4553d);overflow-wrap:anywhere}',
     ]
 
     /* Inject the stylesheet once per page; HMR removes this module's styles
@@ -228,6 +263,23 @@ window.__ModuleLoader__.load({
       codeSubmitHint: '把完整声明贴回来（从 theorem/def 那行到证明结束），我用真内核判卷；想放弃回「跳过这道代码题」。',
       dontKnowLabel: '我不知道',
       whyLabel: '解析',
+      stateLine: '第 {line} 行',
+      stateNoLine: '未选择行',
+      stateIdleHint: '↑/↓ 移动光标行，点击任意行查看该位置的 goal',
+      stateLoading: '正在读取内核状态…',
+      stateUpdating: '更新中…',
+      stateOutside: '光标不在任何声明内',
+      stateFileErrors: '源码有错误',
+      stateClosed: '已无目标（证明完成）',
+      stateNoGoals: '当前没有目标',
+      stateError: '状态后端不可用',
+      stateStep: '步骤',
+      stateGoal: '目标',
+      stateStatusChecked: '已检查',
+      stateStatusOpen: '待证明',
+      stateStatusFailed: '失败',
+      stateAria: '只读源码预览：上下方向键移动光标行并显示该位置的 goal',
+      stateLoadMore: '文件较长：先滚动到底部加载更多行',
     }
 
     const en = {
@@ -266,6 +318,23 @@ window.__ModuleLoader__.load({
       codeSubmitHint: 'Paste the full declaration back (from the theorem/def line to the end of the proof); the real kernel grades it. Say 「跳过这道代码题」 to skip.',
       dontKnowLabel: "I don't know",
       whyLabel: 'Why',
+      stateLine: 'Line {line}',
+      stateNoLine: 'No line',
+      stateIdleHint: 'Use ↑/↓ to move the cursor line; click any line to show its goal',
+      stateLoading: 'Reading kernel state…',
+      stateUpdating: 'Updating…',
+      stateOutside: 'The cursor is outside every declaration',
+      stateFileErrors: 'The source has errors',
+      stateClosed: 'No goals left (proof complete)',
+      stateNoGoals: 'No goals here',
+      stateError: 'Goal state backend unavailable',
+      stateStep: 'Step',
+      stateGoal: 'Goal',
+      stateStatusChecked: 'checked',
+      stateStatusOpen: 'open',
+      stateStatusFailed: 'failed',
+      stateAria: 'Read-only source preview: arrow keys move the cursor line and show its goal',
+      stateLoadMore: 'Long file: scroll to the bottom to load more lines',
     }
 
     /* -------------------------------------------------------------- helpers */
@@ -499,6 +568,21 @@ window.__ModuleLoader__.load({
       hlCom: { color: 'var(--dsw-alias-label-tertiary,#6b7280)', fontStyle: 'italic' },
       hlNum: { color: 'var(--dsw-alias-label-secondary,#4b5563)' },
       hlOp: { color: 'var(--dsw-alias-label-secondary,#4b5563)' },
+      sourcePanel: { display: 'flex', flexDirection: 'column', gap: '6px', flex: '0 0 auto', maxHeight: '44%', overflowY: 'auto', boxSizing: 'border-box', padding: '8px 12px 10px', borderTop: '1px solid var(--dsw-alias-border-l1,#e6e8ec)', background: 'var(--dsw-alias-bg-layer-2,#f7f8fa)' },
+      sourcePanelHead: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', minWidth: 0, fontSize: '11.5px', color: 'var(--dsw-alias-label-secondary,#4b5563)' },
+      sourcePanelBody: { display: 'flex', flexDirection: 'column', gap: '5px', minWidth: 0 },
+      sourcePanelLineStyle: { fontWeight: 700, color: 'var(--dsw-alias-label-primary,#15171a)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' },
+      sourcePanelDecl: { fontWeight: 600, color: 'var(--dsw-alias-label-primary,#15171a)', overflowWrap: 'anywhere' },
+      sourceGoalHead: { margin: 0, fontSize: '10.5px', fontWeight: 700, color: 'var(--dsw-alias-label-tertiary,#6b7280)' },
+      sourceHint: { margin: 0, color: 'var(--dsw-alias-label-secondary,#4b5563)', overflowWrap: 'anywhere' },
+      sourceGoal: { display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, padding: '5px 0' },
+      sourceHyp: { display: 'flex', gap: '5px', minWidth: 0, alignItems: 'baseline', overflowWrap: 'anywhere' },
+      sourceHypName: { flex: 'none', fontWeight: 600 },
+      sourceHypTy: { minWidth: 0, fontFamily: 'var(--dsw-font-mono,ui-monospace,monospace)', fontSize: '12px', overflowWrap: 'anywhere' },
+      sourceGoalText: { display: 'flex', gap: '5px', minWidth: 0, alignItems: 'baseline' },
+      sourceTurnstile: { flex: 'none', color: 'var(--dsw-alias-label-secondary,#4b5563)' },
+      sourceGoalTy: { minWidth: 0, fontFamily: 'var(--dsw-font-mono,ui-monospace,monospace)', fontSize: '12px', fontWeight: 600, overflowWrap: 'anywhere' },
+      sourceDiag: { margin: 0, color: 'var(--dsw-alias-state-error-primary,#c4553d)', overflowWrap: 'anywhere' },
       progressHead: { display: 'flex', flexDirection: 'column', gap: '4px' },
       statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: '8px' },
       stat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '8px 4px', border: '1px solid rgba(127,127,127,0.25)', borderRadius: '10px', background: 'rgba(127,127,127,0.06)', minWidth: 0 },
@@ -1039,7 +1123,236 @@ window.__ModuleLoader__.load({
      * `.sokonanoda` is not in DSH's built-in code-highlight extension list, so the
      * stock preview falls back to plain text (no gutter, no Lean highlighting).
      * This document-preview body gives the extension a real code view: line
-     * numbers, the fence highlighter, wrapping, and source-line navigation. */
+     * numbers, the fence highlighter, wrapping, source-line navigation, and a
+     * read-only cursor: ↑/↓ (or a click) picks the active line and the panel
+     * below shows the kernel goal at that exact position. */
+
+    /** Semantic run kind → presentation class (the run text is never re-tokenized). */
+    const RUN_CLASSES = {
+      keyword: 'dsls-run-keyword',
+      sort: 'dsls-run-sort',
+      number: 'dsls-run-num',
+      hole: 'dsls-run-hole',
+      def_name: 'dsls-run-name',
+      theorem_name: 'dsls-run-name',
+      axiom_name: 'dsls-run-name',
+      inductive_name: 'dsls-run-name',
+      ctor_name: 'dsls-run-name',
+      def_use: 'dsls-run-use',
+      theorem_use: 'dsls-run-use',
+      axiom_use: 'dsls-run-use',
+      inductive_use: 'dsls-run-use',
+      ctor_use: 'dsls-run-use',
+      binder: 'dsls-run-binder',
+      unknown_ident: 'dsls-run-unknown',
+    }
+
+    /**
+     * Render kernel semantic runs in place of plain goal/hypothesis text. The
+     * runs must concatenate back to the field text byte-for-byte; otherwise the
+     * plain text wins, so a drifted wire shape can never garble a goal.
+     * @param runs - `goal_runs` / `ty_runs` from `soko/stateAt`.
+     * @param text - the field's own text.
+     * @returns React nodes or the original text.
+     */
+    function semanticRuns(runs, text) {
+      const value = typeof text === 'string' ? text : ''
+      if (value === '' || !Array.isArray(runs) || runs.length === 0) return value
+      let joined = ''
+      for (const run of runs) {
+        if (!isRecord(run) || typeof run.text !== 'string') return value
+        joined += run.text
+      }
+      if (joined !== value) return value
+      const nodes = []
+      for (let index = 0; index < runs.length; index++) {
+        const run = runs[index]
+        if (run.text === '') continue
+        const className = RUN_CLASSES[run.kind]
+        nodes.push(className === undefined
+          ? run.text
+          : h('span', { className: className, key: 'run-' + index, 'data-run-kind': run.kind }, run.text))
+      }
+      return nodes.length === 0 ? value : nodes
+    }
+
+    /** Localized label for a declaration status (`checked` / `open` / `failed`). */
+    function statusLabelOf(t, status) {
+      if (status === 'checked') return t('stateStatusChecked', '已检查')
+      if (status === 'open') return t('stateStatusOpen', '待证明')
+      if (status === 'failed') return t('stateStatusFailed', '失败')
+      return typeof status === 'string' && status !== '' ? status : ''
+    }
+
+    /** Goals as a list; older `goal`/`binders` fields are the single-goal fallback. */
+    function goalsOf(state) {
+      if (!isRecord(state)) return []
+      if (Array.isArray(state.goals)) return state.goals.filter(isRecord)
+      if (typeof state.goal === 'string' && state.goal !== '') {
+        return [{ goal: state.goal, goal_runs: state.goal_runs, binders: state.binders }]
+      }
+      return []
+    }
+
+    /**
+     * Read-only goal panel: declaration name/kind/status, step/total, hypotheses
+     * and the goal, all rendered from kernel semantic runs.
+     * @param props - `line`, `phase`, last `state`, `error`, diagnostics and `t`.
+     * @returns the panel element.
+     */
+    function SourceGoalPanel(props) {
+      const input = isRecord(props) ? props : {}
+      const rawT = typeof input.t === 'function' ? input.t : null
+      const t = function (key, fallback, vars) {
+        let text = fallback
+        if (rawT !== null) {
+          let value
+          try {
+            value = vars === undefined ? rawT(key) : rawT(key, vars)
+          } catch (error) {
+            value = undefined
+          }
+          if (typeof value === 'string' && value !== '' && value !== key) text = value
+        }
+        if (isRecord(vars)) {
+          text = String(text).replace(/\{(\w+)\}/g, function (whole, name) {
+            return vars[name] === undefined ? whole : String(vars[name])
+          })
+        }
+        return text
+      }
+      const line = Number.isFinite(Number(input.line)) ? Number(input.line) : 0
+      const phase = typeof input.phase === 'string' ? input.phase : 'idle'
+      const state = isRecord(input.state) ? input.state : null
+      const error = isRecord(input.error) ? input.error : null
+      const diagnostics = Array.isArray(input.diagnostics) ? input.diagnostics.filter(isRecord) : []
+      const decl = state !== null && isRecord(state.decl) ? state.decl : null
+      const goals = goalsOf(state)
+      const step = state !== null ? Number(state.step) : NaN
+      const total = state !== null ? Number(state.total) : NaN
+      const stepText = Number.isInteger(step) && Number.isInteger(total) && total > 0
+        ? t('stateStep', '步骤') + ' ' + step + '/' + total
+        : ''
+      const updating = phase === 'loading' && state !== null
+      const status = decl !== null && typeof decl.status === 'string' ? decl.status : ''
+      const statusLabel = statusLabelOf(t, status)
+      const head = h('div', { className: 'dsls-state-head', key: 'state-head', style: S.sourcePanelHead },
+        h('span', { className: 'dsls-state-line', style: S.sourcePanelLineStyle },
+          line > 0 ? t('stateLine', '第 {line} 行', { line }) : t('stateNoLine', '未选择行')),
+        decl !== null && typeof decl.name === 'string' && decl.name !== ''
+          ? h('span', { className: 'dsls-state-decl', key: 'decl', style: S.sourcePanelDecl }, decl.name)
+          : null,
+        decl !== null && typeof decl.kind === 'string' && decl.kind !== ''
+          ? h('span', { className: 'dsls-state-chip', key: 'kind', 'data-kind': decl.kind }, decl.kind)
+          : null,
+        statusLabel !== ''
+          ? h('span', {
+            className: 'dsls-state-chip',
+            key: 'status',
+            'data-status': status,
+            'data-state-status': status,
+          }, statusLabel)
+          : null,
+        stepText !== ''
+          ? h('span', { className: 'dsls-state-step', key: 'step' }, stepText)
+          : null,
+        updating
+          ? h('span', { className: 'dsls-state-updating', key: 'updating' }, t('stateUpdating', '更新中…'))
+          : null)
+      let body = null
+      if (phase === 'idle') {
+        body = [h('p', { className: 'dsls-state-hint', key: 'hint', style: S.sourceHint },
+          t('stateIdleHint', '↑/↓ 移动光标行，点击任意行查看该位置的 goal'))]
+      } else if (phase === 'loading' && state === null) {
+        body = [h('p', { className: 'dsls-state-note', key: 'loading', style: S.sourceHint }, t('stateLoading', '正在读取内核状态…'))]
+      } else if (phase === 'outside') {
+        body = [h('p', { className: 'dsls-state-note', key: 'outside', style: S.sourceHint }, t('stateOutside', '光标不在任何声明内'))]
+      } else if (phase === 'file-errors') {
+        body = [
+          h('p', { className: 'dsls-state-note', key: 'file-errors', 'data-kind': 'error', style: S.sourceHint },
+            (error !== null && typeof error.message === 'string' && error.message !== '')
+              ? error.message
+              : t('stateFileErrors', '源码有错误')),
+          diagnostics.map(function (item, index) {
+            const where = Number(item.line) > 0 ? '第 ' + Number(item.line) + ' 行：' : ''
+            return h('p', { className: 'dsls-state-diag', key: 'diag-' + index, style: S.sourceDiag },
+              where + String(item.message || ''))
+          }),
+        ]
+      } else if (phase === 'error') {
+        const message = error !== null && typeof error.message === 'string' && error.message !== ''
+          ? error.message
+          : t('stateError', '状态后端不可用')
+        body = [h('p', { className: 'dsls-state-note', key: 'error', 'data-kind': 'error', style: S.sourceHint }, message)]
+      } else if (state === null) {
+        body = [h('p', { className: 'dsls-state-hint', key: 'hint', style: S.sourceHint },
+          t('stateIdleHint', '↑/↓ 移动光标行，点击任意行查看该位置的 goal'))]
+      } else if (goals.length === 0) {
+        const closed = status === 'checked'
+        body = [h('p', {
+          className: 'dsls-state-note',
+          key: 'closed',
+          'data-kind': closed ? 'closed' : 'empty',
+          style: S.sourceHint,
+        }, closed ? t('stateClosed', '已无目标（证明完成）') : t('stateNoGoals', '当前没有目标'))]
+      } else {
+        body = goals.map(function (goal, index) {
+          const binders = Array.isArray(goal.binders) ? goal.binders.filter(isRecord) : []
+          const label = goals.length > 1
+            ? h('p', { className: 'dsls-goal-head', key: 'goal-head', style: S.sourceGoalHead },
+              t('stateGoal', '目标') + ' ' + (index + 1) + '/' + goals.length)
+            : null
+          const hyps = binders.length > 0
+            ? h('div', { className: 'dsls-hyps', key: 'hyps' },
+              binders.map(function (binder, binderIndex) {
+                return h('div', { className: 'dsls-hyp', key: 'hyp-' + binderIndex, style: S.sourceHyp },
+                  h('span', { className: 'dsls-hyp-name', style: S.sourceHypName }, String(binder.name || '')),
+                  h('span', { className: 'dsls-hyp-sep' }, ' : '),
+                  h('span', { className: 'dsls-hyp-ty', style: S.sourceHypTy },
+                    semanticRuns(binder.ty_runs, binder.ty)))
+              }))
+            : null
+          return h('div', { className: 'dsls-goal', key: 'goal-' + index, 'data-goal-index': index, style: S.sourceGoal },
+            label,
+            hyps,
+            h('div', { className: 'dsls-goal-text', key: 'goal-text', style: S.sourceGoalText },
+              h('span', { className: 'dsls-turnstile', style: S.sourceTurnstile }, '⊢ '),
+              h('span', { className: 'dsls-goal-ty', style: S.sourceGoalTy },
+                semanticRuns(goal.goal_runs, goal.goal))))
+        })
+      }
+      if (input.loadHint === true) {
+        body = (Array.isArray(body) ? body : [body]).concat([
+          h('p', { className: 'dsls-state-hint', key: 'load-more', style: S.sourceHint },
+            t('stateLoadMore', '文件较长：先滚动到底部加载更多行')),
+        ])
+      }
+      return h('div', {
+        className: 'dsls-source-panel dsls-state-panel',
+        style: S.sourcePanel,
+        'data-state-panel': phase,
+        'data-line': line > 0 ? line : undefined,
+      }, [
+        head,
+        h('div', { className: 'dsls-state-body', key: 'state-body', style: S.sourcePanelBody }, body),
+      ])
+    }
+
+    /**
+     * Clamp one arrow-key move to loaded source lines.
+     * @param current - active line (0 = none yet).
+     * @param direction - +1 down / -1 up.
+     * @param lineCount - loaded source lines.
+     * @returns the next active line (0 when nothing is loaded).
+     */
+    function nextActiveLine(current, direction, lineCount) {
+      const count = Number.isFinite(Number(lineCount)) ? Math.max(0, Math.floor(Number(lineCount))) : 0
+      if (count === 0) return 0
+      if (!Number.isInteger(current) || current <= 0) return direction >= 0 ? 1 : count
+      const next = current + (direction >= 0 ? 1 : -1)
+      return Math.max(1, Math.min(count, next))
+    }
+
     function SokonanodaSourceBody(props) {
       const input = isRecord(props) ? props : {}
       const tabInfo = typeof input.useTabInfo === 'function' ? input.useTabInfo() : null
@@ -1048,57 +1361,219 @@ window.__ModuleLoader__.load({
       const targetLine = params !== null && params !== undefined && Number.isFinite(Number(params.line))
         ? Number(params.line)
         : 0
+      const navRevision = navigation !== null && navigation !== undefined ? navigation.revision : undefined
       const content = input.content
       const text = isRecord(content) && content.kind === 'text' && typeof content.text === 'string'
         ? content.text
         : ''
+      const lines = text === '' ? [''] : text.split('\n')
+      const resourceAddress = typeof input.resourceAddress === 'string' ? input.resourceAddress : ''
       const bodyRef = React.useRef(null)
+      const navApplied = React.useRef(null)
+      const requestSeq = React.useRef(0)
+      const [activeLine, setActiveLine] = React.useState(targetLine > 0 ? targetLine : 0)
       const [flashLine, setFlashLine] = React.useState(0)
+      const [loadHint, setLoadHint] = React.useState(false)
+      const [panel, setPanel] = React.useState({ phase: 'idle', state: null, error: null, diagnostics: [] })
       const attach = function (node) {
         bodyRef.current = node
         if (typeof input.scrollportRef === 'function') input.scrollportRef(node)
       }
+      const revealLine = function (number) {
+        const port = bodyRef.current
+        if (port === null || port === undefined || typeof port.querySelector !== 'function') return
+        const row = port.querySelector('[data-source-line="' + number + '"]')
+        if (row === null || row === undefined || typeof row.getBoundingClientRect !== 'function'
+          || typeof port.getBoundingClientRect !== 'function') return
+        const rowRect = row.getBoundingClientRect()
+        const portRect = port.getBoundingClientRect()
+        if (rowRect.top < portRect.top) port.scrollTop -= (portRect.top - rowRect.top)
+        else if (rowRect.bottom > portRect.bottom) port.scrollTop += (rowRect.bottom - portRect.bottom)
+      }
+      /* A new navigation target (source link / hole) moves the active cursor and
+       * flashes the line once, even when the row arrives with a later page. */
       React.useEffect(function () {
-        if (targetLine <= 0 || bodyRef.current === null) return undefined
-        const row = bodyRef.current.querySelector('[data-source-line="' + targetLine + '"]')
-        if (row === null) return undefined
-        bodyRef.current.scrollTop = Math.max(0, Number(row.offsetTop) - 32)
+        if (targetLine <= 0) return undefined
+        const body = bodyRef.current
+        if (body === null || body === undefined || typeof body.querySelector !== 'function') return undefined
+        const row = body.querySelector('[data-source-line="' + targetLine + '"]')
+        if (row === null || row === undefined) return undefined
+        const marker = navRevision === undefined ? 'line:' + targetLine : 'rev:' + navRevision
+        if (navApplied.current === marker) return undefined
+        navApplied.current = marker
+        setActiveLine(targetLine)
+        setLoadHint(false)
+        body.scrollTop = Math.max(0, Number(row.offsetTop) - 32)
         setFlashLine(targetLine)
         const timer = setTimeout(function () { setFlashLine(0) }, 2000)
         return function () { clearTimeout(timer) }
-      }, [targetLine, text])
+      }, [targetLine, navRevision, text])
+      /* Debounced, single-flight cursor probe; a newer active line aborts the
+       * older request and its sequence number drops any late answer. */
+      React.useEffect(function () {
+        if (activeLine <= 0 || resourceAddress === '' || typeof fetch !== 'function') {
+          setPanel(function (previous) {
+            return previous.phase === 'idle' ? previous : { phase: 'idle', state: null, error: null, diagnostics: [] }
+          })
+          return undefined
+        }
+        const seq = ++requestSeq.current
+        let stopped = false
+        let controller = null
+        setPanel(function (previous) {
+          return { phase: 'loading', state: previous.state, error: null, diagnostics: [] }
+        })
+        const timer = setTimeout(function () {
+          if (stopped) return
+          const url = '/sokonanoda-state?resource=' + encodeURIComponent(resourceAddress)
+            + '&line=' + activeLine + '&col=1'
+          const options = { cache: 'no-store' }
+          if (typeof AbortController === 'function') {
+            controller = new AbortController()
+            options.signal = controller.signal
+          }
+          fetch(url, options)
+            .then(function (response) {
+              return response.json().then(function (body) { return { status: response.status, body: body } })
+            })
+            .then(function (result) {
+              if (stopped || seq !== requestSeq.current) return
+              const body = isRecord(result.body) ? result.body : null
+              if (body === null) {
+                setPanel({ phase: 'error', state: null, error: { code: 'invalid-response', message: '状态接口没有返回 JSON' }, diagnostics: [] })
+                return
+              }
+              if (body.ok === true && isRecord(body.state)) {
+                setPanel({ phase: 'ready', state: body.state, error: null, diagnostics: [] })
+                return
+              }
+              const code = isRecord(body.error) && typeof body.error.code === 'string' ? body.error.code : 'error'
+              const message = isRecord(body.error) && typeof body.error.message === 'string'
+                ? body.error.message
+                : '状态接口返回错误'
+              const diagnostics = Array.isArray(body.diagnostics) ? body.diagnostics : []
+              if (code === 'outside-declarations') {
+                setPanel({ phase: 'outside', state: null, error: { code, message }, diagnostics: [] })
+              } else if (code === 'file-errors') {
+                setPanel({ phase: 'file-errors', state: null, error: { code, message }, diagnostics })
+              } else {
+                setPanel({ phase: 'error', state: null, error: { code, message }, diagnostics: [] })
+              }
+            })
+            .catch(function (error) {
+              if (stopped || seq !== requestSeq.current) return
+              if (error !== null && typeof error === 'object' && error.name === 'AbortError') return
+              setPanel({
+                phase: 'error',
+                state: null,
+                error: { code: 'network', message: String(error?.message || error) },
+                diagnostics: [],
+              })
+            })
+        }, 120)
+        return function () {
+          stopped = true
+          clearTimeout(timer)
+          if (controller !== null) {
+            try { controller.abort() } catch (error) { /* already settled */ }
+          }
+        }
+      }, [activeLine, resourceAddress])
+      const moveLine = function (direction) {
+        const next = nextActiveLine(activeLine, direction, lines.length)
+        if (next === activeLine || next === 0) {
+          if (direction > 0 && content !== null && content !== undefined && content.eof === false) {
+            setLoadHint(true)
+            const port = bodyRef.current
+            if (port !== null && port !== undefined) port.scrollTop = port.scrollHeight
+          }
+          return
+        }
+        setLoadHint(false)
+        setActiveLine(next)
+      }
+      /* Keep the active line visible after the panel changes the code area's
+       * height (a panel opens/closes on the first arrow), not only at the move. */
+      React.useEffect(function () {
+        if (activeLine > 0) revealLine(activeLine)
+      }, [activeLine, panel.phase, text])
+      const t = makeT(input)
+      const onKeyDown = function (event) {
+        if (event === null || typeof event !== 'object') return
+        /* Never steal browser/OS chords (Cmd/Ctrl/Alt/Shift + arrows). */
+        if (event.ctrlKey === true || event.metaKey === true || event.altKey === true || event.shiftKey === true) return
+        if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        moveLine(event.key === 'ArrowDown' ? 1 : -1)
+      }
+      const onLineClick = function (number) {
+        let selected = ''
+        try {
+          if (typeof window !== 'undefined' && typeof window.getSelection === 'function') {
+            selected = String(window.getSelection() || '')
+          }
+        } catch (error) { /* no selection API */ }
+        if (selected !== '') return
+        setLoadHint(false)
+        setActiveLine(number)
+        if (bodyRef.current !== null && bodyRef.current !== undefined && typeof bodyRef.current.focus === 'function') {
+          /* Focusing must not jump the scroller back to its top. */
+          try {
+            bodyRef.current.focus({ preventScroll: true })
+          } catch (error) {
+            bodyRef.current.focus()
+          }
+        }
+      }
       if (!isRecord(content) || content.kind !== 'text') return null
-      const lines = text === '' ? ['' ] : text.split('\n')
       const gutter = String(lines.length).length
       const wrapped = input.wrap === true
-      return h('div', { className: 'dsls-source', style: S.sourceRoot },
-        h('div', {
-          className: 'dsls-source-scroll',
-          ref: attach,
-          style: Object.assign({}, S.sourceScroll, {
-            whiteSpace: wrapped ? 'pre-wrap' : 'pre',
-            overflowX: wrapped ? 'hidden' : 'auto',
-          }),
-        },
-        h('div', { className: 'dsls-source-lines', style: S.sourceLines },
-          lines.map(function (line, index) {
-            const number = index + 1
-            return h('div', {
-              className: 'dsls-source-line',
-              key: 'source-line-' + number,
-              'data-source-line': number,
-              style: number === flashLine ? Object.assign({}, S.sourceLine, S.sourceLineFlash) : S.sourceLine,
-            },
-            h('span', { className: 'dsls-source-no', style: Object.assign({}, S.sourceNo, { width: gutter + 'ch' }) }, String(number)),
-            h('span', { className: 'dsls-source-text', style: S.sourceText },
-              line === '' ? ' ' : highlightLean(line))
-            )
-          })
-        ))
-      )
+      return h('div', {
+        className: 'dsls-source',
+        style: S.sourceRoot,
+        'data-active-line': activeLine > 0 ? activeLine : undefined,
+      },
+      h('div', {
+        className: 'dsls-source-scroll',
+        ref: attach,
+        tabIndex: 0,
+        role: 'region',
+        'aria-label': t('stateAria', '只读源码预览：上下方向键移动光标行并显示该位置的 goal'),
+        onKeyDown: onKeyDown,
+        style: Object.assign({}, S.sourceScroll, {
+          whiteSpace: wrapped ? 'pre-wrap' : 'pre',
+          overflowX: wrapped ? 'hidden' : 'auto',
+        }),
+      },
+      h('div', { className: 'dsls-source-lines', style: S.sourceLines },
+        lines.map(function (line, index) {
+          const number = index + 1
+          return h('div', {
+            className: 'dsls-source-line',
+            key: 'source-line-' + number,
+            'data-source-line': number,
+            'data-source-active': number === activeLine ? '1' : undefined,
+            onClick: function () { onLineClick(number) },
+            style: number === flashLine ? Object.assign({}, S.sourceLine, S.sourceLineFlash) : S.sourceLine,
+          },
+          h('span', { className: 'dsls-source-no', style: Object.assign({}, S.sourceNo, { minWidth: gutter + 'ch' }) }, String(number)),
+          h('span', { className: 'dsls-source-text', style: S.sourceText },
+            line === '' ? ' ' : highlightLean(line))
+          )
+        })
+      )),
+      h(SourceGoalPanel, {
+        line: activeLine,
+        phase: panel.phase,
+        state: panel.state,
+        error: panel.error,
+        diagnostics: panel.diagnostics,
+        loadHint: loadHint,
+        t: input.t,
+      }))
     }
 
-        const CLIENT_BUILD = '2026-11-24T1445'
+        const CLIENT_BUILD = '2026-11-27T2110'
 
     function apply(ctx) {
       try {
@@ -1122,12 +1597,12 @@ window.__ModuleLoader__.load({
         } catch (error) { /* service not available */ }
       }
       report('document-preview', 'key=' + (documentPreviews === null ? 'missing' : 'ok'))
-      if (documentPreviews !== null) {
-        const previewId = 'sokonanoda-dsh/source'
+      const registerSourcePreview = function (service) {
+        if (sourcePreviewReady || service === null || service === undefined || typeof service.register !== 'function') return
         try {
           ctx.effect(function () {
-            return documentPreviews.register({
-              id: previewId,
+            return service.register({
+              id: SOURCE_PREVIEW_ID,
               extensions: ['sokonanoda'],
               priority: 'extension',
               title: function () { return 'Sokonanoda' },
@@ -1138,7 +1613,11 @@ window.__ModuleLoader__.load({
           }, 'sokonanoda-dsh: .sokonanoda code preview')
           ctx.effect(function () {
             return ctx.slots.inject('sidebar.right.tab.document', function () {
-              return ctx.slots.register({ name: 'sidebar.right.tab.document', key: previewId }, SokonanodaSourceBody)
+              return ctx.slots.register({
+                name: 'sidebar.right.tab.document',
+                key: SOURCE_PREVIEW_ID,
+                locale: NS,
+              }, SokonanodaSourceBody)
             })
           }, 'sokonanoda-dsh: .sokonanoda code body')
           sourcePreviewReady = true
@@ -1146,6 +1625,19 @@ window.__ModuleLoader__.load({
         } catch (error) {
           report('document-preview-error', 'message=' + encodeURIComponent(String(error && error.message ? error.message : error).slice(0, 180)))
         }
+      }
+      if (documentPreviews !== null) {
+        registerSourcePreview(documentPreviews)
+      } else if (typeof ctx.inject === 'function') {
+        /* The Sidebar document-preview service can register after this plugin
+         * applies; wait for it instead of losing the body registration. */
+        try {
+          ctx.inject(['documentPreviews'], function (scope) {
+            let service
+            try { service = scope?.documentPreviews ?? scope?.get?.('documentPreviews') } catch { service = undefined }
+            registerSourcePreview(service)
+          })
+        } catch (error) { /* non-Web client: the stock preview still works */ }
       }
       /* A client update can land in an already-open page through the HMR carrier,
        * but markdown nodes mounted by the previous module instance keep their old
@@ -1213,6 +1705,9 @@ window.__ModuleLoader__.load({
         fenceCardOf: fenceCardOf,
         progressCard: progressCard,
         SokonanodaSourceBody: SokonanodaSourceBody,
+        SourceGoalPanel: SourceGoalPanel,
+        semanticRuns: semanticRuns,
+        nextActiveLine: nextActiveLine,
         cardCss: CARD_CSS.join(''),
         zh: zh,
         en: en,

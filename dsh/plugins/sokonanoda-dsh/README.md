@@ -40,6 +40,26 @@ DSH 的发现入口是对应的
 `.agents/skills/sokonanoda-figure/SKILL.md`（指向仓库根下的 canonical 入口）。
 作图前先读它，不要手摆 HTML/SVG 坐标冒充数学图。
 
+## 只读源码预览（光标 + goal 面板）
+
+右侧辅助侧栏打开 `.sokonanoda` 文件时，插件注册自己的文件预览（不是纯文本回退）：
+
+- **↑/↓ 移动光标行**（`Ctrl`/`Cmd`/`Alt`/`Shift` 组合键照旧交给浏览器），点击任意行也能定位；
+  当前行有背景高亮，预览获得焦点后才响应方向键，不会抢输入框。
+- 下方面板实时显示**声明名 / kind / 状态 / `步骤 step/total` / 假设 / `⊢ goal`**；goal 与假设
+  使用内核 `query state` 的 `goal_runs`/`ty_runs` 上色，**不重新分词**。没有活动行时只显示操作提示。
+- 面板区分 **`光标不在任何声明内`**、**源码有错误（前 3 条诊断）**、**编译/查询超时**、
+  **后端不可用** 和 **已无目标（证明完成）**；切换行时保留上一条 goal 并标「更新中…」。
+- **只读**：没有编辑、保存、`didChange`；不写文件、不写仓库。Host 路由
+  `GET /sokonanoda-state` 只接受**本机 owner**，路径必须落在当前会话工作区或仓库内
+  （拒绝 `..`、绝对路径逃逸与符号链接逃逸），并用参数数组调用
+  `scripts/soko query state`（不拼 shell、2–3 秒超时、超时杀整个子进程组）。
+- 客户端请求去抖 120 ms、单飞（新行会 abort 旧请求），并用序号丢弃过期回答；
+  内核每次热态约 0.12 s，命中编译缓存。
+
+> 预览的文件内容仍由 DSH 文档预览按页提供；光标行只在已加载的行内移动。文件超过一页时，
+> 先滚动到底部让预览加载更多行（面板会给提示）。
+
 ## 数据目录（唯一位置）
 
 ```
@@ -186,6 +206,8 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 | `repoRoot` | 自动向上查找 | 含 `courses/set-theory/knowledge/engine.py` 的目录 |
 | `timeoutMs` | `8000` | 快路径超时（超时回落慢路径） |
 | `codeTimeoutMs` | `45000` | 代码题快路径超时（compose + 真内核判卷；超时回落 `next()`） |
+| `stateTimeoutMs` | `3000` | 只读 goal 面板调 `query state` 的超时（冷编译可调大；超时显示「查询超时」） |
+| `sokoPath` | `<repoRoot>/scripts/soko` | 只读 goal 面板与代码题判卷共用的启动器路径 |
 | `decisionsLimit` | `20` | `sokonanoda_fast_think status` 默认返回条数 |
 | `cards` | `true` | 让 quiz service 产出卡片 payload；关闭则退回纯文本快路径 |
 
@@ -198,6 +220,7 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 | 卡片出现但选项点不动 / 样式丢失 | client 半未加载 | 刷新页面；`client.js` 改动靠 HMR 或页面重载 |
 | 代码题总是回落模型 | 判卷依赖 | `scripts/soko doctor --json`；`python3 courses/exercise-dataset/compose.py --help`；缓存过期跑 `scripts/soko update`；必要时调大 `codeTimeoutMs` |
 | 判卷通过但进度没变 | 数据目录权限 | `mark-code` 写失败**不改变内核判定**；检查 `$DSH_HOME/state/sokonanoda-dsh/quiz/` 可写 |
+| goal 面板一直「状态后端不可用」 | 只读预览依赖 | 确认 `scripts/soko doctor --json` 就绪；改了 Host 半要重启 `dsh web`；冷编译慢就调大 `stateTimeoutMs` |
 | 进度 / 答题记录像丢了 | 数据目录被换 | `DSH_HOME` / `SOKO_DSH_DATA` 变了；记录在 `$DSH_HOME/state/sokonanoda-dsh/` |
 | `dsh plugin add` 失败 | 路径 / 包结构 | 目标目录必须有 `package.json` 与 `dsh.bundle.patch`；本地安装不需要网络 |
 | 引擎 / 题库报路径错 | 仓库根 | 从仓库目录启动 `dsh web`（或设 `repoRoot`）；插件向上找 `courses/set-theory/knowledge/engine.py` |
@@ -209,12 +232,12 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 
 | 文件 | 作用 |
 |---|---|
-| `index.js` | Host 半：数据目录、进程内 quiz service、`llm/stream` 快路径、`sokonanoda_fast_think` 工具 |
-| `client.js` | Client 半：`learn-card` / `lean` / `sokonanoda` 三个 fence 层 + 卡片表面 CSS |
+| `index.js` | Host 半：数据目录、进程内 quiz service、`llm/stream` 快路径、`sokonanoda_fast_think` 工具、只读 `GET /sokonanoda-state` |
+| `client.js` | Client 半：`learn-card` / `lean` / `sokonanoda` 三个 fence 层 + 卡片表面 CSS + `.sokonanoda` 只读预览（光标行 / goal 面板） |
 | `lib/quiz-proxy.mjs` | 从旧 `quiz-proxy/server.mjs` 迁入的本地题库服务（`startQuizService` 在进程内起 loopback 端口）；保留 I2/I3/I4 正确性不变量 |
 | `lib/code-grade.mjs` | C9.4 判卷桥：围栏提取 / 只取证明体贴回可信签名 / `scripts/soko grade --json` 事件判定；失败抛 `code` 交调用方 fail-open |
-| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行 |
-| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS |
+| `test/host.test.mjs` | Host 契约：数据目录、判定、fence 转换、进程内服务、llm/stream 放行、只读 state 路由（owner/越权/超时） |
+| `test/client.smoke.cjs` | Client 渲染契约：3 个 fence 层、卡片/高亮、fail-open、CSS、光标行与 goal 面板 |
 | `docs/` 下的 `research.md` | 快思考方案调研（llm/stream、生态对照） |
 | `docs/` 下的 `cards-research.md` | 卡片渲染方案调研（fence 层、action-cards、槽位） |
 
@@ -222,7 +245,7 @@ plugin_manager({ action: "install_bundle", target: "<repo>/dsh/plugins/sokonanod
 
 ```bash
 cd dsh/plugins/sokonanoda-dsh
-node test/run.mjs     # host 24 + client 22
+node test/run.mjs     # host 29 + client 28
 ```
 
 ## 迁移与清理（一次性，2026-11-23）

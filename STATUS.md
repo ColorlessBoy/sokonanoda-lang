@@ -1,3 +1,12 @@
+## 当前快照（2026-11-27 · DSH 源码预览光标 + goal 面板）
+
+#115：`.sokonanoda` 右侧预览加只读光标：`↑/↓`/点击移动活动行并高亮；下方面板显示声明名、
+status、`step/total`、假设、`⊢ goal`（`goal_runs`/`ty_runs` 上色，不重新分词），区分
+「不在声明内 / 源码错误 / 超时 / 后端不可用 / 已无目标」。Host 新增 owner-only
+`GET /sokonanoda-state`：只读、路径限工作区/仓库（拒 `..`、绝对路径、符号链接逃逸）、
+参数数组调 `scripts/soko query state`、3 s 超时杀进程组；client 120 ms 去抖 + 单飞 + seq。
+判据：插件 host 29 / client 28；真 DSH Web + 真内核 e2e；docs/status lint。
+
 ## 当前快照（2026-11-27 · C9.6 发布与文档包）
 C9.6：把 C9 产物做成可安装、可发现的发布。插件 README 补干净安装、
 题库/代码题入口与基数、代码题提交、排障表与隐私边界；`dsh/README`、根 README、
@@ -15,12 +24,3 @@ C9.5（#103）：`engine.py` 校准阶梯改由题库推导（不再硬编码 I.
 内容缺口与下一批建议，报告落 gitignore 的 `reports/`。
 判据：engine selftest 47、simulate 50、review selftest、validate、插件 host 24 /
 client 22 全绿；coverage 99 红是 C9.2 预期欠账。
-
-## 当前快照（2026-11-27 · C9.4 代码题真内核判卷）
-C9.4（#102）：插件新增「代码题」快路径 + `engine.py code-next`（从题目集数据集发具名
-代码题，默认 set-theory；懒加载，不改 `codeEvery` 瀑布）。代码练习卡显示题干/提示/带
-`sorry` 模板；用户贴围栏代码后取证明体、贴回课程模板的可信签名 ⇒ `compose.py` 组装
-⇒ `scripts/soko grade --json`；目标 `decl.checked` 且无 `exercise.open` 且 0
-`diagnostic` 才算通过。通过调 `mark-code`，失败显示首条内核诊断并允许同题重试，
-「跳过」调 `skip-code`；compose/soko 缺失或超时 503 回落 `next()`，用户代码不进日志。
-插件测试 host 24 / client 22 绿。
