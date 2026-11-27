@@ -1,3 +1,13 @@
+## 当前快照（2026-11-27 · C9.6 发布与文档包）
+C9.6（#104）：把 C9 产物做成可安装、可发现的发布。插件 README 补**干净机器一条路**
+（`scripts/soko setup` → `dsh plugin --profile web add` → `dsh web`）、
+题库/代码题入口（409 题 / 400 可服务；2022 道代码题）、代码题提交口径、
+排障表与隐私边界；`dsh/README`、根 README、`site/llms.txt` 加插件/题库入口；
+teacher/prep/dev 技能同步题库与代码题用法（DSH 薄入口路由词同步）。
+版本 bump 到 0.100.0，CHANGELOG 列清 C9 范围与已知限制。判据：docs-lint /
+status-lint / check-site / skill+dsh 契约（8+5）/ 插件 host 24 + client 22 /
+`release-preflight.sh`。
+
 ## 当前快照（2026-11-27 · C9.5 调度、复盘与学习地图）
 C9.5（#103）：`engine.py` 校准阶梯改由题库推导（不再硬编码 I.1–I.3），`next` 加
 `--chapter/--level/--kp` 钻取；`map` 增加 KP **已解/待做/薄弱**（结构计数，阈值进
@@ -17,11 +27,3 @@ C9.4（#102）：插件新增「代码题」快路径 + `engine.py code-next`（
 `diagnostic` 才算通过。通过调 `mark-code`，失败显示首条内核诊断并允许同题重试，
 「跳过」调 `skip-code`；compose/soko 缺失或超时 503 回落 `next()`，用户代码不进日志。
 插件测试 host 24 / client 22 绿。
-
-## 当前快照（2026-11-26 · C9.3 卷 II.1 分析课）
-C9.3（#101）：同一份题库承载卷 II.1 分析课（单元①–⑲）——新增 34 KP / 143 题
-（L1 23 / L2 77 / L3 43，综合 31）、19 lesson、3 知识卡、13 术语；II.1 34 绿 / 0 红，
-全库 KP 96 绿 / 99 红、题库 409 道（可服务 400）、综合 70。跨课程 source
-（`courses/analysis/…`）解析补进 `source_check.py`；validate / selftest / simulate /
-notation-lint 绿，coverage 的 99 红是 C9.2 的 I.4–I.13 预期欠账。下一批见
-`knowledge/CONTENT-PLAN.md`。
