@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sokonanoda — Product Hunt gallery 2</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body { width: 1270px; height: 760px; }
+  .left { position: absolute; top: 74px; left: 56px; width: 548px; }
+  h1 { font-size: 52px; margin-top: 20px; }
+  .sub { margin-top: 18px; font-size: 20px; }
+  .rows { margin-top: 28px; display: grid; gap: 14px; }
+  .item { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 16px; color: var(--ink-2); }
+  .tick { width: 10px; height: 10px; background: var(--acc); flex: none; }
+  .item b { color: var(--ink); font-weight: 700; }
+  .note { margin-top: 26px; font-size: 16px; color: var(--ink-3); font-style: italic; }
+  .panel { position: absolute; top: 90px; right: 56px; width: 564px; height: 578px; }
+  .panel img { width: 564px; }
+  .credit { position: absolute; right: 56px; top: 678px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="left">
+    <div class="eyebrow">Kernel grading <span class="dot">·</span> not text matching</div>
+    <h1>No heuristics.<br><em>The kernel decides.</em></h1>
+    <p class="sub">Fill the <span style="font-family:var(--font-mono)">sorry</span>, save, and the declaration is checked by a complete Lean-4-compatible dependent type checker. The goal panel is the kernel's answer, recomputed as you move.</p>
+    <div class="rows">
+      <div class="item"><span class="tick"></span><span><b>decl.checked</b> — the declaration passed</span></div>
+      <div class="item"><span class="tick"></span><span><b>0 diagnostics</b> — no error, no warning</span></div>
+      <div class="item"><span class="tick"></span><span><b>exercise.open</b> — a hole is still open</span></div>
+    </div>
+    <p class="note">The same events drive the editor, the CLI's JSON output and the course gate.</p>
+  </div>
+  <div class="panel shot"><img src="../assets/goal-panel.png" alt=""></div>
+  <div class="credit">Real Infoview capture · v0.100.0</div>
+</div>
+</body>
+</html>

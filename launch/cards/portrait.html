@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Sokonanoda — 竖版海报</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  body { width: 1080px; height: 1350px; }
+  .top { position: absolute; top: 80px; left: 80px; right: 80px; }
+  h1 { font-size: 88px; margin-top: 24px; line-height: 1.08; }
+  .sub { margin-top: 22px; font-size: 26px; line-height: 1.5; max-width: 900px; }
+  .badges { margin-top: 18px; }
+  .goal {
+    position: absolute; top: 470px; left: 80px; right: 80px; height: 170px;
+    background: var(--surface); border: 1px solid var(--rule-strong);
+    border-left: 4px solid var(--acc); padding: 22px 28px;
+  }
+  .goal .lab { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.12em; color: var(--ink-3); text-transform: uppercase; }
+  .goal .formula { margin-top: 14px; font-family: var(--font-mono); font-size: 50px; letter-spacing: 0.02em; }
+  .goal .ctx { margin-top: 8px; font-family: var(--font-mono); font-size: 18px; color: var(--ink-2); }
+  .shot { left: 0; right: 0; bottom: 206px; height: 384px; border-left: 0; border-right: 0; }
+  .shot img { width: 1080px; }
+  .bottom { position: absolute; left: 80px; right: 80px; bottom: 66px; }
+  .bottom .line { font-size: 24px; color: var(--ink-2); }
+  .bottom .url { margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="root">
+  <div class="top">
+    <div class="eyebrow">Sokonanoda <span class="dot">·</span> 形式化证明教学语言</div>
+    <h1>证明，<br>是练出来的。</h1>
+    <p class="sub">不是看懂就会。写一行，内核判一行 —— 目标实时可见，写错立刻告诉你。</p>
+    <div class="badges">
+      <span class="badge badge--acc">内核判卷</span>
+      <span class="badge">离线可用</span>
+      <span class="badge">Apache-2.0</span>
+    </div>
+  </div>
+
+  <div class="goal">
+    <div class="lab">内核实时算出的目标</div>
+    <div class="formula">⊢ A ∩ B = B ∩ A</div>
+    <div class="ctx">α : Type&nbsp;&nbsp;&nbsp;A B : Set α</div>
+  </div>
+
+  <div class="shot"><img src="../../site/assets/hero-vscode.png" alt=""></div>
+
+  <div class="bottom">
+    <div class="line">装一个 VS Code 插件就能开始 · 不用 Lean、不用 Rust</div>
+    <div class="url">colorlessboy.github.io/<b>sokonanoda-lang</b></div>
+  </div>
+</div>
+</body>
+</html>
