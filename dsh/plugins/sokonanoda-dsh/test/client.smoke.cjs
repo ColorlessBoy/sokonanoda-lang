@@ -261,8 +261,10 @@ const PROGRESS = {
     asked: 49, correct: 44, accuracy: 0.898, streak: 27, coverage: 0.453,
     tagsTouched: 43, tagsTotal: 95, chaptersStarted: 3, currentUnit: '⑦ 函数',
     unitDone: 0, unitTotal: 15, served: 184, dueCount: 0,
+    kpsTotal: 195, kpsWithQuestions: 96, solvedKps: 50, todoKps: 45, weakKps: 1,
+    codeSolved: 2, codeSkipped: 0, codeTotal: 916,
   },
-  chapters: [{ id: 'I.1', title: '集合与隶属', completion: 0.861, asked: 40, touched: 31, total: 36 }],
+  chapters: [{ id: 'I.1', title: '集合与隶属', completion: 0.861, asked: 40, touched: 31, total: 36, solved: 16, todo: 0, weak: 1, codeSolved: 1, codeTotal: 115 }],
   heatRows: [{
     chapter: 'I.2', title: '关系',
     units: [
@@ -574,7 +576,8 @@ test('code fence renders prompt, hints and the trusted template without interact
   expect(cardCss.includes('.dslc-code-hint{'), 'code submit-hint CSS rule missing')
   expect(cardCss.includes('.dslc-code-meta{'), 'code meta CSS rule missing')
   for (const dict of [zh, en]) {
-    for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint']) {
+    for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint',
+      'progressMapTitle', 'progressMapSolved', 'progressMapTodo', 'progressMapWeak', 'progressMapCode']) {
       expect(typeof dict[key] === 'string' && dict[key] !== '', 'locale missing ' + key)
     }
   }
@@ -589,10 +592,11 @@ test('progress fence renders summary, chapter bars, heat cells, hotspots and rec
   }))
   oneByClass(view, 'dslc-fence')
   const text = textOf(view)
-  for (const needle of ['学习进展', '连对', '27', '正确率', '90%', '知识点覆盖', '45%', '已答题', '章节进展', 'I.1', '掌握热力', '建议关注', '⑥ 关系', '刚起步', '最近']) {
+  for (const needle of ['学习进展', '连对', '27', '正确率', '90%', '知识点覆盖', '45%', '已答题', '章节进展', 'I.1', '掌握热力', '建议关注', '⑥ 关系', '刚起步', '最近', '学习地图', '已解 50', '待做 45', '薄弱 1', '代码 2/916']) {
     expect(text.includes(needle), 'progress card missing ' + needle)
   }
   expect(byClass(view, 'dslc-stat').length === 4, 'expected 4 summary stats')
+  expect(byClass(view, 'dslc-map').length === 1, 'expected one learning-map line')
   expect(byClass(view, 'dslc-chapter').length === 1, 'expected one chapter row')
   expect(byClass(view, 'dslc-cell').length >= 2, 'expected heat cells')
   expect(byClass(view, 'dslc-hot').length === 1, 'expected one hotspot row')
@@ -601,7 +605,7 @@ test('progress fence renders summary, chapter bars, heat cells, hotspots and rec
 })
 
 test('progress card CSS rules exist', () => {
-  for (const selector of ['.dslc-stats{', '.dslc-stat{', '.dslc-bar{', '.dslc-heat-row{',
+  for (const selector of ['.dslc-stats{', '.dslc-stat{', '.dslc-map{', '.dslc-bar{', '.dslc-heat-row{',
     '.dslc-cell{', '.dslc-legend{', '.dslc-hotspots{', '.dslc-hot{', '.dslc-dot{']) {
     expect(cardCss.includes(selector), 'stylesheet missing ' + selector)
   }

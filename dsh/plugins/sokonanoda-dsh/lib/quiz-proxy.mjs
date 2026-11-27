@@ -1567,15 +1567,27 @@ export async function buildProgressCardPayload(app, stateFile) {
   const history = Array.isArray(state.history_tail) ? state.history_tail : [];
   const mapSnapshot = map.map || {};
   const mapUnits = Array.isArray(mapSnapshot.units) ? mapSnapshot.units : [];
+  const mapChapters = {};
+  for (const chapter of (Array.isArray(mapSnapshot.chapters) ? mapSnapshot.chapters : [])) {
+    if (chapter && typeof chapter.chapter === 'string') mapChapters[chapter.chapter] = chapter
+  }
   const chapters = Object.entries(coverage.chapters || {})
-    .map(([id, row]) => ({
-      id,
-      title: (row && row.title) || id,
-      completion: Number(row && row.completion) || 0,
-      asked: Number(row && row.asked) || 0,
-      touched: Number(row && row.tags_touched) || 0,
-      total: Number(row && row.tags_total) || 0,
-    }))
+    .map(([id, row]) => {
+      const mapRow = mapChapters[id] || {};
+      return {
+        id,
+        title: (row && row.title) || id,
+        completion: Number(row && row.completion) || 0,
+        asked: Number(row && row.asked) || 0,
+        touched: Number(row && row.tags_touched) || 0,
+        total: Number(row && row.tags_total) || 0,
+        solved: Number(mapRow.kpsSolved) || 0,
+        todo: Number(mapRow.kpsTodo) || 0,
+        weak: Number(mapRow.kpsWeak) || 0,
+        codeSolved: Number(mapRow.codeSolved) || 0,
+        codeTotal: Number(mapRow.codeTotal) || 0,
+      };
+    })
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
   const heatRows = (Array.isArray(heat.rows) ? heat.rows : []).map((row) => ({
     chapter: row.chapter,
@@ -1613,6 +1625,8 @@ export async function buildProgressCardPayload(app, stateFile) {
     correct: entry.correct === true,
     at: String(entry.at || ''),
   }));
+  const mapKps = (mapSnapshot.kps && typeof mapSnapshot.kps === 'object') ? mapSnapshot.kps : {};
+  const mapCode = (mapSnapshot.code && typeof mapSnapshot.code === 'object') ? mapSnapshot.code : {};
   return {
     generatedAt: new Date().toISOString(),
     summary: {
@@ -1630,6 +1644,15 @@ export async function buildProgressCardPayload(app, stateFile) {
       unitDone: Number(mapSnapshot.unitDone) || 0,
       unitTotal: Number(mapSnapshot.unitTotal) || 0,
       dueCount: due.length,
+      /* 学习地图（C9.5）：与 engine.py map 同一份结构计数 */
+      kpsTotal: Number(mapKps.total) || 0,
+      kpsWithQuestions: Number(mapKps.withQuestions) || 0,
+      solvedKps: Number(mapKps.solved) || 0,
+      todoKps: Number(mapKps.todo) || 0,
+      weakKps: Number(mapKps.weak) || 0,
+      codeSolved: Number(mapCode.solved) || 0,
+      codeSkipped: Number(mapCode.skipped) || 0,
+      codeTotal: Number(mapCode.total) || 0,
     },
     chapters,
     heatRows,
