@@ -1,0 +1,32 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 1100
+  },
+  "card": {
+    "top": 410.25,
+    "height": 484.375,
+    "bottom": 894.625
+  },
+  "fullyVisible": true,
+  "headings": [
+    "要点"
+  ],
+  "lists": [
+    [
+      "没有请选择公理之前：任何「存在 ⇒ 取出一个具体对象」的推理都不许做，相关定理只能写成「你交进来」的数据版（例如 Inverse f g：g 由调用者给出）。",
+      "用了 axiom choice 之后：可以从逐点存在里一次选出整条函数（I.7 才引入），从那以后这类推理才合法。"
+    ]
+  ],
+  "tables": [],
+  "definition": "axiom choice : (α β : Type) → (A : Set α) → (B : Set β) → (P : α → β → Prop) →\n  (∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) →\n  ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)",
+  "source": "出处：lib/Choice.sokonanoda:38 axiom choice；units/I.7/unit112*",
+  "text": "选择公理：什么时候能用，什么时候不能用\n\n「存在某种选择」这件事，本身不给你可计算的函数；要用它，就必须把公理明确请进来（本课在 I.7 才请），否则可以当它不存在。\n\naxiom choice : (α β : Type) → (A : Set α) → (B : Set β) → (P : α → β → Prop) →\n  (∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) →\n  ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)\n\n要点\n\n没有请选择公理之前：任何「存在 ⇒ 取出一个具体对象」的推理都不许做，相关定理只能写成「你交进来」的数据版（例如 Inverse f g：g 由调用者给出）。\n用了 axiom choice 之后：可以从逐点存在里一次选出整条函数（I.7 才引入），从那以后这类推理才合法。\n\n出处：lib/Choice.sokonanoda:38 axiom choice；units/I.7/unit112*",
+  "longCard": {
+    "cardHeight": 484,
+    "viewportHeight": 720,
+    "scrollableAncestor": true,
+    "scrollHeight": 1609,
+    "clientHeight": 644
+  }
+}
