@@ -27,5 +27,8 @@
         "@deepseek-ai/dsh-client-ui-chat"
       ]
     }
+  },
+  "scripts": {
+    "test": "node test/run.mjs"
   }
 }

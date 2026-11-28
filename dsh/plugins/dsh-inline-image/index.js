@@ -21,6 +21,9 @@ export const name = 'dsh-inline-image'
 /** This plugin's own directory, so the bundled samples are portable. */
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
+/** The Client bundle; its age lets a running page notice a stale HMR copy. */
+const CLIENT_FILE = path.join(HERE, 'client.js')
+
 /** The route needs the Web server; keep the plugin inactive without one. */
 export const inject = ['webServer']
 
@@ -112,10 +115,12 @@ let configMaxBytes
 export function apply(ctx, config = {}) {
   const roots = rootsOf(config)
   configMaxBytes = Number(config?.maxBytes)
+  // Owner-authenticated: a same-origin browser <img> request carries the
+  // session credential, so the route never leaks workspace images.
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ROUTE,
-    auth: 'anonymous',
+    auth: 'required',
     handler: async (request, response, peer) => {
       try {
         if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -153,22 +158,32 @@ export function apply(ctx, config = {}) {
 
   /* Anonymous, content-free diagnostic used while wiring the route: it only
    * says whether a workspace-relative image would resolve. It never returns
-   * bytes and exposes no file content. */
+   * bytes and exposes no file content. `clientAgeMs` is the age of this
+   * plugin's Client bundle, which lets a page that is still running an older
+   * HMR copy offer a refresh. */
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: '/dsh-inline-image/health',
-    auth: 'anonymous',
+    auth: 'required',
     handler: async (request, response) => {
       try {
         const url = new URL(String(request.url || '/'), 'http://dsh.invalid')
         const requested = url.searchParams.get('path')
         const image = await resolveImage(roots, requested)
+        let clientAgeMs
+        try {
+          const stat = await fs.stat(CLIENT_FILE)
+          clientAgeMs = Math.max(0, Date.now() - stat.mtimeMs)
+        } catch {
+          /* The bundle is expected to exist; omit the age when it cannot be read. */
+        }
         sendJson(response, 200, {
           ok: image !== null && image.error === undefined,
           error: image?.error ?? (image === null ? 'not found' : undefined),
           bytes: image?.size,
           mediaType: image?.mediaType,
           roots,
+          clientAgeMs,
         })
       } catch {
         sendJson(response, 200, { ok: false, error: 'probe failed' })

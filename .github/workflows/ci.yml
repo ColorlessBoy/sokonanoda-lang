@@ -99,6 +99,27 @@ jobs:
       - name: 文档预算 lint（活文档/归档体积上限见 ratchet · 入口 ≤800 行 · 设计 ≤150 行/冻结 · 归档索引齐）
         run: python3 scripts/docs-lint.py
 
+  # `dsh/plugins/dsh-inline-image` 的画册围栏（`dsh-images`）回归测试。
+  #
+  # **为什么是独立 job、不设 `if:`**：和上面的 status-lint / docs-lint /
+  # tactic-docs-lint 同形 —— 它只碰 `dsh/plugins/dsh-inline-image/**` 时，
+  # `changes` 的 `rust`/`courses` 过滤器不会命中 ⇒ 挂在 `gates-fast` 里就
+  # **永远不跑** ✗（这正是本文件已经踩过的坑）。两次 node 启动、无依赖、
+  # 秒级 ⇒ 永远跑 ✓。
+  #
+  # 判据覆盖 7 页样例（`public/ch-01..ch-07.png`，同一 1147×588 画布）：
+  # Host 路由逐页 200 / PNG / owner-private、越界 404、非图 415、超限 413、
+  # health 的 `clientAgeMs`；Client 的 7 页/圆点/页码/图注/首屏 eager、
+  # 键盘翻页、±1 预加载、失败重试、lightbox 缩放与焦点恢复、HMR 刷新提示。
+  dsh-inline-image-tests:
+    name: dsh-inline-image（画册 7 页 host/client 契约）
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: 画册 host + client 回归（7 页样例）
+        run: node dsh/plugins/dsh-inline-image/test/run.mjs
+
   # `scripts/tactic-docs-lint.py`（**L4**，设计 `docs/design/tactic-docs.md` §4.2）：
   # tactic 清单的**三处一致** —— 表（`crates/front/src/tactics.rs` 的 `name:`）↔
   # parser 的 tactic 臂（`parser.rs::parse_tactic_inner` 的 `kw == "…"`）↔

@@ -211,7 +211,18 @@ pdftotext -bbox figure.pdf - > /tmp/figure-bbox.html
 - 每一页都按 §2–§5 出图；**同一画册的页必须同画布**（默认 12.25×5.8cm、220dpi），
   否则翻页会跳高度；
 - `caption` 是翻页时跟着走的那一句，写结论或问题，不写「第 N 页」；
-- 画册只读：原生横向滚动 + scroll-snap，触控/触控板/滚轮都能滑，圆点、页码、
-  `‹ ›` 与方向键翻页；
-- 自检：`curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:<port>/dsh-inline-image/public?path=ch-01.png'`
-  应为 200；聊天里若显示成代码块，刷新页面（client 半走 HMR）。
+- 画册交互：原生横向滚动 + scroll-snap，触控/触控板/滚轮都能滑，圆点、页码、
+  `‹ ›`、方向键与 `Home`/`End`/`PageUp`/`PageDown` 翻页；点页（或右上 `⤢`）开全屏
+  lightbox——双指/滚轮缩放、拖拽平移、双击 250%、`Esc` 关闭；首屏只 eager 第一页，
+  其余页与相邻页按需预加载；
+- 移动端：底部安全区、圆点可点区域 ≥24px、到边缘的渐变提示；深色模式沿用 DSH 的
+  卡片/边框/图注 token；坏图保留路径并给「重试」；
+- 自检（7 页样例即回归夹具）：
+
+  ```bash
+  cd dsh/plugins/dsh-inline-image && node test/run.mjs
+  curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:<port>/dsh-inline-image/public?path=ch-01.png'
+  ```
+
+  前者应为全 PASS，后者应为 200；聊天里若显示成代码块，刷新页面（client 半走
+  HMR）；画册顶部若出现「画册组件已更新」提示，同样刷新页面。

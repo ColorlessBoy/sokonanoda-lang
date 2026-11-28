@@ -323,7 +323,8 @@ question 卡渲染，判卷反馈与下一题也以卡片/文本返回。
 - **多页讲解图**：要连讲几张图时，不要连发多张 `dsh-image`；把图放
   `dsh/plugins/dsh-inline-image/public/`，用 `dsh-images` 画册围栏发出来
   （JSON 形如 `{"title":…,"pages":[{"path":"ch-01.png","caption":…}]}`），
-  聊天里可左右滑动。出图与分页规范见 `sokonanoda-figure` §9。
+  聊天里可左右滑动，点图可放大（双指/滚轮缩放、拖拽、`Esc` 关闭）。出图与分页
+  规范见 `sokonanoda-figure` §9。
 
 **开场话术（DSH，第一次进入教学会话）**：若 `sokonanoda_fast_think status` 显示
 本会话未开启，先调用工具的 `enable`，再说一句（不要长篇解释插件）：
