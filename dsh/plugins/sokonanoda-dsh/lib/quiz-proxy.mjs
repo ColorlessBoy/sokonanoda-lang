@@ -36,6 +36,13 @@ export { CODE_MAX_BYTES, extractFencedCode };
 
 // ───────────────────────── 常量 ─────────────────────────
 export const ENGINE_REL = path.join('courses', 'set-theory', 'knowledge', 'engine.py');
+/** 会话预检脚本（issue #151）：出题前查文本规则 + 卡片覆盖 + 无卡兜底。 */
+export const PREFLIGHT_REL = path.join('scripts', 'lesson-preflight.py');
+const DEFAULT_PREFLIGHT_TIMEOUT_MS = 15_000;
+/** 连续多少道被预检拦下的题就暂停出题（避免死循环，也避免把坏题发出去）。 */
+export const PREFLIGHT_MAX_SKIPS = 5;
+/** 同一 qid 的预检结果缓存时间：题库内容在会话内很少变，避免每题都起一个 python。 */
+const PREFLIGHT_CACHE_TTL_MS = 60_000;
 export const QUIZ_MODEL = 'quiz-auto';
 export const SLOW_MODEL = 'deepseek-v4.1-flash';
 /**
@@ -932,6 +939,190 @@ async function engineNext(app, stateFile, advance, noLesson = false) {
   return runEngine(app, args);
 }
 
+// ───────────────────────── 会话预检（issue #151） ─────────────────────────
+/**
+ * 出题前对「即将发出的这道题」跑 `scripts/lesson-preflight.py`（#151）：
+ * 文本规则（X11 自造术语 = blocker）+ 卡片覆盖（#146）+ 无卡兜底。
+ *
+ * 契约：
+ *  - 返回 `{ ok, blocked, warnings, degraded }`；`blocked` 非空 ⇒ **不要发这道题**；
+ *  - `ok:false` + `degraded` ⇒ 预检本身不可用（脚本缺失 / exit 3 / 超时 / 输出坏）——
+ *    **绝不因此中断正常出题**，调用方回落原行为并给一行警告；
+ *  - 结果按 qid 做短 TTL 缓存（题库内容在会话内很少变，别每题都起 python）。
+ * 测试可用 `options.preflightRunner({stateFile,qid})` 注入；`options.preflight=false` 关闭。
+ */
+export async function runLessonPreflight(app, stateFile, qid, { fresh = false } = {}) {
+  const id = String(qid || '');
+  if (!app || app.preflightEnabled === false || id === '') {
+    return { ok: false, disabled: true, blocked: [], warnings: [], degraded: '' };
+  }
+  if (!fresh && app.preflightCache instanceof Map) {
+    const cached = app.preflightCache.get(id);
+    if (cached && Date.now() - cached.at < PREFLIGHT_CACHE_TTL_MS) return cached.verdict;
+  }
+  let verdict;
+  if (typeof app.preflightRunner === 'function') {
+    try {
+      verdict = normalizePreflightResult(await app.preflightRunner({ stateFile, qid: id }), id);
+    } catch (error) {
+      verdict = {
+        ok: false,
+        blocked: [],
+        warnings: [],
+        degraded: 'preflightRunner 抛错：' + String((error && error.message) || error),
+      };
+    }
+  } else {
+    verdict = await spawnLessonPreflight(app, stateFile, id);
+  }
+  if (app.preflightCache instanceof Map) app.preflightCache.set(id, { at: Date.now(), verdict });
+  return verdict;
+}
+
+/** 把（外部注入或脚本解析出的）预检结果归一化成固定的 wire 形状。 */
+export function normalizePreflightResult(result, qid = '') {
+  const finding = (item) => {
+    if (!item || typeof item !== 'object') return null;
+    return {
+      code: String(item.code || ''),
+      field: String(item.field || ''),
+      name: String(item.name || ''),
+      note: String(item.note || ''),
+    };
+  };
+  if (!result || result.ok !== true) {
+    return {
+      ok: false,
+      blocked: [],
+      warnings: [],
+      degraded: String((result && (result.degraded || result.error)) || 'preflight 返回失败'),
+    };
+  }
+  const list = (value) => (Array.isArray(value) ? value.map(finding).filter(Boolean) : []);
+  return {
+    ok: true,
+    blocked: list(result.blocked),
+    warnings: list(result.warnings),
+    degraded: String(result.degraded || ''),
+    qid: String(result.qid || qid || ''),
+  };
+}
+
+/** 起 python3 跑 `scripts/lesson-preflight.py --json --limit 1 --state S` 并解析。 */
+async function spawnLessonPreflight(app, stateFile, qid) {
+  const script = app.preflightScript;
+  if (!script || !fs.existsSync(script)) {
+    return {
+      ok: false,
+      blocked: [],
+      warnings: [],
+      degraded: '找不到预检脚本 ' + String(script || PREFLIGHT_REL),
+    };
+  }
+  let stdout = '';
+  try {
+    const result = await execFileAsync(
+      'python3',
+      [script, '--json', '--limit', '1', '--state', stateFile],
+      {
+        cwd: app.repoRoot,
+        timeout: app.preflightTimeoutMs,
+        maxBuffer: 8 * 1024 * 1024,
+        encoding: 'utf8',
+        env: engineEnv,
+      },
+    );
+    stdout = String(result.stdout || '');
+  } catch (error) {
+    const exitCode = error && typeof error.code === 'number' ? error.code : null;
+    /* exit 1 = 有 blocker，但 stdout 仍是合法 JSON（这是预检的正常判红，不是基础设施失败）。 */
+    if (exitCode === 1 && error && error.stdout) {
+      stdout = String(error.stdout);
+    } else {
+      const stderr = String((error && (error.stderr || error.message)) || '').trim().slice(0, 200);
+      return {
+        ok: false,
+        blocked: [],
+        warnings: [],
+        degraded:
+          exitCode === 3
+            ? 'preflight exit 3（前提缺失）：' + stderr
+            : 'preflight 失败（' + (exitCode === null ? 'spawn/timeout' : 'exit ' + exitCode) + '）：' + stderr,
+      };
+    }
+  }
+  let payload = null;
+  try {
+    payload = JSON.parse(stdout.trim());
+  } catch {
+    return { ok: false, blocked: [], warnings: [], degraded: 'preflight 输出不是 JSON' };
+  }
+  const questions = Array.isArray(payload && payload.questions) ? payload.questions : [];
+  const entry = questions.find((item) => item && String(item.qid) === qid);
+  if (!entry) {
+    return {
+      ok: false,
+      blocked: [],
+      warnings: [],
+      degraded: 'preflight 输出里没有当前题 ' + qid,
+    };
+  }
+  const findings = Array.isArray(entry.findings) ? entry.findings : [];
+  const result = normalizePreflightResult(
+    {
+      ok: true,
+      blocked: findings.filter((item) => item && item.level === 'blocker'),
+      warnings: findings.filter((item) => item && item.level === 'warning'),
+    },
+    qid,
+  );
+  return result;
+}
+
+/** 一行理由（写内部日志：`preflight-blocked <qid>: <reason>`）。 */
+export function preflightBlockedReason(verdict) {
+  const items = (verdict && verdict.blocked) || [];
+  if (items.length === 0) return 'blocker';
+  return items
+    .map((item) => {
+      const where = item.field || item.name || '';
+      return [item.code, where ? '[' + where + ']' : '', item.note].filter(Boolean).join(' ');
+    })
+    .join('；');
+}
+
+/** 预检不可用时的**一行**用户可见警告（正常流程继续，不静默跳过）。 */
+export function preflightWarningLine(verdict) {
+  const reason = String((verdict && verdict.degraded) || 'unknown');
+  const short = reason.length > 120 ? reason.slice(0, 120) + '…' : reason;
+  return '⚠️ 内容预检暂不可用（' + short + '），按原流程继续出题。';
+}
+
+/** 所有待发题都被预检拦下时给学习者的可读提示（不是报错栈）。 */
+export function preflightMaintenanceLine() {
+  return (
+    '⚠️ 内容预检发现接下来连续 ' +
+    PREFLIGHT_MAX_SKIPS +
+    ' 道题都没过内容门禁，先暂停出题。\n请让老师修好题目内容（blocker）后再回「开始做题」；' +
+    '这不是你的问题。'
+  );
+}
+
+/** 出题循环里统一处理预检：返回 'serve' | 'skip' | 'degraded'。 */
+async function preflightVerdictFor(app, stateFile, question, blocks) {
+  const verdict = await runLessonPreflight(app, stateFile, (question && question.id) || '');
+  if (verdict.blocked && verdict.blocked.length > 0) {
+    app.log('preflight-blocked ' + String((question && question.id) || '?') + ': ' + preflightBlockedReason(verdict));
+    return { action: 'skip', verdict };
+  }
+  if (verdict.ok === false && verdict.degraded) {
+    app.log('preflight-degraded ' + String((question && question.id) || '?') + ': ' + verdict.degraded);
+    blocks.push(preflightWarningLine(verdict));
+    return { action: 'degraded', verdict };
+  }
+  return { action: 'serve', verdict };
+}
+
 function pickEncouragement() {
   return ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
 }
@@ -1269,13 +1460,30 @@ export function formatFeedback(answer) {
 async function nextBlocks(app, stateFile, fingerprint, { advance, heading, noLesson = false }) {
   const blocks = [];
   let step = await engineNext(app, stateFile, advance, noLesson);
-  for (let guard = 0; guard < 6; guard++) {
+  let preflightSkips = 0;
+  for (let guard = 0; guard < 6 + PREFLIGHT_MAX_SKIPS; guard++) {
     if (step.kind === 'lesson') {
       blocks.push(formatLesson(step.lesson));
       return blocks;
     }
     if (step.kind === 'question') {
       const question = step.question || {};
+      /* issue #151：出题前预检；blocker ⇒ 跳过这道题（advance 会把未作答的题记为 skipped）。 */
+      const verdict = await preflightVerdictFor(app, stateFile, question, blocks);
+      if (verdict.action === 'skip') {
+        preflightSkips += 1;
+        if (preflightSkips >= PREFLIGHT_MAX_SKIPS) {
+          blocks.push(preflightMaintenanceLine());
+          return blocks;
+        }
+        try {
+          step = await engineNext(app, stateFile, true, noLesson);
+        } catch {
+          blocks.push(preflightMaintenanceLine());
+          return blocks;
+        }
+        continue;
+      }
       app.issuedKinds.set(stateKeyOf(app, fingerprint), {
         qid: String(question.id || ''),
         kind: question.kind || 'choice',
@@ -1717,7 +1925,8 @@ async function cardNextQuestion(app, stateFile, stateKey, { advance, noLesson = 
   const blocks = [];
   const learn = app.cardsMode === 'learn';
   let step = await engineNext(app, stateFile, advance, noLesson);
-  for (let guard = 0; guard < 6; guard += 1) {
+  let preflightSkips = 0;
+  for (let guard = 0; guard < 6 + PREFLIGHT_MAX_SKIPS; guard += 1) {
     if (step.kind === 'lesson') {
       if (learn) {
         /* learn_card 模式：教学环节本身出一张 lesson 卡片，题目等用户回「继续」再发
@@ -1729,6 +1938,20 @@ async function cardNextQuestion(app, stateFile, stateKey, { advance, noLesson = 
     }
     if (step.kind === 'question') {
       const question = step.question || {};
+      /* issue #151：出题前预检；blocker ⇒ 不发这道题，advance 跳过它再取下一道。 */
+      const verdict = await preflightVerdictFor(app, stateFile, question, blocks);
+      if (verdict.action === 'skip') {
+        preflightSkips += 1;
+        if (preflightSkips >= PREFLIGHT_MAX_SKIPS) {
+          return { blocks, question: null, position: null, maintenance: preflightMaintenanceLine() };
+        }
+        try {
+          step = await engineNext(app, stateFile, true, noLesson);
+        } catch {
+          return { blocks, question: null, position: null, maintenance: preflightMaintenanceLine() };
+        }
+        continue;
+      }
       app.issuedKinds.set(stateKey, {
         qid: String(question.id || ''),
         kind: question.kind || 'choice',
@@ -1765,7 +1988,10 @@ function cardReplyFromNext(app, stateKey, stateFile, next, leadingText, kind, he
   const blocks = [...next.blocks];
   const learn = app.cardsMode === 'learn';
   let toolCall = null;
-  if (next.question) {
+  if (next.maintenance) {
+    /* 所有待发题都被预检拦下：给可读提示，不发坏题（issue #151）。 */
+    blocks.push(next.maintenance);
+  } else if (next.question) {
     if (isCardQuestion(next.question) || (learn && !isChoiceQuestion(next.question))) {
       toolCall = learn
         ? buildLearnQuestionCard(next.question, next.position)
@@ -3118,6 +3344,10 @@ function withFingerprintLock(app, fingerprint, fn) {
  *  - maxBodyBytes         请求体上限（默认 8MB）
  *  - upstreamTimeoutMs    上游超时（默认 120s）
  *  - engineTimeoutMs      引擎子进程超时（默认 30s）
+ *  - preflight            出题前会话预检（默认开；false 关闭）
+ *  - preflightScript      预检脚本路径（默认 <repo>/scripts/lesson-preflight.py）
+ *  - preflightRunner      注入预检 runner（测试用；({stateFile,qid}) => 预检结果）
+ *  - preflightTimeoutMs   预检子进程超时（默认 15s）
  *  - log                  (line:string)=>void 日志函数（默认写 stderr）
  */
 export function createQuizProxy(options = {}) {
@@ -3162,6 +3392,20 @@ export function createQuizProxy(options = {}) {
     engineTimeoutMs: Number.isFinite(options.engineTimeoutMs)
       ? options.engineTimeoutMs
       : Number(process.env.QUIZ_PROXY_ENGINE_TIMEOUT_MS || DEFAULT_ENGINE_TIMEOUT_MS),
+    /* issue #151 会话预检：出题前跑 scripts/lesson-preflight.py；失败 fail-open（只警告）。 */
+    preflightEnabled:
+      options.preflight !== false && process.env.QUIZ_PROXY_PREFLIGHT !== '0',
+    preflightScript: path.resolve(
+      options.preflightScript || path.join(repoRoot, PREFLIGHT_REL),
+    ),
+    preflightTimeoutMs: Number.isFinite(options.preflightTimeoutMs)
+      ? options.preflightTimeoutMs
+      : Number(
+          process.env.QUIZ_PROXY_PREFLIGHT_TIMEOUT_MS || DEFAULT_PREFLIGHT_TIMEOUT_MS,
+        ),
+    preflightRunner:
+      typeof options.preflightRunner === 'function' ? options.preflightRunner : null,
+    preflightCache: new Map(),
     /* C9.4 真内核判卷：compose + soko grade 的外层超时（失败 fail-open）。 */
     codeGradeTimeoutMs: Number.isFinite(options.codeGradeTimeoutMs)
       ? options.codeGradeTimeoutMs

@@ -1,0 +1,236 @@
+{
+  "schema": "soko.lesson-preflight-fixtures/1",
+  "note": "会话预检的红/绿对照夹具：X11 自造术语必红、选项引理无卡必红、无卡兜底缺 why/引理名必红、干净题必绿、X6/X7/X12/X13 只出 warning、基线棘轮双向生效。改判据必须同步改这里（--selftest 会把绿例误报、红例不咬、基线失效都判红）。",
+  "declarations": {
+    "lib/Fixture.sokonanoda": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A := by\n  intro x hx\n  exact hx\n\ndef bar_pred (α : Type) (x : α) : Prop := True\n\ndef SomeType (α : Type) : Type := α\n\ndef univLike {α : Type} : Set α := fun (x : α) => True\n\ndef Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop := True\n\ntheorem Set.Le.refl (α : Type) (A : Set α) : A ≼ A := by\n  exact Set.Le.intro α α A A (fun x => x) (fun x => x) (fun x hx => hx)\n"
+  },
+  "expected_candidates": [
+    "foo_lemma",
+    "bar_pred"
+  ],
+  "expected_not_candidates": [
+    "SomeType",
+    "univLike"
+  ],
+  "expected_namespaces": [
+    "Set.Le"
+  ],
+  "terms": {
+    "selfInvented": [
+      "落点",
+      "原序对",
+      "全称命题"
+    ],
+    "metaphors": [
+      "搬运",
+      "拆开",
+      "装回",
+      "接起来",
+      "外壳"
+    ]
+  },
+  "cases": [
+    {
+      "name": "绿：干净题 + 卡覆盖选项点名的引理",
+      "questions": [
+        {
+          "id": "green-card",
+          "prompt": "用哪条引理证明自反？",
+          "options": [
+            "`foo_lemma`：自反",
+            "`bar_pred`：谓词"
+          ],
+          "why": "自反说的是自己和自己可比，`foo_lemma` 正是这条。",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "夹具卡",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A\n\ndef bar_pred (α : Type) (x : α) : Prop := True"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "绿：无卡兜底含 why（不算 blocker）",
+      "questions": [
+        {
+          "id": "green-fallback",
+          "prompt": "下面哪条是自反性？",
+          "options": [
+            "自己和自己可比",
+            "自己和别人可比"
+          ],
+          "why": "自反性只要求每个元素和自己可比。",
+          "tags": [
+            "fixture",
+            "reflexive"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": []
+    },
+    {
+      "name": "绿：无卡兜底含带反斜杠的 why（不能因 json.dumps 转义误判缺 why）",
+      "questions": [
+        {
+          "id": "green-fallback-backslash",
+          "prompt": "差集 `A \\ B` 的元素有什么特点？",
+          "options": [
+            "属于 A 且不属于 B",
+            "属于 B 且不属于 A"
+          ],
+          "why": "差集写成 `A \\ B`：取的是属于 `A` 但不属于 `B` 的元素。",
+          "tags": [
+            "fixture",
+            "sdiff"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": []
+    },
+    {
+      "name": "红：X11 自造术语（落点）",
+      "questions": [
+        {
+          "id": "red-x11",
+          "prompt": "把落点条件写出来看看。",
+          "options": [
+            "直接展开定义",
+            "先换元再展开"
+          ],
+          "why": "展开定义就能看到条件本身。",
+          "tags": [
+            "fixture",
+            "unfold"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": [
+        "red-x11:X11:prompt"
+      ]
+    },
+    {
+      "name": "红：选项点名的引理没出现在推送卡里",
+      "questions": [
+        {
+          "id": "red-card",
+          "prompt": "用哪条引理证明自反？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反说的是自己和自己可比。",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "通用卡：没有点名引理",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem other_lemma (α : Type) : α = α"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": [
+        "red-card:card:foo_lemma"
+      ]
+    },
+    {
+      "name": "红：无卡兜底缺题目 why",
+      "questions": [
+        {
+          "id": "red-fallback-why",
+          "prompt": "下面哪条是自反性？",
+          "options": [
+            "自己和自己可比",
+            "自己和别人可比"
+          ],
+          "why": "",
+          "tags": [
+            "fixture",
+            "reflexive"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": [
+        "red-fallback-why:fallback:why"
+      ]
+    },
+    {
+      "name": "红：无卡兜底缺选项点名的引理名",
+      "questions": [
+        {
+          "id": "red-fallback-name",
+          "prompt": "用哪条引理证明自反？",
+          "options": [
+            "`bar_pred`：谓词",
+            "`foo_lemma`：自反"
+          ],
+          "why": "选最直接的那条引理。",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": [
+        "red-fallback-name:card:bar_pred",
+        "red-fallback-name:card:foo_lemma",
+        "red-fallback-name:fallback:foo_lemma"
+      ]
+    },
+    {
+      "name": "警告：X6 段首代词 / X7 空洞评价 / X12 隐喻 / X13 选项过长（只 warn 不红）",
+      "questions": [
+        {
+          "id": "warn-four",
+          "prompt": "它属于哪个单元？",
+          "options": [
+            "把定义搬运到下一行再比较",
+            "把两个集合的成员逐个比较再据此判断它们是不是同一个集合的所有元素组成"
+          ],
+          "why": "这条性质很重要。",
+          "tags": [
+            "fixture",
+            "warning"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": [
+        "warn-four:X6:prompt",
+        "warn-four:X7:why",
+        "warn-four:X12:options[0]",
+        "warn-four:X13:options[1]"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "soko.lesson-preflight-baseline/1",
+  "note": "会话预检 content 模式的存量 blocker 基线（键 = qid:code:定位）。只许减不许增：基线外新增判红，已修条目没同步收紧也判红。收紧用 `python3 scripts/lesson-preflight.py --all --update-baseline`。",
+  "updated": "2026-11-29",
+  "blockers": 0,
+  "entries": []
+}

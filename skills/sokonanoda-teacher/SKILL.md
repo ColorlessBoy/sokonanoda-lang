@@ -320,6 +320,16 @@ question 卡渲染，判卷反馈与下一题也以卡片/文本返回。
 - 快路径的做题记录在 `~/.dsh/state/sokonanoda-dsh/`（不在仓库）。
 - 引擎判定仍是唯一裁判，卡片只是渲染。卡片内容有疑问时以 `scripts/soko grade`
   的事件为准，不要靠文本猜测。
+- **出题预检是硬步骤（issue #151，2026-11-29）**：`开始做题 / 下一题` 之前，快路径
+  会自动对即将发出的题跑 `scripts/lesson-preflight.py`（文本规则 + 卡片覆盖 + 无卡兜底）。
+  **blocker 的题不发**：插件跳过它（记 `skipped`）并写内部日志
+  `preflight-blocked <qid>: <原因>`；连续 5 道都不过 ⇒ 暂停出题并给学习者一行可读提示。
+  预检不可用（脚本缺失 / exit 3 / 超时）时快路径**照常出题**、只在回复里留一行
+  「内容预检暂不可用」——**不要把它当成预检通过**。看到 blocker / 暂停提示 ⇒ 内容有错，
+  转 `sokonanoda-prep` 修（判据、state 路径、基线收紧见
+  `skills/sokonanoda-prep/references/lesson-preflight.md`）；**不许**绕过预检或改判据。
+  非快路径手工出题（调试 / 画布）前先跑
+  `python3 scripts/lesson-preflight.py --limit 3 --json`，0 blocker 再发。
 - **多页讲解图**：要连讲几张图时，不要连发多张 `dsh-image`；把图放
   `dsh/plugins/dsh-inline-image/public/`，用 `dsh-images` 画册围栏发出来
   （JSON 形如 `{"title":…,"pages":[{"path":"ch-01.png","caption":…}]}`），
