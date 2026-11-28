@@ -1,8 +1,8 @@
 {
   "schema": "soko.knowledge-cards/1",
   "title": "卷 I–III 知识卡片库（集合论 / 分析）",
-  "version": 12,
-  "updated": "2026-11-27",
+  "version": 13,
+  "updated": "2026-11-28",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
     {
@@ -90,6 +90,9 @@
         "order",
         "strict-order"
       ],
+      "kps": [
+        "kp.i2.order.strict"
+      ],
       "prereq": [
         "partial-order"
       ]
@@ -155,6 +158,9 @@
       "tags": [
         "rel"
       ],
+      "kps": [
+        "kp.i2.rel"
+      ],
       "prereq": []
     },
     {
@@ -210,6 +216,9 @@
         "function",
         "injective"
       ],
+      "kps": [
+        "kp.i2.fun.inj"
+      ],
       "prereq": []
     },
     {
@@ -241,6 +250,10 @@
       "source": "lib/Set.sokonanoda:108 / :159",
       "tags": [
         "extensionality"
+      ],
+      "kps": [
+        "kp.i1.ext",
+        "kp.i1.ext.use"
       ],
       "prereq": []
     },
@@ -290,6 +303,9 @@
         "antisymmetric",
         "order",
         "rel"
+      ],
+      "kps": [
+        "kp.i2.rel.antisymm"
       ],
       "prereq": [
         "rel"
@@ -366,6 +382,9 @@
         "partial-order",
         "order",
         "rel"
+      ],
+      "kps": [
+        "kp.i2.order.partial"
       ],
       "prereq": [
         "antisymmetric"
@@ -516,6 +535,9 @@
         "inverse",
         "right-inverse"
       ],
+      "kps": [
+        "kp.i2.fun.inverse"
+      ],
       "prereq": [
         "injective"
       ],
@@ -621,6 +643,10 @@
         "equipotent",
         "cardinal",
         "types"
+      ],
+      "kps": [
+        "kp.i3.equiv",
+        "kp.i3.equiv.algebra"
       ],
       "prereq": [
         "inverse"
@@ -732,6 +758,12 @@
         "order",
         "fun"
       ],
+      "kps": [
+        "kp.prep.choice",
+        "kp.i6.choice",
+        "kp.i7.ac.split",
+        "kp.i7.ac.boundary"
+      ],
       "prereq": []
     },
     {
@@ -778,6 +810,9 @@
         "quantifier",
         "exists",
         "forall"
+      ],
+      "kps": [
+        "kp.i2.logic"
       ],
       "prereq": []
     },
@@ -841,7 +876,69 @@
         "le-empty",
         "cardinal-arithmetic"
       ],
+      "kps": [
+        "kp.i3.le"
+      ],
       "prereq": []
+    },
+    {
+      "id": "cardinal-le-mono",
+      "kicker": "卷 I · I.8 基数",
+      "title": "≼ 的搬运：mono / mono_right / trans / of_subset",
+      "oneLiner": "左边换子集用 `mono`，右边换超集用 `mono_right`，接一段用 `trans`；`⊆` 直接变 `≼` 用 `of_subset`。",
+      "definition": {
+        "lang": "lean",
+        "code": "Set.Le.mono       : (A' ⊆ A) → (A ≼ B) → (A' ≼ B)\nSet.Le.mono_right : (A ≼ B) → (B ⊆ B') → (A ≼ B')\nSet.Le.trans      : (A ≼ B) → (B ≼ C) → (A ≼ C)\nSet.Le.of_subset  : (A ⊆ B) → (A ≼ B)"
+      },
+      "sections": [
+        {
+          "heading": "四条各管什么",
+          "kind": "list",
+          "items": [
+            "`Set.Le.mono`：左边换成更小的子集（`A' ⊆ A` 且 `A ≼ B` ⇒ `A' ≼ B`）；`Set.Le.mono_right`：右边换成更大的超集（`A ≼ B` 且 `B ⊆ B'` ⇒ `A ≼ B'`）。",
+            "`Set.Le.trans`：`A ≼ B` 与 `B ≼ C` 接成 `A ≼ C`；`Set.Le.of_subset`：`A ⊆ B` 直接给 `A ≼ B`。"
+          ]
+        },
+        {
+          "heading": "参数顺序",
+          "kind": "list",
+          "items": [
+            "`Set.Le.mono α β A A' B hAA h`：先写大集合 `A`，再写小集合 `A'`。",
+            "`Set.Le.mono_right α β A B B' h hBB`：先写小集合 `B`，再写大集合 `B'`。",
+            "`Set.Le.trans α β γ A B C h1 h2`：三个类型、三个集合，按顺序写全。"
+          ]
+        },
+        {
+          "heading": "这道题怎么选",
+          "kind": "list",
+          "items": [
+            "已知 `hAA : A' ⊆ A` 与 `h : A ≼ B`，要证 `A' ≼ B` ⇒ `Set.Le.mono α β A A' B hAA h`。",
+            "若把 `⊆` 写在右边（`B ⊆ B'`），才用 `mono_right`；方向反了就对不上。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "`mono` 与 `mono_right` 用反：先看子集关系在哪一侧。",
+            "`trans` 少给一个中间集合：它要 `A ≼ B` 与 `B ≼ C` 两段。",
+            "把 `of_subset` 当传递用：它只做 `⊆ ⇒ ≼`，不接两段比较。"
+          ]
+        }
+      ],
+      "source": "lib/Equiv.sokonanoda:287 / :304 / :314 / :319",
+      "tags": [
+        "cardinal-le",
+        "mono",
+        "trans",
+        "monotone"
+      ],
+      "kps": [
+        "kp.i3.le.mono"
+      ],
+      "prereq": [
+        "cardinal-le"
+      ]
     },
     {
       "id": "continuum-hypothesis",
@@ -884,6 +981,9 @@
         "continuum-hypothesis",
         "diagonal",
         "cardinal-le"
+      ],
+      "kps": [
+        "kp.i8.ch"
       ],
       "prereq": [
         "cardinal-le"
@@ -943,6 +1043,10 @@
         "sUnion",
         "sInter"
       ],
+      "kps": [
+        "kp.i3.family",
+        "kp.i9.family"
+      ],
       "prereq": []
     },
     {
@@ -987,6 +1091,65 @@
         "pi",
         "product",
         "choice"
+      ],
+      "kps": [
+        "kp.i9.product.ac"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "set-pi-lemmas",
+      "kicker": "卷 I · I.9 集族",
+      "title": "Set.pi 的四个引理：intro / elim / mono / iff",
+      "oneLiner": "造用 `mem_pi_intro`，拆用 `mem_pi_elim`，包含用 `pi_mono`，双向展开用 `mem_pi_iff`；方向别弄反。",
+      "definition": {
+        "lang": "lean",
+        "code": "Set.mem_pi_intro : (∀ i, f i ∈ A i) → f ∈ Set.pi ι α A\nSet.mem_pi_elim  : f ∈ Set.pi ι α A → f i ∈ A i\nSet.pi_mono      : (∀ i, A i ⊆ B i) → Set.pi ι α A ⊆ Set.pi ι α B\nSet.mem_pi_iff   : f ∈ Set.pi ι α A ↔ ∀ i, f i ∈ A i"
+      },
+      "sections": [
+        {
+          "heading": "四个引理怎么分",
+          "kind": "list",
+          "items": [
+            "造：`Set.mem_pi_intro`（逐坐标成员 → 积成员）；拆：`Set.mem_pi_elim`（积成员 + 一个坐标 → 该坐标成员）。",
+            "包含：`Set.pi_mono`（逐坐标 `⊆` → 积 `⊆`）；双向：`Set.mem_pi_iff`（`Iff.mp` 同拆、`Iff.mpr` 同造）。"
+          ]
+        },
+        {
+          "heading": "这道题怎么选",
+          "kind": "list",
+          "items": [
+            "已知 `hf : f ∈ Set.pi ι α A`，要取 `f i ∈ A i` ⇒ `Set.mem_pi_elim ι α A f i hf`。",
+            "参数顺序是「族、函数、坐标、成员证据」；`mem_pi_intro` 的参数是「族、函数、逐坐标证据」，没有坐标。"
+          ]
+        },
+        {
+          "heading": "签名（可直接对照）",
+          "kind": "list",
+          "items": [
+            "`Set.mem_pi_intro (ι α) (A) (f) (h : ∀ i, f i ∈ A i) : f ∈ Set.pi ι α A`",
+            "`Set.mem_pi_elim (ι α) (A) (f) (i) (h : f ∈ Set.pi ι α A) : f i ∈ A i`",
+            "`Set.pi_mono (ι α) (A B) (h : ∀ i, A i ⊆ B i) : Set.pi ι α A ⊆ Set.pi ι α B`",
+            "`Set.mem_pi_iff (ι α) (A) (f) : f ∈ Set.pi ι α A ↔ ∀ i, f i ∈ A i`"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "拿 `mem_pi_intro` 去拆：它是造成员，输入是逐坐标证据，不是积成员。",
+            "拿 `pi_mono` 去取坐标：它证的是包含关系，结果类型是 `⊆`。",
+            "`Iff.mpr` 方向反了：从「逐坐标」到「积成员」用 `mpr`，反方向才是 `mp`。"
+          ]
+        }
+      ],
+      "source": "lib/SUnion.sokonanoda:118 / :123 / :127 / :132",
+      "tags": [
+        "pi",
+        "product"
+      ],
+      "kps": [
+        "kp.i9.product"
       ],
       "prereq": []
     },
@@ -1039,6 +1202,11 @@
         "int-quotient",
         "intRel",
         "intOfNat"
+      ],
+      "kps": [
+        "kp.ii1.int.quot",
+        "kp.ii1.intrel",
+        "kp.ii1.intofnat"
       ],
       "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:10",
       "prereq": []
@@ -1094,6 +1262,13 @@
         "quot-lift",
         "well-defined",
         "quot-iota"
+      ],
+      "kps": [
+        "kp.ii1.quot.lift",
+        "kp.ii1.quot.iota",
+        "kp.ii1.quot.sound",
+        "kp.ii1.quot.ind",
+        "kp.ii1.quot.exact"
       ],
       "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
       "prereq": [
@@ -1152,6 +1327,12 @@
         "subRep",
         "rfl"
       ],
+      "kps": [
+        "kp.ii1.int.addrep",
+        "kp.ii1.int.negrep",
+        "kp.ii1.int.subrep",
+        "kp.ii1.int.rep.rfl"
+      ],
       "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:22",
       "prereq": [
         "int-as-quotient"
@@ -1170,6 +1351,9 @@
         "order",
         "linear-order",
         "total"
+      ],
+      "kps": [
+        "kp.i2.order.linear"
       ],
       "prereq": [
         "partial-order"
@@ -1242,6 +1426,9 @@
         "apply",
         "composition"
       ],
+      "kps": [
+        "kp.i2.rel.comp"
+      ],
       "prereq": [],
       "sections": [
         {
@@ -1287,6 +1474,9 @@
         "rel",
         "inverse",
         "apply"
+      ],
+      "kps": [
+        "kp.i2.rel.inv"
       ],
       "prereq": [
         "rel"
@@ -1339,6 +1529,9 @@
         "type",
         "quotient",
         "mk"
+      ],
+      "kps": [
+        "kp.i3.cardinal"
       ],
       "prereq": [
         "equiv"
