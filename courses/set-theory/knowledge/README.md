@@ -16,9 +16,9 @@
 | `SCHEMA.md` | **题库/知识点 schema 的可执行规格与 checklist**（字段、约束、source 规则、批次流程） |
 | `data/knowledge-points.json` | **知识点注册表**（`soko.knowledge-points/1`；kind/chapter/prereq/`saturation.min,target`/keyPoint） |
 | `data/questions.json` | 题库（`soko.choice-bank/1`；卷 I + 卷 II/III；choice/short/explain/proof；含 difficulty/variants/prereq/**kps**） |
-| `data/cards.json` | 知识卡（`soko.knowledge-cards/1`；含 tags/prereq） |
+| `data/cards.json` | 知识卡（`soko.knowledge-cards/1`；含 tags/prereq/**kps**（可选：命中题目 kps 时优先匹配）） |
 | `data/params.json` | L2 调度参数（`soko.learn-params/1`：eta/权重/阈值；`unit_probe_target`/`probe_min_questions` 是调度 v2 的单元连续与三题探针门槛；`map.solved_accuracy_above`+`map.min_probes` 是学习地图的已解/探针中/薄弱分界） |
-| `engine.py` | **L2 引擎**：掌握度（Elo）+ 推荐式召回 + 去重/变式/复习/知识卡触发 + **学习地图/指标**（`map`/`state`）；校准阶梯与钻取过滤都由题库数据推导；含 `selftest`/`simulate` |
+| `engine.py` | **L2 引擎**：掌握度（Elo）+ 推荐式召回 + 去重/变式/复习/知识卡触发（`explain_for` 按 **kp 优先 + IDF 稀有标签加权** 选卡）+ **学习地图/指标**（`map`/`state`）；校准阶梯与钻取过滤都由题库数据推导；含 `selftest`/`simulate` |
 | `validate.py` | 三份数据的结构自检（含交叉引用、权重和、参数范围、**每题 kps 引用/章节归属**、**KP keyPoint/prereq 无环**、**lessons 同步**、**全库 source 的文件:行号**），退出码 1 = 不合格；CI 的 `gates-course` 在重活前跑它 |
 | `coverage.py` | **知识点 × 题目覆盖门禁**（**按可服务题**：遵守 `params.selection.exclude`，与 `engine.py` 同口径；`--include-excluded` 切全库诊断）：按 `saturation` 逐 KP 算红/黄/绿 + 章节汇总 + `reports/coverage-<时间>.json`；有红 exit 1 |
 | `CONTENT-PLAN.md` | 覆盖计划：实测缺口、题量估算、分阶段批次与第一批题目清单 |

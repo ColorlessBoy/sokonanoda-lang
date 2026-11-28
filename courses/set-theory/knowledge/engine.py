@@ -1585,32 +1585,75 @@ def position_of(data: dict, question: dict) -> dict:
 # Tags too generic to identify a knowledge card: a question tagged only
 # `logic` must not inherit the Or.elim card, and a question tagged only
 # `function` must not inherit the injective card (2026-11-24).
-GENERIC_CARD_TAGS = {"function", "logic", "types", "glossary", "order"}
+# 2026-11-28（#142）：通用标签不能单独决定「这张卡就是这题」—— 题库标签频率高的
+# `family`(29) / `quotient`(33) / `apply`(15，策略动词) / `monotone`(11) / `type`(6，
+# 元层级) 只带一个时不接受（IDF 也给它们低权重）；否则 `unfold` 这类跨主题的词会让
+# 一张卡「抢」到几十道不相干的题。
+GENERIC_CARD_TAGS = {"function", "logic", "types", "glossary", "order",
+                     "family", "monotone", "quotient", "apply", "type"}
+
+
+def tag_idf(data: dict) -> dict:
+    """标签的 IDF 权重（#142）：全库（题库 + 卡片库）里越常见的标签权重越低。
+
+    df(tag) = 带该标签的题目数 + 卡片数，N = 题目数 + 卡片数；
+    idf = ln((N + 1) / (df + 1)) + 1（恒为正，且只依赖标签集合）。
+    `family` / `monotone` 这类通用标签 df 高 ⇒ 权重低；`projection` 这类具体标签
+    df 低 ⇒ 权重高。与 `cards.json` 的书写顺序无关。
+    """
+    df = {}
+    for doc in list(data.get("questions") or []) + list(data.get("cards") or []):
+        for tag in set(doc.get("tags") or []):
+            df[tag] = df.get(tag, 0) + 1
+    total = len(data.get("questions") or []) + len(data.get("cards") or [])
+    return {tag: math.log((total + 1.0) / (count + 1.0)) + 1.0 for tag, count in df.items()}
 
 
 def explain_for(state: dict, data: dict, qid: str) -> dict:
-    """给定题目，返回最匹配的知识卡；没有匹配卡时退化为该题的知识摘要。"""
+    """给定题目，返回最匹配的知识卡；没有匹配卡时退化为该题的知识摘要。
+
+    评分（2026-11-28，#142）：
+    1. **kp 优先**：题目的 `kps` 命中卡片上的 `kps`（可选字段）⇒ 该卡排在最前；
+    2. **稀有标签加权**：命中标签按全库 IDF 求和，通用标签权重低；
+    3. **稳定破平**：`(有无 kp 命中, IDF 分, kp 命中数, 标签命中数)` 相同时按卡片
+       id 升序，不再依赖 `cards.json` 的文件顺序 —— 同一输入两次结果一致。
+    """
     question = data["by_id"].get(qid)
     if not question:
         return {"ok": False, "error": "unknown question: " + qid}
-    tags = tags_of(question)
+    tags = set(tags_of(question))
+    kps = set(question.get("kps") or [])
+    idf = tag_idf(data)
     best_card = None
-    best_score = -1
+    best_key = None
     best_matched = set()
+    best_kps = set()
     for card in data["cards"]:
-        matched = set(card.get("tags") or []) & set(tags)
-        score = len(matched)
-        if score > best_score:
-            best_score = score
+        matched = tags & set(card.get("tags") or [])
+        card_kps = kps & set(card.get("kps") or [])
+        if not matched and not card_kps:
+            continue
+        score = round(sum(idf.get(tag, 1.0) for tag in matched), 6)
+        key = (1 if card_kps else 0, score, len(card_kps), len(matched))
+        # 同分按卡片 id 升序打破平局（只剩最后一档才看 id；不依赖文件顺序）。
+        if (best_key is None or key > best_key
+                or (key == best_key and card["id"] < best_card["id"])):
             best_card = card
+            best_key = key
             best_matched = matched
-    # 一个通用标签命中（如 logic / function）不足以说明这张卡讲的就是这道题：
-    # I.2.logic-3（swap_exists_forall）曾因此被匹配到 or-elim。要求至少两个标签，
-    # 或至少一个非通用标签；否则退化为这道题自己的 why/正确选项。
-    specific = any(tag not in GENERIC_CARD_TAGS for tag in best_matched)
-    if best_card is not None and (best_score >= 2 or specific):
+            best_kps = card_kps
+    # 一个通用标签命中（如 logic / function / family）不足以说明这张卡讲的就是
+    # 这道题：I.2.logic-3（swap_exists_forall）曾因此被匹配到 or-elim。要求至少两个
+    # 标签、至少一个非通用标签，或一条 kp 命中；否则退化为这道题自己的 why/正确选项。
+    accepted = best_card is not None and (
+        bool(best_kps) or len(best_matched) >= 2
+        or any(tag not in GENERIC_CARD_TAGS for tag in best_matched))
+    if accepted:
         return {"ok": True, "kind": "knowledge-card", "card": best_card,
-                "reason": "matched-tags", "matched": sorted(best_matched)}
+                "reason": "matched-kps" if best_kps else "matched-tags",
+                "matched": sorted(best_matched),
+                "matchedKps": sorted(best_kps),
+                "score": best_key[1]}
     texts = " ".join([question.get("prompt", ""), " ".join(question.get("options") or []), question.get("why", "")])
     terms = []
     for entry in data.get("glossary", []):
@@ -2264,6 +2307,55 @@ def cmd_selftest(data: dict) -> int:
               linear_total.get("kind") == "knowledge-card"
               and (linear_total.get("card") or {}).get("id") == "linear-order",
               str((linear_total.get("kind"), (linear_total.get("card") or {}).get("id"))))
+
+        # 15g2) #142：explain_for 按 kp / IDF 评分 —— 三条定向用例 + kp 压过标签 +
+        # 通用标签反例 + 破平不依赖 cards.json 顺序。
+        kp_cases = [
+            ("I.9.product-2", "set-pi-lemmas"),     # `pi` 的成员引理
+            ("I.3.le-mono-1", "cardinal-le-mono"),  # `≼` 的单调
+            ("I.9.product-ac-1", "set-pi"),         # choice 造积的成员
+        ]
+
+        def explain_card_id(result):
+            return (result.get("card") or {}).get("id")
+
+        kp_bad = []
+        for case_qid, want_card in kp_cases:
+            result = explain_for(new_state(), data, case_qid)
+            if result.get("kind") != "knowledge-card" or explain_card_id(result) != want_card:
+                kp_bad.append((case_qid, result.get("kind"), explain_card_id(result)))
+        check("explain-kp-priority", not kp_bad, str(kp_bad))
+
+        # kp 命中必须压过「标签命中更多但没有 kp」的卡：family/monotone 两条都是
+        # 通用标签，但题目 kps 指到 cardinal-le-mono。
+        kp_probe = {"id": "selftest.kp-over-tags", "tags": ["family", "monotone"],
+                    "kps": ["kp.i3.le.mono"], "prompt": "", "options": [], "why": ""}
+        probe_data = dict(data)
+        probe_data["by_id"] = dict(data["by_id"], **{kp_probe["id"]: kp_probe})
+        kp_over = explain_for(new_state(), probe_data, kp_probe["id"])
+        check("explain-kp-over-tags", explain_card_id(kp_over) == "cardinal-le-mono",
+              str((explain_card_id(kp_over), kp_over.get("matched"))))
+
+        # 反例：只有通用标签 `family` 的题目不得命中 set-pi / set-pi-lemmas。
+        generic_probe = {"id": "selftest.family-only", "tags": ["family"], "kps": [],
+                         "prompt": "", "options": [], "why": ""}
+        generic_data = dict(data)
+        generic_data["by_id"] = dict(data["by_id"], **{generic_probe["id"]: generic_probe})
+        generic = explain_for(new_state(), generic_data, generic_probe["id"])
+        generic_id = explain_card_id(generic)
+        check("explain-generic-tag-fallback",
+              generic.get("kind") != "knowledge-card" or generic_id not in ("set-pi", "set-pi-lemmas"),
+              str((generic.get("kind"), generic_id)))
+
+        # 稳定破平：cards.json 顺序反转后同一题的卡不变（同输入两次结果一致）。
+        reversed_data = dict(data)
+        reversed_data["cards"] = list(reversed(data["cards"]))
+        unstable = []
+        for case_qid, want_card in kp_cases:
+            got_id = explain_card_id(explain_for(new_state(), reversed_data, case_qid))
+            if got_id != want_card:
+                unstable.append((case_qid, got_id))
+        check("explain-order-independent", not unstable, str(unstable))
 
         # 15f) 离线评测必须容忍开放题（short/explain 没有 answer 字段）
         open_only = dict(data)
