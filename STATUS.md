@@ -1,3 +1,11 @@
+## 当前快照（2026-11-28 · 知识卡匹配改 kp/IDF 评分 · #142）
+
+#142：`explain_for` 改 **kp 优先 → IDF 稀有标签加权 → 稳定破平**（kps 命中数 →
+标签数 → 卡片 id，不依赖 `cards.json` 顺序）；`cards.json` 补 `set-pi-lemmas` /
+`cardinal-le-mono` 两张真卡（正文取 live 草稿、标签只留描述性的）并为 21 张既有卡补 `kps`；`validate.py` 判卡片
+`kps` 引用、`engine.py selftest` 新增 4 条 explain-* 判据并接进 CI `gates-course`。
+Before/After 见 `reports/2026-11-28-card-scoring/`。
+
 ## 当前快照（2026-11-28 · 知识卡 sections 完整渲染 · #139）
 
 #139：`sokonanoda-dsh` 知识卡按 engine `sections` 顺序渲染**全部**段——`list` 全部
@@ -15,11 +23,3 @@ sections/items 截断。判据：插件 host 41 / client 47，真 DSH Web Before
 aria-live 页码、深色 token、`prefers-reduced-motion`；Host health 报 `clientAgeMs`
 供 HMR 未生效时提示刷新；图片/health 路由改为 `auth: required`。7 页样例进
 host 9 / client 16 回归并加 CI job。Before/After 见 `reports/2026-11-28-dsh-images/`。
-
-## 当前快照（2026-11-27 · C9.7 侧栏做题面板）
-C9.7（#105）：代码练习卡「在侧栏面板中打开」→ 右栏 `sokonanoda-exercise`。
-Host 两条 loopback 路由（题目元数据 / 判卷）只从仓库题目集解析（白名单，不含
-solution），判卷复用 C9.4 `compose.py` + `scripts/soko grade --json`；仅
-`passed:true` 通过，诊断/sorry 失败，服务异常显示不可用；无右栏服务时按钮不渲染；
-面板不写 `mark-code`。判据：host 33 / client 45，Before/After 见
-`reports/2026-11-27-c97-exercise-panel/`。
