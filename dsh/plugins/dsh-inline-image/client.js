@@ -9,15 +9,17 @@
  *
  *   ```dsh-images
  *   {"title":"连续统假设","pages":[
- *     {"path":"ch-01.png","caption":"封面"},
- *     {"path":"ch-02.png","caption":"一样多 = 能配对"}]}
+ *     {"path":"ch-01.png","darkPath":"ch-01-dark.png","caption":"封面"},
+ *     {"path":"ch-02.png","darkPath":"ch-02-dark.png","caption":"一样多 = 能配对"}]}
  *   ```
  *
  * Both fetch images from the Host's `/dsh-inline-image/public` route, so they
  * work through a remote link too. `dsh-images` is a swipeable deck: one page per
  * slide, scroll-snap + dots + keyboard, a full-screen zoomable lightbox, and the
- * caption of the page in view. The plugin stays generic: it knows nothing about
- * sokonanoda or any course.
+ * caption of the page in view. Both fences accept an optional page-level
+ * `darkPath` used only while the DSH dark theme (or the OS dark preference) is
+ * active; without one, or once it fails, the light `path` is used unchanged.
+ * The plugin stays generic: it knows nothing about sokonanoda or any course.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-inline-image',
@@ -61,6 +63,110 @@ window.__ModuleLoader__.load({
       return typeof attempt === 'number' && attempt > 0 ? base + '&retry=' + String(attempt) : base
     }
 
+    /* ------------------------------------------------------------------ theme */
+
+    /** DSH puts this attribute on `<body>` while the dark theme is active. */
+    const DARK_THEME_ATTR = 'data-ds-dark-theme'
+    const DARK_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+
+    /** True when the DSH theme attribute on `<body>` says dark. */
+    function bodyWantsDark() {
+      const body = typeof document !== 'undefined' ? document.body : null
+      if (body === null || body === undefined) return false
+      try {
+        if (typeof body.hasAttribute === 'function') return body.hasAttribute(DARK_THEME_ATTR) === true
+        const attributes = body.attributes
+        if (attributes !== null && attributes !== undefined && typeof attributes.getNamedItem === 'function') {
+          return attributes.getNamedItem(DARK_THEME_ATTR) !== null
+        }
+        return body[DARK_THEME_ATTR] !== undefined
+      } catch {
+        return false
+      }
+    }
+
+    /** OS-level dark preference; a browser without `matchMedia` reads as light. */
+    function mediaWantsDark() {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+      try {
+        return window.matchMedia(DARK_MEDIA_QUERY).matches === true
+      } catch {
+        return false
+      }
+    }
+
+    /** Dark is active when the DSH body attribute or the media query says so. */
+    function isDarkTheme() {
+      return bodyWantsDark() || mediaWantsDark()
+    }
+
+    /**
+     * The path to show for one page: `darkPath` only while dark, and only when it
+     * is a usable string; otherwise (and once a broken `darkPath` fell back) the
+     * light `path`. Light theme always uses `path`.
+     */
+    function pagePath(page, dark, fallback) {
+      if (page === null || page === undefined) return ''
+      const light = typeof page.path === 'string' ? page.path : ''
+      if (dark !== true) return light
+      if (typeof page.darkPath !== 'string' || page.darkPath === '') return light
+      if (fallback !== null && fallback !== undefined && fallback[light] !== undefined) return light
+      return page.darkPath
+    }
+
+    /** The letterbox behind a dark plate; light plates keep their white. */
+    function darkPlate() {
+      return 'var(--dsw-alias-bg-base, #141414)'
+    }
+
+    /**
+     * The dark state, kept live: the DSH body attribute is watched with a
+     * MutationObserver and the OS preference with the media query listener, so a
+     * runtime theme switch re-renders the deck instead of only reading once.
+     */    function useDarkTheme() {
+      const [dark, setDark] = React.useState(isDarkTheme)
+      React.useEffect(() => {
+        let disposed = false
+        const sync = () => {
+          if (disposed === true) return
+          const next = isDarkTheme()
+          setDark((previous) => (previous === next ? previous : next))
+        }
+        sync()
+        let media = null
+        if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+          try {
+            media = window.matchMedia(DARK_MEDIA_QUERY)
+          } catch {
+            media = null
+          }
+        }
+        if (media !== null && media !== undefined) {
+          if (typeof media.addEventListener === 'function') media.addEventListener('change', sync)
+          else if (typeof media.addListener === 'function') media.addListener(sync)
+        }
+        let observer = null
+        const body = typeof document !== 'undefined' ? document.body : null
+        if (body !== null && body !== undefined && typeof window !== 'undefined' && typeof window.MutationObserver === 'function') {
+          try {
+            observer = new window.MutationObserver(sync)
+            observer.observe(body, { attributes: true, attributeFilter: [DARK_THEME_ATTR] })
+          } catch {
+            observer = null
+          }
+        }
+        return () => {
+          disposed = true
+          if (observer !== null && typeof observer.disconnect === 'function') observer.disconnect()
+          if (media !== null && media !== undefined) {
+            if (typeof media.removeEventListener === 'function') media.removeEventListener('change', sync)
+            else if (typeof media.removeListener === 'function') media.removeListener(sync)
+          }
+        }
+      }, [])
+      return dark
+    }
+
     function parseSpec(code) {
       if (typeof code !== 'string' || code.trim() === '') return null
       try {
@@ -69,6 +175,7 @@ window.__ModuleLoader__.load({
         if (typeof value.path !== 'string' || value.path.trim() === '') return null
         return {
           path: value.path.trim(),
+          darkPath: typeof value.darkPath === 'string' && value.darkPath.trim() !== '' ? value.darkPath.trim() : '',
           alt: typeof value.alt === 'string' ? value.alt : '',
           caption: typeof value.caption === 'string' ? value.caption : '',
           width: typeof value.width === 'number' || typeof value.width === 'string' ? value.width : '',
@@ -90,6 +197,7 @@ window.__ModuleLoader__.load({
           if (typeof page.path !== 'string' || page.path.trim() === '') continue
           pages.push({
             path: page.path.trim(),
+            darkPath: typeof page.darkPath === 'string' && page.darkPath.trim() !== '' ? page.darkPath.trim() : '',
             alt: typeof page.alt === 'string' ? page.alt : '',
             caption: typeof page.caption === 'string' ? page.caption : '',
           })
@@ -236,15 +344,18 @@ window.__ModuleLoader__.load({
     /** One inline image, or a readable fallback instead of a crashed fence. */
     function ImageFence(props) {
       const streaming = props !== null && typeof props === 'object' && props.streaming === true
+      const dark = useDarkTheme()
       const [failed, setFailed] = React.useState(false)
       const [attempt, setAttempt] = React.useState(0)
+      const [darkFallback, setDarkFallback] = React.useState({})
       const children = props !== null && typeof props === 'object' ? props.children : undefined
       if (streaming) return children === undefined ? null : children
       const spec = parseSpec(props !== null && typeof props === 'object' ? props.code : '')
       if (spec === null) {
         return h('div', { className: 'dii-error' }, 'dsh-image：需要一个 JSON，例如 {"path":"image.png","alt":"说明"}')
       }
-      const src = imageSrc(spec.path, attempt)
+      const path = pagePath(spec, dark, darkFallback)
+      const src = imageSrc(path, attempt)
       const figureStyle = {
         display: 'flex',
         flexDirection: 'column',
@@ -259,7 +370,7 @@ window.__ModuleLoader__.load({
         height: 'auto',
         borderRadius: '12px',
         border: '1px solid var(--dsw-alias-border-l3, rgba(127,127,127,.28))',
-        background: '#fff',
+        background: path === spec.path ? '#fff' : darkPlate(),
       }
       if (failed) {
         return h('div', { className: 'dii-error', role: 'alert', style: { color: 'var(--dsw-alias-label-secondary,#4b5563)', fontSize: '13px', lineHeight: 1.6, textAlign: 'center' } },
@@ -269,7 +380,7 @@ window.__ModuleLoader__.load({
           h('button', {
             type: 'button',
             style: { marginTop: '6px', padding: '5px 16px', border: '1px solid var(--dsw-alias-border-l3, rgba(127,127,127,.28))', borderRadius: '9px', background: 'transparent', color: 'var(--dsw-alias-label-primary,#1b1b1b)', font: 'inherit', fontSize: '13px', cursor: 'pointer' },
-            onClick: () => { setFailed(false); setAttempt((value) => value + 1) },
+            onClick: () => { setFailed(false); setDarkFallback({}); setAttempt((value) => value + 1) },
           }, '重试'))
       }
       return h('figure', { className: 'dii-figure', style: figureStyle },
@@ -280,7 +391,10 @@ window.__ModuleLoader__.load({
           loading: 'lazy',
           decoding: 'async',
           style: Object.assign({}, imageStyle, spec.width === '' ? {} : { width: spec.width }),
-          onError: () => setFailed(true),
+          onError: () => {
+            if (pagePath(spec, dark, darkFallback) !== spec.path) setDarkFallback({ [spec.path]: true })
+            else setFailed(true)
+          },
         }),
         spec.caption !== ''
           ? h('figcaption', { className: 'dii-caption', style: { fontSize: '12.5px', color: 'var(--dsw-alias-label-secondary,#4b5563)', lineHeight: 1.5, textAlign: 'center' } }, spec.caption)
@@ -455,6 +569,9 @@ window.__ModuleLoader__.load({
       if (page === undefined) return null
       const attempt = props.attempts !== null && props.attempts !== undefined && typeof props.attempts[page.path] === 'number' ? props.attempts[page.path] : 0
       const failed = props.failed !== null && props.failed !== undefined && props.failed[page.path] !== undefined
+      const dark = props.dark === true
+      const darkFallback = props.darkFallback !== null && props.darkFallback !== undefined ? props.darkFallback : {}
+      const shownPath = pagePath(page, dark, darkFallback)
       const transformed = {
         transform: 'translate(' + String(pan.x) + 'px, ' + String(pan.y) + 'px) scale(' + String(zoom) + ')',
         transition: props.reducedMotion === true ? 'none' : 'transform .12s ease-out',
@@ -503,11 +620,15 @@ window.__ModuleLoader__.load({
         : h('img', {
           key: 'img',
           className: 'dii-lb-img',
-          src: imageSrc(page.path, attempt),
+          src: imageSrc(shownPath, attempt),
           alt,
           decoding: 'async',
           draggable: false,
-          style: transformed,
+          style: shownPath === page.path ? transformed : Object.assign({}, transformed, { background: darkPlate() }),
+          onError: () => {
+            if (pagePath(page, dark, darkFallback) !== page.path) props.onDarkFallback(page.path)
+            else props.onFail(page.path)
+          },
         })
       ),
       h('div', { key: 'controls', className: 'dii-lb-controls' },
@@ -540,9 +661,11 @@ window.__ModuleLoader__.load({
       const spec = parseDeck(props !== null && typeof props === 'object' ? props.code : '')
       const pages = spec === null ? [] : spec.pages
       const count = pages.length
+      const dark = useDarkTheme()
       const [index, setIndex] = React.useState(0)
       const [failed, setFailed] = React.useState({})
       const [attempts, setAttempts] = React.useState({})
+      const [darkFallback, setDarkFallback] = React.useState({})
       const [lightbox, setLightbox] = React.useState(false)
       const [stale, setStale] = React.useState(false)
       const trackRef = React.useRef(null)
@@ -608,7 +731,23 @@ window.__ModuleLoader__.load({
         setFailed((previous) => (previous[path] !== undefined ? previous : Object.assign({}, previous, { [path]: true })))
       }
 
+      const markDarkFallback = (path) => {
+        setDarkFallback((previous) => (previous[path] !== undefined ? previous : Object.assign({}, previous, { [path]: true })))
+      }
+
+      /** A broken dark plate falls back to the light one before it ever fails. */
+      const failPage = (page) => {
+        if (pagePath(page, dark, darkFallback) !== page.path) markDarkFallback(page.path)
+        else markFailed(page.path)
+      }
+
       const retryPage = (path) => {
+        setDarkFallback((previous) => {
+          if (previous[path] === undefined) return previous
+          const next = Object.assign({}, previous)
+          delete next[path]
+          return next
+        })
         setFailed((previous) => {
           if (previous[path] === undefined) return previous
           const next = Object.assign({}, previous)
@@ -624,18 +763,19 @@ window.__ModuleLoader__.load({
           const page = pages[target]
           if (page === undefined) continue
           if (failed[page.path] !== undefined) continue
-          if (preloaded.current[page.path] === true) continue
-          preloaded.current[page.path] = true
+          const src = imageSrc(pagePath(page, dark, darkFallback), attempts[page.path] || 0)
+          if (preloaded.current[src] === true) continue
+          preloaded.current[src] = true
           if (typeof window === 'undefined' || typeof window.Image !== 'function') continue
           try {
             const preload = new window.Image()
             preload.decoding = 'async'
-            preload.src = imageSrc(page.path, attempts[page.path] || 0)
+            preload.src = src
           } catch {
             /* prefetch is best effort */
           }
         }
-      }, [currentIndex, count, failed, attempts])
+      }, [currentIndex, count, failed, attempts, dark, darkFallback])
 
       React.useEffect(() => {
         let disposed = false
@@ -677,17 +817,18 @@ window.__ModuleLoader__.load({
         if (failed[page.path] !== undefined) {
           return h(FailureCard, { key: 'fail', className: 'dii-deck-fail', buttonClass: 'dii-deck-retry', path: page.path, onRetry: () => retryPage(page.path) })
         }
+        const shownPath = pagePath(page, dark, darkFallback)
         return h('img', {
           key: 'img',
           className: 'dii-deck-img',
-          src: imageSrc(page.path, attempts[page.path] || 0),
+          src: imageSrc(shownPath, attempts[page.path] || 0),
           alt: page.alt !== '' ? page.alt : (page.caption !== '' ? page.caption : '第 ' + String(pageIndex + 1) + ' 页'),
           loading: pageIndex === 0 ? 'eager' : 'lazy',
           decoding: 'async',
           draggable: false,
-          style: DECK_STYLE.img,
+          style: shownPath === page.path ? DECK_STYLE.img : Object.assign({}, DECK_STYLE.img, { background: darkPlate() }),
           onClick: () => openLightbox(pageIndex),
-          onError: () => markFailed(page.path),
+          onError: () => failPage(page),
         })
       }
 
@@ -793,10 +934,14 @@ window.__ModuleLoader__.load({
             count,
             index: currentIndex,
             title: spec.title,
+            dark,
+            darkFallback,
             failed,
             attempts,
             reducedMotion: reducedMotion(),
             onRetry: retryPage,
+            onDarkFallback: markDarkFallback,
+            onFail: markFailed,
             onClose: closeLightbox,
             onIndexChange: goTo,
           })
@@ -837,6 +982,10 @@ window.__ModuleLoader__.load({
         clampPan,
         pointerDistance,
         imageSrc,
+        isDarkTheme,
+        pagePath,
+        DARK_THEME_ATTR,
+        DARK_MEDIA_QUERY,
         LOADED_AT,
         NS,
       },

@@ -18,6 +18,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import zlib from 'node:zlib'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -62,12 +63,40 @@ const SAMPLE_SPEC = {
 }
 const SAMPLE_JSON = JSON.stringify(SAMPLE_SPEC)
 
+/* The darkPath fixtures: one shared 1147×588 canvas, a white light plate and a
+ * #141414 dark plate with the same text layout. */
+const DARK_SPEC = {
+  title: '深浅讲解图',
+  pages: [
+    { path: 's7-light.png', darkPath: 's7-dark.png', caption: '同画布 · 深浅两套' },
+    { path: 'ch-02.png', darkPath: 'ch-05.png', caption: '邻近页也带深色图' },
+    { path: 'ch-03.png', caption: '没有深色图的一页' },
+  ],
+}
+const DARK_JSON = JSON.stringify(DARK_SPEC)
+
 /** Read a PNG's IHDR so the regression pins the shared 1147×588 canvas. */
 function pngSize(file) {
   const bytes = fs.readFileSync(file)
   const signature = bytes.subarray(0, 8).toString('hex')
   expect(signature === '89504e470d0a1a0a', file + ' is not a PNG')
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) }
+}
+
+/** First pixel of a PNG (inside the first scanline, after its filter byte). */
+function pngFirstPixel(file) {
+  const bytes = fs.readFileSync(file)
+  const chunks = []
+  let offset = 8
+  while (offset < bytes.length) {
+    const length = bytes.readUInt32BE(offset)
+    const type = bytes.toString('ascii', offset + 4, offset + 8)
+    if (type === 'IDAT') chunks.push(bytes.subarray(offset + 8, offset + 8 + length))
+    if (type === 'IEND') break
+    offset += 12 + length
+  }
+  const raw = zlib.inflateSync(Buffer.concat(chunks))
+  return [raw[1], raw[2], raw[3]]
 }
 
 /* --------------------------------------------------------- browser harness */
@@ -90,9 +119,78 @@ let fetchResponse = null
 const fetchCalls = []
 let reloads = 0
 
+/* Theme fakes: the real Client reads the DSH body attribute plus the media
+ * query and must react to changes, so the harness models both signals. */
+const THEME_ATTR = 'data-ds-dark-theme'
+const DARK_QUERY = '(prefers-color-scheme: dark)'
+const bodyAttributes = new Map()
+const bodyObservers = []
+let prefersDark = false
+const mediaQueries = new Map()
+
+function fakeMatchMedia(query) {
+  let entry = mediaQueries.get(query)
+  if (entry === undefined) {
+    const listeners = new Set()
+    entry = {
+      listeners,
+      addEventListener(type, listener) { if (type === 'change') listeners.add(listener) },
+      removeEventListener(type, listener) { listeners.delete(listener) },
+      addListener(listener) { listeners.add(listener) },
+      removeListener(listener) { listeners.delete(listener) },
+    }
+    Object.defineProperty(entry, 'matches', {
+      get() {
+        if (query === DARK_QUERY) return prefersDark
+        if (query.includes('prefers-reduced-motion')) return reducedMotion
+        return false
+      },
+    })
+    mediaQueries.set(query, entry)
+  }
+  return entry
+}
+
+class FakeMutationObserver {
+  constructor(callback) {
+    this.callback = callback
+    this.disconnected = false
+  }
+  observe(target, options) {
+    this.target = target
+    this.options = options
+    bodyObservers.push(this)
+  }
+  disconnect() {
+    this.disconnected = true
+  }
+}
+
+/** Flip the DSH `<body data-ds-dark-theme>` attribute and notify observers. */
+function setDarkAttribute(active) {
+  if (active) bodyAttributes.set(THEME_ATTR, '')
+  else bodyAttributes.delete(THEME_ATTR)
+  const record = { type: 'attributes', attributeName: THEME_ATTR, target: documentStub.body }
+  for (const observer of bodyObservers) {
+    if (observer.disconnected !== true && typeof observer.callback === 'function') observer.callback([record])
+  }
+}
+
+/** Flip the OS colour-scheme preference and fire the media query listeners. */
+function setPrefersDark(active) {
+  prefersDark = active
+  const entry = mediaQueries.get(DARK_QUERY)
+  if (entry === undefined) return
+  for (const listener of entry.listeners) listener({ matches: active, media: DARK_QUERY })
+}
+
 const documentListeners = new Map()
 const documentStub = {
-  body: { style: { overflow: '' } },
+  body: {
+    style: { overflow: '' },
+    hasAttribute(name) { return bodyAttributes.has(name) },
+    getAttribute(name) { return bodyAttributes.has(name) ? bodyAttributes.get(name) : null },
+  },
   activeElement: null,
   visibilityState: 'visible',
   addEventListener(type, listener) {
@@ -110,7 +208,8 @@ const documentStub = {
 
 const windowStub = {
   __ModuleLoader__: { load(module) { windowStub.__loaded = module } },
-  matchMedia: () => ({ matches: reducedMotion }),
+  matchMedia: fakeMatchMedia,
+  MutationObserver: FakeMutationObserver,
   Image: FakeImage,
   location: { reload: () => { reloads += 1 } },
   fetch: (url, options) => {
@@ -319,6 +418,11 @@ function reset() {
   documentStub.activeElement = null
   documentStub.body.style.overflow = ''
   documentListeners.clear()
+  bodyAttributes.clear()
+  for (const observer of bodyObservers) observer.disconnected = true
+  bodyObservers.length = 0
+  mediaQueries.clear()
+  prefersDark = false
   preloaded.length = 0
   fetchCalls.length = 0
   fetchResponse = null
@@ -353,6 +457,10 @@ function key(node, value, extra) {
   expect(node !== null, 'key target not found')
   node.props.onKeyDown(Object.assign({ key: value, preventDefault() {}, shiftKey: false, target: node, currentTarget: node }, extra || {}))
   return flushLastRoot()
+}
+
+function imageByPath(tree, needle) {
+  return byClass(tree, 'dii-deck-img').find((node) => node.props.src.includes(needle)) || null
 }
 
 /* ------------------------------------------------------------------ tests */
@@ -606,6 +714,150 @@ await test('the single image fence retries without losing its path', async () =>
   tree = click(retry)
   image = byType(tree, 'img')[0]
   expect(image !== undefined && image.props.src.includes('&retry=1'), 'single-image retry did not bust the cache')
+})
+
+/* ------------------------------------------------------------- darkPath */
+
+await test('the darkPath fixtures share one canvas and are a light/dark plate pair', async () => {
+  const light = join(PUBLIC_DIR, 's7-light.png')
+  const dark = join(PUBLIC_DIR, 's7-dark.png')
+  for (const file of [light, dark]) {
+    expect(fs.existsSync(file), file + ' is missing')
+    const size = pngSize(file)
+    expect(size.width === 1147 && size.height === 588, file + ' is ' + size.width + '×' + size.height)
+  }
+  const lightPixel = pngFirstPixel(light)
+  const darkPixel = pngFirstPixel(dark)
+  expect(lightPixel.every((value) => value > 200), 'light plate is not white: ' + lightPixel.join(','))
+  expect(darkPixel.every((value) => value < 40), 'dark plate is not dark: ' + darkPixel.join(','))
+})
+
+await test('parseDeck / parseSpec keep darkPath only when it is a usable string', async () => {
+  const spec = plugin.__test.parseDeck(JSON.stringify({ pages: [
+    { path: 'a-l01.png', darkPath: 'a-d01.png' },
+    { path: 'b.png', darkPath: 42 },
+    { path: 'c.png', darkPath: '   ' },
+    { path: 'd.png' },
+  ] }))
+  expect(spec.pages[0].darkPath === 'a-d01.png', 'darkPath was not kept')
+  expect(spec.pages[1].darkPath === '' && spec.pages[2].darkPath === '' && spec.pages[3].darkPath === '', 'non-string / blank / missing darkPath must read as absent')
+  const single = plugin.__test.parseSpec('{"path":"s-l01.png","darkPath":"s-d01.png"}')
+  expect(single.darkPath === 's-d01.png', 'parseSpec dropped darkPath')
+  expect(plugin.__test.parseSpec('{"path":"s.png","darkPath":{}}').darkPath === '', 'object darkPath must read as absent')
+  expect(plugin.__test.pagePath({ path: 'l.png', darkPath: 'd.png' }, false, {}) === 'l.png', 'light theme must always use path')
+})
+
+await test('light uses path, dark uses darkPath, a missing darkPath falls back to path', async () => {
+  reset()
+  let tree = renderDeckTracked(DARK_JSON)
+  expect(imageByPath(tree, 's7-light.png') !== null, 'light theme did not use path')
+  expect(imageByPath(tree, 's7-dark.png') === null, 'light theme used darkPath')
+  reset()
+  setDarkAttribute(true)
+  tree = renderDeckTracked(DARK_JSON)
+  expect(imageByPath(tree, 's7-dark.png') !== null, 'dark theme did not use darkPath')
+  expect(imageByPath(tree, 's7-light.png') === null, 'dark theme still used the light plate')
+  expect(imageByPath(tree, 'ch-03.png') !== null, 'dark theme dropped a page without darkPath')
+  expect(imageByPath(tree, 'ch-02.png') === null && imageByPath(tree, 'ch-05.png') !== null, 'dark theme did not swap the second page')
+  reset()
+  setPrefersDark(true)
+  tree = renderDeckTracked(DARK_JSON)
+  expect(imageByPath(tree, 's7-dark.png') !== null, 'media-query dark preference did not pick darkPath')
+})
+
+await test('a runtime theme switch re-renders the deck through the body attribute and the media query', async () => {
+  reset()
+  let tree = renderDeckTracked(DARK_JSON)
+  expect(imageByPath(tree, 's7-light.png') !== null, 'expected the light plate initially')
+  setDarkAttribute(true)
+  tree = flushLastRoot()
+  expect(imageByPath(tree, 's7-dark.png') !== null, 'body attribute change did not switch to darkPath')
+  expect(imageByPath(tree, 's7-light.png') === null, 'body attribute change left the light plate')
+  setDarkAttribute(false)
+  tree = flushLastRoot()
+  expect(imageByPath(tree, 's7-light.png') !== null, 'removing the body attribute did not return to path')
+  setPrefersDark(true)
+  tree = flushLastRoot()
+  expect(imageByPath(tree, 's7-dark.png') !== null, 'media query change did not switch to darkPath')
+  setPrefersDark(false)
+  tree = flushLastRoot()
+  expect(imageByPath(tree, 's7-light.png') !== null, 'media query clearing did not return to path')
+})
+
+await test('dark theme prefetches the neighbouring dark plate, not the light one', async () => {
+  reset()
+  setDarkAttribute(true)
+  renderDeckTracked(DARK_JSON)
+  const prefetched = preloaded.map((image) => image.src)
+  expect(prefetched.some((src) => src.includes('ch-05.png')), 'neighbour dark plate was not prefetched: ' + prefetched.join(','))
+  expect(prefetched.some((src) => src.includes('ch-02.png')) === false, 'light neighbour was prefetched in dark mode: ' + prefetched.join(','))
+  expect(prefetched.length <= 4, 'preload fetched too many pages: ' + prefetched.join(','))
+})
+
+await test('a broken darkPath falls back to path and never shows a broken plate', async () => {
+  reset()
+  setDarkAttribute(true)
+  let tree = renderDeckTracked(DARK_JSON)
+  const darkImage = imageByPath(tree, 's7-dark.png')
+  expect(darkImage !== null, 'dark plate was not rendered')
+  darkImage.props.onError()
+  tree = flushLastRoot()
+  expect(byClass(tree, 'dii-deck-fail').length === 0, 'a broken darkPath showed the failure card instead of falling back')
+  expect(imageByPath(tree, 's7-light.png') !== null, 'a broken darkPath did not fall back to path')
+  expect(imageByPath(tree, 's7-dark.png') === null, 'the broken darkPath is still requested')
+  imageByPath(tree, 's7-light.png').props.onError()
+  tree = flushLastRoot()
+  const failure = byClass(tree, 'dii-deck-fail')[0]
+  expect(failure !== undefined, 'a broken path no longer shows the failure card')
+  expect(flatten(failure).some((node) => node.type === 'code' && node.children.join('') === 's7-light.png'), 'failure card lost the path')
+  tree = click(byClass(tree, 'dii-deck-retry')[0])
+  const restored = imageByPath(tree, 's7-dark.png')
+  expect(restored !== null && restored.props.src.endsWith('&retry=1'), 'retry did not retry the dark plate with a cache-busting query: ' + (restored === null ? 'no image' : restored.props.src))
+})
+
+await test('the lightbox follows the theme and falls back from a broken darkPath', async () => {
+  reset()
+  setDarkAttribute(true)
+  let tree = renderDeckTracked(DARK_JSON)
+  tree = click(imageByPath(tree, 's7-dark.png'))
+  let dialog = find(tree, (node) => node.props && node.props.role === 'dialog')
+  expect(dialog !== null, 'lightbox did not open in dark theme')
+  let image = find(dialog, (node) => node.className === 'dii-lb-img')
+  expect(image !== null && image.props.src.includes('s7-dark.png'), 'lightbox did not use darkPath: ' + (image === null ? 'no image' : image.props.src))
+  setDarkAttribute(false)
+  tree = flushLastRoot()
+  dialog = find(tree, (node) => node.props && node.props.role === 'dialog')
+  image = find(dialog, (node) => node.className === 'dii-lb-img')
+  expect(image.props.src.includes('s7-light.png'), 'lightbox did not follow a runtime theme switch: ' + image.props.src)
+  setDarkAttribute(true)
+  tree = flushLastRoot()
+  dialog = find(tree, (node) => node.props && node.props.role === 'dialog')
+  image = find(dialog, (node) => node.className === 'dii-lb-img')
+  image.props.onError()
+  tree = flushLastRoot()
+  dialog = find(tree, (node) => node.props && node.props.role === 'dialog')
+  expect(find(dialog, (node) => node.props && node.props.role === 'alert') === null, 'broken darkPath showed a failure card in the lightbox')
+  image = find(dialog, (node) => node.className === 'dii-lb-img')
+  expect(image !== null && image.props.src.includes('s7-light.png'), 'lightbox darkPath did not fall back to path')
+})
+
+await test('the single dsh-image fence also honours darkPath and its fallback', async () => {
+  reset()
+  setDarkAttribute(true)
+  const code = JSON.stringify({ path: 's7-light.png', darkPath: 's7-dark.png', alt: '深色单图' })
+  let tree = mount(() => React.createElement(plugin.__test.ImageFence, { code }))
+  let image = byType(tree, 'img')[0]
+  expect(image.props.src.includes('s7-dark.png'), 'single image did not use darkPath in dark theme: ' + image.props.src)
+  image.props.onError()
+  tree = flushLastRoot()
+  image = byType(tree, 'img')[0]
+  expect(image !== undefined && image.props.src.includes('s7-light.png'), 'single image darkPath did not fall back to path')
+  expect(byClass(tree, 'dii-error').length === 0, 'single image darkPath fallback showed an error')
+  setDarkAttribute(false)
+  tree = flushLastRoot()
+  image = byType(tree, 'img')[0]
+  expect(image.props.src.includes('s7-light.png'), 'single image light theme changed')
+  expect(image.props.src.includes('s7-dark.png') === false, 'single image light theme used darkPath')
 })
 
 /* ----------------------------------------------------------------- report */

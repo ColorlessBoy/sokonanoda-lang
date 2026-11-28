@@ -201,13 +201,20 @@ pdftotext -bbox figure.pdf - > /tmp/figure-bbox.html
 ```dsh-images
 {"title":"连续统假设 · 7 页","pages":[
   {"path":"ch-01.png","caption":"封面：无穷之间，还有没有第三档？"},
-  {"path":"ch-02.png","caption":"一样多 = 能一一配对"}]}
+  {"path":"ch-02.png","darkPath":"ch-02-d.png","caption":"一样多 = 能一一配对"}]}
 ```
 
 规则：
 
 - 图片放 `dsh/plugins/dsh-inline-image/public/`，`path` 只写文件名；Host 的
   `/dsh-inline-image/public` 只服务这个白名单目录；
+- **深浅两套图用 `darkPath`**（页级字段，`dsh-image` 单图同样支持）：出图时按
+  `<topic>-lNN.png` / `<topic>-dNN.png` 各出一张，**同画布、同版式，只换底色**
+  （例：`{"path":"x-l01.png","darkPath":"x-d01.png"}`）。深色生效 =
+  `body[data-ds-dark-theme]`（DSH 主题，运行中切换会响应）或系统深色；
+  **浅色恒用 `path`**；没写 / 写空 / 坏 `darkPath` 都退回 `path`（不出裂图，
+  坏 `path` 才有「重试」）；画册预加载与 lightbox 用同一张。只出浅色图时保持
+  原样即可（白底 + 深色描边兜底）；
 - 每一页都按 §2–§5 出图；**同一画册的页必须同画布**（默认 12.25×5.8cm、220dpi），
   否则翻页会跳高度；
 - `caption` 是翻页时跟着走的那一句，写结论或问题，不写「第 N 页」；
@@ -216,7 +223,8 @@ pdftotext -bbox figure.pdf - > /tmp/figure-bbox.html
   lightbox——双指/滚轮缩放、拖拽平移、双击 250%、`Esc` 关闭；首屏只 eager 第一页，
   其余页与相邻页按需预加载；
 - 移动端：底部安全区、圆点可点区域 ≥24px、到边缘的渐变提示；深色模式沿用 DSH 的
-  卡片/边框/图注 token；坏图保留路径并给「重试」；
+  卡片/边框/图注 token，有 `darkPath` 的页在深色下换深色图（无则该页保持白底 +
+  描边，与旧行为一致）；坏图保留路径并给「重试」；
 - 自检（7 页样例即回归夹具）：
 
   ```bash
