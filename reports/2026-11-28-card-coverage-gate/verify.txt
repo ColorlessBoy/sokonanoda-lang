@@ -1,0 +1,6 @@
+# engine explain 前后（同一份题库、只换 cards.json）
+
+I.8.le-empty-3: cardinal-le -> cardinal-le-empty
+I.3.le-mono-1: cardinal-le-mono -> cardinal-le-mono
+I.2.partial-2: partial-order -> partial-order
+II.1.natadd-3: fallback -> nat-add-lemmas

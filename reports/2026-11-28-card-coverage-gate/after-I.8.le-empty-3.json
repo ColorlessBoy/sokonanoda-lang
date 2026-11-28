@@ -1,0 +1,73 @@
+{
+  "ok": true,
+  "kind": "knowledge-card",
+  "card": {
+    "id": "cardinal-le-empty",
+    "kicker": "卷 I · I.8 基数的比较",
+    "title": "A ≼ ∅ 的四条引理：le_empty / subset_of_le_empty / subset_le / le_trans",
+    "oneLiner": "要证 `A ⊆ ∅` 用 `subset_of_le_empty`；要逐点说 `A` 没有元素用 `le_empty`。",
+    "definition": {
+      "lang": "lean",
+      "code": "theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x ∈ A)\n\ntheorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅\n\ntheorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B\n\ntheorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)\n    (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C"
+    },
+    "sections": [
+      {
+        "heading": "四条各管什么",
+        "kind": "list",
+        "items": [
+          "`le_empty`：把 `A ≼ ∅` 换成逐点形式 `∀ (x : α), ¬ (x ∈ A)`。",
+          "`subset_of_le_empty`：把 `A ≼ ∅` 直接换成 `A ⊆ ∅`，一步到位。",
+          "`subset_le`：反方向，把 `A ⊆ B` 升级成 `A ≼ B`。",
+          "`le_trans`：把 `A ≼ B` 与 `B ≼ C` 接成 `A ≼ C`。"
+        ]
+      },
+      {
+        "heading": "这道题怎么选",
+        "kind": "list",
+        "items": [
+          "目标就是 `A ⊆ ∅` 时用 `subset_of_le_empty`，它是唯一直接给出包含关系的。",
+          "目标要求每个元素都不在 `A` 里时用 `le_empty`。",
+          "`subset_le` 的结论是 `≼`，`le_trans` 要两段 `≼`，方向都对不上。"
+        ]
+      },
+      {
+        "heading": "参数顺序（可直接对照）",
+        "kind": "list",
+        "items": [
+          "`le_empty α A h`、`subset_of_le_empty α A h`：类型、集合、`A ≼ ∅` 的证据。",
+          "`subset_le α A B h`：`h : A ⊆ B`。",
+          "`le_trans α β γ A B C h1 h2`：三个类型、三个集合、两段证据。"
+        ]
+      },
+      {
+        "heading": "常见错误",
+        "kind": "list",
+        "items": [
+          "拿 `subset_le` 证 `A ⊆ ∅`：它给的结论是 `A ≼ B`，方向反了。",
+          "拿 `le_trans` 一步到位：它只接两段 `≼`，不产生包含关系。"
+        ]
+      }
+    ],
+    "source": "units/I.8/unit19-cardinal-le.sokonanoda:141 / :149 / :105 / :119",
+    "tags": [
+      "cardinal-le",
+      "le-empty",
+      "cardinal-arithmetic"
+    ],
+    "kps": [
+      "kp.i8.le.empty"
+    ],
+    "prereq": [
+      "cardinal-le"
+    ]
+  },
+  "reason": "matched-kps",
+  "matched": [
+    "cardinal-le",
+    "le-empty"
+  ],
+  "matchedKps": [
+    "kp.i8.le.empty"
+  ],
+  "score": 10.101804
+}

@@ -28,7 +28,10 @@ description: Curriculum preparation (备课) role for sokonanoda — audit and i
 6. `courses/set-theory/README.md` 与 `docs/design/course-stdlib.md`——课程标准库边界；
 7. `AGENTS.md` 硬规则 3 与 `docs/design/notation-subset.md`——课程记法约束；
 8. `skills/sokonanoda-prep/references/text-axioms.md`——**文本公理 X1–X10** 与
-   `text_lint.py` 的判据、误报治理、存量基线机制（改任何表达文本前先读）。
+   `text_lint.py` 的判据、误报治理、存量基线机制（改任何表达文本前先读）；
+9. `skills/sokonanoda-prep/references/card-coverage.md`——**知识卡覆盖门禁**：
+   选项点名的引理必须出现在实际推送卡里，含误报治理、已知限制、基线机制与补卡流程
+   （改卡片或 `explain_for` 相关标签前先读）。
 
 ## 2. 基线审计（只读）
 
@@ -100,6 +103,7 @@ python3 courses/exercise-dataset/check.py --selftest
    python3 courses/set-theory/knowledge/engine.py simulate --questions 50
    python3 scripts/notation-lint.py
    python3 courses/set-theory/knowledge/text_lint.py     # 文本公理门禁（错误即红）
+   python3 scripts/card-lint.py                          # 知识卡覆盖门禁（选项点名引理 ⊆ 推送卡）
    ```
 
    若改了课程单元/画布，再跑 `python3 courses/set-theory/tools/check.py --json`
@@ -151,8 +155,8 @@ python3 courses/exercise-dataset/check.py --selftest
 
 1. 不靠文本比对判对错：题目正确性必须由课程原文/`source` 与 `rubric` 可核验。
 2. 不改 kernel / engine / renderer；发现内容之外的问题，交给 `sokonanoda-dev`。
-3. 每批必过 validate / coverage / selftest / simulate / notation-lint / text-lint；
-   文本 lint 的 errors 必须为 0（存量 warnings 按基线只减不增，见
-   `references/text-axioms.md` §4）。
+3. 每批必过 validate / coverage / selftest / simulate / notation-lint / text-lint /
+   card-lint；文本与知识卡 lint 的 errors 必须为 0（存量按基线只减不增，见
+   `references/text-axioms.md` §4 与 `references/card-coverage.md` §3）。
 4. `out/`、`reports/` 不手改；报告可重跑。
 5. 大改（≥20 题、拆/并 KP、改章节规划）先给方案，经用户确认再落盘。

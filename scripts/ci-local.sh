@@ -301,6 +301,9 @@ run "gates：记法规则"   "gates" python3 scripts/notation-lint.py
 # **文本公理门禁**（#144，2026-11-28）：表达底线 X1–X10；errors 即红，存量 warnings
 # 冻结在 `courses/set-theory/knowledge/text-lint-baseline.json`（只减不增）。
 run "gates：文本公理（表达底线）" "gates" python3 courses/set-theory/knowledge/text_lint.py
+# **知识卡覆盖门禁**（#146，2026-11-28）：选项里点名的引理必须出现在实际推送卡里；
+# errors 即红，存量冻结在 `scripts/card-lint-baseline.json`（只减不增）。
+run "gates：知识卡覆盖（选项点名引理 ⊆ 推送卡）" "gates" python3 scripts/card-lint.py
 run "gates：STATUS 瘦身（用户 2026-09-26 ✓）" "gates" python3 scripts/status-lint.py
 run "gates：文档预算（用户 2026-09-26 ✓）" "gates" python3 scripts/docs-lint.py
 # **冻结余量**（2026-10-16 · 洞 `CI-FAILURES-FROZEN-BUDGET-BLOCKS-MANDATORY-APPEND` ✓）：
@@ -319,6 +322,7 @@ set -u
 python3 scripts/audit-notation-paths.py --self-test || exit 1
 python3 scripts/audit-wire-fields.py --selftest || exit 1
 python3 courses/set-theory/knowledge/text_lint.py --selftest || exit 1
+python3 scripts/card-lint.py --selftest || exit 1
 python3 scripts/docs-lint.py --selftest || exit 1' 
 
 # ⭐⭐ **站点总验收接进本地面**（2026-10-17 · 洞 `ZERO-OBS-GATE-CENSUS-BY-BEHAVIOUR` 第 5 轮 ✓）——

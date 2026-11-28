@@ -443,6 +443,7 @@ python3 engine.py selftest        # 引擎自检（改题库后必跑）
 python3 engine.py simulate --questions 50
 python3 text_audit.py             # 题库样式报告；新文本不应新增问题
 python3 text_lint.py              # 文本公理门禁（errors 即红；改完内容后 --update-baseline 收紧）
+python3 ../../../scripts/card-lint.py   # 知识卡覆盖门禁（选项点名引理必须出现在推送卡里；补卡后 --update-baseline 收紧）
 python3 ../../../scripts/notation-lint.py   # 改了课程单元/画布才需要
 ```
 

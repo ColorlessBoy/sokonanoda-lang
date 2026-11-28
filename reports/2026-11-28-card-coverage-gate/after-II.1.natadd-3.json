@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "kind": "knowledge-card",
+  "card": {
+    "id": "nat-add-lemmas",
+    "kicker": "卷 II · II.1 ℕ 算术",
+    "title": "ℕ 加法引理：zero_add / add_zero / add_assoc / add_comm / add_rotate",
+    "oneLiner": "零律两条方向不同；结合律负责括号，交换律负责换位，旋转律负责重排三段加法。",
+    "definition": {
+      "lang": "lean",
+      "code": "theorem zero_add (b : Nat) : add Nat.zero b = b\n\ntheorem add_zero (a : Nat) : add a Nat.zero = a\n\ntheorem add_assoc (a b c : Nat) : add (add a b) c = add a (add b c)\n\ntheorem add_comm (a b : Nat) : add a b = add b a\n\ntheorem add_rotate (a b c : Nat) : add a (add b c) = add b (add a c)\n\ntheorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b)\n\ntheorem add_succ (a b : Nat) : add a (Nat.succ b) = Nat.succ (add a b)\n\ntheorem mul_distrib (a b c : Nat) : mul a (add b c) = add (mul a b) (mul a c)\n\ntheorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero"
+    },
+    "sections": [
+      {
+        "heading": "零律有两条方向",
+        "kind": "list",
+        "items": [
+          "`zero_add b : add 0 b = b` 是零在左边；`add_zero a : add a 0 = a` 是零在右边。",
+          "`add_comm` 的零情形 `add a 0 = add 0 a` 正是把两条接起来：左边用 `zero_add`，右边用 `add_zero`。"
+        ]
+      },
+      {
+        "heading": "结合、交换、旋转",
+        "kind": "list",
+        "items": [
+          "`add_assoc` 只负责括号：`(a + b) + c = a + (b + c)`。",
+          "`add_comm` 负责两个加数换位；`add_rotate` 把 `a + (b + c)` 旋成 `b + (a + c)`。",
+          "`add_rotate` 的证明先用 `add_assoc` 把内层露出来，再交换内层，最后收回。"
+        ]
+      },
+      {
+        "heading": "哪些引理不在这步",
+        "kind": "list",
+        "items": [
+          "`succ_add` 与 `add_succ` 处理后继情形，零情形用不上。",
+          "`mul_distrib` 与 `zero_mul` 是乘法引理，与加法的零情形无关。"
+        ]
+      },
+      {
+        "heading": "参数顺序",
+        "kind": "list",
+        "items": [
+          "两个参数的引理写成 `add_comm a b`；三个参数的写成 `add_assoc a b c` 与 `add_rotate a b c`。"
+        ]
+      }
+    ],
+    "source": "units/I.6/unit111-nat-arith.sokonanoda:36 / :45 / :57 / :64 / :70 / :51 / :39 / :83 / :77",
+    "tags": [
+      "nat-add-lemmas",
+      "nat-add"
+    ],
+    "kps": [
+      "kp.ii1.nat.add",
+      "kp.ii1.nat.add.cancel"
+    ],
+    "prereq": []
+  },
+  "reason": "matched-kps",
+  "matched": [
+    "nat-add"
+  ],
+  "matchedKps": [
+    "kp.ii1.nat.add"
+  ],
+  "score": 5.306315
+}

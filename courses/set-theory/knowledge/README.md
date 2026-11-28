@@ -26,6 +26,7 @@
 | `text_lint.py` | **文本公理门禁**（X1–X10）：完整性/白话/例子/句长/指代/空话/故事要素；`--selftest` 红绿对照、`--review` 人工清单、存量基线只减不增；公理见 `skills/sokonanoda-prep/references/text-axioms.md` |
 | `review.py` | **L3 复盘**（C9.5）：读引擎状态/导出日志 → 薄弱 tag 与知识点、错题、正确率/耗时/KP 覆盖、代码题进度、下一批建议、内容缺口；`--selftest` 自检聚合器 |
 | `render.py` | 知识卡 → `out/<id>.png`（Chrome 无头截图，2x） |
+| `scripts/card-lint.py`（仓库根） | **知识卡覆盖门禁**：选项里点名的引理必须出现在实际推送卡里；`--selftest` 红绿对照、`--data-dir` 复现、存量基线只减不增；判据与补卡流程见 `skills/sokonanoda-prep/references/card-coverage.md` |
 | `build_quiz.py` | 题库 → `out/quiz.html`（零延迟自测页；离线可用） |
 | `draw.py` | 按 chapter/level 抽题（可 `--seed` 复现） |
 | `out/` · `reports/` | 渲染产物 / 评测与复盘报告 |
@@ -40,6 +41,9 @@ python3 courses/set-theory/knowledge/coverage.py
 # 文本公理门禁（表达底线）：errors 判红；存量 warnings 冻结在 text-lint-baseline.json
 python3 courses/set-theory/knowledge/text_lint.py
 python3 courses/set-theory/knowledge/text_lint.py --selftest
+# 知识卡覆盖门禁（选项点名的引理必须出现在实际推送卡里）
+python3 scripts/card-lint.py
+python3 scripts/card-lint.py --selftest
 
 # L2 引擎：自检 / 出下一题 / 判卷 / 快照 / 学习地图 / 离线评测
 python3 courses/set-theory/knowledge/engine.py selftest

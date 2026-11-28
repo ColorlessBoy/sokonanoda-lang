@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "kind": "fallback-card",
+  "card": {
+    "id": "explain-II.1.natadd-3",
+    "kicker": "II.1 · ③ ℕ 的算术律（复习）",
+    "title": "这题在考什么",
+    "oneLiner": "左边 `add 0 b` 按 `zero_add` 是 `b`，右边 `add b 0` 按 `add_zero` 也是 `b`，两边接起来就得到零情形。结合律、分配律与后继规则都不是这一步需要的；后继情形才会用到 `succ_add` 与 `add_succ`。",
+    "definition": {
+      "lang": "lean",
+      "code": "`zero_add` 与 `add_zero` 的对称。"
+    },
+    "sections": [
+      {
+        "heading": "为什么",
+        "kind": "paragraph",
+        "text": "左边 `add 0 b` 按 `zero_add` 是 `b`，右边 `add b 0` 按 `add_zero` 也是 `b`，两边接起来就得到零情形。结合律、分配律与后继规则都不是这一步需要的；后继情形才会用到 `succ_add` 与 `add_succ`。"
+      },
+      {
+        "heading": "再想一步",
+        "kind": "list",
+        "items": [
+          "把正确的选项逐字读一遍，确认每个符号的含义；",
+          "回到本题重答一次（不算错）。"
+        ]
+      }
+    ],
+    "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:59",
+    "types": []
+  },
+  "reason": "no-matched-card",
+  "types": []
+}

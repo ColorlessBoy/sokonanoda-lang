@@ -1,37 +1,18 @@
-# guard-bite.jsonl —— **咬住证明**（用户 2026-10-15【④】："任何新守卫必须自带咬住证明"）
-#
-# 为什么要有这一份：仓库**已有**这条规则（`AGENTS.md:289`：「**反向验证是硬要求**：
-# 守卫必须能**咬住已知的历史 bug** …… **咬不住的守卫等于没有**」）—— 用户说得很准：
-# **"只是没强制"** ✗。本文件把它从纪律变成**判据**：每个守卫一行，`bite` 是一条
-# **已存在的坏输入**（历史 bug / 用户的 case）上的命令，**必须报非 0** ✓。
-#
-#   guard        —— 仓库相对路径（枚举口径 = `scripts/check-guard-bite.py` 的
-#                   `guard_scripts()` = **名字臂 ∪ 接线臂**：名字 glob ∪ 被
-#                   `scripts/ci-local.sh` / `.github/workflows/ci.yml` 的 step **真调用**过的
-#                   `scripts/*.py` ⇒ **改个名也绕不过去** ✓ —— 洞
-#                   `GUARD-ENUMERATION-IS-NAME-BASED`，2026-10-16 ✗→✓）
-#   bug          —— **那条已存在的坏输入是什么**（必填；写"我新造的"✗ 不算 ✓）
-#   pass         —— {"cmd", "expect_rc"}：守卫自己该绿的那条（通常是 `--selftest`）
-#   bite         —— {"cmd", "expect_rc"}：**在那条坏输入上必须报非 0** ✓
-#   queue_id     —— 可选：**它关掉的那条队列条目** ⇒ 用户【①】翻账时用它 reopen ✓
-#   ci_job       —— 可选：**这条证明在哪个 CI job 里跑**（缺省 `guard-bite` ✓）。
-#                   判据 C4：那个 job 必须在 `.github/workflows/ci.yml` 里**真的存在**
-#                   且**真的有一跑它**（job 文本里有 `--job <名字>`）⇒ 否则判红 ✗。
-#                   ⚠ 为什么要有（2026-10-16 CI 实测 ✗→✓）：`guard-bite` 只有 10 分钟、
-#                   **不装 `editor/vscode/node_modules`、也没有真 VS Code**，而第三层那几条
-#                   证明要的正是那些（环境缺失 ⇒ `third-layer-bite.sh` **exit 3**、`pass`
-#                   期望 0 ⇒ 判红）⇒ 不分派就**必然假红**（红的是"环境不在"，不是"咬不住" ✗）。
-#                   ⚠ **不是放宽** ✗：C4 保证没有一条证明能靠"搬去一个不存在的 job"蒙混 ✓。
-#                   要用 `editor` 那一档：`--check --all --job editor`（开发机全跑用 `--job all` ✓）。
-#                   已分派的：第三层 3 条 + `fixtures_dump.rs` 的桥（都要 Rust + node_modules +
-#                   真 VS Code）⇒ 跑在 `editor` job（它**已经**建 debug LSP/CLI + `npm ci` ✓）。
-#
-# ⚠ **`coverage_since`**（下面那行）= 覆盖基线：基线**以来**新增/修改的守卫
-#   **每一个都必须在下面有一行** ✓（C1 覆盖）。基线之前就有的守卫是 **grandfathered**
-#   —— **如实划的口径，不是豁免** ✗：`--list` 会把它们**印出来**（评审可见 ✓），
-#   要收进来就补一行 ✓。
-#
-# 判据与写法见 `scripts/check-guard-bite.py`（**唯一一处** ✓）。
+# guard-bite.jsonl —— **咬住证明**：每个守卫一行，`bite` 在**已存在的坏输入**上必须报非 0 ✓
+# （用户 2026-10-15【④】；`AGENTS.md:289`「咬不住的守卫等于没有」—— 只是没强制 ✗）。
+#   guard    —— 仓库相对路径；枚举口径 = `check-guard-bite.py` 的 `guard_scripts()`
+#               = 名字臂（glob）∪ 接线臂（`ci-local.sh` / `ci.yml` step 真调用过的 `scripts/*.py`）
+#               ⇒ 改个名也绕不过去 ✓（洞 `GUARD-ENUMERATION-IS-NAME-BASED`，2026-10-16 ✗→✓）。
+#   bug      —— **那条已存在的坏输入是什么**（必填；"我新造的"✗ 不算）。
+#   pass     —— {"cmd","expect_rc"}：守卫自己该绿的那条（通常 `--selftest`）。
+#   bite     —— {"cmd","expect_rc"}：**坏输入上必须报非 0** ✓。
+#   queue_id —— 可选：它关掉的那条队列条目 ⇒ `--reopen-empty` 翻账用。
+#   ci_job   —— 可选：这条证明跑在哪个 job（缺省 `guard-bite`）；C4 = 那个 job 必须在
+#               `ci.yml` 里存在且 run 正文有 `--job <名字>`，否则判红 ✗。已分派：第三层
+#               3 条 + `fixtures_dump.rs` 的桥 ⇒ `editor`（它有 Rust + node_modules + 真
+#               VS Code；`guard-bite` 10 分钟且不装 node_modules ⇒ 不分派必假红）；不是放宽 ✗。
+# `coverage_since`（下一行）= 覆盖基线：基线以来新增/修改的守卫**每一个都要有一行**（C1）；
+# 之前的 grandfathered（`--list` 印出来，不是豁免）。判据/写法见 `scripts/check-guard-bite.py`。
 # coverage_since: cf259d1f
 {"guard": "scripts/check-queue-integrity.py", "queue_id": "SUB-implicit-args-align-lean4", "ci_job": "guard-bite", "bug": "**坏输入 = 本仓自己的历史状态 `1942bd8a`（本改动落地前 main 的 HEAD）：那份树里没有 `scripts/githooks/post-rewrite`** ⇒ 手动 rebase 后没有任何触发器回填收口指针 ⇒ CI 的 queue-lint 判红。`--bite` 直接在当前树上跑该历史坏输入 ⇒ 必须 rc=1 且点名「没有任何触发器」；旧的 C2 双实现对拍坏输入在 2026-10-21 队列清空后已不再分歧，故只保留仍可复现的触发器层证明。", "pass": {"cmd": "python3 scripts/check-queue-integrity.py && python3 scripts/check-queue-integrity.py --check && python3 scripts/check-queue-integrity.py --selftest", "expect_rc": 0}, "bite": {"cmd": "python3 scripts/check-queue-integrity.py --bite", "expect_rc": 1}}
 {"guard": "scripts/check-budgets.py", "queue_id": "SUB-narrow-guards-to-one-layer", "bug": "**六条已存在的坏输入，合并后**逐条**仍判红**（第 6 轮 `gs6`：`check-attention-budget.py` + `check-threshold-ratchet.py` 合并成 `check-budgets.py` ⇒ 六行合成**一行 + 复合 `bite`** ✓；复合命令把六条**逐条**跑、任一条不红 ⇒ 整条 `exit 0` ⇒ C2 判「这条守卫咬不住」✗ —— **不许**只让其中一条红就冒充咬住 ✗）。逐条（原 `queue_id` → 坏输入 → 期望读数）：① `SUB-orchestrator-attention-structure`：**装饰性阈值**（两档贴在实测上方 ⇒ 永远绿 ✗；用户 2026-09-26「不许靠抬上限达标」）—— 已存在的坏输入 = 本会话实测最差点 `--until c82097fe`（那笔 53,595 行的 e2e 归档）⇒ **19.32 : 1** ⇒ 必须报红 ✓。② `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`（层① 那一半）：**caps 被印了两遍（第二份真相）**—— `scripts/ci-local.sh` 的 step 标签写死**种子**，而判据读 `docs/attention-budget-ratchet.json` 的**本轮 caps** ⇒ 告警档被误诊成「告警被当成红」✗；坏输入 = `5e5676de`（= `a2f4977d^`，修前 main 的 tip）那一版 `scripts/ci-local.sh`（**有** caps 字面量、**没有** `--label`）⇒ `--seam --source-rev 5e5676de` 必须 rc=1 且**逐条点名**那两件事 ✓。③ `BITE-EXPECTATION-GOES-STALE-WHEN-READING-IMPROVES`（真身）：**咬住证明的第二根输入会随时间动**—— `commits_since()` 数的是 `state.head..HEAD`，ratchet 一开轮就归零 ⇒ 「空转」那段文本整段消失 ⇒ grep 不中 ⇒ C2 印「咬不住」（而真相是**输入变了** ✗）；坏输入 = 钉死的三根钉子（`--until fb3e1b3c` + `--state <a2f4977d 的状态>` + `--head-rev b4cb20d9`，那时 state = round 1 · head `1942bd8a` · 之后 45 笔 > 40）⇒ 必须 rc=1 且同时命中「ratchet 空转」+「那条路当场走得通」✓。④ `FIXTURE-GIT-ENV-LEAKS-INTO-REAL-REPO`：**夹具的 `git` 打到调用者的仓上**（从链接工作树 push 时 `GIT_DIR` 优先于 cwd ⇒ 夹具的 `init`/`commit`/`config` 全落到真仓：实测 `core.bare` false→**true** ✗）；坏输入 = 钉死旧 rev `6e0624e2` 那份守卫 + `GIT_DIR` 指向一个**链接工作树**的 git 目录 ⇒ 旧版**必须**把受害仓的 `core.bare` 写成 `true`，而工作区版（`scripts/check-budgets.py`，`_fixture_repo` 走 `git_env.clean_git_env()`）在**同一坏输入**下**必须一字不改** ⇒ 两半都成立才 `exit 1`（修被撤 ⇒ 本命令 `exit 0` ⇒ C2 当场判红 ✓）✓。⑤ `SUB-correct-the-orchestrator-incentives`：**横向 7 处装饰性阈值**（上限贴在实测上方 ⇒ 装饰 ✗）；坏输入 = **改前那 4 个消费者的源码**（`cf259d1f`：没有一个读 ratchet）⇒ `--layer threshold --source-rev cf259d1f` 必须报红 + 逐条点名 ✓。⑥ `BUDGET-WARN-VS-GATE-RED-INCONSISTENT`（层② 那一半）：**标签是第二份真相** —— `.github/workflows/ci.yml` 的 step 名写着 ratchet 的**旧值**（种子 / 收敛目标）✗；坏输入 = `5e5676de` 那一版 `.github/workflows/ci.yml`（两份 step 名都写着 ratchet 的值）⇒ `--layer threshold --source-rev 5e5676de` 必须 rc=1 且命中「step 标签里写着 ratchet 的值」✓。⚠ **空转闸**：六条**逐条**带 grep / 两半断言 ⇒ 判据退化成「什么都红」或「量不到 rev 也 rc=1」时，对应的那一条 `exit 0` ⇒ 整条复合命令 `exit 0` ⇒ C2 判红 ✓（不空转）。⚠ 六条 rev（`c82097fe` · `5e5676de` · `a2f4977d` · `fb3e1b3c` · `6e0624e2` · `cf259d1f`）全是 `HEAD` 祖先 ⇒ C5 成立 ✓。", "pass": {"cmd": "T=$(mktemp -d) || exit 9; git show f2f40391:docs/attention-budget-ratchet.json > \"$T/st.json\" || exit 9; python3 scripts/check-budgets.py --selftest && python3 scripts/check-budgets.py --layer attention --seam && python3 scripts/check-budgets.py --layer attention --state \"$T/st.json\" --until f2f40391 --head-rev 1942bd8a && python3 scripts/check-budgets.py --layer threshold", "expect_rc": 0}, "bite": {"cmd": "set -u; T=$(mktemp -d) || exit 9; chk() { [ \"$1\" = 1 ] || { printf 'FAIL part failed: rc=%s (%s)\\n' \"$1\" \"$2\"; exit 0; }; }; python3 scripts/check-budgets.py --layer attention --until c82097fe >/dev/null 2>&1; chk $? '① --until c82097fe (19.32:1)'; out=$(python3 scripts/check-budgets.py --layer attention --seam --source-rev 5e5676de 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -q 'caps 的字面量' || exit 0; printf '%s\\n' \"$out\" | grep -q 'check-budgets.py --layer attention --label' || exit 0; chk $rc '② --seam --source-rev 5e5676de'; git show a2f4977d:docs/attention-budget-ratchet.json > \"$T/st.json\" || exit 9; out=$(python3 scripts/check-budgets.py --layer attention --until fb3e1b3c --state \"$T/st.json\" --head-rev b4cb20d9 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -q 'ratchet 空转' || exit 0; printf '%s\\n' \"$out\" | grep -q '那条路当场走得通' || exit 0; chk $rc '③ --until fb3e1b3c --state <a2f4977d> --head-rev b4cb20d9'; git show 6e0624e2:scripts/check-attention-budget.py > \"$T/old.py\" || exit 9; V=\"$T/v\"; git init -q -b main \"$V\" || exit 9; printf 'x\\n' > \"$V/a.txt\"; git -C \"$V\" add -A; git -C \"$V\" -c user.name=f -c user.email=f@x commit -qm init || exit 9; git -C \"$V\" worktree add -q \"$T/w\" -b wt || exit 9; GD=\"$V/.git/worktrees/w\"; probe() { GIT_DIR=\"$GD\" python3 -c 'import importlib.util,pathlib,sys,tempfile; spec=importlib.util.spec_from_file_location(\"cb\",sys.argv[1]); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m._fixture_repo(pathlib.Path(tempfile.mkdtemp()))' \"$1\" >/dev/null 2>&1; git -C \"$V\" config --get core.bare; }; [ \"$(probe \"$T/old.py\")\" = \"true\" ] || { printf 'FAIL part failed: 旧版没把 core.bare 写成 true\\n'; exit 0; }; git -C \"$V\" config core.bare false; [ \"$(probe scripts/check-budgets.py)\" = \"false\" ] || { printf 'FAIL part failed: 工作区版在坏输入下改了 core.bare\\n'; exit 0; }; python3 scripts/check-budgets.py --layer threshold --source-rev cf259d1f >/dev/null 2>&1; chk $? '⑤ --layer threshold --source-rev cf259d1f'; out=$(python3 scripts/check-budgets.py --layer threshold --source-rev 5e5676de 2>&1); rc=$?; printf '%s\\n' \"$out\" | grep -q 'step 标签里写着 ratchet 的值' || exit 0; chk $rc '⑥ --layer threshold --source-rev 5e5676de'; printf 'OK: six existing bad inputs all bit\\n'; exit 1", "expect_rc": 1}}
@@ -84,3 +65,4 @@
 {"guard": "scripts/ci-yml-lint.py", "bite": {"cmd": "R=$(pwd); T=$(mktemp -d)||exit 9; mkdir -p \"$T/.github/workflows\"||exit 9; printf 'on: push\\njobs:\\n  a:\\n    steps:\\n      - run: a\\n        run: b\\n' > \"$T/.github/workflows/x.yml\"||exit 9; (cd \"$T\" && python3 \"$R/scripts/ci-yml-lint.py\") >/dev/null 2>&1; [ $? -ne 0 ]||exit 0; exit 1", "expect_rc": 1}, "pass": {"cmd": "python3 scripts/ci-yml-lint.py", "expect_rc": 0}, "ci_job": "guard-bite", "bug": "2026-09-26 事故：同一步两个 `run:` 键 ⇒ GitHub 拒整个 workflow（0 job）；坏输入 = 临时 workflow 里那对重复键。", "since": "4ea1c127"}
 {"guard": "scripts/ci-push-range.py", "bite": {"cmd": "SOKO_RANGE_RUST=true SOKO_RANGE_COURSES=false SOKO_RANGE_EDITOR=false SOKO_DORNY_RUST=false SOKO_DORNY_COURSES=false SOKO_DORNY_EDITOR=false python3 scripts/ci-push-range.py --cross-check >/dev/null 2>&1; [ $? -ne 0 ]||exit 0; exit 1", "expect_rc": 1}, "pass": {"cmd": "python3 scripts/ci-push-range.py --selftest", "expect_rc": 0}, "ci_job": "guard-bite", "bug": "PUSH-RANGE-HIDES-RELEASE：脚本说该跑重活、dorny 说干净 ⇒ 未验证改动被藏掉；坏输入 = 这组 env（RUST true vs false）。", "since": "4ea1c127"}
 {"guard": "scripts/audit-strict-paths.py", "queue_id": "STRICT-TEXT-ORACLE-RATCHET", "ci_job": "guard-bite", "bug": "**strict 变成第二套判定**（§9.39）：三个文本 oracle 入口的调用点可悄悄加、strict 专属通道可涨，**任何 Rust 单测都不红**（另一条路径）。基线 4/25/1 · 2/7/1 · 0。", "pass": {"cmd": "python3 scripts/audit-strict-paths.py", "expect_rc": 0}, "bite": {"cmd": "T=$(mktemp -d) || exit 9; cp -r crates/front/src \"$T/src\" || exit 9; printf \"\\nfn _bite_extra() { let _ = operand_type_expr_explicit; }\\n\" >> \"$T/src/compile/mod.rs\" || exit 9; python3 scripts/audit-strict-paths.py --root \"$T/src\"", "expect_rc": 1}, "why_now": "C1 覆盖要求新增守卫有咬住证明；与此前缺 `guard-anchors` 登记同类（两本账都写）。"}
+{"guard": "scripts/card-lint.py", "ci_job": "guard-bite", "bug": "点「我不知道」推的知识卡不覆盖选项点名的引理**（#146 现场：`I.8.le-empty-3` 推通用卡 `cardinal-le`，`le_empty`/`subset_of_le_empty`/`subset_le`/`le_trans` 一个都没讲）。**已存在的坏输入 = 修前 main 的 `cards.json`**（钉旧 rev `95d3cd3e`，**不是 `HEAD`** ✗；明细见 `skills/sokonanoda-prep/references/card-coverage.md` §1 与本行 bite）。", "pass": {"cmd": "python3 scripts/card-lint.py && python3 scripts/card-lint.py --selftest", "expect_rc": 0}, "bite": {"cmd": "T=$(mktemp -d) || exit 9; cp courses/set-theory/knowledge/data/*.json \"$T\"/ || exit 9; git show 95d3cd3e:courses/set-theory/knowledge/data/cards.json > \"$T/cards.json\" || exit 9; out=$(python3 scripts/card-lint.py --data-dir \"$T\" --no-baseline 2>&1); rc=$?; rm -rf \"$T\"; printf '%s\\n' \"$out\" | grep -q 'I.8.le-empty-3: le_empty' || exit 0; printf '%s\\n' \"$out\" | grep -q 'cardinal-le-empty' && exit 3; [ \"$rc\" -eq 1 ] || exit 0; exit 1", "expect_rc": 1}}
