@@ -1,11 +1,10 @@
-# BEFORE (baseline) — DSH Web progress card, visible text
+# BEFORE (refreshed baseline 20db8dbe) — DSH Web progress card, visible text
 
-baseline_commit: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
-origin/main: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
-scenario: DSH Web (isolated DSH_HOME=/tmp/qsv2/before-home, SOKO_DSH_DATA=/tmp/qsv2/before-data)
+baseline_commit: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+scenario: DSH Web (isolated DSH_HOME=/tmp/qsv2/before-home, SOKO_DSH_DATA=/tmp/qsv2/before-data, port 3987)
   -> new session -> composer "/sokonanoda-fast-think on" -> composer "进度"
-viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride)
-screenshot: before-progress.png (1280x813 PNG)
+viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride); default light theme; zh UI
+screenshot: before-progress.png (1280x813 PNG, 119675 bytes, sha256 f850e41846c42dea18ab9d3708ee9b6f8f43ad058a05c3e01373b38ec5884329)
 
 ## 学习地图 line (exact, from .dslc-map element)
 

@@ -1,0 +1,44 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 1000
+  },
+  "card": {
+    "top": 76.25,
+    "height": 729.5625,
+    "bottom": 805.8125
+  },
+  "fullyVisible": true,
+  "headings": [
+    "成员条件",
+    "结构",
+    "选择公理"
+  ],
+  "lists": [
+    [
+      "f ∈ Set.pi ι α A 展开为 ∀ i, f i ∈ A i，逐坐标都要满足。",
+      "取用子 Set.mem_pi_elim 从成员证据得到单个坐标的成员关系。",
+      "构造子 Set.mem_pi_intro 把逐坐标条件装成积的成员。"
+    ],
+    [
+      "积对族单调：逐坐标包含 A i ⊆ B i 给出 pi A ⊆ pi B。",
+      "某个因子为空就使积为空，因为那个坐标无处可落。",
+      "pi (A ∩ B) 与 pi A ∩ pi B 互相包含，作为集合相等。"
+    ],
+    [
+      "「每个因子非空 ⇒ 积非空」要用 choice 同时为所有坐标挑元素。",
+      "去掉选择公理后它不可证，因为逐坐标存在不给出统一的函数。"
+    ]
+  ],
+  "tables": [],
+  "definition": "def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=\n  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i",
+  "source": "出处：lib/SUnion.sokonanoda:115 / units/I.9/unit23-products.sokonanoda:172",
+  "text": "广义积 · Set.pi\n\nSet.pi ι α A 是「每个坐标都落在对应因子里」的函数集合。\n\ndef Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=\n  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i\n\n成员条件\n\nf ∈ Set.pi ι α A 展开为 ∀ i, f i ∈ A i，逐坐标都要满足。\n取用子 Set.mem_pi_elim 从成员证据得到单个坐标的成员关系。\n构造子 Set.mem_pi_intro 把逐坐标条件装成积的成员。\n\n结构\n\n积对族单调：逐坐标包含 A i ⊆ B i 给出 pi A ⊆ pi B。\n某个因子为空就使积为空，因为那个坐标无处可落。\npi (A ∩ B) 与 pi A ∩ pi B 互相包含，作为集合相等。\n\n选择公理\n\n「每个因子非空 ⇒ 积非空」要用 choice 同时为所有坐标挑元素。\n去掉选择公理后它不可证，因为逐坐标存在不给出统一的函数。\n\n出处：lib/SUnion.sokonanoda:115 / units/I.9/unit23-products.sokonanoda:172",
+  "longCard": {
+    "cardHeight": 730,
+    "viewportHeight": 720,
+    "scrollableAncestor": true,
+    "scrollHeight": 1854,
+    "clientHeight": 644
+  }
+}

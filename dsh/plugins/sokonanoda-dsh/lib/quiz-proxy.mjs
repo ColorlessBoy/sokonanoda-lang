@@ -1498,7 +1498,13 @@ async function answerFlow(app, fingerprint, stateFile, letter, requestHandle = n
   return reply;
 }
 
-function renderKnowledgeCard(result) {
+/**
+ * Legacy text-mode knowledge card (cards=false): render **every** engine
+ * section in order. `sections` already holds the full ordered story; silently
+ * keeping only the first two sections (and four items per list) hid the
+ * paragraph explaining the point of the question.
+ */
+export function renderKnowledgeCard(result) {
   const card = (result && result.card) || {};
   const lines = [];
   const kicker = typeof card.kicker === 'string' && card.kicker !== '' ? card.kicker : '';
@@ -1509,16 +1515,24 @@ function renderKnowledgeCard(result) {
   if (definition && typeof definition.code === 'string' && definition.code !== '') {
     lines.push('', '```lean', definition.code, '```');
   }
-  const sections = Array.isArray(card.sections) ? card.sections.slice(0, 2) : [];
+  const sections = Array.isArray(card.sections) ? card.sections : [];
   for (const section of sections) {
     if (!section || typeof section !== 'object') continue;
     const heading = typeof section.heading === 'string' ? section.heading : '';
     if (heading !== '') lines.push('', '**' + heading + '**');
     if (typeof section.text === 'string' && section.text !== '') lines.push(section.text);
     if (Array.isArray(section.items)) {
-      for (const item of section.items.slice(0, 4)) {
+      for (const item of section.items) {
         if (typeof item === 'string' && item !== '') lines.push('- ' + item);
       }
+    }
+    const columns = Array.isArray(section.columns) ? section.columns.map((column) => String(column ?? '')) : [];
+    const rows = Array.isArray(section.rows) ? section.rows.filter((row) => Array.isArray(row)) : [];
+    if (columns.length > 0 && rows.length > 0) {
+      const cell = (value) => String(value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+      lines.push('', '| ' + columns.map(cell).join(' | ') + ' |',
+        '| ' + columns.map(() => '---').join(' | ') + ' |');
+      for (const row of rows) lines.push('| ' + row.map(cell).join(' | ') + ' |');
     }
   }
   if (typeof card.source === 'string' && card.source !== '') lines.push('', '出处：' + formatSourceLink(card.source));

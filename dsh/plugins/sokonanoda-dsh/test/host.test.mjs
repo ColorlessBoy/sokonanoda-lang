@@ -521,6 +521,39 @@ test('card mode: 不懂 returns a knowledge card without advancing the question'
   }
 })
 
+test('legacy text knowledge card renders every section and item (cards=false path)', () => {
+  const card = {
+    kicker: '卷 I · I.9 集族',
+    title: '广义积 · Set.pi',
+    oneLiner: '一句话也要留着。',
+    definition: { lang: 'lean', code: 'def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α)' },
+    sections: [
+      { heading: '段一', kind: 'list', items: ['a', 'b', 'c', 'd', 'e', 'f'] },
+      { heading: '段二', kind: 'paragraph', text: '这一段必须出现' },
+      { heading: '段三', kind: 'list', items: ['g'] },
+      { heading: '段四', kind: 'table', columns: ['条件', '人话'], rows: [['非自反', '`a < a` 永远不成立'], ['传递', 'a < b、b < c ⇒ a < c']] },
+    ],
+    source: 'lib/SUnion.sokonanoda:115',
+  }
+  const rendered = core.renderKnowledgeCard({ ok: true, kind: 'knowledge-card', card })
+  for (const heading of ['段一', '段二', '段三', '段四']) {
+    assert.ok(rendered.includes(heading), 'text knowledge card lost section ' + heading)
+  }
+  for (const item of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
+    assert.ok(rendered.includes('- ' + item), 'text knowledge card lost list item ' + item)
+  }
+  assert.ok(rendered.includes('这一段必须出现'), 'text knowledge card lost the paragraph section')
+  assert.ok(rendered.includes('| 条件 | 人话 |') && rendered.includes('| --- | --- |'),
+    'text knowledge card lost the table header')
+  assert.ok(rendered.includes('| 非自反 | `a < a` 永远不成立 |'), 'text knowledge card lost table rows')
+  assert.ok(rendered.includes('一句话也要留着。'), 'oneLiner must stay visible')
+  assert.ok(rendered.includes('def Set.pi'), 'definition code must stay visible')
+  assert.ok(rendered.includes('lib/SUnion.sokonanoda:115'), 'source must stay visible')
+  assert.ok(rendered.indexOf('段一') < rendered.indexOf('段二')
+    && rendered.indexOf('段二') < rendered.indexOf('段三')
+    && rendered.indexOf('段三') < rendered.indexOf('段四'), 'legacy card must keep engine section order')
+})
+
 test('card mode: an open question card retries with missed points, then grades and advances', async () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-open-'))
   const service = await core.startQuizService({

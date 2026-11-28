@@ -1,11 +1,10 @@
-# AFTER (changed revision) — DSH Web progress card, visible text
+# AFTER (merged tree) — DSH Web progress card, visible text
 
-changed_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (agent/quiz-sched-v2-80289adfe726, workspace edits uncommitted)
-baseline_revision: 956e4fb0 (origin/main)
+after_HEAD: 8c75fca1631d235fbeed4106b68778a32cb05f6b; merge in progress with 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 (MERGE_HEAD), uncommitted
 scenario: DSH Web (isolated DSH_HOME=/tmp/qsv2/after-home, SOKO_DSH_DATA=/tmp/qsv2/after-data, port 3988)
   -> new session -> composer "/sokonanoda-fast-think on" -> composer "进度"
-viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride); default light theme
-screenshot: after-progress.png (1280x813 PNG, sha256 5c9199d99387bc3702552dbfd1666a8aa703d89ebad89e5b477eaf5e66ccba94)
+viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride); default light theme; zh UI
+screenshot: after-progress.png (1280x813 PNG, 120465 bytes, sha256 dea96ab4fe2d2c32199d96052a8a173d7712c1c28c06995115961661aa994812)
 
 ## 学习地图 line (exact, from .dslc-map element)
 

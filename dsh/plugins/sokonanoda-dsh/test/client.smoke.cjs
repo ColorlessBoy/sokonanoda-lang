@@ -271,7 +271,7 @@ const KNOWLEDGE = {
   title: '单射（injective）',
   summary: '不同的输入一定给出不同的输出。',
   definition: 'Injective f := ∀ a₁ a₂, f a₁ = f a₂ → a₁ = a₂',
-  points: ['反例：常数函数不是单射。', '单射不要求满射。', '这条第三点会被截掉，最多显示两条。'],
+  points: ['反例：常数函数不是单射。', '单射不要求满射。', '这条第三点也必须显示，不再截断。'],
   source: { label: '课程 · 单元 4', url: 'https://example.com/set-theory/injective' },
 }
 
@@ -625,6 +625,56 @@ test('knowledge fence renders title, definition tokens and source', () => {
   expect(textOf(view).includes('单射（injective）'), 'knowledge fence lost the title')
   expect(textOf(view).includes('∀'), 'highlighted definition must keep its text')
   expect(byClass(view, 'dslc-hl').length >= 1, 'definition must be highlighted')
+  expect(textOf(view).includes('这条第三点也必须显示，不再截断。'), 'all legacy points must render (no slice(0, 2))')
+})
+
+test('knowledge fence renders every section in order (no truncation)', () => {
+  const payload = {
+    title: '选择公理',
+    oneLiner: '一句话不能挤掉。',
+    definition: { lang: 'lean', code: 'def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α)' },
+    sections: [
+      { heading: '段一', kind: 'list', items: ['a', 'b', 'c'] },
+      { heading: '段二', kind: 'paragraph', text: '这一段必须出现，而且 `choice` 走 inline code。' },
+      { heading: '段三', kind: 'list', items: ['d'] },
+      {
+        heading: '段四',
+        kind: 'table',
+        columns: ['条件', '人话'],
+        rows: [['非自反', '`a < a` 永远不成立'], ['传递', 'a < b、b < c ⇒ a < c']],
+      },
+    ],
+    source: 'lib/SUnion.sokonanoda:115',
+  }
+  const view = render(LearnCardFence(fenceProps('knowledge', payload)))
+  const text = textOf(view)
+  for (const heading of ['段一', '段二', '段三', '段四']) {
+    expect(text.includes(heading), 'knowledge section heading lost: ' + heading)
+  }
+  for (const item of ['a', 'b', 'c', 'd']) {
+    expect(byClass(view, 'dslc-slist').length === 2 && text.includes(item),
+      'knowledge list item lost: ' + item)
+  }
+  expect(text.includes('这一段必须出现'), 'paragraph section text must render, not only list sections')
+  expect(text.includes('一句话不能挤掉。'), 'oneLiner must stay visible')
+  expect(text.includes('Set.pi'), 'definition code must stay visible')
+  expect(text.includes('lib/SUnion.sokonanoda:115'), 'source must stay visible')
+  expect(byClass(view, 'dslc-sheading').length === 4, 'one section heading per section')
+  expect(byClass(view, 'dslc-ptext').length === 1, 'paragraph section must render a paragraph')
+  expect(byClass(view, 'dslc-code').length >= 1, 'inline code in a paragraph must go through inlineNodes')
+  const lists = byClass(view, 'dslc-slist').map(textOf)
+  expect(lists.length === 2 && lists[0] === 'abc' && lists[1] === 'd',
+    'list sections must keep every item in order, got ' + JSON.stringify(lists))
+  expect(byClass(view, 'dslc-table').length === 1, 'table section must render as a table')
+  expect(byClass(view, 'dslc-table').filter((node) => node.type === 'table')[0] !== undefined,
+    'table section must use a real <table>')
+  expect(text.includes('非自反') && text.includes('人话') && text.includes('a < b、b < c ⇒ a < c'),
+    'table header cells and body cells must render')
+  expect(byClass(view, 'dslc-code').length >= 2, 'inline code inside table cells must go through inlineNodes')
+  expect(text.indexOf('段一') < text.indexOf('段二') && text.indexOf('段二') < text.indexOf('段三')
+    && text.indexOf('段三') < text.indexOf('段四'), 'sections must keep engine order')
+  expect(cardCss.includes('.dslc-table{') && cardCss.includes('.dslc-table td{'),
+    'knowledge section table CSS rules missing')
 })
 
 test('knowledge source with sourceLink renders a right-sidebar file link', () => {

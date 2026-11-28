@@ -133,6 +133,9 @@ window.__ModuleLoader__.load({
       '.dslc-ptext{margin:0;min-width:0;max-width:100%;font-size:13.5px;line-height:1.6;overflow-wrap:anywhere;word-break:break-word}',
       '.dslc-slist{margin:0;padding-left:18px;font-size:13.5px;line-height:1.6;min-width:0}',
       '.dslc-slist li{overflow-wrap:anywhere;margin:0 0 2px}',
+      '.dslc-table{width:100%;max-width:100%;box-sizing:border-box;border-collapse:collapse;border-spacing:0;font-size:12.5px;line-height:1.5;overflow-wrap:anywhere;border:1px solid var(--dsw-alias-border-l1,#e6e8ec);border-radius:8px}',
+      '.dslc-table th{text-align:left;vertical-align:top;padding:6px 8px;font-weight:600;background:rgba(127,127,127,.08);border-bottom:1px solid var(--dsw-alias-border-l1,#e6e8ec);overflow-wrap:anywhere}',
+      '.dslc-table td{vertical-align:top;padding:6px 8px;border-top:1px solid rgba(127,127,127,.16);overflow-wrap:anywhere}',
       '.dslc-source{margin:0;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280));overflow-wrap:anywhere}',
       '.dslc-link{color:var(--dsw-alias-link,var(--dsw-alias-brand-primary,#0b6bcb));text-decoration:underline;overflow-wrap:anywhere}',
       '.dslc-placeholder{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary,#6b7280);overflow-wrap:anywhere}',
@@ -541,15 +544,36 @@ window.__ModuleLoader__.load({
       return points
     }
 
-    /** First list section of an engine knowledge card, as points. */
-    function pointsFromSections(sections) {
-      if (!Array.isArray(sections)) return []
-      for (const section of sections) {
-        if (isRecord(section) && section.kind === 'list' && Array.isArray(section.items)) {
-          return normalizePoints(section.items)
+    /**
+     * Normalize an engine knowledge card's ordered `sections[]`. Engine cards
+     * carry `{heading, kind}` plus `{text}` (paragraph), `{items}`, or
+     * `{columns, rows}` (table, same shape the course poster renderer uses).
+     * The card renders every entry in order, so a `paragraph` text or a whole
+     * table must survive too (the old renderer kept only the first list's two
+     * items). Unknown kinds keep whichever of those bodies they carry instead
+     * of disappearing.
+     */
+    function normalizeSections(raw) {
+      if (!Array.isArray(raw)) return []
+      const sections = []
+      for (const section of raw) {
+        if (!isRecord(section)) continue
+        const heading = textOf(section.heading)
+        const text = textOf(section.text)
+        const items = Array.isArray(section.items) ? normalizePoints(section.items) : []
+        const columns = Array.isArray(section.columns) ? section.columns.map(textOf).filter((column) => column !== '') : []
+        const rows = []
+        if (Array.isArray(section.rows)) {
+          for (const row of section.rows) {
+            if (!Array.isArray(row)) continue
+            const cells = row.map(textOf)
+            if (cells.length > 0) rows.push(cells)
+          }
         }
+        if (text === '' && items.length === 0 && rows.length === 0) continue
+        sections.push({ heading: heading, text: text, items: items, columns: columns, rows: rows })
       }
-      return []
+      return sections
     }
 
     /** Encode a path for a dsh-resource://file/... address. */
@@ -698,6 +722,9 @@ window.__ModuleLoader__.load({
       section: { display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, maxWidth: '100%' },
       sheading: { margin: 0, fontSize: '12px', fontWeight: 700, letterSpacing: '.02em', color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))' },
       slist: { margin: 0, paddingLeft: '18px', fontSize: '13.5px', lineHeight: 1.6, minWidth: 0 },
+      table: { width: '100%', maxWidth: '100%', boxSizing: 'border-box', borderCollapse: 'collapse', borderSpacing: 0, fontSize: '12.5px', lineHeight: 1.5, overflowWrap: 'anywhere', border: '1px solid rgba(127,127,127,0.22)' },
+      th: { textAlign: 'left', verticalAlign: 'top', padding: '6px 8px', fontWeight: 600, background: 'rgba(127,127,127,0.08)', borderBottom: '1px solid rgba(127,127,127,0.22)', overflowWrap: 'anywhere' },
+      td: { verticalAlign: 'top', padding: '6px 8px', borderTop: '1px solid rgba(127,127,127,0.14)', overflowWrap: 'anywhere' },
       def: { margin: 0, maxWidth: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', background: 'rgba(127,127,127,0.10)', color: 'var(--dsw-alias-label-primary,#15171a)', font: '12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace', whiteSpace: 'pre-wrap', overflowX: 'auto', overflowWrap: 'anywhere' },
       source: { margin: 0, fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,#6b7280))', overflowWrap: 'anywhere' },
       placeholder: { margin: 0, fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary,#6b7280)', overflowWrap: 'anywhere' },
@@ -900,6 +927,40 @@ window.__ModuleLoader__.load({
       ])
     }
 
+    /**
+     * Every engine knowledge-card section, in engine order: heading + paragraph
+     * text and/or list items. Text always goes through {@link inlineNodes} so
+     * inline code/bold keeps rendering; long cards simply flow and the chat
+     * scrolls instead of dropping content.
+     */
+    function knowledgeSections(t, sections) {
+      return sections.map((entry, index) => {
+        const body = []
+        if (entry.text !== '') {
+          body.push(h('p', { className: 'dslc-ptext', key: 'text', style: S.body }, inlineNodes(entry.text)))
+        }
+        if (entry.items.length > 0) {
+          body.push(h('ul', { className: 'dslc-slist', key: 'items', style: S.slist }, entry.items.map((item, itemIndex) =>
+            h('li', { key: 'item-' + itemIndex }, inlineNodes(item)))))
+        }
+        if (entry.rows.length > 0) {
+          const header = entry.columns.length > 0
+            ? h('thead', { key: 'head' }, h('tr', {}, entry.columns.map((column, columnIndex) =>
+              h('th', { key: 'th-' + columnIndex, style: S.th }, inlineNodes(column)))))
+            : null
+          body.push(h('table', { className: 'dslc-table', key: 'table', style: S.table }, [
+            header,
+            h('tbody', { key: 'body' }, entry.rows.map((row, rowIndex) =>
+              h('tr', { key: 'row-' + rowIndex }, row.map((cell, cellIndex) =>
+                h('td', { key: 'cell-' + cellIndex, style: S.td }, inlineNodes(cell)))))),
+          ]))
+        }
+        return entry.heading !== ''
+          ? section(t, 'section-' + index, entry.heading, body)
+          : h('div', { className: 'dslc-section', key: 'section-' + index, style: S.section }, body)
+      })
+    }
+
     function knowledgeCard(t, payload) {
       const title = textOf(payload.title)
       const summary = textOf(payload.summary) !== '' ? textOf(payload.summary) : textOf(payload.oneLiner)
@@ -907,7 +968,7 @@ window.__ModuleLoader__.load({
         ? textOf(payload.definition)
         : (isRecord(payload.definition) ? textOf(payload.definition.code) : '')
       const rawPoints = normalizePoints(payload.points)
-      const points = (rawPoints.length > 0 ? rawPoints : pointsFromSections(payload.sections)).slice(0, 2)
+      const sections = normalizeSections(payload.sections)
       const source = sourceOf(payload.source, payload.sourceLink)
       return cardShell('knowledge', [
         title !== '' ? h('p', { className: 'dslc-heading', key: 'title', style: S.heading }, inlineNodes(title)) : null,
@@ -915,9 +976,12 @@ window.__ModuleLoader__.load({
         definition !== ''
           ? h('pre', { className: 'dslc-def', key: 'definition', style: S.def }, h('code', {}, highlightLean(definition)))
           : null,
-        points.length > 0
+        /* Engine cards carry the full ordered story in `sections[]`; render all
+         * of it (paragraph + list) before the legacy `points` fallback. */
+        sections.length > 0 ? knowledgeSections(t, sections) : null,
+        rawPoints.length > 0
           ? section(t, 'points', t('pointsLabel', '要点'),
-            h('ul', { className: 'dslc-slist', style: S.slist }, points.map((point, index) =>
+            h('ul', { className: 'dslc-slist', style: S.slist }, rawPoints.map((point, index) =>
               h('li', { key: 'point-' + index }, inlineNodes(point)))))
           : null,
         source !== null

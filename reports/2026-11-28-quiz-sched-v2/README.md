@@ -8,7 +8,7 @@ issue #138。**只改调度与展示**：内核判定与题库内容不变。
 同一 1280×813 视口、浅色主题、中文 UI、同一操作脚本（新建会话 →
 `/sokonanoda-fast-think on` → `进度`；**只读**，不答题）：
 
-| 场景 | Before（`origin/main` @ `956e4fb0`） | After（本分支） |
+| 场景 | Before（`origin/main` @ `20db8dbe`） | After（本分支 @ `8c75fca1` + `origin/main` 的 merge 树） |
 |---|---|---|
 | 进度卡「学习地图」行 | `已解 54 · 待做 41 · 薄弱 1 · 代码 0/916` | **`已解 17 · 探针中 37 · 待做 41 · 薄弱 1 · 代码 0/916`** |
 | `engine.py map` 顶部行 | `知识点：已解 54 · 待做 41 · 薄弱 1（共 195，96 个已有题）` | `知识点：已解 17 · 探针中 37 · 待做 41 · 薄弱 1（共 195，96 个已有题）` |
@@ -29,9 +29,14 @@ issue #138。**只改调度与展示**：内核判定与题库内容不变。
 
 ## 环境与流程
 
-- **Before** = `origin/main` @ `956e4fb0`（`/tmp/qsv2/before-worktree`，detached、clean）；
-  **After** = 本分支工作树（`agent/quiz-sched-v2-80289adfe726`，运行时文件的 sha256 记在
-  `after-verify.txt` §1）。两边跑**同一套**插件/引擎代码路径，只有版本不同。
+- **Before** = `origin/main` @ `20db8dbe`（`/tmp/qsv2/before-worktree`，detached、clean；
+  该提交含 #141/#139 的知识卡 sections 渲染，与进度卡无关）；
+  **After** = 本分支工作树（`agent/quiz-sched-v2-80289adfe726`；merge parents
+  `8c75fca1` + `20db8dbe`，运行时文件的 sha256 记在 `after-verify.txt` §1）。
+  两边跑**同一套**插件/引擎代码路径，只有版本不同。
+- **刷新记录**：PR 在 CI 期间 `main` 前进到 `20db8dbe`（#141 合入 #139 的知识卡渲染）；
+  为了「Before/After 对着 PR 的真实 base/head」，两份证据都在合并后按 `20db8dbe`
+  与 merge 树**重新采集**（进度卡路径未被 #139 改动，数字与首轮一致）。
 - 两个**隔离** DSH Web 实例：各自的 `DSH_HOME`、`SOKO_DSH_DATA`（quiz 状态目录）、
   端口 3987/3988，各自独立 headless Chrome（CDP 9334/9335）；`dsh plugin --profile web add`
   把 `sokonanoda-dsh` 指到各自的 worktree。

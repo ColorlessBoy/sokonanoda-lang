@@ -1,17 +1,20 @@
-# AFTER (changed revision) — 学习地图 text fallback
+# AFTER (merged tree) — 学习地图 text fallback
 
-changed_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (agent/quiz-sched-v2-80289adfe726, workspace edits uncommitted; lead commits the same runtime files unchanged)
-baseline_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (origin/main)
-worktree: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726
-runtime_file_sha256:
+after_worktree: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726 (branch agent/quiz-sched-v2-80289adfe726)
+merge_state: merge of 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 into 8c75fca1631d235fbeed4106b68778a32cb05f6b is IN PROGRESS / uncommitted (STATUS.md conflict resolved as UU; plugin files auto-merged)
+merge_parents: 8c75fca1631d235fbeed4106b68778a32cb05f6b (HEAD) + 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 (MERGE_HEAD == origin/main == 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8)
+after_HEAD: 8c75fca1631d235fbeed4106b68778a32cb05f6b
+origin/main: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+MERGE_HEAD: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+git_status_short: UU STATUS.md|M  dsh/plugins/sokonanoda-dsh/client.js|M  dsh/plugins/sokonanoda-dsh/docs/quiz-core.md|M  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs|M  dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs|M  dsh/plugins/sokonanoda-dsh/test/host.test.mjs|A  reports/2026-11-28-knowledge-card-sections/README.md|A  reports/2026-11-28-knowledge-card-sections/after-card.png|A  reports/2026-11-28-knowledge-card-sections/after-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-scrolled.png|A  reports/2026-11-28-knowledge-card-sections/after-table-card.png|A  reports/2026-11-28-knowledge-card-sections/after-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-card.png|A  reports/2026-11-28-knowledge-card-sections/before-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-table-card.png|A  reports/2026-11-28-knowledge-card-sections/before-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-verify.json| M reports/2026-11-28-quiz-sched-v2/after-progress.png| M reports/2026-11-28-quiz-sched-v2/before-progress.png|
+runtime_file_sha256 (after merged tree):
   courses/set-theory/knowledge/engine.py = 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
   courses/set-theory/knowledge/data/params.json = 721dd6daa71ed02271c1c2e3b814208edf96c15838104441cbe27ed3fd5e024a
-  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = ec1646c46c3d6a5cc480f5b668fabb7581a075b455969eaf9b79f9ce08242ef7
-  dsh/plugins/sokonanoda-dsh/client.js = f458b5a15a4fcd2c3b1e5d19a9bbba0bbe5d6bcaee95325c8557b49dd285d790
-git_status_short:  M STATUS.md| M courses/set-theory/knowledge/DESIGN.md| M courses/set-theory/knowledge/README.md| M courses/set-theory/knowledge/data/params.json| M courses/set-theory/knowledge/engine.py| M courses/set-theory/knowledge/review.py| M courses/set-theory/knowledge/validate.py| M dsh/plugins/sokonanoda-dsh/README.md| M dsh/plugins/sokonanoda-dsh/client.js| M dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs| M dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs| M dsh/plugins/sokonanoda-dsh/test/host.test.mjs| M skills/sokonanoda-prep/SKILL.md| M skills/sokonanoda-teacher/SKILL.md|?? reports/2026-11-28-quiz-sched-v2/|
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = 3ecc206b20f6463f68a8fb1fb03476e75dcfafc1df7fc008b87b9825762976c4
+  dsh/plugins/sokonanoda-dsh/client.js = 76524f4284f83eec83af4c4160abcde6562fb108bb7e5c25f09bd511f0ca2a65
 state_file: /tmp/qsv2/after-data/quiz/default.json
 state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
-state_note: byte-identical copy of pristine /tmp/qsv2/seed/default.json (sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2); before/after start from the identical state
+state_note: fresh copy of the SAME pristine seed /tmp/qsv2/seed/default.json (sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2); identical starting state as BEFORE
 command: cd $TICKET && python3 $TICKET/courses/set-theory/knowledge/engine.py map --state /tmp/qsv2/after-data/quiz/default.json
 
 ## engine.py map — lines (full text)

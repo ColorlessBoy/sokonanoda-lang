@@ -1,13 +1,17 @@
-# BEFORE (baseline) — 学习地图 text fallback
+# BEFORE (refreshed baseline) — 学习地图 text fallback
 
-baseline_commit: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
-baseline_commit_detail: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 2026-11-28 04:51:26 +0000 perf(e2e): 台账 ec29fab —— VS Code 1.138.0 55/55 · VS Code 1.106.0 55/55 · VS Code 1.138.0 55/55
-origin/main: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
-baseline_worktree: /tmp/qsv2/before-worktree (detached HEAD, clean)
+baseline_commit: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+baseline_commit_detail: Merge pull request #141 from ColorlessBoy/agent/knowledge-card-fix-1445bbc28f98 (includes 3a451a52 "fix(dsh): 知识卡按 sections 完整渲染（#139）")
+baseline_worktree: /tmp/qsv2/before-worktree (detached HEAD at 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8, clean)
 state_file: /tmp/qsv2/before-data/quiz/default.json
 state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
-state_note: byte-identical copy of the real learner state /Users/penglingwei/.dsh/state/sokonanoda-dsh/quiz/default.json (113 answers, calibration done); never modified by this capture
+state_note: fresh copy of the pristine seed /tmp/qsv2/seed/default.json (sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2); never modified by this capture (read-only 进度 map snapshot, zero answers)
 command: cd /tmp/qsv2/before-worktree && python3 courses/set-theory/knowledge/engine.py map --state /tmp/qsv2/before-data/quiz/default.json
+runtime_file_sha256 (at baseline 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8):
+  courses/set-theory/knowledge/engine.py = 73ab8a01b819d569a0be8e0a301ebe695752c7ce7907e06efc4d73ce1a8b0e95
+  courses/set-theory/knowledge/data/params.json = f40084e95f53650f7d5de2f2f3d8d75315459efcb4a16d40b3a637d9cf11e5ed
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = 279f05bd4792930a1a9c8a25a957a615608763d6df305692ce82edb243be4ad9
+  dsh/plugins/sokonanoda-dsh/client.js = bd8c052226a48fbafcd1c7235754844a614cca0bdcb3ea8b26786f142b4e40d2
 
 ## engine.py map — lines (full text)
 
@@ -37,6 +41,10 @@ II.1  · · · · · · · · · · · · · · · · · · ·   （0/19 单元�
   "weak": 1,
   "todo": 41
 }
+
+## thresholds (map) JSON
+
+{"solved_accuracy_above": 0.6}
 
 ## code summary JSON
 
