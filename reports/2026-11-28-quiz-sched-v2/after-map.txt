@@ -1,0 +1,75 @@
+# AFTER (changed revision) — 学习地图 text fallback
+
+changed_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (agent/quiz-sched-v2-80289adfe726, workspace edits uncommitted; lead commits the same runtime files unchanged)
+baseline_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (origin/main)
+worktree: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726
+runtime_file_sha256:
+  courses/set-theory/knowledge/engine.py = 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
+  courses/set-theory/knowledge/data/params.json = 721dd6daa71ed02271c1c2e3b814208edf96c15838104441cbe27ed3fd5e024a
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = ec1646c46c3d6a5cc480f5b668fabb7581a075b455969eaf9b79f9ce08242ef7
+  dsh/plugins/sokonanoda-dsh/client.js = f458b5a15a4fcd2c3b1e5d19a9bbba0bbe5d6bcaee95325c8557b49dd285d790
+git_status_short:  M STATUS.md| M courses/set-theory/knowledge/DESIGN.md| M courses/set-theory/knowledge/README.md| M courses/set-theory/knowledge/data/params.json| M courses/set-theory/knowledge/engine.py| M courses/set-theory/knowledge/review.py| M courses/set-theory/knowledge/validate.py| M dsh/plugins/sokonanoda-dsh/README.md| M dsh/plugins/sokonanoda-dsh/client.js| M dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs| M dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs| M dsh/plugins/sokonanoda-dsh/test/host.test.mjs| M skills/sokonanoda-prep/SKILL.md| M skills/sokonanoda-teacher/SKILL.md|?? reports/2026-11-28-quiz-sched-v2/|
+state_file: /tmp/qsv2/after-data/quiz/default.json
+state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+state_note: byte-identical copy of pristine /tmp/qsv2/seed/default.json (sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2); before/after start from the identical state
+command: cd $TICKET && python3 $TICKET/courses/set-theory/knowledge/engine.py map --state /tmp/qsv2/after-data/quiz/default.json
+
+## engine.py map — lines (full text)
+
+🗺️ 学习地图 · 共 39 个单元，稳了 0 个
+知识点：已解 17 · 探针中 37 · 待做 41 · 薄弱 1（共 195，96 个已有题）
+I.1  ◐ ◐ ◐ ◐   （0/4 单元稳 · 已解 8 · 探针中 8 · 待做 0 · 薄弱 1 · 代码 0/115）
+I.2  ◐ ◐ ◐   （0/3 单元稳 · 已解 6 · 探针中 14 · 待做 0 · 薄弱 0 · 代码 0/33）
+I.3  ◐ ◐ ◐ · ◐ ◐ · ·   （0/8 单元稳 · 已解 3 · 探针中 11 · 待做 1 · 薄弱 0 · 代码 0/123）
+I.8  ◐ ◐ ◐   （0/3 单元稳 · 已解 0 · 探针中 3 · 待做 1 · 薄弱 0 · 代码 0/36）
+I.9  · ▶·   （0/2 单元稳 · 已解 0 · 探针中 0 · 待做 4 · 薄弱 0 · 代码 0/30）
+II.1  · · · · · · · · · · · · · · · · · · ·   （0/19 单元稳 · 已解 0 · 探针中 0 · 待做 34 · 薄弱 0）
+薄弱知识点：kp.i1.subset 子集定义与展开（⊆ 是一条箭头）（正确率 33%，错 2）
+代码题：已解 0 / 共 916
+
+图例：✅ 稳　◐ 在学　◔ 刚起步　· 未碰　▶ 当前
+你现在在：I.9 ㉓ 广义积与柯里化（本单元已答 0 题，接触 0/10 个知识点）
+
+## kps summary JSON
+
+{
+  "total": 195,
+  "withQuestions": 96,
+  "covered": 55,
+  "coverage": 0.573,
+  "contentGaps": 99,
+  "solved": 17,
+  "probing": 37,
+  "weak": 1,
+  "todo": 41
+}
+
+## thresholds (map) JSON
+
+{"solved_accuracy_above": 0.6, "min_probes": 3}
+
+## code summary JSON
+
+{
+  "solved": 0,
+  "skipped": 0,
+  "total": 916,
+  "course": "set-theory",
+  "otherCourse": {
+    "solved": 0,
+    "skipped": 0
+  }
+}
+
+## weakKps JSON
+
+[
+  {
+    "id": "kp.i1.subset",
+    "title": "子集定义与展开（⊆ 是一条箭头）",
+    "chapter": "I.1",
+    "mastery": 0.444,
+    "accuracy": 0.333,
+    "wrong": 2
+  }
+]

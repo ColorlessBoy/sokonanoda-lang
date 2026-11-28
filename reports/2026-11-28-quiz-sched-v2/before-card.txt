@@ -1,0 +1,75 @@
+# BEFORE (baseline) — DSH Web progress card, visible text
+
+baseline_commit: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
+origin/main: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
+scenario: DSH Web (isolated DSH_HOME=/tmp/qsv2/before-home, SOKO_DSH_DATA=/tmp/qsv2/before-data)
+  -> new session -> composer "/sokonanoda-fast-think on" -> composer "进度"
+viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride)
+screenshot: before-progress.png (1280x813 PNG)
+
+## 学习地图 line (exact, from .dslc-map element)
+
+学习地图：已解 54 · 待做 41 · 薄弱 1 · 代码 0/916
+
+## full visible progress card text (.dslc-card innerText)
+
+📈 学习进展
+
+当前：㉓ 广义积与柯里化
+
+9
+连对
+93%
+正确率
+59%
+知识点覆盖
+113
+已答题
+
+学习地图：已解 54 · 待做 41 · 薄弱 1 · 代码 0/916
+
+章节进展
+
+I.1 集合、子集与集合运算（单元①–④）
+92%
+I.2 序对、关系与函数（单元⑤–⑦）
+88%
+I.3 像、原像与基数（单元⑧–⑩）
+81%
+I.8 基数与基数算术（单元⑲–⑳）
+67%
+I.9 集族、广义并交与 n 元关系（单元㉑–㉓）
+47%
+II.1 整数：从 ℕ 到 ℤ（单元①–⑲）
+0%
+
+掌握热力（单元）
+
+I.1 集合、子集与集合运算（单元①–④）
+I.2 序对、关系与函数（单元⑤–⑦）
+I.3 像、原像与基数（单元⑧–⑩）
+I.8 基数与基数算术（单元⑲–⑳）
+I.9 集族、广义并交与 n 元关系（单元㉑–㉓）
+II.1 整数：从 ℕ 到 ℤ（单元①–⑲）
+
+未接触
+刚起步
+有点感觉
+比较稳
+很熟
+
+建议关注
+
+algebra
+待复习
+and
+待复习
+⑲ 基数的比较
+掌握偏弱
+① 集合与隶属
+掌握偏弱
+最近
+
+## summary stats (rendered)
+
+连对 9 · 正确率 93% · 知识点覆盖 59% · 已答题 113

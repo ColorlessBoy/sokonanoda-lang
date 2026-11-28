@@ -1,0 +1,52 @@
+# AFTER — verification (invariants + provenance)
+
+## 1. provenance
+changed_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (agent/quiz-sched-v2-80289adfe726; workspace edits uncommitted — lead commits the same runtime files unchanged)
+baseline_revision: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 (origin/main)
+runtime_file_sha256:
+  courses/set-theory/knowledge/engine.py = 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
+  courses/set-theory/knowledge/data/params.json = 721dd6daa71ed02271c1c2e3b814208edf96c15838104441cbe27ed3fd5e024a
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = ec1646c46c3d6a5cc480f5b668fabb7581a075b455969eaf9b79f9ce08242ef7
+  dsh/plugins/sokonanoda-dsh/client.js = f458b5a15a4fcd2c3b1e5d19a9bbba0bbe5d6bcaee95325c8557b49dd285d790
+git_status_short:  M STATUS.md| M courses/set-theory/knowledge/DESIGN.md| M courses/set-theory/knowledge/README.md| M courses/set-theory/knowledge/data/params.json| M courses/set-theory/knowledge/engine.py| M courses/set-theory/knowledge/review.py| M courses/set-theory/knowledge/validate.py| M dsh/plugins/sokonanoda-dsh/README.md| M dsh/plugins/sokonanoda-dsh/client.js| M dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs| M dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs| M dsh/plugins/sokonanoda-dsh/test/host.test.mjs| M skills/sokonanoda-prep/SKILL.md| M skills/sokonanoda-teacher/SKILL.md|?? reports/2026-11-28-quiz-sched-v2/|
+
+## 2. seeded state untouched
+seed (pristine): sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+after-data/quiz/default.json AFTER capture: sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+unchanged: YES
+flow: /sokonanoda-fast-think on then 进度 only (read-only map snapshot); no question answered.
+
+## 3. exact 学习地图 line (after)
+学习地图：已解 17 · 探针中 37 · 待做 41 · 薄弱 1 · 代码 0/916
+
+## 4. kps summary JSON (after)
+{"total": 195, "withQuestions": 96, "covered": 55, "coverage": 0.573, "contentGaps": 99, "solved": 17, "probing": 37, "weak": 1, "todo": 41}
+
+## 5. per-KP rows — source and invariants
+rows_source: engine.kp_status(state, data)["kps"] — the exact per-KP rows that map_snapshot()/format_map() aggregate (the `map` CLI JSON serializes only the kps summary + chapter/unit aggregates, not individual KP rows).
+rows_total: 195  (min_probes from params.json map = 3)
+flag_counts: solved=17 probing=37 weak=1 todo=41 no_questions(total==0)=99
+partition_check: 17+37+1+41+99 = 195 (rows_total 195)
+covered_check: kps.covered=55 == solved+probing+weak = 55
+summary_matches_rows: solved/probing/weak/todo = 17/37/1/41 vs recomputed 17/37/1/41 -> PASS
+
+A) no solved row has asked < 3: solved_rows=17, violations=1
+   VIOLATION: kp.i1.univ (asked=2, correct=2, total=2, accuracy=1.0)
+   note: params.json map.note allows total < min_probes KPs to be judged once all servable questions are asked (effective_min = min(min_probes, total)); strengthened A') no solved row has asked < min(3, total): violations=0 -> PASS
+B) probing rows are exactly 0 < asked < 3: probing_rows=37, violations=0 (asked values seen: [1, 2]) -> PASS
+   converse (0<asked<3 => probing): rows_with_0<asked<3=38, non-probing exceptions=1
+   EXCEPTION: kp.i1.univ (asked=2, correct=2, total=2, accuracy=1.0) (explained by the same effective_min escape clause)
+
+## 6. before -> after (same seeded state)
+before kps: {"total":195,"withQuestions":96,"covered":55,"coverage":0.573,"contentGaps":99,"solved":54,"weak":1,"todo":41}  (no probing key)
+after  kps: {"total": 195, "withQuestions": 96, "covered": 55, "coverage": 0.573, "contentGaps": 99, "solved": 17, "probing": 37, "weak": 1, "todo": 41}
+relation: before solved 54 == after solved 17 + after probing 37 = 54
+reclassified only: covered (55), coverage (0.573), todo (41), weak (1), total (195), withQuestions (96) all unchanged.
+all probing rows accuracy >= 0.6: True (i.e. they were "solved" under the old rule)
+
+## 7. capture parity
+before: 1280x813 dpr1, default light theme, /tmp/qsv2/before-data/quiz/default.json seeded from the same pristine file
+after : 1280x813 dpr1, default light theme, /tmp/qsv2/after-data/quiz/default.json seeded from the same pristine file
+before-progress.png sha256: cbf2e50af464a0e1cc1810639fdc3edc6a313bf2260e6b4dd3f3ae3dfc670948
+after-progress.png  sha256: 5c9199d99387bc3702552dbfd1666a8aa703d89ebad89e5b477eaf5e66ccba94
+apples-to-apples: YES (identical viewport/theme/flow/state; only revision differs).

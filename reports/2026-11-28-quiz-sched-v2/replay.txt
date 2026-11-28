@@ -1,0 +1,22 @@
+repo: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726
+state: /private/tmp/qsv2/seed/default.json
+state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+engine.py_sha256: 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
+{"step": 1, "kind": "question", "qid": "I.8.prod-1", "chapter": "I.8", "unit": "⑳ 基数算术：积", "reason": "probe", "kp": "kp.i8.prod", "probe_asked": 1, "role": "diagnose"}
+{"step": 2, "kind": "question", "qid": "I.8.prod-3", "chapter": "I.8", "unit": "⑳ 基数算术：积", "reason": "probe", "kp": "kp.i8.prod", "probe_asked": 2, "role": "ascend"}
+{"step": 3, "kind": "question", "qid": "I.3.le-mono-1", "chapter": "I.3", "unit": "⑩ 基数初步", "reason": "probe", "kp": "kp.i3.le.mono", "probe_asked": 2, "role": "ascend"}
+{"step": 4, "kind": "question", "qid": "I.3.le-mono-2", "chapter": "I.3", "unit": "⑩ 基数初步", "reason": "probe", "kp": "kp.i3.le.mono", "probe_asked": 3, "role": "ascend"}
+{"step": 5, "kind": "question", "qid": "I.3.mix-2", "chapter": "I.3", "unit": "⑩ 基数初步", "reason": "probe", "kp": "kp.i3.le.mono", "probe_asked": 4, "role": "ascend"}
+{"step": 6, "kind": "question", "qid": "I.3.pointwise-1", "chapter": "I.3", "unit": "⑧ 像与原像", "reason": "probe", "kp": "kp.i3.pointwise", "probe_asked": 1, "role": "diagnose"}
+{"step": 7, "kind": "question", "qid": "I.3.pointwise-2", "chapter": "I.3", "unit": "⑧ 像与原像", "reason": "probe", "kp": "kp.i3.pointwise", "probe_asked": 2, "role": "ascend"}
+{"step": 8, "kind": "question", "qid": "I.3.image-5", "chapter": "I.3", "unit": "⑧ 像与原像", "reason": "probe", "kp": "kp.i3.pointwise", "probe_asked": 3, "role": "ascend"}
+{"step": 9, "kind": "question", "qid": "I.3.ordinal-3", "chapter": "I.3", "unit": "序数预备", "reason": "probe", "kp": "kp.prep.ordinal", "probe_asked": 1, "role": "diagnose"}
+{"step": 10, "kind": "question", "qid": "I.3.ordtrans-1", "chapter": "I.3", "unit": "⑮ 传递集与序数", "reason": "probe", "kp": "kp.prep.ordinal", "probe_asked": 2, "role": "ascend"}
+units: ["⑳ 基数算术：积", "⑳ 基数算术：积", "⑩ 基数初步", "⑩ 基数初步", "⑩ 基数初步", "⑧ 像与原像", "⑧ 像与原像", "⑧ 像与原像", "序数预备", "⑮ 传递集与序数"]
+three_same_then_switch: [{"start": 3, "unit": "⑩ 基数初步", "next_unit": "⑧ 像与原像"}, {"start": 6, "unit": "⑧ 像与原像", "next_unit": "序数预备"}]
+map_kps: {"total": 195, "withQuestions": 96, "covered": 57, "coverage": 0.594, "contentGaps": 99, "solved": 22, "probing": 34, "weak": 1, "todo": 39}
+min_probes: 3
+solved_with_asked_below_min: []
+small_servable_kp_solved_boundary: [{"id": "kp.i1.univ", "asked": 2, "total": 2}]
+probing_outside_0_asked_min: []
+B_CRITERIA_PASS: True

@@ -1,0 +1,65 @@
+# BEFORE (baseline) — 学习地图 text fallback
+
+baseline_commit: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
+baseline_commit_detail: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6 2026-11-28 04:51:26 +0000 perf(e2e): 台账 ec29fab —— VS Code 1.138.0 55/55 · VS Code 1.106.0 55/55 · VS Code 1.138.0 55/55
+origin/main: 956e4fb0abbd4b68b69ddf7e04e49ed3ba006ae6
+baseline_worktree: /tmp/qsv2/before-worktree (detached HEAD, clean)
+state_file: /tmp/qsv2/before-data/quiz/default.json
+state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+state_note: byte-identical copy of the real learner state /Users/penglingwei/.dsh/state/sokonanoda-dsh/quiz/default.json (113 answers, calibration done); never modified by this capture
+command: cd /tmp/qsv2/before-worktree && python3 courses/set-theory/knowledge/engine.py map --state /tmp/qsv2/before-data/quiz/default.json
+
+## engine.py map — lines (full text)
+
+🗺️ 学习地图 · 共 39 个单元，稳了 0 个
+知识点：已解 54 · 待做 41 · 薄弱 1（共 195，96 个已有题）
+I.1  ◐ ◐ ◐ ◐   （0/4 单元稳 · 已解 16 · 待做 0 · 薄弱 1 · 代码 0/115）
+I.2  ◐ ◐ ◐   （0/3 单元稳 · 已解 20 · 待做 0 · 薄弱 0 · 代码 0/33）
+I.3  ◐ ◐ ◐ · ◐ ◐ · ·   （0/8 单元稳 · 已解 14 · 待做 1 · 薄弱 0 · 代码 0/123）
+I.8  ◐ ◐ ◐   （0/3 单元稳 · 已解 3 · 待做 1 · 薄弱 0 · 代码 0/36）
+I.9  · ▶·   （0/2 单元稳 · 已解 0 · 待做 4 · 薄弱 0 · 代码 0/30）
+II.1  · · · · · · · · · · · · · · · · · · ·   （0/19 单元稳 · 已解 0 · 待做 34 · 薄弱 0）
+薄弱知识点：kp.i1.subset 子集定义与展开（⊆ 是一条箭头）（正确率 33%，错 2）
+代码题：已解 0 / 共 916
+
+图例：✅ 稳　◐ 在学　◔ 刚起步　· 未碰　▶ 当前
+你现在在：I.9 ㉓ 广义积与柯里化（本单元已答 0 题，接触 0/10 个知识点）
+
+## kps summary JSON
+
+{
+  "total": 195,
+  "withQuestions": 96,
+  "covered": 55,
+  "coverage": 0.573,
+  "contentGaps": 99,
+  "solved": 54,
+  "weak": 1,
+  "todo": 41
+}
+
+## code summary JSON
+
+{
+  "solved": 0,
+  "skipped": 0,
+  "total": 916,
+  "course": "set-theory",
+  "otherCourse": {
+    "solved": 0,
+    "skipped": 0
+  }
+}
+
+## weakKps JSON
+
+[
+  {
+    "id": "kp.i1.subset",
+    "title": "子集定义与展开（⊆ 是一条箭头）",
+    "chapter": "I.1",
+    "mastery": 0.444,
+    "accuracy": 0.333,
+    "wrong": 2
+  }
+]
