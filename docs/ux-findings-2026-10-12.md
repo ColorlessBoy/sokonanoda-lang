@@ -98,14 +98,9 @@
 
 ## 5. ✅ 已排除 / 设计如此（别当缺口修）
 
-* **编辑器「补全弹窗打不开」= 探针自纠，撤回**：`offsetParent !== null` 对 **fixed** 定位的 `.suggest-widget`
-  恒为 null；行为判据（打 `exa` + Enter ⇒ 变 `exact`）证明弹窗工作。真问题是**候选内容**（F5）。
 * **LSP 侧不报的边界**：声明名位置 F12 = `null`（G-53 已知诚实行为）· `Nat.add`/`Nat.zero` F12 = `null`
   （内核按名字安装 ⇒ 如实没有落点，不许编位置）· `textDocument/diagnostic`（pull）= `-32601`
   （能力表未声明 `diagnosticProvider` ⇒ 只推不拉是合法形态）· `·` 焦点点不支持属**语言**缺口（另计 r07）。
-* **vim 侧不算 bug 的**：`vim-undo-one-step`（一次替换 = 一个 undo 单元）是标准 vim 语义；
-  `alt+n`/`alt+b` 键位本身是通的（第一版读到「不动」是探针没做焦点仿真）；`dd`/`gg`/`:w`/缩进全 PASS；
-  **project 模式本身没有引入打字异常**（`proj-nota-space` vs `proj-unit-nota-space` 两条都对）。
 * **正面（值得保留）**：`⟨h,h⟩` 用错类型的诊断 · 缺隐参诊断的正文 · `apply` 结论不匹配的诊断 ·
   `elab-unknown-identifier` 的 span 精确度 · `sorry`/开放练习状态清楚 · hover 签名（编辑器 F7）·
   Build/Clean 的反馈（F14）· 撤销/重做与保存（F15）· 编辑器 F1 的因果对照 `notation-clean-control`。
