@@ -1967,6 +1967,39 @@ async function main(argv) {
         )
         return 3
       }
+
+      // **会话预检门禁**（#151，2026-11-29）：出题前先查「即将发给学习者的题」——
+      // 文本规则（X11 自造术语 = blocker）+ 卡片覆盖（card-lint）+ 无卡兜底；content
+      // 模式存量按 `scripts/lesson-preflight-baseline.json` 冻结（只减不增）。纯 python3、
+      // 毫秒–秒级 ⇒ `--fast` 也跑 ✓。判据见
+      // `skills/sokonanoda-prep/references/lesson-preflight.md`。
+      const preflight = path.join(REPO, 'scripts', 'lesson-preflight.py')
+      if (!existsSync(preflight)) {
+        process.stderr.write(
+          `scripts/soko gate: 找不到 ${path.relative(REPO, preflight)} —— 会话预检无法判定（exit 3）。\n`,
+        )
+        return 3
+      }
+      const preflightRun = spawnSync(python.cmd, [...python.args, preflight, '--all'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (preflightRun.error) {
+        process.stderr.write(`scripts/soko gate: failed to run ${preflight}: ${preflightRun.error.message}\n`)
+        return 3
+      }
+      if ((preflightRun.status ?? 3) !== 0) return preflightRun.status ?? 3
+      const preflightSelf = spawnSync(python.cmd, [...python.args, preflight, '--selftest'], {
+        stdio: 'inherit',
+        cwd: REPO,
+      })
+      if (preflightSelf.error || (preflightSelf.status ?? 3) !== 0) {
+        process.stderr.write(
+          `scripts/soko gate: ${path.relative(REPO, preflight)} --selftest 失败 —— 会话预检咬不住（exit 3）。\n`,
+        )
+        return 3
+      }
+
       // **记法转化调用点守卫**（阶段 U / T-U3，2026-09-25）：谁绕过唯一接口
       // `DisplayNotations::{fold, render, runs}` 就判红 ✗。**棘轮**：基线
       // （`scripts/notation-paths-baseline.txt`）里"阶段 U 之前就存在"的调用点
