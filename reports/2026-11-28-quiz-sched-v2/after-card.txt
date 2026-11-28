@@ -1,0 +1,74 @@
+# AFTER (merged tree) — DSH Web progress card, visible text
+
+after_HEAD: 8c75fca1631d235fbeed4106b68778a32cb05f6b; merge in progress with 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 (MERGE_HEAD), uncommitted
+scenario: DSH Web (isolated DSH_HOME=/tmp/qsv2/after-home, SOKO_DSH_DATA=/tmp/qsv2/after-data, port 3988)
+  -> new session -> composer "/sokonanoda-fast-think on" -> composer "进度"
+viewport: 1280x813, deviceScaleFactor 1 (Emulation.setDeviceMetricsOverride); default light theme; zh UI
+screenshot: after-progress.png (1280x813 PNG, 120465 bytes, sha256 dea96ab4fe2d2c32199d96052a8a173d7712c1c28c06995115961661aa994812)
+
+## 学习地图 line (exact, from .dslc-map element)
+
+学习地图：已解 17 · 探针中 37 · 待做 41 · 薄弱 1 · 代码 0/916
+
+## full visible progress card text (.dslc-card innerText)
+
+📈 学习进展
+
+当前：㉓ 广义积与柯里化
+
+9
+连对
+93%
+正确率
+59%
+知识点覆盖
+113
+已答题
+
+学习地图：已解 17 · 探针中 37 · 待做 41 · 薄弱 1 · 代码 0/916
+
+章节进展
+
+I.1 集合、子集与集合运算（单元①–④）
+92%
+I.2 序对、关系与函数（单元⑤–⑦）
+88%
+I.3 像、原像与基数（单元⑧–⑩）
+81%
+I.8 基数与基数算术（单元⑲–⑳）
+67%
+I.9 集族、广义并交与 n 元关系（单元㉑–㉓）
+47%
+II.1 整数：从 ℕ 到 ℤ（单元①–⑲）
+0%
+
+掌握热力（单元）
+
+I.1 集合、子集与集合运算（单元①–④）
+I.2 序对、关系与函数（单元⑤–⑦）
+I.3 像、原像与基数（单元⑧–⑩）
+I.8 基数与基数算术（单元⑲–⑳）
+I.9 集族、广义并交与 n 元关系（单元㉑–㉓）
+II.1 整数：从 ℕ 到 ℤ（单元①–⑲）
+
+未接触
+刚起步
+有点感觉
+比较稳
+很熟
+
+建议关注
+
+algebra
+待复习
+and
+待复习
+⑲ 基数的比较
+掌握偏弱
+① 集合与隶属
+掌握偏弱
+最近
+
+## summary stats (rendered)
+
+连对 9 · 正确率 93% · 知识点覆盖 59% · 已答题 113

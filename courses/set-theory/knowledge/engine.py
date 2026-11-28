@@ -156,6 +156,42 @@ def params(data: dict) -> dict:
     return data["params"]
 
 
+def probe_cfg(data: dict) -> dict:
+    """快思考调度 v2 的探针参数（全部进 `params.json`，可在数据侧调）。
+
+    · `unit_probe_target`：同一单元先连续做满几题再放开换单元；
+    · `unit_continuity_bonus`：`pick` 兜底时同单元候选的召回加分；
+    · `probe_min_questions`：一个 KP 至少被探几次才可能结案/判已解。
+    """
+    cfg = params(data)
+    return {
+        "unit_probe_target": max(1, int(cfg.get("unit_probe_target", 3))),
+        "unit_continuity_bonus": max(0.0, float(cfg.get("unit_continuity_bonus", 0.35))),
+        "probe_min_questions": max(1, int(cfg.get("probe_min_questions", 3))),
+    }
+
+
+def answered_in_unit(state: dict, data: dict, chapter: str, unit: str) -> int:
+    """该单元里已作答的题数（结构计数，只看 history）。"""
+    count = 0
+    for entry in state.get("history") or []:
+        question = data["by_id"].get(entry.get("qid"))
+        if question and question.get("chapter") == chapter and question.get("unit") == unit:
+            count += 1
+    return count
+
+
+def unit_kp_ids(data: dict, chapter: str, unit: str) -> list:
+    """一个单元里出现过的知识点，按 `kp_order` 排序；未注册的 id 排在最后。"""
+    ids = set()
+    for question in data["questions"]:
+        if question.get("chapter") == chapter and question.get("unit") == unit:
+            ids.update(kp for kp in (question.get("kps") or []) if kp)
+    order = kp_order(data)
+    rank = {kp_id: index for index, kp_id in enumerate(order)}
+    return sorted(ids, key=lambda kp_id: (rank.get(kp_id, len(order)), kp_id))
+
+
 def tags_of(question: dict) -> list:
     return list(question.get("tags") or [])
 
@@ -305,6 +341,24 @@ def consecutive_wrong_tag(state: dict) -> str:
     return sorted(common)[0] if common else ""
 
 
+def unit_continuity_gain(state: dict, data: dict, question: dict) -> float:
+    """`pick` 兜底的「单元连续」加成（v2）：与上一道已作答题同单元、且该单元还没做满
+    `unit_probe_target` 时加分。探针路径优先，本加成只在 pick 兜底时生效。"""
+    history = state.get("history") or []
+    if not history:
+        return 0.0
+    last = data["by_id"].get(history[-1].get("qid"))
+    if not last:
+        return 0.0
+    chapter, unit = last.get("chapter"), last.get("unit")
+    if question.get("chapter") != chapter or question.get("unit") != unit:
+        return 0.0
+    cfg = probe_cfg(data)
+    if answered_in_unit(state, data, chapter, unit) >= cfg["unit_probe_target"]:
+        return 0.0
+    return cfg["unit_continuity_bonus"]
+
+
 def score_question(state: dict, data: dict, question: dict, due: dict, coverage: dict, last_wrong_tags: set) -> float:
     cfg = params(data)
     weights = cfg["weights"]
@@ -334,6 +388,8 @@ def score_question(state: dict, data: dict, question: dict, due: dict, coverage:
         last_q = data["by_id"].get(last.get("qid"))
         if last_q and set(tags) & set(tags_of(last_q)):
             score -= cfg.get("same_tag_streak_penalty", 0.15)
+    # 单元连续（v2）：兜底选题时优先留在当前单元，做满 target 后自动失效
+    score += unit_continuity_gain(state, data, question)
     return round(score, 6)
 
 
@@ -487,7 +543,10 @@ def calibration_question(state: dict, data: dict) -> dict:
 #        答对 → 升一级；答错 → 降一级并在同 KP 巩固；
 #        到了该 KP 的最高级还答对 → 这个 KP 结案，换下一个；
 #   3) 下一个 KP 按 `prereq` 拓扑序选（前置没结案不跳过去）；
-#   4) 每道题都带 `probe` 元数据（role / kp / level / why），给用户看得见的意图。
+#   4) 每道题都带 `probe` 元数据（role / kp / level / why），给用户看得见的意图；
+#   5) （v2，2026-11-28，issue #138）单元连续 + 三题探针：同一单元先做满
+#      `unit_probe_target` 题再换；一个 KP 至少探 `probe_min_questions` 题才结案
+#      —— 设计见 DESIGN.md §3.2b。
 # ═══════════════════════════════════════════════════════════════════════════
 
 PROBE_LEVELS = [1, 2, 3]
@@ -584,9 +643,52 @@ def probe_state(state: dict, data: dict, kp_id: str) -> dict:
 
 
 def next_probe_kp(state: dict, data: dict) -> str:
-    """下一个要探的知识点：拓扑序里第一个「还没结案、且有题」的 KP。"""
+    """下一个要探的知识点：先看「单元连续」锁定的单元，再回退到拓扑序第一个
+    「还没结案、且有题」的 KP。"""
+    unit_kp = unit_probe_kp(state, data)
+    if unit_kp:
+        return unit_kp
     probes = state.setdefault("probes", {})
     for kp_id in kp_order(data):
+        entry = probes.get(kp_id) or {}
+        if entry.get("done") is True:
+            continue
+        if not kp_questions(data, kp_id):
+            continue
+        return kp_id
+    return ""
+
+
+def unit_probe_kp(state: dict, data: dict) -> str:
+    """单元连续（v2）：上一道**已作答**题所在单元还没做满 `unit_probe_target` 题时，
+    返回该单元里下一个未结案、且有可服务题的 KP（按 `kp_order`）；否则返回 ""。
+
+    放开条件（不卡死）：做满 target；单元里没有未结案 KP；单元里没有未作答的可出题。
+    """
+    cfg = probe_cfg(data)
+    history = state.get("history") or []
+    if not history:
+        return ""
+    last = data["by_id"].get(history[-1].get("qid"))
+    if not last:
+        return ""
+    chapter, unit = last.get("chapter"), last.get("unit")
+    if chapter is None or unit is None:
+        return ""
+    if answered_in_unit(state, data, chapter, unit) >= cfg["unit_probe_target"]:
+        return ""
+    # 「单元题目不足 3 题时做满现有题即走」：本单元已没有未作答的可出题就放开。
+    answered_ids = {entry.get("qid") for entry in history}
+    recent = recent_ids(state, params(data)["recent_window"])
+    skipped = set(state.get("skipped") or [])
+    pending = [q for q in data["questions"]
+               if (q.get("chapter"), q.get("unit")) == (chapter, unit)
+               and q["id"] not in answered_ids and q["id"] not in recent
+               and q["id"] not in skipped]
+    if not pending:
+        return ""
+    probes = state.get("probes") or {}
+    for kp_id in unit_kp_ids(data, chapter, unit):
         entry = probes.get(kp_id) or {}
         if entry.get("done") is True:
             continue
@@ -603,7 +705,8 @@ def probe_question(state: dict, data: dict) -> dict:
         return None
     entry = probe_state(state, data, kp_id)
     target_level = int(entry.get("level", 2))
-    # 推断：这个 KP 最近连着答对 ≥2 题 ⇒ 判定「已经会了」，不再浪费时间
+    min_probes = probe_cfg(data)["probe_min_questions"]
+    # 推断：这个 KP 最近连着答对 ≥ probe_min_questions 题 ⇒ 判定「已经会了」，不再浪费时间
     correct_streak = 0
     for entry_hist in reversed(state.get("history", [])):
         q_hist = data["by_id"].get(entry_hist.get("qid"))
@@ -613,7 +716,7 @@ def probe_question(state: dict, data: dict) -> dict:
             correct_streak += 1
         else:
             break
-    if correct_streak >= 2:
+    if correct_streak >= min_probes:
         entry["done"] = True
         return probe_question(state, data)
 
@@ -653,7 +756,8 @@ def probe_question(state: dict, data: dict) -> dict:
         "cognitiveLabel": cognitive_label(question),
     }
     role = "diagnose" if entry.get("asked", 0) == 0 else ("practice" if entry.get("wrong", 0) > 0 else "ascend")
-    entry["asked"] = entry.get("asked", 0) + 1
+    # v2：`asked` 在**作答时**计数（probe_observe），发题时只报「这是本 KP 第几题」。
+    asked_ordinal = int(entry.get("asked", 0)) + 1
     return {
         "question": question,
         "probe": {
@@ -662,7 +766,7 @@ def probe_question(state: dict, data: dict) -> dict:
             "level": int(question.get("level", 2)),
             "targetLevel": target_level,
             "role": role,
-            "asked": entry["asked"],
+            "asked": asked_ordinal,
             "cleared": entry.get("cleared", 0),
             "continuity": continuity,
         },
@@ -670,17 +774,25 @@ def probe_question(state: dict, data: dict) -> dict:
 
 
 def probe_observe(state: dict, data: dict, question: dict, correct: bool) -> dict:
-    """把一次作答反馈给探针：升降级、结案、换下一个 KP。"""
+    """把一次作答反馈给探针：计数、升降级、结案、换下一个 KP。
+
+    v2：`asked` 在**作答时** +1（发题不再预增）；结案额外要求
+    `asked ≥ probe_min_questions`（「至少三道题做探针」，issue #138）。
+    """
     kp_ids = [kp for kp in (question.get("kps") or []) if kp]
     if not kp_ids:
         return {}
     kp_id = kp_ids[0]
     entry = probe_state(state, data, kp_id)
+    entry["asked"] = entry.get("asked", 0) + 1
     level = int(question.get("level", entry.get("level", 2)))
+    min_probes = probe_cfg(data)["probe_min_questions"]
+    enough_probes = entry["asked"] >= min_probes
     if correct:
         entry["cleared"] = entry.get("cleared", 0) + 1
-        if level >= max(PROBE_LEVELS) and entry["cleared"] >= PROBE_CLEAR_AT[3]:
-            entry["done"] = True
+        if level >= max(PROBE_LEVELS):
+            if entry["cleared"] >= PROBE_CLEAR_AT[3] and enough_probes:
+                entry["done"] = True
         elif entry["cleared"] >= PROBE_CLEAR_AT.get(level, 2):
             entry["level"] = min(max(PROBE_LEVELS), level + 1)
             entry["cleared"] = 0
@@ -688,7 +800,8 @@ def probe_observe(state: dict, data: dict, question: dict, correct: bool) -> dic
         entry["wrong"] = entry.get("wrong", 0) + 1
         entry["level"] = max(min(PROBE_LEVELS), level - 1)
         entry["cleared"] = 0
-    return {"kp": kp_id, "level": entry.get("level"), "done": entry.get("done", False)}
+    return {"kp": kp_id, "level": entry.get("level"), "done": entry.get("done", False),
+            "asked": entry["asked"]}
 
 
 def issue_question(state: dict, question: dict) -> None:
@@ -1035,22 +1148,30 @@ def mastery_snapshot(state: dict, data: dict) -> dict:
 
 
 def map_thresholds(data: dict) -> dict:
-    """学习地图的「已解/薄弱」阈值（进 params.json，可调；不在代码里写死）。
+    """学习地图的「已解/探针中/薄弱」阈值（进 params.json，可调；不在代码里写死）。
 
-    口径是**结构计数**：已解 = 做过的题里正确率达标；薄弱 = 做过但正确率不达标；
-    待做 = 有可服务题但没作答。掌握度（Elo）只用于热力图/薄弱排序，不参与三态判定。
+    口径是**结构计数**：探针中 = 作答过但不足 `min_probes` 题；已解 = 作答数 ≥ min_probes
+    且正确率达标；薄弱 = 作答数 ≥ min_probes 但正确率不达标；待做 = 有可服务题但没作答。
+    掌握度（Elo）只用于热力图/薄弱排序，不参与多态判定。
     """
     cfg = (params(data).get("map") or {}) if isinstance(params(data).get("map"), dict) else {}
-    return {"solved_accuracy_above": float(cfg.get("solved_accuracy_above", 0.6))}
+    return {
+        "solved_accuracy_above": float(cfg.get("solved_accuracy_above", 0.6)),
+        "min_probes": max(1, int(cfg.get("min_probes", 3))),
+    }
 
 
 def kp_status(state: dict, data: dict) -> dict:
-    """知识点级「已解/待做/薄弱」：结构计数，全部来自题库与作答历史。
+    """知识点级「已解/探针中/待做/薄弱」：结构计数，全部来自题库与作答历史。
 
     `todo` 只统计**有可服务题**的 KP（没有题的 KP 属于内容缺口，由 review.py 报）。
+    v2（issue #138）：作答 1～2 次的 KP 记为「探针中」，既不算已解也不算薄弱；
+    一个 KP 至少被探 `map.min_probes` 题才可能判已解/薄弱。可服务题不足 min_probes 的 KP
+    做满现有题即按正确率判（有效门槛取 min(min_probes, 可服务题数)），避免永远「探针中」。
     """
     thresholds = map_thresholds(data)
     solved_above = thresholds["solved_accuracy_above"]
+    min_probes = thresholds["min_probes"]
     rows = {}
     for kp in data.get("kps") or []:
         kp_id = kp.get("id")
@@ -1086,17 +1207,22 @@ def kp_status(state: dict, data: dict) -> dict:
     for kp_id, row in rows.items():
         asked = row["asked"]
         accuracy = round(row["correct"] / asked, 3) if asked else 0.0
-        row["total"] = servable.get(kp_id, 0)
+        total = servable.get(kp_id, 0)
+        row["total"] = total
         row["mastery"] = round(sigmoid(kp_theta.get(kp_id, 0.0)), 3) if asked > 0 else 0.0
         row["accuracy"] = accuracy
-        row["weak"] = bool(asked > 0 and accuracy < solved_above)
-        row["solved"] = bool(asked > 0 and not row["weak"])
-        row["todo"] = bool(asked == 0 and row["total"] > 0)
+        # 可服务题不足 min_probes 的 KP：做满现有题即判（否则永远卡在「探针中」）
+        effective_min = min(min_probes, total) if total > 0 else min_probes
+        row["probing"] = bool(0 < asked < effective_min)
+        row["weak"] = bool(asked >= effective_min and accuracy < solved_above)
+        row["solved"] = bool(asked >= effective_min and not row["weak"])
+        row["todo"] = bool(asked == 0 and total > 0)
     ordered = [rows[kp_id] for kp_id in sorted(rows, key=lambda item: (rows[item]["chapter"], item))]
     with_questions = sum(1 for row in ordered if row["total"] > 0)
     solved_count = sum(1 for row in ordered if row["solved"])
     weak_count = sum(1 for row in ordered if row["weak"])
-    covered = solved_count + weak_count
+    probing_count = sum(1 for row in ordered if row["probing"])
+    covered = solved_count + weak_count + probing_count
     summary = {
         "total": len(ordered),
         "withQuestions": with_questions,
@@ -1104,6 +1230,7 @@ def kp_status(state: dict, data: dict) -> dict:
         "coverage": round(covered / with_questions, 3) if with_questions else 0.0,
         "contentGaps": len(ordered) - with_questions,
         "solved": solved_count,
+        "probing": probing_count,
         "weak": weak_count,
         "todo": sum(1 for row in ordered if row["todo"]),
     }
@@ -1637,7 +1764,7 @@ def map_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
         else:
             status = "刚起步"
             mark = "◔"
-        unit_counts = {"solved": 0, "weak": 0, "todo": 0}
+        unit_counts = {"solved": 0, "probing": 0, "weak": 0, "todo": 0}
         for kp_id in unit_kps:
             row = kp_rows.get(kp_id)
             if row is None:
@@ -1653,6 +1780,7 @@ def map_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
             "current": (chapter, unit) == current_unit,
             "kpsTotal": len(unit_kps),
             "kpsSolved": unit_counts["solved"],
+            "kpsProbing": unit_counts["probing"],
             "kpsWeak": unit_counts["weak"],
             "kpsTodo": unit_counts["todo"],
             "codeSolved": (code_by_chapter.get(chapter) or {}).get("solved", 0),
@@ -1660,7 +1788,7 @@ def map_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
         })
         chapter_row = chapter_rows.setdefault(chapter, {
             "chapter": chapter, "units": 0, "unitDone": 0,
-            "kpsTotal": 0, "kpsSolved": 0, "kpsWeak": 0, "kpsTodo": 0,
+            "kpsTotal": 0, "kpsSolved": 0, "kpsProbing": 0, "kpsWeak": 0, "kpsTodo": 0,
             "kpsNoQuestions": 0,
         })
         chapter_row["units"] += 1
@@ -1675,7 +1803,7 @@ def map_snapshot(state: dict, data: dict, course: str = "set-theory") -> dict:
                 chapter_row["kpsNoQuestions"] += 1
                 continue
             chapter_row["kpsTotal"] += 1
-            for key in ("solved", "weak", "todo"):
+            for key in ("solved", "probing", "weak", "todo"):
                 if row.get(key):
                     chapter_row["kps" + key[0].upper() + key[1:]] += 1
         code_row = code_by_chapter.get(chapter) or {}
@@ -1712,8 +1840,8 @@ def format_map(snapshot: dict, data: dict) -> list:
     kps = snapshot.get("kps") or {}
     lines.append("🗺️ 学习地图 · 共 %d 个单元，稳了 %d 个" % (
         snapshot.get("unitTotal", 0), snapshot.get("unitDone", 0)))
-    lines.append("知识点：已解 %d · 待做 %d · 薄弱 %d（共 %d，%d 个已有题）" % (
-        kps.get("solved", 0), kps.get("todo", 0), kps.get("weak", 0),
+    lines.append("知识点：已解 %d · 探针中 %d · 待做 %d · 薄弱 %d（共 %d，%d 个已有题）" % (
+        kps.get("solved", 0), kps.get("probing", 0), kps.get("todo", 0), kps.get("weak", 0),
         kps.get("total", 0), kps.get("withQuestions", 0)))
     for chapter in sorted(by_chapter):
         rows = by_chapter[chapter]
@@ -1726,8 +1854,9 @@ def format_map(snapshot: dict, data: dict) -> list:
         extra = chapter_rows.get(chapter) or {}
         parts = ["%d/%d 单元稳" % (sum(1 for row in rows if row["status"] == "稳"), len(rows))]
         if extra:
-            parts.append("已解 %d · 待做 %d · 薄弱 %d" % (
-                extra.get("kpsSolved", 0), extra.get("kpsTodo", 0), extra.get("kpsWeak", 0)))
+            parts.append("已解 %d · 探针中 %d · 待做 %d · 薄弱 %d" % (
+                extra.get("kpsSolved", 0), extra.get("kpsProbing", 0),
+                extra.get("kpsTodo", 0), extra.get("kpsWeak", 0)))
             if extra.get("codeTotal", 0) > 0:
                 parts.append("代码 %d/%d" % (extra.get("codeSolved", 0), extra.get("codeTotal", 0)))
         lines.append("%s  %s   （%s）" % (chapter, " ".join(marks), " · ".join(parts)))
@@ -2173,6 +2302,10 @@ def cmd_selftest(data: dict) -> int:
             apply_answer(map_state, data, correct_q, int(correct_q["answer"]), elapsed_ms=1500)
             wrong_pick = 1 if int(wrong_q["answer"]) != 1 else 2
             apply_answer(map_state, data, wrong_q, wrong_pick, elapsed_ms=2500)
+            # v2（#138）：一个 KP 至少探 3 题才判已解/薄弱 —— 同一题各再答 2 次（不计时）凑满门槛
+            for _ in range(2):
+                apply_answer(map_state, data, correct_q, int(correct_q["answer"]))
+                apply_answer(map_state, data, wrong_q, wrong_pick)
             code_bank = data.get("code_exercises") or []
             if code_bank:
                 map_state.setdefault("code_done", {})[code_bank[0]["id"]] = True
@@ -2181,7 +2314,8 @@ def cmd_selftest(data: dict) -> int:
             check("map-kp-buckets", snapshot["kps"]["solved"] >= 1 and snapshot["kps"]["weak"] >= 1,
                   str(snapshot["kps"]))
             check("map-text-buckets",
-                  any("已解" in line and "待做" in line and "薄弱" in line for line in format_map(snapshot, data)),
+                  any("已解" in line and "探针中" in line and "待做" in line and "薄弱" in line
+                      for line in format_map(snapshot, data)),
                   str(format_map(snapshot, data)[:2]))
             check("map-code-other-course",
                   not code_bank or snapshot["code"]["otherCourse"]["solved"] == 1,
@@ -2189,7 +2323,7 @@ def cmd_selftest(data: dict) -> int:
             metrics = metrics_snapshot(map_state, data)
             check("metrics-timing", metrics["timing"]["timed"] == 2
                   and metrics["timing"]["medianMs"] == 2000, str(metrics["timing"]))
-            check("metrics-by-level", sum(row["asked"] for row in metrics["byLevel"].values()) == 2,
+            check("metrics-by-level", sum(row["asked"] for row in metrics["byLevel"].values()) == 6,
                   str(metrics["byLevel"]))
             check("metrics-kp-code", metrics["kp"]["solved"] >= 1
                   and (not code_bank or metrics["code"]["solved"] >= 1),
@@ -2222,6 +2356,83 @@ def cmd_selftest(data: dict) -> int:
                       isinstance(entry.get("elapsed_ms"), int) and entry["elapsed_ms"] > 0
                       and timing_state.get("issued_at") is None,
                       str(entry.get("elapsed_ms")))
+
+        # 18) 调度 v2（#138）：一个 KP 至少探 probe_min_questions 题才可能结案
+        gate_q = next(q for q in data["questions"]
+                      if int(q.get("level", 2)) >= 3 and (q.get("kps") or []))
+        gate_kp = gate_q["kps"][0]
+        gate_state = new_state()
+        gate_asked, gate_done = [], []
+        for _ in range(3):
+            probe_observe(gate_state, data, gate_q, True)
+            gate_entry = probe_state(gate_state, data, gate_kp)
+            gate_asked.append(gate_entry["asked"])
+            gate_done.append(gate_entry.get("done") is True)
+        check("probe-min-questions",
+              gate_asked == [1, 2, 3] and gate_done == [False, False, True],
+              str((gate_asked, gate_done)))
+
+        # 19) 调度 v2：作答 1 题 = 探针中（不算已解/薄弱）；探满 3 题对 = 已解
+        bucket_kp, bucket_qs = None, []
+        for kp_id in kp_order(data):
+            questions = kp_questions(data, kp_id)
+            if len(questions) >= 3:
+                bucket_kp, bucket_qs = kp_id, questions[:3]
+                break
+        bucket_state = new_state()
+        _apply_auto(bucket_state, data, bucket_qs[0], True)
+        bucket_rows = {row["id"]: row for row in kp_status(bucket_state, data)["kps"]}
+        bucket_first = bucket_rows[bucket_kp]
+        first_bucket = (bucket_first["probing"], bucket_first["solved"], bucket_first["weak"])
+        for question in bucket_qs[1:]:
+            _apply_auto(bucket_state, data, question, True)
+        bucket_rows = {row["id"]: row for row in kp_status(bucket_state, data)["kps"]}
+        bucket_after = bucket_rows[bucket_kp]
+        last_bucket = (bucket_after["probing"], bucket_after["solved"], bucket_after["asked"])
+        check("kp-min-probes",
+              first_bucket == (True, False, False) and last_bucket[0] is False
+              and last_bucket[1] is True and last_bucket[2] >= 3,
+              str((bucket_kp, first_bucket, last_bucket)))
+
+        # 20) 调度 v2：单元连续 —— 同单元答 1 题后 unit_probe_kp 锁定该单元，做满 3 题放开
+        unit_questions = {}
+        for question in data["questions"]:
+            unit_questions.setdefault((question.get("chapter"), question.get("unit")), []).append(question)
+        continuity_key, continuity_qs = None, []
+        for key, questions in unit_questions.items():
+            servable = [kp for kp in unit_kp_ids(data, key[0], key[1]) if kp_questions(data, kp)]
+            with_kps = [q for q in questions if q.get("kps")]
+            if servable and len(with_kps) >= 3:
+                continuity_key, continuity_qs = key, with_kps[:3]
+                break
+        continuity_state = new_state()
+        _apply_auto(continuity_state, data, continuity_qs[0], True)
+        locked_kp = unit_probe_kp(continuity_state, data)
+        locked_ok = locked_kp != "" and locked_kp in set(unit_kp_ids(data, *continuity_key))
+        for question in continuity_qs[1:]:
+            _apply_auto(continuity_state, data, question, True)
+        released = unit_probe_kp(continuity_state, data) == ""
+        check("probe-unit-continuity", locked_ok and released,
+              str((continuity_key, locked_kp, released)))
+
+        # 21) 调度 v2：unit_continuity_gain 同单元 >0、异单元 0、做满 3 题后 0
+        gain_key, gain_first, gain_candidate = None, None, None
+        for key, questions in unit_questions.items():
+            if len(questions) >= 3:
+                gain_key, gain_first, gain_candidate = key, questions[0], questions[1]
+                break
+        other_question = next(q for q in data["questions"]
+                              if (q.get("chapter"), q.get("unit")) != gain_key)
+        gain_state = new_state()
+        _apply_auto(gain_state, data, gain_first, True)
+        same_gain = unit_continuity_gain(gain_state, data, gain_candidate)
+        other_gain = unit_continuity_gain(gain_state, data, other_question)
+        for question in [q for q in unit_questions[gain_key] if q["id"] != gain_first["id"]][:2]:
+            _apply_auto(gain_state, data, question, True)
+        gain_after = unit_continuity_gain(gain_state, data, gain_candidate)
+        check("unit-continuity",
+              same_gain > 0 and other_gain == 0 and gain_after == 0,
+              str((gain_key, same_gain, other_gain, gain_after)))
 
         del cfg
 

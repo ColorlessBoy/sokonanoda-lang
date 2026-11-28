@@ -1,0 +1,78 @@
+# AFTER (merged tree) — 学习地图 text fallback
+
+after_worktree: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726 (branch agent/quiz-sched-v2-80289adfe726)
+merge_state: merge of 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 into 8c75fca1631d235fbeed4106b68778a32cb05f6b is IN PROGRESS / uncommitted (STATUS.md conflict resolved as UU; plugin files auto-merged)
+merge_parents: 8c75fca1631d235fbeed4106b68778a32cb05f6b (HEAD) + 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8 (MERGE_HEAD == origin/main == 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8)
+after_HEAD: 8c75fca1631d235fbeed4106b68778a32cb05f6b
+origin/main: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+MERGE_HEAD: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+git_status_short: UU STATUS.md|M  dsh/plugins/sokonanoda-dsh/client.js|M  dsh/plugins/sokonanoda-dsh/docs/quiz-core.md|M  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs|M  dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs|M  dsh/plugins/sokonanoda-dsh/test/host.test.mjs|A  reports/2026-11-28-knowledge-card-sections/README.md|A  reports/2026-11-28-knowledge-card-sections/after-card.png|A  reports/2026-11-28-knowledge-card-sections/after-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-scrolled.png|A  reports/2026-11-28-knowledge-card-sections/after-table-card.png|A  reports/2026-11-28-knowledge-card-sections/after-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-card.png|A  reports/2026-11-28-knowledge-card-sections/before-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-table-card.png|A  reports/2026-11-28-knowledge-card-sections/before-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-verify.json| M reports/2026-11-28-quiz-sched-v2/after-progress.png| M reports/2026-11-28-quiz-sched-v2/before-progress.png|
+runtime_file_sha256 (after merged tree):
+  courses/set-theory/knowledge/engine.py = 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
+  courses/set-theory/knowledge/data/params.json = 721dd6daa71ed02271c1c2e3b814208edf96c15838104441cbe27ed3fd5e024a
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs = 3ecc206b20f6463f68a8fb1fb03476e75dcfafc1df7fc008b87b9825762976c4
+  dsh/plugins/sokonanoda-dsh/client.js = 76524f4284f83eec83af4c4160abcde6562fb108bb7e5c25f09bd511f0ca2a65
+state_file: /tmp/qsv2/after-data/quiz/default.json
+state_sha256: f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+state_note: fresh copy of the SAME pristine seed /tmp/qsv2/seed/default.json (sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2); identical starting state as BEFORE
+command: cd $TICKET && python3 $TICKET/courses/set-theory/knowledge/engine.py map --state /tmp/qsv2/after-data/quiz/default.json
+
+## engine.py map — lines (full text)
+
+🗺️ 学习地图 · 共 39 个单元，稳了 0 个
+知识点：已解 17 · 探针中 37 · 待做 41 · 薄弱 1（共 195，96 个已有题）
+I.1  ◐ ◐ ◐ ◐   （0/4 单元稳 · 已解 8 · 探针中 8 · 待做 0 · 薄弱 1 · 代码 0/115）
+I.2  ◐ ◐ ◐   （0/3 单元稳 · 已解 6 · 探针中 14 · 待做 0 · 薄弱 0 · 代码 0/33）
+I.3  ◐ ◐ ◐ · ◐ ◐ · ·   （0/8 单元稳 · 已解 3 · 探针中 11 · 待做 1 · 薄弱 0 · 代码 0/123）
+I.8  ◐ ◐ ◐   （0/3 单元稳 · 已解 0 · 探针中 3 · 待做 1 · 薄弱 0 · 代码 0/36）
+I.9  · ▶·   （0/2 单元稳 · 已解 0 · 探针中 0 · 待做 4 · 薄弱 0 · 代码 0/30）
+II.1  · · · · · · · · · · · · · · · · · · ·   （0/19 单元稳 · 已解 0 · 探针中 0 · 待做 34 · 薄弱 0）
+薄弱知识点：kp.i1.subset 子集定义与展开（⊆ 是一条箭头）（正确率 33%，错 2）
+代码题：已解 0 / 共 916
+
+图例：✅ 稳　◐ 在学　◔ 刚起步　· 未碰　▶ 当前
+你现在在：I.9 ㉓ 广义积与柯里化（本单元已答 0 题，接触 0/10 个知识点）
+
+## kps summary JSON
+
+{
+  "total": 195,
+  "withQuestions": 96,
+  "covered": 55,
+  "coverage": 0.573,
+  "contentGaps": 99,
+  "solved": 17,
+  "probing": 37,
+  "weak": 1,
+  "todo": 41
+}
+
+## thresholds (map) JSON
+
+{"solved_accuracy_above": 0.6, "min_probes": 3}
+
+## code summary JSON
+
+{
+  "solved": 0,
+  "skipped": 0,
+  "total": 916,
+  "course": "set-theory",
+  "otherCourse": {
+    "solved": 0,
+    "skipped": 0
+  }
+}
+
+## weakKps JSON
+
+[
+  {
+    "id": "kp.i1.subset",
+    "title": "子集定义与展开（⊆ 是一条箭头）",
+    "chapter": "I.1",
+    "mastery": 0.444,
+    "accuracy": 0.333,
+    "wrong": 2
+  }
+]

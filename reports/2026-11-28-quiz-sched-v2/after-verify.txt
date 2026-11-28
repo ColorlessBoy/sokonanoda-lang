@@ -1,0 +1,57 @@
+# AFTER — verification (invariants + provenance) — refreshed against new base
+
+## 1. provenance (new base)
+baseline_commit (BEFORE side): 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+baseline_detail: Merge pull request #141 from ColorlessBoy/agent/knowledge-card-fix-1445bbc28f98; contains 3a451a52 "fix(dsh): 知识卡按 sections 完整渲染（#139）"
+after_worktree: /Users/penglingwei/.dsh/state/superagent/work/quiz-sched-v2-80289adfe726 (branch agent/quiz-sched-v2-80289adfe726)
+merge_state: UNCOMMITTED merge in progress — STATUS.md conflict resolved as UU; plugin files auto-merged; progress-card 探针中 change preserved
+merge_parents: HEAD 8c75fca1631d235fbeed4106b68778a32cb05f6b + MERGE_HEAD 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+origin/main: 20db8dbe3e6c7bf7be3b575275cac9d83407b6e8
+git_status_short: UU STATUS.md|M  dsh/plugins/sokonanoda-dsh/client.js|M  dsh/plugins/sokonanoda-dsh/docs/quiz-core.md|M  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs|M  dsh/plugins/sokonanoda-dsh/test/client.smoke.cjs|M  dsh/plugins/sokonanoda-dsh/test/host.test.mjs|A  reports/2026-11-28-knowledge-card-sections/README.md|A  reports/2026-11-28-knowledge-card-sections/after-card.png|A  reports/2026-11-28-knowledge-card-sections/after-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/after-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-scrolled.png|A  reports/2026-11-28-knowledge-card-sections/after-table-card.png|A  reports/2026-11-28-knowledge-card-sections/after-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/after-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-card.png|A  reports/2026-11-28-knowledge-card-sections/before-knowledge.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-card.png|A  reports/2026-11-28-knowledge-card-sections/before-paragraph-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-table-card.png|A  reports/2026-11-28-knowledge-card-sections/before-table-verify.json|A  reports/2026-11-28-knowledge-card-sections/before-verify.json| M reports/2026-11-28-quiz-sched-v2/after-progress.png| M reports/2026-11-28-quiz-sched-v2/before-progress.png|
+runtime_file_sha256 (BEFORE at baseline vs AFTER merged tree):
+  courses/set-theory/knowledge/engine.py: before 73ab8a01b819d569a0be8e0a301ebe695752c7ce7907e06efc4d73ce1a8b0e95 | after 4d4c459b151530e203794805e6fdf805b9230b40bb8d8e92ede10b3fecb3847c
+  courses/set-theory/knowledge/data/params.json: before f40084e95f53650f7d5de2f2f3d8d75315459efcb4a16d40b3a637d9cf11e5ed | after 721dd6daa71ed02271c1c2e3b814208edf96c15838104441cbe27ed3fd5e024a
+  dsh/plugins/sokonanoda-dsh/lib/quiz-proxy.mjs: before 279f05bd4792930a1a9c8a25a957a615608763d6df305692ce82edb243be4ad9 | after 3ecc206b20f6463f68a8fb1fb03476e75dcfafc1df7fc008b87b9825762976c4
+  dsh/plugins/sokonanoda-dsh/client.js: before bd8c052226a48fbafcd1c7235754844a614cca0bdcb3ea8b26786f142b4e40d2 | after 76524f4284f83eec83af4c4160abcde6562fb108bb7e5c25f09bd511f0ca2a65
+  note: quiz-proxy.mjs / client.js differ from the previous capture because #139 landed in the new base; the progress-card 探针中 path is intact (line below).
+
+## 2. seeded state untouched
+pristine seed: /tmp/qsv2/seed/default.json sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+before-data/quiz/default.json AFTER capture: sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+after-data/quiz/default.json  AFTER capture: sha256 f90f2a078eb6a344b44f03e3f4886ddf342f455c9a7f8f49c17fa3032fddc6b2
+unchanged: YES (both sides identical to the seed)
+flow: /sokonanoda-fast-think on then 进度 only (read-only map snapshot); no question answered on either side.
+
+## 3. exact 学习地图 lines
+BEFORE (baseline 20db8dbe): 学习地图：已解 54 · 待做 41 · 薄弱 1 · 代码 0/916
+AFTER  (merged tree)  : 学习地图：已解 17 · 探针中 37 · 待做 41 · 薄弱 1 · 代码 0/916
+
+## 4. kps summary JSON before -> after
+BEFORE: {"total": 195, "withQuestions": 96, "covered": 55, "coverage": 0.573, "contentGaps": 99, "solved": 54, "weak": 1, "todo": 41}
+AFTER : {"total": 195, "withQuestions": 96, "covered": 55, "coverage": 0.573, "contentGaps": 99, "solved": 17, "probing": 37, "weak": 1, "todo": 41}
+relation: before solved 54 == after solved 17 + after probing 37 = 54
+unchanged: total 195, withQuestions 96, covered 55, coverage 0.573, contentGaps 99, todo 41, weak 1 (same reclassification as the previous capture; actual values reported above)
+
+## 5. per-KP rows — source and invariants (merged engine)
+rows_source: engine.kp_status(state, data)["kps"] — the per-KP rows that map_snapshot()/format_map() aggregate (the `map` CLI JSON serializes only the kps summary + unit/chapter aggregates, not individual KP rows).
+rows_total: 195  (min_probes from merged params.json map = 3)
+flag_counts: solved=17 probing=37 weak=1 todo=41 no_questions(total==0)=99
+partition_check: 17+37+1+41+99 = 195 (rows_total 195)
+covered_check: kps.covered=55 == solved+probing+weak = 55
+summary_matches_rows: 17/37/1/41 vs recomputed 17/37/1/41 -> PASS
+
+A) no solved row has asked < 3: solved_rows=17, violations=1
+   VIOLATION: kp.i1.univ (asked=2, correct=2, total=2, accuracy=1.0)
+   note: params.json map.note allows KPs with total < min_probes to be judged once all servable questions are asked (effective_min = min(min_probes, total)); strengthened A') no solved row has asked < min(3, total): violations=0 -> PASS
+B) probing rows are exactly 0 < asked < 3: probing_rows=37, violations=0 (asked values seen: [1, 2]) -> PASS
+   converse (0<asked<3 => probing): rows_with_0<asked<3=38, non-probing exceptions=1
+   EXCEPTION: kp.i1.univ (asked=2, correct=2, total=2, accuracy=1.0) (explained by the same effective_min escape clause)
+
+## 6. capture parity
+BEFORE: 20db8dbe baseline worktree, fresh DSH_HOME/SOKO_DSH_DATA, port 3987, Chrome 9334
+AFTER : merged ticket tree (HEAD 8c75fca1 + MERGE_HEAD 20db8dbe), fresh DSH_HOME/SOKO_DSH_DATA, port 3988, Chrome 9335
+scenario (both): new session -> composer "/sokonanoda-fast-think on" (wait ~2s) -> composer "进度" -> wait .dslc-map 学习地图 -> scroll card to center -> blur active element -> captureScreenshot
+viewport/theme (both): 1280x813, deviceScaleFactor 1, mobile false; default light theme; zh UI; same pristine seed sha256
+before-progress.png: 1280x813, 119675 bytes, sha256 f850e41846c42dea18ab9d3708ee9b6f8f43ad058a05c3e01373b38ec5884329
+after-progress.png : 1280x813, 120465 bytes, sha256 dea96ab4fe2d2c32199d96052a8a173d7712c1c28c06995115961661aa994812
+parity: apples-to-apples YES (identical viewport/theme/flow/state; focus normalized identically before capture; only revision differs).
