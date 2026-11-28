@@ -1,8 +1,8 @@
 {
   "schema": "soko.choice-bank/1",
   "title": "卷 I–III 选择题题库（集合论 / 分析）",
-  "version": 35,
-  "updated": "2026-11-27",
+  "version": 36,
+  "updated": "2026-11-28",
   "policy": "每题的 answer 必须能由课程源（Standard Library 或单元原文）核验；source 给出可复查的出处。题目按 chapter/unit/level 抽用；kps 引用 data/knowledge-points.json 的知识点，一道题可挂多个（≥2 个算综合题），禁止凭印象改答案。",
   "chapters": {
     "I.1": "集合、子集与集合运算（单元①–④）",
@@ -3436,7 +3436,7 @@
         "`A \\ B = ∅ → A ⊆ B`"
       ],
       "answer": 4,
-      "why": "它是经典等价：给 `x ∈ A` 要证 `x ∈ B`，否定支 `¬ (x ∈ B)` 会造出 `x ∈ A \\ B` 与空集矛盾——分情况要靠排中律/双重否定消去；`subset_of_sdiff_empty` 用 `Classical.byContradiction` 证。",
+      "why": "这一条是经典等价：给 `x ∈ A` 要证 `x ∈ B`，否定支 `¬ (x ∈ B)` 会造出 `x ∈ A \\ B` 与空集矛盾。分情况要靠排中律或双重否定消去；`subset_of_sdiff_empty` 用 `Classical.byContradiction` 证。",
       "source": "units/I.1/unit104-classical.sokonanoda:59",
       "kps": [
         "kp.i1.classical"
@@ -5876,7 +5876,7 @@
         "装配双射那步要「全 + 单值」的关系**取出成函数**（Type 层），这要 `choice`；标准 CB 数学上不需要选择，本课零公理版本还缺 G-6 一族"
       ],
       "answer": 4,
-      "why": "单元112 的三段造法以关系版图收尾：关系是全且单值的，但它的函数形式要 `choice` 取出（文件头如实标注这是偏离）；零公理版本要 `Exists`→`Type` 的安全消去，仍 open。",
+      "why": "单元112 的三段造法以关系版图收尾：关系是全且单值的，但它的函数形式要 `choice` 取出（文件头如实标注这是偏离）。零公理版本要 `Exists`→`Type` 的安全消去，仍 open。",
       "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:245 + lib/Choice.sokonanoda:46",
       "kps": [
         "kp.i3.cb"
@@ -7190,7 +7190,7 @@
         "卡在等式的对称性：`f (g y) = y` 不能反向使用"
       ],
       "answer": 2,
-      "why": "满射给的是 `∀ y, ∃ x, f x = y`，是逐点存在；要得到一条函数 `g` 同时为每个 `y` 选出一个原像，就必须把「逐点存在」打包成「存在一条函数」——这正是选择公理做的事。所以在本课的 I.2（选择公理尚未引入）这一步越界，无法证出。",
+      "why": "满射给的是 `∀ y, ∃ x, f x = y`，是逐点存在。要得到一条函数 `g` 同时为每个 `y` 选出一个原像，就必须把「逐点存在」打包成「存在一条函数」。这正是选择公理做的事，所以在本课的 I.2（选择公理尚未引入）这一步越界，无法证出。",
       "source": "lib/Choice.sokonanoda:38 axiom choice · units/I.2/unit07-functions.sokonanoda:52",
       "kps": [
         "kp.i2.fun.boundary"
@@ -8898,7 +8898,7 @@
         "`∀ a b, r a b → f a = f b`。"
       ],
       "answer": 4,
-      "why": "这正是良定义性义务：相关的代表元必须给出同一个函数值，否则下降后的结果不是函数。`∀ a, r a a` 是关系的自反性，第三条把蕴含方向写反了，第四条是代表元存在性，`Quot.lift` 都不要求。",
+      "why": "题干描述的是良定义性义务：相关的代表元必须给出同一个函数值，否则下降后的结果不是函数。`∀ a, r a a` 是关系的自反性；第三条把蕴含方向写反了，第四条是代表元存在性，`Quot.lift` 都不要求。",
       "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:46",
       "difficulty": 0,
       "variants": [],
@@ -9983,7 +9983,7 @@
         "都要先证明 `intRel` 是等价关系。"
       ],
       "answer": 2,
-      "why": "这三条都是代表元层的定义性等式：把 `addRep`、`negRep`、`subRep` 展开后，目标两边逐字相同，`Eq.refl` 即可。它们还不在商上，不需要 `Quot.sound`；也不涉及递归或等价关系的证明。",
+      "why": "三条都是代表元层的定义性等式：把 `addRep`、`negRep`、`subRep` 展开后，目标两边逐字相同；`Eq.refl` 即可。它们还不在商上，不需要 `Quot.sound`；也不涉及递归或等价关系的证明。",
       "source": "courses/analysis/units/II.1/unit04-int-reps.sokonanoda:44",
       "difficulty": -1.5,
       "variants": [],
@@ -11074,7 +11074,7 @@
         "乘积有交叉项，要分别搬 `c` 与 `d`。"
       ],
       "answer": 4,
-      "why": "`addRep` 只把两个对应分量相加；`mulRep` 的两个分量各含两项乘积，换代表元时要同时搬 `a,b` 与 `c,d` 两组交叉项，所以先用 `mul_shift_c` 处理 c，再处理 d，最后用 `add_shift`/`add_comm` 重排。乘法结合律在 ℕ 上成立；带参数的乘法公式当然可证；交换律不是良定义性的前提。",
+      "why": "`addRep` 只把两个对应分量相加；`mulRep` 的两个分量各含两项乘积，换代表元时要同时搬 `a,b` 与 `c,d` 两组交叉项。所以先用 `mul_shift_c` 处理 c，再处理 d。最后用 `add_shift`/`add_comm` 重排。乘法结合律在 ℕ 上成立；带参数的乘法公式当然可证；交换律不是良定义性的前提。",
       "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:174",
       "difficulty": 1.5,
       "variants": [],
@@ -11305,7 +11305,7 @@
         "因为 `a` 与 `b` 是固定参数，对它们归纳会改变 h 的类型。"
       ],
       "answer": 1,
-      "why": "目标是把同一个 k 加到不等式两边；k 是唯一的变元，k=0 时 `a+0`、`b+0` 定义性等于 a、b，正好是 `h`；k=succ n 时两边各露一层 succ，用 `leNat_succ_succ` 接上归纳假设。a、b 固定；`LeNat` 本身不对加法递归；对 h 归纳也是一条可行路线，但这条证明选的是对 k 归纳。",
+      "why": "目标是把同一个 k 加到不等式两边；k 是唯一的变元。k=0 时 `a+0` 与 `b+0` 定义性等于 a、b，正好是 `h`。k=succ n 时两边各露一层 succ，用 `leNat_succ_succ` 接上归纳假设。a、b 固定；`LeNat` 本身不对加法递归；对 h 归纳也是一条可行路线，但这条证明选的是对 k 归纳。",
       "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:56",
       "difficulty": 1.5,
       "variants": [],
@@ -11925,7 +11925,7 @@
         "对乘积本身归纳，没有别的参数。"
       ],
       "answer": 1,
-      "why": "`myMul` 对第二个参数递归，交换律的归纳也落在 `b` 上：`b=0` 时 `myMul a 0` 与 `myMul 0 a` 都归约成 0；`b=succ n` 时把左边展开成 `a + myMul a n`，用归纳假设换成 `a + myMul n a`，再用 `add_comm` 与 `succ_mul` 的对称收口。对 a 归纳时递归规则不配合；乘积不是归纳对象；`myMul_succ` 是定理不是参数。",
+      "why": "`myMul` 对第二个参数递归，交换律的归纳也落在 `b` 上。`b=0` 时 `myMul a 0` 与 `myMul 0 a` 都归约成 0。`b=succ n` 时把左边展开成 `a + myMul a n`。用归纳假设换成 `a + myMul n a`，再用 `add_comm` 与 `succ_mul` 的对称收口。对 a 归纳时递归规则不配合；乘积不是归纳对象；`myMul_succ` 是定理不是参数。",
       "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170",
       "difficulty": 0,
       "variants": [],

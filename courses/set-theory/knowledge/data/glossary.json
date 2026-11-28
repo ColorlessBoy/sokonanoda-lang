@@ -1,7 +1,7 @@
 {
   "schema": "soko.glossary/1",
-  "version": 11,
-  "updated": "2026-11-26",
+  "version": 12,
+  "updated": "2026-11-28",
   "entries": [
     {
       "id": "type",
@@ -111,7 +111,7 @@
       "id": "issuccof",
       "term": "IsSuccOf",
       "kind": "definition",
-      "oneLiner": "x 是 y 的后继序数：x 是序数，且 x 的元素 = y 的元素 + y 自己（即 x = y ∪ {y}）。",
+      "oneLiner": "x 是 y 的后继序数，要求 x 是序数。此时 x 的元素 = y 的元素再加上 y 自己，即 `x = y ∪ {y}`。",
       "code": "-- IsSuccOf E x y := IsOrdinal E x ∧ ∀ z, E z x ↔ (E z y ∨ z = y)",
       "source": "lib/Ordinal.sokonanoda:55"
     },
@@ -175,7 +175,7 @@
       "id": "notation-s-t",
       "term": "`s ×ˢ t`",
       "kind": "notation",
-      "oneLiner": "笛卡尔积：`p ∈ s ×ˢ t ↔ fst p ∈ s ∧ snd p ∈ t`。",
+      "oneLiner": "笛卡尔积的成员是「两个坐标都在」的对：`p ∈ s ×ˢ t` 当且仅当 `fst p ∈ s ∧ snd p ∈ t`。",
       "code": "",
       "source": "lib/Prod.sokonanoda:74"
     },
@@ -239,7 +239,7 @@
       "id": "choice-axiom",
       "term": "选择公理（Axiom of Choice）",
       "kind": "concept",
-      "oneLiner": "若有 ∀x∈A, ∃y∈B, P x y，则存在一条函数 f 为每个 x 选出一个 y——这条「打包」本身需要公理；本课 I.7 才引入，之前只能写数据版。",
+      "oneLiner": "若有 `∀ x∈A, ∃ y∈B, P x y`，则存在一条函数 f 为每个 x 选出一个 y。这条「打包」本身需要公理；本课 I.7 才引入，之前只能写数据版。",
       "code": "axiom choice : (∀ x ∈ A, ∃ y ∈ B, P x y) → ∃ f, ∀ x ∈ A, P x (f x)",
       "source": "lib/Choice.sokonanoda:38"
     },
@@ -247,7 +247,7 @@
       "id": "le-on",
       "term": "LeOn（势比较 · 点名前缀）",
       "kind": "concept",
-      "oneLiner": "`LeOn α β A B` 与库里的 `A ≼ B`（即 `Set.Le`）是**同一个定义**：存在一个在 `A` 上单射、并把 `A` 送进 `B` 的函数；单元里用点名前缀写明 `α β`，库里用 `≼` 记法。",
+      "oneLiner": "`LeOn α β A B` 与库里的 `A ≼ B`（即 `Set.Le`）是**同一个定义**。它要求存在一个在 `A` 上单射、并把 `A` 送进 `B` 的函数。单元里用点名前缀写明 `α β`，库里用 `≼` 记法。",
       "code": "def LeOn (α β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B",
       "source": "units/I.3/unit97-equiv-le.sokonanoda:28 = lib/Equiv.sokonanoda:169 Set.Le"
     },
@@ -263,7 +263,7 @@
       "id": "int-quotient",
       "term": "Int",
       "kind": "definition",
-      "oneLiner": "整数类型，定义为 `ℕ × ℕ` 按 `intRel` 作商得到的商。",
+      "oneLiner": "整数类型就是把 `ℕ × ℕ` 按 `intRel` 作商得到的商，用白话说就是「一对自然数的差」。",
       "code": "-- def Int : Type := @Quot.{1} (Prod Nat Nat) intRel",
       "source": "courses/analysis/units/II.1/unit01-int-quotient.sokonanoda:16"
     },
