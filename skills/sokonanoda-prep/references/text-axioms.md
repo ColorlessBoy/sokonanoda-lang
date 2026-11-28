@@ -1,11 +1,11 @@
 # 文本公理（教学表达底线）
 
 > 判据一句话：**好表达 = 更多人能理解 × 更少时间能理解。**
-> 十条公理是底线；可机检的部分由 `courses/set-theory/knowledge/text_lint.py` 判，
+> 十三条公理是底线；可机检的部分由 `courses/set-theory/knowledge/text_lint.py` 判，
 > X2/X9/X10 用 `--review` 出**待人工勾选**清单。本文件是公理与判据的唯一说明；
 > 脚本的误报治理、基线机制与用法都在这里。
 
-## 1. 十条公理
+## 1. 十三条公理
 
 - **X1 完整**：每个表达单元是一个完整句，能判断真假；正文不以名词短语收尾。
 - **X2 一事一段**：一段只讲一件事；首句是主题句，末句给结论或下一步。
@@ -19,8 +19,16 @@
 - **X8 故事四要素**：人物、时间、冲突、结果；四缺二即不合格（缺一提示）。
 - **X9 可检验**：每页结论能被读者用一句话复述，或用一个例子检验。
 - **X10 不跳过推理**：不用"显然/很容易看出"代替论证。
+- **X11 自造术语 = error**：不用「落点/原序对/全称命题」这类自造词代替规则或
+  表达式本身（学习者不知道它指哪条规则）；词表可配置在 `text-lint-terms.json`，
+  题目 prompt/why/options 命中即判红，必须清零。
+- **X12 隐喻克制 = warning**：不用「搬运/拆开/装回/接起来/外壳」这类隐喻代替
+  代码或命名（把证明里的替换说成搬东西、把 `↔` 说成拆开再装回）；只提示，
+  存量按基线只减不增。
+- **X13 选项中文 >24 字 = warning**：选项里的**汉字**（反引号代码/Lean 标识符/
+  公式折成 1 字后）超过 24 字就提示——选项是干扰项，长句让人读不完。
 
-## 2. 机检范围（v2，2026-11-28）
+## 2. 机检范围（v3，2026-11-28：#149 补 X11–X13、options 进扫描）
 
 | 公理 | 级别 | 机检内容 | 判据位置 |
 |---|---|---|---|
@@ -31,19 +39,26 @@
 | X6 | warning | 段首代词且后面不是「这一条/这三种…」这类自带先行词的名词短语 | `check_unit` |
 | X7 | warning | 「很重要/很有用/至关重要…」所在句没有后果（因为/否则/导致/才能…） | `check_unit` |
 | X8 | error / warning | 标题含「故事/历史」的页缺四要素中 ≥2 个判红、缺 1 个提示（`--tex`） | `check_story` |
+| X11 | error | 题目文本命中自造术语词表（`text-lint-terms.json` 的 `selfInvented`） | `check_question_expression` |
+| X12 | warning | 题目文本命中隐喻词表（同一文件的 `metaphors`） | `check_question_expression` |
+| X13 | warning | 选项汉字（代码/公式按占位符折掉后）> 24 字 | `check_question_expression` |
 | X2/X9/X10 | 人工 | `--review` 输出每段首末句、结论复述与「显然/很容易看出」清单，供人勾选 | `review` |
 
 **扫描范围**（默认、`python3 courses/set-theory/knowledge/text_lint.py`）：
 
 - `data/lessons.json`：`goal`（元信息行，按 `；` 分句量长度）、`intuition`；
 - `data/cards.json`：`oneLiner`、段落 `sections[].text`、列表项 `sections[].items[]`、术语行 `types[].oneLiner`；
-- `data/questions.json`：`prompt`、`why`；
+- `data/questions.json`：`prompt`、`why`、**每个 `options[i]`**（每项一个独立字段）；
 - `data/glossary.json`：`oneLiner`。
 
+**题目模式（#149）**：`prompt`/`why` 保留 #144 的全量表达检查（X1–X7），
+**额外**跑 X11/X12；`options[i]` **只**跑 X11/X12/X13——选项天然是名词短语或
+代码片段，不套 X1/X5 这类段落公理（否则每个纯代码选项都会报「残句」）。
+
 **不扫**：标题/`kicker`/`heading`（标题可以是名词短语）、表格单元格（速记格，
-不是段落）、`definition.code`、题目 `options`（选项长度/答案泄漏由
-`text_audit.py` 报告，不属于表达公理）。`--tex <file.tex>` 可选扫描讲解图的
-`\node` 正文与故事页四要素（`.tex` 源文件不在仓库里，不入库）。
+不是段落）、`definition.code`。选项的**样式**问题（长度泄漏答案、`why` 太少句等）
+仍由 `text_audit.py` 报告，与本门禁口径不同：这里管**表达**，那里管**题库样式**。
+`--tex <file.tex>` 可选扫描讲解图的 `\node` 正文与故事页四要素（`.tex` 源文件不在仓库里，不入库）。
 
 ## 3. 误报治理（每条都有来由，改判据前先读）
 
@@ -69,13 +84,24 @@
    合法的白话，不按「太短」误报。
 10. **表格单元格与代码块不量**：表格格子的写法是速记（「`a < a` 永远不成立」），
     强行要求完整句只会让卡片变啰嗦；表达底线管的是**段落与列表**。
+11. **X11/X12 只扫题目文本**（#149）：讲解段（lessons/cards）的自造术语与隐喻先由
+    X1–X8 管；题目才是学习者必须当场读懂、且要据此排除干扰项的地方。`--json`
+    里带 `prompt`/`options` 的对象也按题目模式扫（反例验证用）。
+12. **X13 只数汉字**（#149）：`normalize()` 已把反引号代码、裸 Lean 标识符、LaTeX
+    数学折成 1 个占位符 ⇒ 纯代码选项的汉字数 = 0，永不误报；阈值 24 取自 issue
+    #149 的存量实测（63 个选项超线，按基线冻结、只减不增）。
+13. **「题干首现库名当场解释」不在本脚本**（#149 边界）：它由 preflight
+    （#151，card 覆盖判据）判，`text_lint.py` 不做模糊文本规则；题目文本单元由
+    `question_text_units()` 统一产出（prompt/why/options 一份口径），preflight
+    需要时可直接复用。
 
 ## 4. 存量基线（只减不许增）
 
 门禁策略：**错误即红**；存量欠账冻结在
 `courses/set-theory/knowledge/text-lint-baseline.json`，键 =
-`file + id + field + code`（`code` 形如 `X5-long` / `X5-splice`，按 `(file,id,axiom)`
-口径的细分）。规则：
+`file + id + field + code`（`code` 形如 `X5-long` / `X5-splice` / `X11-invented-term` /
+`X12-metaphor` / `X13-option-long`，按 `(file,id,axiom)` 口径的细分；题目选项的
+`field` 是 `options[i]`）。规则：
 
 - 不在基线里的 finding（error 或 warning）⇒ 判红；
 - 基线里已有、但当前**不再出现**的条目（已修好）⇒ 判红，要求
@@ -104,6 +130,8 @@ python3 courses/set-theory/knowledge/text_lint.py --review
 # 机读 findings / 任意 JSON（临时副本反例验证）
 python3 courses/set-theory/knowledge/text_lint.py --json-out
 python3 /tmp/copy/text_lint.py --json /tmp/fixture.json --no-baseline   # 残句必须 exit 1
+# 题目反例：带自造术语选项 ⇒ exit 1；只有隐喻/超长选项 ⇒ warning；干净 ⇒ exit 0
+python3 courses/set-theory/knowledge/text_lint.py --json /tmp/q.json --no-baseline
 
 # 讲解图（可选输入，源文件不入库）
 python3 courses/set-theory/knowledge/text_lint.py --tex /tmp/deck.tex
@@ -124,7 +152,9 @@ python3 courses/set-theory/knowledge/text_lint.py --tex /tmp/deck.tex
    `text_lint.py`；
 4. 报告里写 before/after 计数与改动条目清单；有豁免/基线变化就写清为什么。
 
-## 7. 清账记录（2026-11-28，#144）
+## 7. 清账记录
+
+### #144 讲解段清账（2026-11-28）
 
 原型 v1（未提交，只做参考；口径见 issue #144）在作者工作副本上是
 **53 errors / 208 warnings**（lessons+cards）。正规化后（占位符折 1 字、误报治理、
@@ -144,3 +174,20 @@ python3 courses/set-theory/knowledge/text_lint.py --tex /tmp/deck.tex
 > 为什么不是把原型 53/208 原样搬进基线：原型把标题/列表续行/代码撑长的句子
 > 都算进去了，且数学占位符按整串字符数计——直接照搬会让 CI 一上线就红，也会
 > 让内容作者去改本来不该改的标题。正规化后的判据在 §3 逐条记录了豁免理由。
+
+### #149 题目表达门禁（2026-11-28）
+
+options 进扫描并补 X11（error）/ X12（warning）/ X13（warning）后的实测：
+
+| 规则 | 清账前 | 清账后 |
+|---|---|---|
+| X11 自造术语（error，按字段） | 23（落点 15 / 全称命题 5 / 原序对 3，覆盖 18 道题） | **0** |
+| X12 隐喻（warning，按字段） | 30（搬运 7 / 拆开 10 / 装回 6 / 接起来 8；一道选项含两个词） | 30（冻结） |
+| X13 选项中文 >24 字（warning） | 63 | 63（冻结） |
+| 门禁合计 | 23 errors / 200 warnings | **0 errors / 200 warnings** |
+
+X11 清账 = **只改措辞** 23 个字段（`questions.json`）：落点 → 具体说「`Set.MapsTo`
+条件」或「它落在哪」，原序对 → 「原来的序对」，全称命题 → 「这一断言」/
+「对任意 `x` 成立」；**不改 id、不改答案、不改题意、不重编号**。
+X12/X13 属提示级，按基线冻结（`--update-baseline` 后 0 errors），
+`X5` 的 107 条存量 warning 原样保留（本批没有顺手重写 `why`）。

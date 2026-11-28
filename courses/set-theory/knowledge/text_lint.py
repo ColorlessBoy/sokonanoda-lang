@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""教学表达底线（文本公理 X1–X10）机检门禁。
+"""教学表达底线（文本公理 X1–X13）机检门禁。
 
 公理正文、误报治理与人工评审流程见
 `skills/sokonanoda-prep/references/text-axioms.md`；本文件只做**可机检**的那部分
-（X1/X3/X4/X5/X6/X7/X8），X2/X9/X10 用 `--review` 出**待人工勾选**清单。
+（X1/X3/X4/X5/X6/X7/X8/X11/X12/X13），X2/X9/X10 用 `--review` 出**待人工勾选**清单。
 
 用法（默认扫描课程知识库的全部文本资产）：
 
@@ -16,10 +16,13 @@
     python3 courses/set-theory/knowledge/text_lint.py --update-baseline # 收紧存量基线
 
 判据（错误即红，警告按基线只减不增）：
-  * error   = X1 残句 / X5 单句 >72 字；
+  * error   = X1 残句 / X5 单句 >72 字 / X11 自造术语；
   * warning = X3 定义记号无白话 / X3 术语首现无白话 / X4 抽象断言无例子 /
               X5 单句 >48 字 / X5 逗号粘连 / X6 段首代词 / X7 空洞评价 /
-              X8 故事页四要素缺一（--tex）。
+              X8 故事页四要素缺一（--tex）/ X12 隐喻 / X13 选项中文 >24 字。
+题目 `options` 也进扫描（每项一个 `options[i]` 字段）：prompt/why 保留 #144 的
+全部表达检查，选项只跑 X11/X12/X13（选项天然是名词短语/代码片段，不套段落公理）。
+X11/X12 词表可配置：`courses/set-theory/knowledge/text-lint-terms.json`。
 存量欠账冻结在 `text-lint-baseline.json`（键 = file+id+field+code，只许减不许增：
 新条目判红，已修条目没同步收紧也判红）。
 
@@ -40,6 +43,8 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 BASELINE = HERE / "text-lint-baseline.json"
 FIXTURES = HERE / "text-lint-fixtures.json"
+#: X11/X12 词表（可配置；文件缺失/坏掉时退回内置默认，门禁不因配置缺失空转）。
+TERMS_FILE = HERE / "text-lint-terms.json"
 DATA = HERE / "data"
 
 F_LESSONS = "courses/set-theory/knowledge/data/lessons.json"
@@ -86,6 +91,12 @@ PRONOUN_INITIAL = re.compile(
 X5_ERROR = 72
 X5_WARN = 48
 X5_SPLICE_MIN = 40
+
+#: X11/X12 默认词表（`text-lint-terms.json` 缺失时的兜底，与文件内容保持一致）。
+DEFAULT_SELF_INVENTED = ("落点", "原序对", "全称命题")
+DEFAULT_METAPHORS = ("搬运", "拆开", "装回", "接起来", "外壳")
+#: X13：选项里的**汉字**（代码/公式已折掉）超过该字数 ⇒ 提示；>按 1 字计的代码不算。
+X13_MAX_CJK = 24
 
 CODE_SPAN = re.compile(r"`[^`\n]*`")
 MD_LINK = re.compile(r"!?\[([^\]]*)\]\([^)]*\)")
@@ -141,6 +152,10 @@ class Unit:
     split_semicolons: bool = False
     #: 术语/定义的白话检查用：正文单元（非标题）才参与术语首现扫描。
     ordinal: int = 0
+    #: 题目文本（prompt/why/options）：X11/X12 只跑题目文本；选项还跑 X13。
+    is_question: bool = False
+    #: 选项单元：只跑 X11/X12/X13，不套 X1/X3/X4/X5 等段落公理。
+    is_option: bool = False
 
 
 def finding(unit: Unit, axiom: str, code: str, level: str, note: str, text: str = "") -> dict:
@@ -156,13 +171,81 @@ def finding(unit: Unit, axiom: str, code: str, level: str, note: str, text: str 
     }
 
 
+# ── 题目表达规则（X11/X12/X13，issue #149）────────────────────────────────────
+
+
+def _read_expression_terms(path: Path) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """读 X11/X12 词表；文件缺失/坏掉时退回内置默认（门禁不因配置缺失空转）。"""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    def pick(key: str, default: tuple[str, ...]) -> tuple[str, ...]:
+        words = data.get(key) or default
+        return tuple(str(word) for word in words if str(word))
+
+    return pick("selfInvented", DEFAULT_SELF_INVENTED), pick("metaphors", DEFAULT_METAPHORS)
+
+
+def load_expression_terms(path: Path | None = None) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """X11/X12 词表（默认 `text-lint-terms.json`；`path` 供自检/临时覆盖）。"""
+    return _read_expression_terms(Path(path) if path is not None else TERMS_FILE)
+
+
+def question_text_units(question: dict, file: str, qid: str) -> list[Unit]:
+    """题目的用户可见文本单元：`prompt` / `why` / 每个 `options[i]`（issue #149）。
+
+    prompt/why 保留 #144 的全量表达检查（X1–X7 等），选项只跑 X11/X12/X13。
+    需要题目文本的其他工具（如 preflight 的「题干首现库名当场解释」判据）可直接复用。
+    """
+    units = [
+        Unit(file=file, id=qid, field="prompt",
+             text=str(question.get("prompt") or ""), is_question=True),
+        Unit(file=file, id=qid, field="why",
+             text=str(question.get("why") or ""), is_question=True),
+    ]
+    for index, option in enumerate(question.get("options") or []):
+        units.append(Unit(file=file, id=qid, field=f"options[{index}]",
+                          text=str(option), is_question=True, is_option=True))
+    return units
+
+
+def check_question_expression(unit: Unit) -> list[dict]:
+    """X11 自造术语（error）/ X12 隐喻（warning）/ X13 选项中文过长（warning）。"""
+    raw = str(unit.text or "")
+    invented, metaphors = load_expression_terms()
+    out: list[dict] = []
+    hits = [word for word in invented if word in raw]
+    if hits:
+        out.append(finding(unit, "X11", "X11-invented-term", "error",
+                           "自造术语（学习者不知道指哪条规则）：" + "、".join(hits)))
+    hits = [word for word in metaphors if word in raw]
+    if hits:
+        out.append(finding(unit, "X12", "X12-metaphor", "warning",
+                           "用隐喻代替代码/命名：" + "、".join(hits)))
+    if unit.is_option:
+        cjk = len(CJK.findall(normalize(raw)))
+        if cjk > X13_MAX_CJK:
+            out.append(finding(unit, "X13", "X13-option-long", "warning",
+                               f"选项中文 {cjk} 字超过 {X13_MAX_CJK} 字（代码/公式不计）"))
+    return out
+
+
 # ── 单条公理检查 ──────────────────────────────────────────────────────────────
 
 
 def check_unit(unit: Unit) -> list[dict]:
-    """对单个文本单元跑 X1/X3/X4/X5/X6/X7（X8 在 check_story 里，按页聚合）。"""
+    """对单个文本单元跑 X1/X3/X4/X5/X6/X7（X8 在 check_story 里，按页聚合）。
+
+    题目文本额外跑 X11/X12；选项单元只跑 X11/X12/X13（不套段落公理）。
+    """
     out: list[dict] = []
     raw = (unit.text or "").strip()
+    if unit.is_option:
+        return check_question_expression(unit) if raw else []
     text = normalize(raw)
     if text == "":
         if not unit.is_meta and not unit.is_list_item:
@@ -231,6 +314,10 @@ def check_unit(unit: Unit) -> list[dict]:
             out.append(finding(unit, "X7", "X7-empty-praise", "warning",
                                "空洞评价，没有给后果", raw_sentence))
 
+    # X11/X12：题目 prompt/why 也跑自造术语 / 隐喻（选项在入口处单独处理）。
+    if unit.is_question:
+        out.extend(check_question_expression(unit))
+
     return out
 
 
@@ -274,9 +361,10 @@ def collect_default_units() -> list[Unit]:
     """按「读者接触顺序」收集课程知识库的用户可见文本。
 
     范围：lessons（goal/intuition）、cards（oneLiner/段落/列表项/术语行）、
-    questions（prompt/why）、glossary（oneLiner）。
-    不扫描：标题/标题行、表格单元格（速记格，不是段落）、`definition.code`、
-    题目 options（样式由 `text_audit.py` 报告，不是表达公理）。
+    questions（prompt/why/options[i]）、glossary（oneLiner）。
+    不扫描：标题/标题行、表格单元格（速记格，不是段落）、`definition.code`。
+    题目选项由本脚本按 X11/X12/X13 判（选项长度泄漏等样式问题仍由 `text_audit.py`
+    报告，两者口径不同：这里是「表达门禁」，那里是「题库样式审计」）。
     """
     units: list[Unit] = []
     order = 0
@@ -312,8 +400,9 @@ def collect_default_units() -> list[Unit]:
     questions = _load(DATA / "questions.json").get("questions") or []
     for question in questions:
         qid = question.get("id") or "?"
-        add(file=F_QUESTIONS, id=qid, field="prompt", text=question.get("prompt") or "")
-        add(file=F_QUESTIONS, id=qid, field="why", text=question.get("why") or "")
+        for unit in question_text_units(question, F_QUESTIONS, qid):
+            add(file=unit.file, id=unit.id, field=unit.field, text=unit.text,
+                is_question=True, is_option=unit.is_option)
 
     glossary = _load(DATA / "glossary.json").get("entries") or []
     for entry in glossary:
@@ -329,7 +418,11 @@ TEXT_KEYS = ("prompt", "why", "goal", "intuition", "oneLiner", "text", "keyPoint
 
 
 def collect_json_units(path: Path) -> list[Unit]:
-    """通用遍历：文本字段 + `items[]` 字符串（与原型 `walk_json` 同口径）。"""
+    """通用遍历：文本字段 + `items[]` 字符串 + 题目 `options[]`（与原型 `walk_json` 同口径）。
+
+    带 `prompt`/`options` 的对象按题目处理：prompt/why 跑 X11/X12，options[i] 跑
+    X11/X12/X13；其余文本保持普通正文口径（不跑题目表达规则）。
+    """
     display = _display_path(path)
     data = _load(path)
     units: list[Unit] = []
@@ -344,10 +437,16 @@ def collect_json_units(path: Path) -> list[Unit]:
         if isinstance(obj, dict):
             ident = str(obj.get("id") or obj.get("unit") or obj.get("term")
                         or obj.get("title") or path_)
+            is_question = "prompt" in obj or "options" in obj
             for key, value in obj.items():
                 here = f"{path_}.{key}" if path_ else str(key)
                 if key in TEXT_KEYS and isinstance(value, str):
-                    add(display, ident, here, value)
+                    add(display, ident, here, value, is_question=is_question)
+                elif key == "options" and isinstance(value, list) and is_question:
+                    for index, item in enumerate(value):
+                        if isinstance(item, str):
+                            add(display, ident, f"{here}[{index}]", item,
+                                is_question=True, is_option=True)
                 elif key == "items" and isinstance(value, list):
                     for index, item in enumerate(value):
                         if isinstance(item, str):
@@ -406,7 +505,8 @@ def check_term_first_occurrence(units: list[Unit], terms: list[str]) -> list[dic
     """
     out: list[dict] = []
     body = [unit for unit in units
-            if not unit.is_meta and not unit.is_list_item and unit.text]
+            if not unit.is_meta and not unit.is_list_item
+            and not unit.is_option and unit.text]
     for term in terms:
         first = next((unit for unit in body if term in (unit.text or "")), None)
         if first is None:
@@ -620,6 +720,17 @@ def run_selftest() -> int:
         passed += 1
     else:
         failures.append("基线棘轮：已修条目没有被要求收紧")
+    # X11/X12 词表必须可配置（issue #149）：换一份 text-lint-terms.json 判据跟着换。
+    with tempfile.TemporaryDirectory() as tmp:
+        custom = Path(tmp) / "terms.json"
+        custom.write_text(json.dumps(
+            {"selfInvented": ["自定义术语"], "metaphors": ["自定义隐喻"]},
+            ensure_ascii=False), encoding="utf-8")
+        invented, metaphors = load_expression_terms(custom)
+        if invented == ("自定义术语",) and metaphors == ("自定义隐喻",):
+            passed += 1
+        else:
+            failures.append("X11/X12 词表不可配置：text-lint-terms.json 覆盖没生效")
     # 端到端反例：临时副本里故意写残句 ⇒ 扫描必须出 X1 error；正常卡片 ⇒ 0 error。
     with tempfile.TemporaryDirectory() as tmp:
         broken = Path(tmp) / "broken.json"
@@ -654,6 +765,9 @@ def _fixture_findings(case: dict) -> list[dict]:
         units = [Unit(file="fixture", id=f"u{i}", field="intuition", text=text,
                       ordinal=i) for i, text in enumerate(case.get("units") or [])]
         return check_term_first_occurrence(units, [case.get("term") or ""])
+    if case.get("kind") == "question":
+        units = question_text_units(case, "fixture", case.get("id") or "fixture")
+        return [item for unit in units for item in check_unit(unit)]
     unit = Unit(
         file="fixture",
         id=case.get("id") or "fixture",

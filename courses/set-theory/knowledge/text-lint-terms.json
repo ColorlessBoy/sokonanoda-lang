@@ -1,0 +1,16 @@
+{
+  "schema": "soko.text-lint-terms/1",
+  "note": "题目表达门禁（X11/X12）的词表，可直接改这里（改判据前先读 text-axioms.md §3）。X11 命中的是 error（自造术语，学习者不知道指哪条规则，必须清零）；X12 命中的是 warning（隐喻代替代码/命名，按基线只减不增）。扫描范围 = 题目 prompt/why/options[i]。",
+  "selfInvented": [
+    "落点",
+    "原序对",
+    "全称命题"
+  ],
+  "metaphors": [
+    "搬运",
+    "拆开",
+    "装回",
+    "接起来",
+    "外壳"
+  ]
+}

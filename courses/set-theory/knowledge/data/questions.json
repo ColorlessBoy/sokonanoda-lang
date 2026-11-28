@@ -263,7 +263,7 @@
         "sdiff",
         "unfold"
       ],
-      "prompt": "已知 `h : x ∈ A \\ B`，要拿到「属于 `A`」与「不属于 `B`」两份证据，先把 `h` 展开成哪个命题？",
+      "prompt": "已知 `h : x ∈ A \\ B`；要拿到「属于 `A`」与「不属于 `B`」两份证据，先把 `h` 展开成哪个命题？",
       "options": [
         "`A x ∧ ¬ B x`",
         "`A x ∧ B x`",
@@ -1877,7 +1877,7 @@
         "因为 `Set.ext` 对空集并不适用。"
       ],
       "answer": 3,
-      "why": "像的成员是一个存在量化，而 `A = ∅` 时 `x ∈ ∅` 恒假（`Set.mem_empty_iff_false`）⇒ 存在量化的谓词恒假，与 `f` 的具体行为无关。",
+      "why": "像的成员是一个存在量化；而 `A = ∅` 时 `x ∈ ∅` 恒假（`Set.mem_empty_iff_false`）⇒ 存在量化的谓词恒假，与 `f` 的具体行为无关。",
       "source": "lib/Image.sokonanoda:44 `Set.mem_image` + lib/Set.sokonanoda:167 `Set.mem_empty_iff_false`",
       "kps": [
         "kp.i3.image.use",
@@ -1908,7 +1908,7 @@
         "`fun (x : α) => x ∈ B`"
       ],
       "answer": 1,
-      "why": "原像是回拉：把输入 `x` 先送进 `f`，再问 `f x` 是否在 `B` 里——定义体就是一次函数应用，没有 `∃`。",
+      "why": "原像是回拉：把输入 `x` 先送进 `f`；再问 `f x` 是否在 `B` 里——定义体就是一次函数应用，没有 `∃`。",
       "source": "lib/Image.sokonanoda:37 `Set.preimage`",
       "kps": [
         "kp.i3.preimage"
@@ -2092,7 +2092,7 @@
         "不依赖：它谈的是整个论域上的关系 `E`，取用子 `ordinal_wellFounded` 的结论里根本没有 `x`"
       ],
       "answer": 4,
-      "why": "`IsOrdinal` 的三个合取支中前两支只谈 `x`，第三支 `IsWellFounded α E` 只谈 `E`（见 `ordinal_wellFounded` 的类型，结论不含 `x`）。",
+      "why": "`IsOrdinal` 的三个合取支中前两支只谈 `x`；第三支 `IsWellFounded α E` 只谈 `E`（见 `ordinal_wellFounded` 的类型，结论不含 `x`）。",
       "source": "lib/Ordinal.sokonanoda:50 `IsOrdinal` + 86 `ordinal_wellFounded`",
       "kps": [
         "kp.prep.ordinal"
@@ -2429,7 +2429,7 @@
         ]
       },
       "reference": "像：y ∈ f '' A ↔ ∃x, x∈A ∧ f x=y（要交证人）；原像：x ∈ f ⁻¹' B ↔ f x ∈ B（直接展开，无 ∃）。",
-      "why": "像天生是“存在”；原像是“把 f 作用一下看落点”。",
+      "why": "像天生是“存在”；原像是“把 f 作用一下看它落在哪”。",
       "source": "lib/Image.sokonanoda:32/37",
       "variants": [],
       "prereq": [],
@@ -3245,7 +3245,7 @@
         "因为 `Bᶜ` 是空集，所以两边相等。"
       ],
       "answer": 2,
-      "why": "差集是「A 且非 B」，交是「A 且 Bᶜ」，两句话逐点相同：`mem_sdiff_compl` 就是这么证的。",
+      "why": "差集是「A 且非 B」；交是「A 且 Bᶜ」，两句话逐点相同：`mem_sdiff_compl` 就是这么证的。",
       "source": "units/I.1/unit58-sdiff-algebra.sokonanoda:79",
       "kps": [
         "kp.i1.sdiff.algebra"
@@ -3769,7 +3769,7 @@
         "用 `And.intro hx hx` 把两份证据装起来。"
       ],
       "answer": 2,
-      "why": "目标 `x ∈ Aᶜ` 是 `¬ (x ∈ A)`：给它 `hx`，`Or.inl hx` 造出 `x ∈ A ∪ B`，与手里的否定冲突（`inter_compl_subset` 的证明就是造 `Or.inl` 再打）。",
+      "why": "目标 `x ∈ Aᶜ` 是 `¬ (x ∈ A)`：给它 `hx`；`Or.inl hx` 造出 `x ∈ A ∪ B`，与手里的否定冲突（`inter_compl_subset` 的证明就是造 `Or.inl` 再打）。",
       "source": "units/I.1/unit60-compl-algebra.sokonanoda:86",
       "kps": [
         "kp.i1.compl",
@@ -3928,7 +3928,7 @@
         "要先用选择公理从 `g` 里取出原像。"
       ],
       "answer": 1,
-      "why": "单射要 `f x = f y → x = y`：`congrArg g` 把等式抬到 `g` 层，左逆律 `g (f x) = x`、`g (f y) = y` 再把两端算回去，`Eq.trans`/`Eq.symm` 串联。",
+      "why": "单射要 `f x = f y → x = y`：`congrArg g` 把等式抬到 `g` 层；左逆律 `g (f x) = x`、`g (f y) = y` 再把两端算回去，`Eq.trans`/`Eq.symm` 串联。",
       "source": "units/I.2/unit07-functions.sokonanoda:137",
       "kps": [
         "kp.i2.fun.inverse"
@@ -5172,7 +5172,7 @@
         "因为 `r'`、`s'` 必须与 `r`、`s` 相等"
       ],
       "answer": 2,
-      "why": "逐点蕴含分别作用在两个坐标上：`Exists.elim` 拆出 `b` 与 `r a b ∧ s b c`，`hr a b (And.left …)`、`hs b c (And.right …)` 各得一份，再 `Exists.intro b` 装回。",
+      "why": "逐点蕴含分别作用在两个坐标上：`Exists.elim` 拆出 `b` 与 `r a b ∧ s b c`；`hr a b (And.left …)`、`hs b c (And.right …)` 各得一份，再 `Exists.intro b` 装回。",
       "source": "lib/Rel.sokonanoda:218",
       "kps": [
         "kp.i2.rel.comp"
@@ -5463,7 +5463,7 @@
         "`A ⊆ B` 的证据"
       ],
       "answer": 1,
-      "why": "`Set.Le.elim α β A B C h k` 把「存在单射」拆开：`f` 只在 `k` 里使用、不外泄，`k` 同时拿到单射与落点两份证据。",
+      "why": "`Set.Le.elim α β A B C h k` 把「存在单射」拆开：`f` 只在 `k` 里使用、不外泄，`k` 同时拿到单射与 `Set.MapsTo` 两份证据。",
       "source": "lib/Equiv.sokonanoda:190",
       "kps": [
         "kp.i3.le"
@@ -5494,7 +5494,7 @@
         "`Set.Le.intro α β A B f hinj hmap`"
       ],
       "answer": 4,
-      "why": "`Set.Le.intro` 是打包子：交一把映射与「单射」「落点」两份证据，再经 `Set.le_def` 折回 `≼`。",
+      "why": "`Set.Le.intro` 是打包子：交一把映射与「单射」「`Set.MapsTo`」两份证据，再经 `Set.le_def` 折回 `≼`。",
       "source": "lib/Equiv.sokonanoda:181",
       "kps": [
         "kp.i3.le"
@@ -5588,7 +5588,7 @@
         "`Set.Le.powerset α β A B h`"
       ],
       "answer": 1,
-      "why": "`Set.Le.mono_right` 把同一把单射的**陪域放大**：`B ⊆ B'` 时落点条件变弱，单射性不变。",
+      "why": "`Set.Le.mono_right` 把同一把单射的**陪域放大**：`B ⊆ B'` 时 `Set.MapsTo` 条件变弱，单射性不变。",
       "source": "lib/Equiv.sokonanoda:319",
       "kps": [
         "kp.i3.le.mono"
@@ -5620,7 +5620,7 @@
         "取恒等映射 `fun x => x`：它在 `A` 上显然单射，而 `x ∈ A ⇒ x ∈ B` 正是包含关系给的条件"
       ],
       "answer": 4,
-      "why": "`Set.Le.of_subset` 的证人就是恒等映射：单射是 `fun x _ y _ hxy => hxy`，落点条件就是 `h x hx`。",
+      "why": "`Set.Le.of_subset` 的证人就是恒等映射：单射是 `fun x _ y _ hxy => hxy`，`Set.MapsTo` 条件就是 `h x hx`。",
       "source": "lib/Equiv.sokonanoda:314",
       "kps": [
         "kp.i3.le.mono"
@@ -5710,7 +5710,7 @@
       "prereq": [
         "I.3.equiv-1"
       ],
-      "prompt": "「双向 `≼` **再加**两条互逆律 ⇒ `≈`」在本课能直接证明，而 CB 本体（不带互逆律）却要走单元112 加选择公理，两者的区别是什么？",
+      "prompt": "「双向 `≼` **再加**两条互逆律 ⇒ `≈`」在本课能直接证明；而 CB 本体（不带互逆律）却要走单元112 加选择公理，两者的区别是什么？",
       "options": [
         "有互逆律时可直接用 `Set.Equiv.mk` 把 f、g 与四条条件装成 `≈`；CB 要从两把单射**造出**互逆对，而 `≼` 是 ∃-命题取不出映射（G-58），单元112 只能用关系版图 + `choice` 把双射取出来",
         "两者没有区别，其实是同一回事。",
@@ -5838,13 +5838,13 @@
       ],
       "prompt": "要调用 `cantor_bernstein` 证明 `A ≈ B`，你需要先准备好关于 `f`、`g` 的哪些前提？",
       "options": [
-        "四条：`Set.MapsTo f A B`、`Set.MapsTo g B A`、`Set.InjOn f A`、`Set.InjOn g B`（两把映射各带落点与单射）",
+        "四条：`Set.MapsTo f A B`、`Set.MapsTo g B A`、`Set.InjOn f A`、`Set.InjOn g B`（两把映射各带 `Set.MapsTo` 与单射）",
         "只需要 `A ≼ B` 与 `B ≼ A` 两个存在命题。",
         "还需要两条互逆律 `Set.LeftInvOn` 与 `Set.RightInvOn`。",
         "`A = B`"
       ],
       "answer": 1,
-      "why": "本课把 CB 写成**数据版**：f、g 与它们的落点/单射条件都是显式参数（`cantor_bernstein … hfB hgA hf_inj hg_inj : A ≈ B`），因为存在版要把映射从 `≼` 里取出来。",
+      "why": "本课把 CB 写成**数据版**：f、g 与它们的 `Set.MapsTo`/单射条件都是显式参数（`cantor_bernstein … hfB hgA hf_inj hg_inj : A ≈ B`），因为存在版要把映射从 `≼` 里取出来。",
       "source": "units/I.3/unit112-cantor-bernstein.sokonanoda:245",
       "kps": [
         "kp.i3.cb"
@@ -6290,7 +6290,7 @@
         "只能得到 `𝒫 A ⊆ 𝒫 B` 这个包含关系。"
       ],
       "answer": 3,
-      "why": "从单射 `f` 造 `𝒫` 上的映射 `S ↦ f '' S`：像集相等 + 单射 ⇒ `S = T`（`Set.image_injOn`），落点由 `MapsTo` 给（`Set.image_mapsTo_powerset`）。",
+      "why": "从单射 `f` 造 `𝒫` 上的映射 `S ↦ f '' S`：像集相等 + 单射 ⇒ `S = T`（`Set.image_injOn`），`MapsTo` 由 `Set.image_mapsTo_powerset` 给出。",
       "source": "lib/Equiv.sokonanoda:369",
       "kps": [
         "kp.i3.le.mono"
@@ -6475,7 +6475,7 @@
       ],
       "prompt": "为什么 `Set.Le.refl`（`A ≼ A`）不需要选择公理？",
       "options": [
-        "因为证人恒等映射是**明确给出**的：`f := fun x => x`，单射与落点都用 `fun x hx => hx` 直接证，全程没有从 `∃` 里取东西",
+        "因为证人恒等映射是**明确给出**的：`f := fun x => x`，单射与 `Set.MapsTo` 都用 `fun x hx => hx` 直接证，全程没有从 `∃` 里取东西",
         "因为在这个情形里 `A` 是空集。",
         "因为 `Set.InjOn` 本身就是一条公理。",
         "因为 `≼` 反过来定义了 `=` 这个关系。"
@@ -6513,7 +6513,7 @@
         "给 `x ∈ A`，先用 `hf` 得 `f x ∈ B`，再用 `hg` 得 `g (f x) ∈ C`"
       ],
       "answer": 4,
-      "why": "落点条件按点走：`hg (f x) (hf x hx)` 就是 `g (f x) ∈ C`（`mapsTo_comp` 的证明）。",
+      "why": "`Set.MapsTo` 条件按点走：`hg (f x) (hf x hx)` 就是 `g (f x) ∈ C`（`mapsTo_comp` 的证明）。",
       "source": "units/I.3/unit96-le-on.sokonanoda:71",
       "kps": [
         "kp.i3.le.mono"
@@ -6541,7 +6541,7 @@
       "options": [
         "需要两把映射与两条等式 `f = g`。",
         "需要四条包含关系。",
-        "两把映射 `f`、`g`，两条落点条件 `Set.MapsTo f A B` / `Set.MapsTo g B A`，两条互逆律 `Set.LeftInvOn g f A` / `Set.RightInvOn f g B`",
+        "两把映射 `f`、`g`，两条 `Set.MapsTo` 条件 `Set.MapsTo f A B` / `Set.MapsTo g B A`，两条互逆律 `Set.LeftInvOn g f A` / `Set.RightInvOn f g B`",
         "需要一个证人 `x ∈ A` 与一个 `y ∈ B`。"
       ],
       "answer": 3,
@@ -7375,9 +7375,9 @@
       "prereq": [],
       "prompt": "已知 `h : ¬ (∀ (x : α), ¬ (P x))`，要得到 `∃ (x : α), P x`，为什么必须请出 `Classical.byContradiction`？",
       "options": [
-        "因为前提只否定「所有点都否定」这一全称命题，要跨过双重否定才能得到存在的肯定点。",
+        "因为前提只否定「所有点都否定」这一断言，要跨过双重否定才能得到存在的肯定点。",
         "因为 `Exists.intro` 需要先用 `Classical.em` 造出一个具体的见证，否则交不出见证。",
-        "因为全称命题在构造性逻辑里不能当作函数来应用，只能靠经典逻辑展开。",
+        "因为「对任意 `x` 成立」在构造性逻辑里不能当作函数来应用，只能靠经典逻辑展开。",
         "因为 `P x` 是命题而不是数据，命题不能放进存在量词，必须先经典地转成数据。"
       ],
       "answer": 1,
@@ -7461,10 +7461,10 @@
         "拆出满射与它的原像条件，用原像把 `∅` 的元素送回来。",
         "先由 `h` 得到等式 `A = ∅`，再沿等式把 `x ∈ A` 搬成 `x ∈ ∅`。",
         "先由 `h` 得到双射与逆映射，再用逆映射说明 `A` 没有元素。",
-        "拆出单射与落点条件，把 `x ∈ A` 送到 `x ∈ ∅`，再用空集没有元素收尾。"
+        "拆出单射与 `Set.MapsTo` 条件，把 `x ∈ A` 送到 `x ∈ ∅`，再用空集没有元素收尾。"
       ],
       "answer": 4,
-      "why": "`A ≼ ∅` 是存在命题，拆出来是一把在 `A` 上单射、落在 `∅` 里的映射 `f`。若 `x ∈ A`，落点条件给出 `f x ∈ ∅`，而空集没有元素，矛盾。它拆不出 `A = ∅` 这个等式，也给不出逆映射。",
+      "why": "`A ≼ ∅` 是存在命题，拆出来是一把在 `A` 上单射、落在 `∅` 里的映射 `f`。若 `x ∈ A`，`Set.MapsTo` 条件给出 `f x ∈ ∅`，而空集没有元素，矛盾。它拆不出 `A = ∅` 这个等式，也给不出逆映射。",
       "source": "units/I.8/unit19-cardinal-le.sokonanoda:141",
       "kps": [
         "kp.i8.le.empty"
@@ -7514,7 +7514,7 @@
       "prereq": [],
       "prompt": "已知 `h : A ≼ ∅`，要直接得到 `A ⊆ ∅`，调用库里哪条引理最省事？",
       "options": [
-        "`le_empty`：它把 `A ≼ ∅` 转成「`A` 没有元素」这个全称命题。",
+        "`le_empty`：它把 `A ≼ ∅` 转成「`A` 没有元素」这个断言。",
         "`subset_of_le_empty`：它把 `A ≼ ∅` 直接转成 `A ⊆ ∅`。",
         "`subset_le`：它把 `A ⊆ ∅` 转成 `A ≼ ∅`，方向正好相反。",
         "`le_trans`：它把两个基数比较接起来，得到 `A ≼ A`。"
@@ -7688,7 +7688,7 @@
         "再填一次交换坐标的映射，因为它做两次就回到原地，自己就是自己的逆。"
       ],
       "answer": 4,
-      "why": "交换坐标的映射做两次就回到原来的序对，所以它自己是自己的逆，两条互逆律都由 `Prod.eta` 收尾。填恒等映射会让落点条件的类型对不上：`Prod A B` 与 `Prod B A` 不是同一个类型。常函数和复制 `snd` 的写法都丢掉了坐标信息，连映射的双向性都不满足。",
+      "why": "交换坐标的映射做两次就回到原来的序对，所以它自己是自己的逆，两条互逆律都由 `Prod.eta` 收尾。填恒等映射会让 `Set.MapsTo` 条件的类型对不上：`Prod A B` 与 `Prod B A` 不是同一个类型。常函数和复制 `snd` 的写法都丢掉了坐标信息，连映射的双向性都不满足。",
       "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:128 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:63",
       "kps": [
         "kp.i8.prod.comm"
@@ -7716,7 +7716,7 @@
         "因为 `≈` 只对无穷集合有效，有限积的基数要另外计算。"
       ],
       "answer": 1,
-      "why": "等势是跨类型的：`s ×ˢ t` 住在前两个论域的积上，`t ×ˢ s` 住在交换后的积上，不是同一个类型里的两个集合。交换坐标给出的是双射，不是同一个类型里的相等；若强行写成相等，类型检查会先失败。元素个数一致并不自动给出可写下的相等。",
+      "why": "等势是跨类型的：`s ×ˢ t` 住在前两个论域的积上；`t ×ˢ s` 住在交换后的积上，不是同一个类型里的两个集合。交换坐标给出的是双射，不是同一个类型里的相等；若强行写成相等，类型检查会先失败。元素个数一致并不自动给出可写下的相等。",
       "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:128 · lib/Equiv.sokonanoda:118",
       "kps": [
         "kp.i8.prod.comm"
@@ -7798,7 +7798,7 @@
         "因为它需要模型论与力迫法，本课只做 CH 的陈述与展开。"
       ],
       "answer": 4,
-      "why": "CH 既不能被 ZFC 证明、也不能被 ZFC 否证，证明这一点要用模型论与力迫法，超出本卷范围。本课只要求会陈述 CH、会把 `def CH` 展开成顶层 `∀` 命题。把它说成已证假、依赖选择公理或只是定义，都不符合课程边界。",
+      "why": "CH 既不能被 ZFC 证明、也不能被 ZFC 否证；证明这一点要用模型论与力迫法，超出本卷范围。本课只要求会陈述 CH、会把 `def CH` 展开成顶层 `∀` 命题。把它说成已证假、依赖选择公理或只是定义，都不符合课程边界。",
       "source": "units/I.8/unit113-continuum-hypothesis.sokonanoda:40 · units/I.8/unit113-continuum-hypothesis.sokonanoda:10",
       "kps": [
         "kp.i8.ch"
@@ -7901,15 +7901,15 @@
       "difficulty": 0,
       "variants": [],
       "prereq": [],
-      "prompt": "已知 `hp : p ∈ (s ×ˢ t)`，用交换律的落点条件可以推出下面哪个结论？",
+      "prompt": "已知 `hp : p ∈ (s ×ˢ t)`，用交换律的 `Set.MapsTo` 条件可以推出下面哪个结论？",
       "options": [
-        "`prod_mk A B (fst p) (snd p) ∈ (t ×ˢ s)`，原序对落在交换后的积里。",
+        "`prod_mk A B (fst p) (snd p) ∈ (t ×ˢ s)`，原来的序对落在交换后的积里。",
         "`prod_mk B A (fst p) (snd p) ∈ (s ×ˢ t)`，坐标顺序保持不变。",
         "`p ∈ (t ×ˢ s)`，同一个序对属于两个积。",
         "`prod_mk B A (snd p) (fst p) ∈ (t ×ˢ s)`，交换后的序对落在交换后的积里。"
       ],
       "answer": 4,
-      "why": "交换律的见证把两个坐标对调并换到 `Prod B A` 里，所以成员关系也走到 `t ×ˢ s`。原序对 `p` 的类型是 `Prod A B`，它不可能住进 `t ×ˢ s : Set (Prod B A)`。保持坐标顺序的写法也没有完成交换。",
+      "why": "交换律的见证把两个坐标对调并换到 `Prod B A` 里，所以成员关系也走到 `t ×ˢ s`。原来的序对 `p` 的类型是 `Prod A B`，它不可能住进 `t ×ˢ s : Set (Prod B A)`。保持坐标顺序的写法也没有完成交换。",
       "source": "units/I.8/unit20-cardinal-arithmetic.sokonanoda:136 · units/I.8/unit20-cardinal-arithmetic.sokonanoda:128",
       "kps": [
         "kp.i8.prod",
@@ -8020,7 +8020,7 @@
         "任取 `x ∈ B`，用 `hA` 先得到 `A ⊆ B`，再用包含关系的传递。",
         "先证明 `A ⊆ ⋂₀ F`，再用反对称性把 `B` 与 `A` 换过来。",
         "先证明 `⋂₀ F ⊆ A`，再与 `h` 复合得到 `B ⊆ A`。",
-        "任取 `x ∈ B`，用 `h` 得 `x ∈ ⋂₀ F`，再把 `hA` 喂给这条全称命题。"
+        "任取 `x ∈ B`，用 `h` 得 `x ∈ ⋂₀ F`，再把 `hA` 喂给这条对任意 `x` 成立的命题。"
       ],
       "answer": 4,
       "why": "`x ∈ ⋂₀ F` 的展开是「族里每个成员都装得下 `x`」，所以把 `hA : A ∈ F` 喂进去就得到 `x ∈ A`。`hA` 本身只说明 `A` 是族里的成员，推不出 `A ⊆ B` 或 `A ⊆ ⋂₀ F`。",
@@ -8052,7 +8052,7 @@
         "因为 `B ⊆ ⋂₀ F` 其实是 `⋃₀ F ⊆ B` 的逆否命题。"
       ],
       "answer": 1,
-      "why": "`x ∈ ⋃₀ F` 是存在命题，所以「整体装进 `B`」等价于「每个成员都装进 `B`」；`x ∈ ⋂₀ F` 是全称命题，所以「`B` 装进整体」等价于「`B` 装进每个成员」。两条都要逐成员验证，但前者验的是 `A ⊆ B`，后者验的是 `B ⊆ A`。两者不是逆否关系，空族也不影响这两条刻画。",
+      "why": "`x ∈ ⋃₀ F` 是存在命题，所以「整体装进 `B`」等价于「每个成员都装进 `B`」；`x ∈ ⋂₀ F` 是对每个成员都成立的命题，所以「`B` 装进整体」等价于「`B` 装进每个成员」。两条都要逐成员验证，但前者验的是 `A ⊆ B`，后者验的是 `B ⊆ A`。两者不是逆否关系，空族也不影响这两条刻画。",
       "source": "units/I.9/unit21-families.sokonanoda:91 · units/I.9/unit21-families.sokonanoda:110",
       "kps": [
         "kp.i9.family"
@@ -8249,7 +8249,7 @@
         "`Set.pi_mono ι α A B h f hf`"
       ],
       "answer": 4,
-      "why": "积对族单调：逐坐标包含 `A i ⊆ B i` 可以逐点把 `f i` 搬过去，库里的 `Set.pi_mono` 就是这条，参数先给旧族、再给新族。把两个族写反会让包含方向对不上，另外两个选项分别只处理构造和取用，都不产生「换到 `B`」的结论。",
+      "why": "积对族单调：逐坐标包含 `A i ⊆ B i` 可以逐点把 `f i` 搬过去；库里的 `Set.pi_mono` 就是这条，参数先给旧族、再给新族。把两个族写反会让包含方向对不上，另外两个选项分别只处理构造和取用，都不产生「换到 `B`」的结论。",
       "source": "units/I.9/unit23-products.sokonanoda:82 · units/I.9/unit23-products.sokonanoda:48",
       "kps": [
         "kp.i9.product"
@@ -8817,7 +8817,7 @@
         "`Eq.refl`，因为两边是同一个命题。"
       ],
       "answer": 2,
-      "why": "目标正是 `Quot.sound` 的结论形状，直接把 `h` 交给它即可。`Quot.lift` 是从代表元函数构造商上函数，`Quot.ind` 是证商上每个元素的性质，二者都不能直接产生这条相等。",
+      "why": "目标正是 `Quot.sound` 的结论形状，直接把 `h` 交给它即可。`Quot.lift` 是从代表元函数构造商上函数；`Quot.ind` 是证商上每个元素的性质，二者都不能直接产生这条相等。",
       "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:42",
       "difficulty": 0,
       "variants": [],
@@ -9059,7 +9059,7 @@
         "`Quot.ind`，因为要对商元素归纳。"
       ],
       "answer": 1,
-      "why": "目标左边按 iota 归约就是 `f a`，所以自反证明 `Eq.refl (f a)` 直接收尾。`Quot.sound` 证的是商元素相等，`Quot.ind` 用来证商上每个元素的性质，`h a a` 则需要先有 `r a a`，都不是这条计算等式的证明。",
+      "why": "目标左边按 iota 归约就是 `f a`，所以自反证明 `Eq.refl (f a)` 直接收尾。`Quot.sound` 证的是商元素相等；`Quot.ind` 用来证商上每个元素的性质，`h a a` 则需要先有 `r a a`，都不是这条计算等式的证明。",
       "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:48",
       "difficulty": 0,
       "variants": [],
@@ -9295,7 +9295,7 @@
         "用 `Quot.ind` 对两个商元素各归纳一次，再交给 `Eq.refl`。"
       ],
       "answer": 1,
-      "why": "本单元给出的路线是缩回技巧：用 `quot_lift_id` 那类下降函数作缩回，把等式两边都缩回代表元，再用 `rel_subst_right` 沿 `mk a = mk b` 搬运，最后算出 `a = b`。课程没有 `Quot.exact`；`congrArg` 在大类型上解不出宇宙层级，也是文件头记下的边界。",
+      "why": "本单元给出的路线是缩回技巧：用 `quot_lift_id` 那类下降函数作缩回；把等式两边都缩回代表元，再用 `rel_subst_right` 沿 `mk a = mk b` 搬运，最后算出 `a = b`。课程没有 `Quot.exact`；`congrArg` 在大类型上解不出宇宙层级，也是文件头记下的边界。",
       "source": "courses/analysis/units/II.1/unit02-quotients-review.sokonanoda:124",
       "difficulty": 1.5,
       "variants": [],
@@ -9611,7 +9611,7 @@
         "`zero_add`，把 `0 + 0` 收成 `0`。"
       ],
       "answer": 4,
-      "why": "后继情形展开成 `0 + mul 0 n`，用归纳假设把 `mul 0 n` 换成 0，目标变成 `0 + 0 = 0`，正是 `zero_add` 的实例。`add_zero` 方向相反；分配律与交换律都不是这一小步需要的。",
+      "why": "后继情形展开成 `0 + mul 0 n`；用归纳假设把 `mul 0 n` 换成 0，目标变成 `0 + 0 = 0`，正是 `zero_add` 的实例。`add_zero` 方向相反；分配律与交换律都不是这一小步需要的。",
       "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:72",
       "difficulty": 0,
       "variants": [],
@@ -10195,7 +10195,7 @@
         "`addRep p (0,0) = p`，先验证零元。"
       ],
       "answer": 2,
-      "why": "良定义性要求相关的代表元给出相关的输出；加法有两个输入，所以换第一个或第二个代表元都必须保持 `intRel`。`p = q` 是 `Quot.exact` 的反方向（课程没有），交换律与零元律是商上的代数性质，不是下降前的义务。",
+      "why": "良定义性要求相关的代表元给出相关的输出；加法有两个输入，所以换第一个或第二个代表元都必须保持 `intRel`。`p = q` 是 `Quot.exact` 的反方向（课程没有）；交换律与零元律是商上的代数性质，不是下降前的义务。",
       "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84",
       "difficulty": 0,
       "variants": [],
@@ -10247,7 +10247,7 @@
         "直接交给 `Quot.sound`，把两个商元素变成相等。"
       ],
       "answer": 1,
-      "why": "`add_shift` 先把 `(a+c)+(b'+d)` 重排成 `(a+b')+(c+d)`，此时中间项正好是 `h` 的左端 `a+b'`，用 `h` 换成 `a'+b`，再反用 `add_shift` 得到目标。`h` 只约束前两个代表元，不涉及 `c,d`；`Quot.sound` 是最后把代表元关系变成商内相等时才用。",
+      "why": "`add_shift` 先把 `(a+c)+(b'+d)` 重排成 `(a+b')+(c+d)`；此时中间项正好是 `h` 的左端 `a+b'`，用 `h` 换成 `a'+b`，再反用 `add_shift` 得到目标。`h` 只约束前两个代表元，不涉及 `c,d`；`Quot.sound` 是最后把代表元关系变成商内相等时才用。",
       "source": "courses/analysis/units/II.1/unit06-int-add-wd.sokonanoda:84",
       "difficulty": 0,
       "variants": [],
@@ -10407,7 +10407,7 @@
         "`intRel (addRep (addRep p q) r) (addRep p (addRep q r))`"
       ],
       "answer": 4,
-      "why": "结合律在商上要的是两个代表元相关：先加前两个再加第三个，与先加后两个再加第一个，结果在 `intRel` 下相等。代表元本身一般不逐字相等（分量括号不同），所以不能写成代表元等式；零元与交换律是另外两条。",
+      "why": "结合律在商上要的是两个代表元相关：先加前两个再加第三个；先加后两个再加第一个，结果在 `intRel` 下相等。代表元本身一般不逐字相等（分量括号不同），所以不能写成代表元等式；零元与交换律是另外两条。",
       "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:89",
       "difficulty": 0,
       "variants": [],
@@ -10433,7 +10433,7 @@
         "`(a+c)+e` 与 `a+(c+e)` 不是定义性相等。"
       ],
       "answer": 4,
-      "why": "两个代表元的分量括号不同，`mk` 作用后也不定义性相等；`addRep_assoc` 给出它们相关，再用 `Quot.sound` 才得到商内相等。结合律在商上是成立的（这一条正是它的证明），`Eq.refl` 也能用于 `Quot` 类型，只是这里两边不同。",
+      "why": "两个代表元的分量括号不同，`mk` 作用后也不定义性相等；`addRep_assoc` 给出它们相关，再用 `Quot.sound` 才得到商内相等。结合律在商上是成立的（这一条正是它的证明）；`Eq.refl` 也能用于 `Quot` 类型，只是这里两边不同。",
       "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:107",
       "difficulty": 1.5,
       "variants": [],
@@ -10647,7 +10647,7 @@
         "前者证的是单射，后者证的是满射。"
       ],
       "answer": 3,
-      "why": "`negRep_wd` 是「取负」下降到 `Int` 之前的义务：换代表元不能改变结果所属的等价类；`negRep_neg` 只在代表元层说交换两次回到原序对，用 `Eq.refl` 即可。`negRep_neg` 当然能用于商上的 `int_neg_neg`（把两边送进 `mk`），它只是不需要额外的相容性证明；两者也不是单射/满射。",
+      "why": "`negRep_wd` 是「取负」下降到 `Int` 之前的义务：换代表元不能改变结果所属的等价类；`negRep_neg` 只在代表元层说交换两次回到原来的序对，用 `Eq.refl` 即可。`negRep_neg` 当然能用于商上的 `int_neg_neg`（把两边送进 `mk`），它只是不需要额外的相容性证明；两者也不是单射/满射。",
       "source": "courses/analysis/units/II.1/unit08-int-add-group.sokonanoda:115",
       "difficulty": 1.5,
       "variants": [],
@@ -10675,7 +10675,7 @@
         "三个：两个参数加一个零元的相关性。"
       ],
       "answer": 1,
-      "why": "减法同时依赖被减数与减数两个代表元，所以两个都要能换，`subRep_wd` 收 `h1` 与 `h2` 两个假设。只证第一个不够，零元不是这里的输入，而 `subRep` 虽然由 `addRep` 与 `negRep` 展开，下降到商上前仍需要良定义性。",
+      "why": "减法同时依赖被减数与减数两个代表元，所以两个都要能换，`subRep_wd` 收 `h1` 与 `h2` 两个假设。只证第一个不够；零元不是这里的输入，而 `subRep` 虽然由 `addRep` 与 `negRep` 展开，下降到商上前仍需要良定义性。",
       "source": "courses/analysis/units/II.1/unit09-int-sub.sokonanoda:208",
       "difficulty": 0,
       "variants": [],
@@ -10996,7 +10996,7 @@
         "`intRel p p' → p = p'`，把商内相等还原成代表元相等。"
       ],
       "answer": 3,
-      "why": "乘法在商上定义前，要先说明换第一个代表元后结果仍相关，这就是 `mulRep_wd`（本单元只证第一个槽）。代表元本身一般不逐字相等；`p=p'` 是 `Quot.exact` 的反方向；交换律是商上的性质，不是这里的义务。",
+      "why": "乘法要在商上定义，所以必须先说明换第一个代表元后结果仍相关，这就是 `mulRep_wd`（本单元只证第一个槽）。代表元本身一般不逐字相等；`p=p'` 是 `Quot.exact` 的反方向；交换律是商上的性质，不是这里的义务。",
       "source": "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178",
       "difficulty": 0,
       "variants": [],
@@ -11484,7 +11484,7 @@
         "对加数 `k` 归纳。"
       ],
       "answer": 1,
-      "why": "结论由 `LeNat m n` 推出，最直接的归纳对象是 h 的构造链：`le_refl` 取 k=0，`le_succ` 把归纳假设的见证抬一层。k 还是被存在的量，不能先归纳；对 m 或 n 归纳时没有 h 的构造信息可用。",
+      "why": "结论由 `LeNat m n` 推出；最直接的归纳对象是 h 的构造链：`le_refl` 取 k=0，`le_succ` 把归纳假设的见证抬一层。k 还是被存在的量，不能先归纳；对 m 或 n 归纳时没有 h 的构造信息可用。",
       "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:117",
       "difficulty": 0,
       "variants": [],
@@ -11636,7 +11636,7 @@
         "证明 `LeNat` 是等价关系。"
       ],
       "answer": 1,
-      "why": "`leNat_of_exists_add` 是 `leNat_exists_add` 的反方向：有了见证 k 与等式 `n=m+k`，用 `leNat_self_add` 得 `LeNat m (m+k)`，再沿等式换成 `LeNat m n`。正方向是 `leNat_exists_add`；加法交换律与等价关系都不是这条定理的内容。",
+      "why": "`leNat_of_exists_add` 是 `leNat_exists_add` 的反方向：有了见证 k 与等式 `n=m+k`；用 `leNat_self_add` 得 `LeNat m (m+k)`，再沿等式换成 `LeNat m n`。正方向是 `leNat_exists_add`；加法交换律与等价关系都不是这条定理的内容。",
       "source": "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:130",
       "difficulty": 0,
       "variants": [],
@@ -11769,7 +11769,7 @@
         "正反两向都用替换，反向先翻 `intRel`。"
       ],
       "answer": 4,
-      "why": "`leRep_wd_iff` 给出 `leRep p q ↔ leRep p' q'`：正向就是 `leRep_wd`，反向需要先把 `p'~p`、`q'~q` 用 `intRel_symm` 翻回来，再对调两组代表元用一次 `leRep_wd`。它不是等价关系（序不要求对称）；也不会把序化成相等。",
+      "why": "`leRep_wd_iff` 给出 `leRep p q ↔ leRep p' q'`：正向就是 `leRep_wd`；反向需要先把 `p'~p`、`q'~q` 用 `intRel_symm` 翻回来，再对调两组代表元用一次 `leRep_wd`。它不是等价关系（序不要求对称）；也不会把序化成相等。",
       "source": "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:236",
       "difficulty": 1.5,
       "variants": [],
@@ -12083,7 +12083,7 @@
         "把 `intRel` 换成相等。"
       ],
       "answer": 2,
-      "why": "证明中要把交换后的因子按 `mulRep_wd` 的方向接起来，若手里的相关性方向相反，就用 `intRel_symm` 翻一次。它不改变结论的真假，也不把 `intRel` 变成相等；交换乘积是 `mulRep_comm` 的事。",
+      "why": "证明中要按 `mulRep_wd` 的方向调整交换后的因子；若手里的相关性方向相反，就用 `intRel_symm` 翻一次。它不改变结论的真假，也不把 `intRel` 变成相等；交换乘积是 `mulRep_comm` 的事。",
       "source": "courses/analysis/units/II.1/unit18-int-mul-wd-snd.sokonanoda:225",
       "difficulty": 1.5,
       "variants": [],
