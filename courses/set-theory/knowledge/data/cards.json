@@ -365,6 +365,14 @@
             "把非自反 `∀ a, ¬ r a a` 当成反对称；",
             "偏序 = 自反 + 反对称 + 传递；严格序 = 非自反 + 传递（不需要反对称）。"
           ]
+        },
+        {
+          "heading": "相关的序引理（常与本题一起考）",
+          "kind": "list",
+          "items": [
+            "偏序的取用子：`partialOrder_refl` / `partialOrder_antisymm` / `partialOrder_trans`。",
+            "严格序的取用子：`strictOrder_irrefl`（非自反）；严格序没有反对称这一条。"
+          ]
         }
       ],
       "source": "lib/Order.sokonanoda:61（反对称）/ :53（非自反）"
@@ -448,6 +456,17 @@
           "items": [
             "`h : IsPartialOrder α r` → `h.1 : Reflexive α r`、`h.2.1 : Antisymmetric α r`、`h.2.2 : Transitive α r`；",
             "证的时候用 `constructor` 拆成三个子目标，逐个证。"
+          ]
+        },
+        {
+          "heading": "同名引理速查（题里常一起出现）",
+          "kind": "list",
+          "items": [
+            "`partialOrder_refl α r h a : r a a` 取自反；`partialOrder_antisymm α r h a b hab hba : a = b` 取反对称。",
+            "`partialOrder_trans α r h a b c hab hbc : r a c` 取传递。",
+            "`linearOrder_total α r h a b : r a b ∨ r b a` 只有全序才有。",
+            "`strictOrder_irrefl α r h a : ¬ (r a a)` 是严格序的非自反。",
+            "`subset_trans α A B C h1 h2 : A ⊆ C`：包含也是偏序，传递律同名同形。"
           ]
         }
       ],
@@ -625,6 +644,15 @@
           "items": [
             "拿到 `h : RightInverse g f` 和 `y : β`：`h y : f (g y) = y`——直接给出「y 的原像就是 g y」；",
             "要证 `Surjective f`：`intro y; exact Exists.intro (g y) (h y)`。"
+          ]
+        },
+        {
+          "heading": "相关：Cantor 定理的满射版",
+          "kind": "list",
+          "items": [
+            "`no_surjection_powerset α : ¬ ∃ (f : α → Set α), Function.Surjective α (Set α) f`：不存在 `α` 到 `Set α` 的满射。",
+            "它与 Cantor 定理同一边界：等势不存在，满射也不存在。",
+            "逆函数的边界：左逆给单射、右逆给满射；满射必有右逆需要选择公理。"
           ]
         }
       ],
@@ -1255,6 +1283,15 @@
             "`Quot.ind` 只能证 `Prop`；要构造数据得用 `Quot.lift`。",
             "本课程没有 `Quot.exact`，不能用商内相等反推代表元关系。"
           ]
+        },
+        {
+          "heading": "同名引理速查（良定义题常要）",
+          "kind": "list",
+          "items": [
+            "`rel_subst_right α r a b c h : r a b → r a c`（`h : b = c`）：相关性对右端点替换稳定。",
+            "`add_assoc` 与 `add_comm`：整数加法的良定义性证明里用它们在代表元上重排。",
+            "没有 `Quot.exact` 时，按相等作商的单射性要用 `Quot.lift` 缩回再搬运。"
+          ]
         }
       ],
       "tags": [
@@ -1406,6 +1443,15 @@
             "`h : IsLinearOrder α r` → `h.1 : IsPartialOrder α r`、`h.2 : Total α r`；",
             "要比较任意两个元素：`linearOrder_total α r h a b : r a b ∨ r b a`；",
             "要取出自反/反对称/传递：用 `partialOrder_refl` / `partialOrder_antisymm` / `partialOrder_trans`。"
+          ]
+        },
+        {
+          "heading": "取用子速查",
+          "kind": "list",
+          "items": [
+            "`linearOrder_total α r h a b : r a b ∨ r b a` 给全性。",
+            "`partialOrder_refl` / `partialOrder_antisymm` / `partialOrder_trans` 取出偏序三条。",
+            "`wellOrder_linear α r h : IsLinearOrder α r`：良序蕴含全序。"
           ]
         }
       ],
@@ -1575,6 +1621,561 @@
         }
       ],
       "source": "lib/Cardinal.sokonanoda:77"
+    },
+    {
+      "id": "cardinal-le-empty",
+      "kicker": "卷 I · I.8 基数的比较",
+      "title": "A ≼ ∅ 的四条引理：le_empty / subset_of_le_empty / subset_le / le_trans",
+      "oneLiner": "要证 `A ⊆ ∅` 用 `subset_of_le_empty`；要逐点说 `A` 没有元素用 `le_empty`。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : ∀ (x : α), ¬ (x ∈ A)\n\ntheorem subset_of_le_empty (α : Type) (A : Set α) (h : A ≼ ∅) : A ⊆ ∅\n\ntheorem subset_le (α : Type) (A B : Set α) (h : A ⊆ B) : A ≼ B\n\ntheorem le_trans (α β γ : Type) (A : Set α) (B : Set β) (C : Set γ)\n    (h1 : A ≼ B) (h2 : B ≼ C) : A ≼ C"
+      },
+      "sections": [
+        {
+          "heading": "四条各管什么",
+          "kind": "list",
+          "items": [
+            "`le_empty`：把 `A ≼ ∅` 换成逐点形式 `∀ (x : α), ¬ (x ∈ A)`。",
+            "`subset_of_le_empty`：把 `A ≼ ∅` 直接换成 `A ⊆ ∅`，一步到位。",
+            "`subset_le`：反方向，把 `A ⊆ B` 升级成 `A ≼ B`。",
+            "`le_trans`：把 `A ≼ B` 与 `B ≼ C` 接成 `A ≼ C`。"
+          ]
+        },
+        {
+          "heading": "这道题怎么选",
+          "kind": "list",
+          "items": [
+            "目标就是 `A ⊆ ∅` 时用 `subset_of_le_empty`，它是唯一直接给出包含关系的。",
+            "目标要求每个元素都不在 `A` 里时用 `le_empty`。",
+            "`subset_le` 的结论是 `≼`，`le_trans` 要两段 `≼`，方向都对不上。"
+          ]
+        },
+        {
+          "heading": "参数顺序（可直接对照）",
+          "kind": "list",
+          "items": [
+            "`le_empty α A h`、`subset_of_le_empty α A h`：类型、集合、`A ≼ ∅` 的证据。",
+            "`subset_le α A B h`：`h : A ⊆ B`。",
+            "`le_trans α β γ A B C h1 h2`：三个类型、三个集合、两段证据。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "拿 `subset_le` 证 `A ⊆ ∅`：它给的结论是 `A ≼ B`，方向反了。",
+            "拿 `le_trans` 一步到位：它只接两段 `≼`，不产生包含关系。"
+          ]
+        }
+      ],
+      "source": "units/I.8/unit19-cardinal-le.sokonanoda:141 / :149 / :105 / :119",
+      "tags": [
+        "cardinal-le",
+        "le-empty",
+        "cardinal-arithmetic"
+      ],
+      "kps": [
+        "kp.i8.le.empty"
+      ],
+      "prereq": [
+        "cardinal-le"
+      ]
+    },
+    {
+      "id": "ordinal-basics",
+      "kicker": "卷 I · I.3 序数",
+      "title": "序数 · IsOrdinal / IsZero / IsWellFounded",
+      "oneLiner": "序数是谓词：`IsOrdinal α E x` 说 `x` 传递、元素传递，且 `E` 在整个论域上良基。",
+      "definition": {
+        "lang": "lean",
+        "code": "def IsWellFounded (α : Type) (r : α → α → Prop) : Prop\n\ndef IsTransitive (α : Type) (E : α → α → Prop) (x : α) : Prop\n\ndef IsOrdinal (α : Type) (E : α → α → Prop) (x : α) : Prop :=\n  IsTransitive α E x ∧ (∀ (y : α), E y x → IsTransitive α E y) ∧ IsWellFounded α E\n\ndef IsZero (α : Type) (E : α → α → Prop) (x : α) : Prop :=\n  IsOrdinal α E x ∧ ∀ (y : α), ¬ (E y x)\n\ntheorem ordinal_wellFounded (α : Type) (E : α → α → Prop) (x : α)\n    (h : IsOrdinal α E x) : IsWellFounded α E"
+      },
+      "sections": [
+        {
+          "heading": "三条合取支",
+          "kind": "list",
+          "items": [
+            "`x` 传递：`y ∈ x` 且 `z ∈ y` 推出 `z ∈ x`，这里把 `∈` 读成 `E`。",
+            "`x` 的每个元素也传递：这一条把序数与传递集区分开。",
+            "`E` 在整个论域上良基：就是 `IsWellFounded α E`。"
+          ]
+        },
+        {
+          "heading": "零序数与良基性",
+          "kind": "list",
+          "items": [
+            "`IsZero α E x` 说 `x` 是序数，且 `x` 没有元素；零序数就是空集在内化读法里的样子。",
+            "`ordinal_wellFounded α E x h` 取出的良基性不带 `x`：它谈的是整个论域上的 `E`。",
+            "所以良基性不依赖 `x`：取用子的结论里根本没有 `x`。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "造 `IsOrdinal`：用 `isOrdinal_intro` 交三件；拆：`ordinal_isTransitive` / `ordinal_elems_isTransitive` / `ordinal_wellFounded`。",
+            "证 `IsZero`：先给 `IsOrdinal`，再逐点证 `¬ (E y x)`。",
+            "后继序数：`IsSuccOf α E x y` 要求 `x` 是序数，且 `x` 的元素恰好是 `y` 的元素加上 `y`。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把 `IsOrdinal` 当成类型：它是返回 `Prop` 的谓词。",
+            "把良基性理解成只对 `x` 的元素成立：它约束的是整个论域。"
+          ]
+        }
+      ],
+      "source": "lib/Ordinal.sokonanoda:50 / :86 / :98；lib/Order.sokonanoda:103",
+      "tags": [
+        "ordinal-basics"
+      ],
+      "kps": [
+        "kp.prep.ordinal"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "subset-lemmas",
+      "kicker": "卷 I · I.1 集合",
+      "title": "子集代数：refl / trans / antisymm / 交并的包含",
+      "oneLiner": "`⊆` 自反、传递、反对称；交与并的包含用 `union_subset_iff`、`inter_subset_inter`、`inter_subset_left`。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem subset_refl (α : Type) (A : Set α) : A ⊆ A\n\ntheorem subset_trans (α : Type) (A B C : Set α) (h1 : A ⊆ B) (h2 : B ⊆ C) : A ⊆ C\n\ntheorem subset_antisymm (α : Type) (A B : Set α) (h1 : A ⊆ B) (h2 : B ⊆ A) : A = B\n\ntheorem union_subset_iff (α : Type) (A B C : Set α) :\n    A ∪ B ⊆ C ↔ (A ⊆ C ∧ B ⊆ C)\n\ntheorem inter_subset_inter (α : Type) (A B C D : Set α)\n    (h1 : A ⊆ C) (h2 : B ⊆ D) : A ∩ B ⊆ C ∩ D\n\ntheorem inter_subset_left (α : Type) (A B : Set α) : A ∩ B ⊆ A"
+      },
+      "sections": [
+        {
+          "heading": "六条各管什么",
+          "kind": "list",
+          "items": [
+            "`subset_refl` 给 `A ⊆ A`；`subset_trans` 把 `A ⊆ B` 与 `B ⊆ C` 接成 `A ⊆ C`。",
+            "`subset_antisymm`：互相包含推出 `A = B`，这是包含关系的反对称律。",
+            "`union_subset_iff`：并包含于 `C` 等价于两边都包含于 `C`。",
+            "`inter_subset_inter`：交对交单调；`inter_subset_left`：交包含于左因子。"
+          ]
+        },
+        {
+          "heading": "这道题怎么选",
+          "kind": "list",
+          "items": [
+            "题目要证两个方向的包含时用 `subset_antisymm`。",
+            "题目给两条包含链时用 `subset_trans`。",
+            "题目给每个都包含于 `C` 时，用 `union_subset_iff` 的 `Iff.mpr` 方向收成并包含。",
+            "题目给交、要证包含时用 `inter_subset_inter` 或 `inter_subset_left`。"
+          ]
+        },
+        {
+          "heading": "参数顺序",
+          "kind": "list",
+          "items": [
+            "`subset_trans α A B C h1 h2`；`subset_antisymm α A B h1 h2`。",
+            "`union_subset_iff α A B C`：并的两边在前，目标是 `C`。",
+            "`inter_subset_inter α A B C D h1 h2`：四个集合按左、右、左撇、右撇的顺序写全。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把 `subset_antisymm` 当传递用：它要两条反向包含，不给链式结论。",
+            "`union_subset_iff` 方向用反：从并包含出发用 `Iff.mp`，收成并包含用 `Iff.mpr`。"
+          ]
+        }
+      ],
+      "source": "units/I.5/unit67-subset-order.sokonanoda:52 / :58 / :68；units/I.1/unit66-subset-algebra.sokonanoda:87 / :80 / :68",
+      "tags": [
+        "subset-lemmas"
+      ],
+      "kps": [
+        "kp.i1.subset",
+        "kp.i1.subset.algebra",
+        "kp.i1.inter"
+      ],
+      "prereq": [
+        "set-ext"
+      ]
+    },
+    {
+      "id": "rel-transitivity",
+      "kicker": "卷 I · I.2 关系",
+      "title": "传递性反例 · nearStep",
+      "oneLiner": "`nearStep a b` 说 `a` 与 `b` 相差不超过 1；它自反、对称，但不传递。",
+      "definition": {
+        "lang": "lean",
+        "code": "def nearStep (a b : Nat) : Prop :=\n  a = b ∨ (Nat.succ a = b ∨ a = Nat.succ b)"
+      },
+      "sections": [
+        {
+          "heading": "为什么它是反例",
+          "kind": "list",
+          "items": [
+            "自反：`nearStep a a` 由第一个析取项 `a = a` 直接命中。",
+            "对称：三个析取项换边，第一个要用 `Eq.symm` 翻转等式。",
+            "不传递：`nearStep 0 1` 与 `nearStep 1 2` 成立，但 `nearStep 0 2` 不成立。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "要证 `¬ (Transitive Nat nearStep)`：先假设传递，再在 `0`、`1`、`2` 三点上撞一次。",
+            "否掉 `nearStep 0 2` 的三个析取项：`0 = 2` 与 `0 = 3` 交给 `Nat.zero_ne_succ`。",
+            "剩下 `1 = 2` 先用 `Nat.succ.inj` 降成 `0 = 1`，再交给 `Nat.zero_ne_succ`。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把自反加对称直接推成传递：这正是本题要否掉的推理。",
+            "在空论域上找反例：空论域上三条性质都空洞成立。"
+          ]
+        }
+      ],
+      "source": "units/I.2/unit06-relations.sokonanoda:199",
+      "tags": [
+        "rel-transitivity"
+      ],
+      "kps": [
+        "kp.i2.rel.trans"
+      ],
+      "prereq": [
+        "rel"
+      ]
+    },
+    {
+      "id": "le-both",
+      "kicker": "卷 I · I.3 等势",
+      "title": "LeOn · 单射嵌入版的「不大于」",
+      "oneLiner": "`LeOn α β A B` 说存在 `A → B` 的单射且把 `A` 送进 `B`；`⊆` 直接给出 `LeOn`。",
+      "definition": {
+        "lang": "lean",
+        "code": "def LeOn (α : Type) (β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B\n\ntheorem leOn_of_subset (α : Type) (A : Set α) (B : Set α) (h : A ⊆ B) : LeOn α α A B"
+      },
+      "sections": [
+        {
+          "heading": "人话",
+          "kind": "list",
+          "items": [
+            "`LeOn α β A B` 说：能找到 `f : α → β`，它在 `A` 上单射，且把 `A` 送进 `B`。",
+            "它是基数比较的嵌入版：只要单射嵌入，不要求满射。"
+          ]
+        },
+        {
+          "heading": "怎么用",
+          "kind": "list",
+          "items": [
+            "证 `LeOn α α A B`：子集 `h : A ⊆ B` 直接交给 `leOn_of_subset α A B h`，见证取恒等函数。",
+            "拆 `LeOn`：`leOn_apply` 把存在式交出来，再用 `Set.injOn_def` 与 `Set.mapsTo_def` 展开。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把 `LeOn` 与 `A ≼ B` 混为一谈：`≼` 侧是 `Set.Le`，`LeOn` 是内化论域上的版本。",
+            "证 `LeOn` 时忘记交 `Set.MapsTo`：两条条件缺一不可。"
+          ]
+        }
+      ],
+      "source": "units/I.3/unit96-le-on.sokonanoda:28 / :67",
+      "tags": [
+        "le-both"
+      ],
+      "kps": [
+        "kp.i3.both"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "nat-add-lemmas",
+      "kicker": "卷 II · II.1 ℕ 算术",
+      "title": "ℕ 加法引理：zero_add / add_zero / add_assoc / add_comm / add_rotate",
+      "oneLiner": "零律两条方向不同；结合律负责括号，交换律负责换位，旋转律负责重排三段加法。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem zero_add (b : Nat) : add Nat.zero b = b\n\ntheorem add_zero (a : Nat) : add a Nat.zero = a\n\ntheorem add_assoc (a b c : Nat) : add (add a b) c = add a (add b c)\n\ntheorem add_comm (a b : Nat) : add a b = add b a\n\ntheorem add_rotate (a b c : Nat) : add a (add b c) = add b (add a c)\n\ntheorem succ_add (a b : Nat) : add (Nat.succ a) b = Nat.succ (add a b)\n\ntheorem add_succ (a b : Nat) : add a (Nat.succ b) = Nat.succ (add a b)\n\ntheorem mul_distrib (a b c : Nat) : mul a (add b c) = add (mul a b) (mul a c)\n\ntheorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero"
+      },
+      "sections": [
+        {
+          "heading": "零律有两条方向",
+          "kind": "list",
+          "items": [
+            "`zero_add b : add 0 b = b` 是零在左边；`add_zero a : add a 0 = a` 是零在右边。",
+            "`add_comm` 的零情形 `add a 0 = add 0 a` 正是把两条接起来：左边用 `zero_add`，右边用 `add_zero`。"
+          ]
+        },
+        {
+          "heading": "结合、交换、旋转",
+          "kind": "list",
+          "items": [
+            "`add_assoc` 只负责括号：`(a + b) + c = a + (b + c)`。",
+            "`add_comm` 负责两个加数换位；`add_rotate` 把 `a + (b + c)` 旋成 `b + (a + c)`。",
+            "`add_rotate` 的证明先用 `add_assoc` 把内层露出来，再交换内层，最后收回。"
+          ]
+        },
+        {
+          "heading": "哪些引理不在这步",
+          "kind": "list",
+          "items": [
+            "`succ_add` 与 `add_succ` 处理后继情形，零情形用不上。",
+            "`mul_distrib` 与 `zero_mul` 是乘法引理，与加法的零情形无关。"
+          ]
+        },
+        {
+          "heading": "参数顺序",
+          "kind": "list",
+          "items": [
+            "两个参数的引理写成 `add_comm a b`；三个参数的写成 `add_assoc a b c` 与 `add_rotate a b c`。"
+          ]
+        }
+      ],
+      "source": "units/I.6/unit111-nat-arith.sokonanoda:36 / :45 / :57 / :64 / :70 / :51 / :39 / :83 / :77",
+      "tags": [
+        "nat-add-lemmas",
+        "nat-add"
+      ],
+      "kps": [
+        "kp.ii1.nat.add",
+        "kp.ii1.nat.add.cancel"
+      ],
+      "prereq": []
+    },
+    {
+      "id": "nat-mul-lemmas",
+      "kicker": "卷 II · II.1 ℕ 算术",
+      "title": "ℕ 乘法引理：mul_zero / zero_mul / mul_distrib / add_rotate",
+      "oneLiner": "`mul a 0` 归约成 0；`zero_mul` 说 `0 · b = 0`；分配律把乘法拆成加法。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem mul_zero (a : Nat) : mul a Nat.zero = Nat.zero\n\ntheorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero\n\ntheorem mul_distrib (a b c : Nat) : mul a (add b c) = add (mul a b) (mul a c)\n\ntheorem add_rotate (a b c : Nat) : add a (add b c) = add b (add a c)\n\ntheorem add_comm (a b : Nat) : add a b = add b a\n\ntheorem add_zero (a : Nat) : add a Nat.zero = a\n\ntheorem zero_add (b : Nat) : add Nat.zero b = b"
+      },
+      "sections": [
+        {
+          "heading": "零乘的两条方向",
+          "kind": "list",
+          "items": [
+            "`mul a 0` 按 `mul` 的定义直接归约成 `0`，所以 `mul_zero` 是定义性等式。",
+            "`zero_mul` 说 `0 · b = 0`，它对 `b` 归纳：零情形归约，后继情形要接 `zero_add`。",
+            "两条不是同一条：`mul_zero` 的零在右边，`zero_mul` 的零在左边。"
+          ]
+        },
+        {
+          "heading": "分配律与收尾",
+          "kind": "list",
+          "items": [
+            "`mul_distrib a b c : a·(b + c) = a·b + a·c` 把乘法拆开。",
+            "`zero_mul` 后继情形展开成 `0 + mul 0 n`，归纳假设换成 0 后目标 `0 + 0 = 0`，由 `zero_add` 收尾。",
+            "`mul_distrib` 后继情形展开后差一次重排，由 `add_rotate` 接上。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "`mul_zero` 与 `zero_mul` 的零位置不同，看目标再选。",
+            "拿 `add_comm` 或 `add_zero` 代替 `zero_add`：方向不同。"
+          ]
+        }
+      ],
+      "source": "courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:75 / :81；units/I.6/unit111-nat-arith.sokonanoda:77 / :70",
+      "tags": [
+        "nat-mul-lemmas",
+        "nat-mul"
+      ],
+      "kps": [
+        "kp.ii1.nat.mul"
+      ],
+      "prereq": [
+        "nat-add-lemmas"
+      ]
+    },
+    {
+      "id": "nat-order-lemmas",
+      "kicker": "卷 II · II.1 ℕ 序",
+      "title": "ℕ 序 · LeNat 的构造子与引理",
+      "oneLiner": "`LeNat` 只有两个构造子 `le_refl` 与 `le_succ`；`leNat_trans` 是用它们证的定理。",
+      "definition": {
+        "lang": "lean",
+        "code": "inductive LeNat : Nat → Nat → Prop\n| le_refl (n : Nat) : LeNat n n\n| le_succ (m n : Nat) : LeNat m n → LeNat m (Nat.succ n)\n\ntheorem leNat_trans (a b c : Nat) (h1 : LeNat a b) (h2 : LeNat b c) : LeNat a c"
+      },
+      "sections": [
+        {
+          "heading": "两个构造子",
+          "kind": "list",
+          "items": [
+            "`le_refl n : LeNat n n` 是自反；`le_succ m n h : LeNat m (Nat.succ n)` 往右抬一格。",
+            "构造子只有这两个；`leNat_trans` 是定理，不是第三个构造子。"
+          ]
+        },
+        {
+          "heading": "链怎么读",
+          "kind": "list",
+          "items": [
+            "`0 ≤ 2` 要拆成 `0 ≤ 1` 与 `1 ≤ 2`：前一段是 `le_succ 0 0 (le_refl 0)`。",
+            "后一段是 `le_succ 1 1 (le_refl 1)`；再用 `leNat_trans` 接成 `0 ≤ 2`。"
+          ]
+        },
+        {
+          "heading": "加法与序的搬运",
+          "kind": "list",
+          "items": [
+            "`leNat_add_cancel_right` 先把 `LeNat (a+k) (b+k)` 翻成存在式，再用 `add_rotate` 重排。",
+            "最后用加法消去律得到 `b = a+j`，再翻回 `LeNat`。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "把定理记成 `le_trans`：课程里这条定理叫 `leNat_trans`。",
+            "拿 `le_refl 2` 证 `0 ≤ 2`：它只给 `2 ≤ 2`。"
+          ]
+        }
+      ],
+      "source": "courses/analysis/units/II.1/unit13-nat-order-lemmas.sokonanoda:22 / :43 / :65；courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:138",
+      "tags": [
+        "nat-order-lemmas",
+        "nat-order"
+      ],
+      "kps": [
+        "kp.ii1.nat.order",
+        "kp.ii1.nat.le.cancel",
+        "kp.ii1.nat.le.exists"
+      ],
+      "prereq": [
+        "nat-add-lemmas"
+      ]
+    },
+    {
+      "id": "int-add-laws",
+      "kicker": "卷 II · II.1 整数",
+      "title": "整数加法律 · addRep 与群结构",
+      "oneLiner": "商上的加法律先对代表元证：交换律靠两次 `add_comm`，结合律靠两侧 `add_assoc`；零元与负元再交给群结构。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem addRep_comm (a b c d : Nat) :\n    intRel (addRep (a, b) (c, d)) (addRep (c, d) (a, b))\n\ntheorem addRep_assoc (a b c d e f : Nat) :\n    intRel (addRep (addRep (a, b) (c, d)) (e, f))\n           (addRep (a, b) (addRep (c, d) (e, f)))\n\ntheorem add_assoc (a b c : Nat) : add (add a b) c = add a (add b c)\n\ntheorem add_comm (a b : Nat) : add a b = add b a"
+      },
+      "sections": [
+        {
+          "heading": "先证代表元相关",
+          "kind": "list",
+          "items": [
+            "`addRep_comm` 的目标是 `intRel`：同一整数的两个代表元给出同一个结果。",
+            "证明先改写右边：把 `d + b` 换成 `b + d`，再把 `a + c` 换成 `c + a`，两边就对齐了。",
+            "两次改写都用 `add_comm`；`add_assoc` 不参与这一步。"
+          ]
+        },
+        {
+          "heading": "结合律怎么拼",
+          "kind": "list",
+          "items": [
+            "`addRep_assoc` 左端把 `(a + c) + e` 按 `add_assoc` 拼成 `a + (c + e)`。",
+            "右端把 `b + (d + f)` 按 `add_assoc` 的对称拼成 `(b + d) + f`，两边逐字对上。"
+          ]
+        },
+        {
+          "heading": "怎么落到商上",
+          "kind": "list",
+          "items": [
+            "商里的等式只能由 `Quot.sound` 得到：把 `addRep_comm` 或 `addRep_assoc` 作为相关性证据交出去。",
+            "拿到的就是 `int_add_comm` 与 `int_add_assoc`。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "只改左边：右边是 `b + d`，改完也对不上。",
+            "在这一步找归纳：两条证明都不需要归纳，只是重排。"
+          ]
+        },
+        {
+          "heading": "零元与负元",
+          "kind": "list",
+          "items": [
+            "零元：`int_add_zero` 由 `Quot.sound` 加 `zero_rep` 得到，零的代表元取 `zero_rep a b`。",
+            "负元：`int_add_neg` 用 `negRep_neg` 的对称，或 `Quot.sound` 加 `add_neg_rep`。",
+            "取负下降到商之前要证 `negRep_wd`；`negRep_neg` 只是代表元等式，不需要良定义性。"
+          ]
+        },
+        {
+          "heading": "减法的收尾",
+          "kind": "list",
+          "items": [
+            "`int_sub_add` 不能直接用 `int_add_neg` 收尾：减法要先展开 `subRep`，再换到加负元。",
+            "`add_neg_rep` 的结论是「代表元加上负代表元等于零代表元」这一条等式。"
+          ]
+        }
+      ],
+      "source": "courses/analysis/units/II.1/unit07-int-add-laws.sokonanoda:81 / :89 / :99 / :107",
+      "tags": [
+        "int-add-laws"
+      ],
+      "kps": [
+        "kp.ii1.int.add.laws",
+        "kp.ii1.int.add.group"
+      ],
+      "prereq": [
+        "int-rep-formulas"
+      ]
+    },
+    {
+      "id": "int-mul-comm",
+      "kicker": "卷 II · II.1 整数",
+      "title": "整数乘法交换律 · myMul_comm / mulRep_comm",
+      "oneLiner": "`myMul_comm` 对第二个参数归纳；`mulRep_comm` 在它之外还要用 `add_comm` 交换交叉项。",
+      "definition": {
+        "lang": "lean",
+        "code": "theorem myMul_comm (a b : Nat) : myMul a b = myMul b a\n\ntheorem succ_mul (a b : Nat) : myMul (Nat.succ a) b = add (myMul a b) b\n\ntheorem zero_mul (b : Nat) : mul Nat.zero b = Nat.zero\n\ntheorem mulRep_comm (a b c d : Nat) :\n    mulRep (a, b) (c, d) = mulRep (c, d) (a, b)\n\ntheorem add_comm (a b : Nat) : add a b = add b a"
+      },
+      "sections": [
+        {
+          "heading": "交换律归纳在哪",
+          "kind": "list",
+          "items": [
+            "`myMul` 对第二个参数递归，所以交换律对 `b` 归纳。",
+            "零情形两边都归约成 0；后继情形把左边展开成 `a + myMul a n`。",
+            "再用归纳假设换成 `a + myMul n a`，最后用 `add_comm` 与 `succ_mul` 收口。"
+          ]
+        },
+        {
+          "heading": "mulRep_comm 多出的一步",
+          "kind": "list",
+          "items": [
+            "第一个分量用两次 `myMul_comm` 就对上；第二个分量是 `a·d + b·c` 与 `c·b + d·a`。",
+            "交换因子之后还要用 `add_comm` 把两个加数顺序换过来。"
+          ]
+        },
+        {
+          "heading": "零乘的两条",
+          "kind": "list",
+          "items": [
+            "`zero_mul b : 0 · b = 0` 是 `myMul` 的零情形；`mul_zero a : a · 0 = 0` 是另一条。"
+          ]
+        },
+        {
+          "heading": "常见错误",
+          "kind": "list",
+          "items": [
+            "对 `a` 归纳：`myMul` 的递归在第二个参数上，对不上。",
+            "以为 `mulRep_comm` 只靠 `myMul_comm`：第二个分量还需要 `add_comm`。"
+          ]
+        }
+      ],
+      "source": "courses/analysis/units/II.1/unit17-int-mul-comm.sokonanoda:170 / :177 / :163；courses/analysis/units/II.1/unit03-nat-arith-review.sokonanoda:75",
+      "tags": [
+        "int-mul-comm"
+      ],
+      "kps": [
+        "kp.ii1.int.mul.comm"
+      ],
+      "prereq": [
+        "int-rep-formulas"
+      ]
     }
   ]
 }
