@@ -316,6 +316,7 @@ window.__ModuleLoader__.load({
       progressLevel4: '很熟',
       progressMapTitle: '学习地图',
       progressMapSolved: '已解',
+      progressMapProbing: '探针中',
       progressMapTodo: '待做',
       progressMapWeak: '薄弱',
       progressMapCode: '代码',
@@ -405,6 +406,7 @@ window.__ModuleLoader__.load({
       progressLevel4: 'strong',
       progressMapTitle: 'Learning map',
       progressMapSolved: 'solved',
+      progressMapProbing: 'probing',
       progressMapTodo: 'todo',
       progressMapWeak: 'weak',
       progressMapCode: 'code',
@@ -1045,10 +1047,11 @@ window.__ModuleLoader__.load({
       },
       h('span', { className: 'dslc-cell', 'data-level': level, style: Object.assign({}, S.cell, S.cellLevels[level]) }, ''),
       h('span', {}, t('progressLevel' + level, ['未接触', '刚起步', '有点感觉', '比较稳', '很熟'][level]))))
-      /* C9.5 学习地图：与 engine.py map 同一份结构计数（已解/待做/薄弱 + 代码题）。 */
+      /* C9.5 学习地图：与 engine.py map 同一份结构计数（已解/探针中/待做/薄弱 + 代码题）。 */
       const showMap = Number(summary.kpsTotal) > 0
       const mapParts = [
         t('progressMapSolved', '已解') + ' ' + (Number(summary.solvedKps) || 0),
+        t('progressMapProbing', '探针中') + ' ' + (Number(summary.probingKps) || 0),
         t('progressMapTodo', '待做') + ' ' + (Number(summary.todoKps) || 0),
         t('progressMapWeak', '薄弱') + ' ' + (Number(summary.weakKps) || 0),
       ]

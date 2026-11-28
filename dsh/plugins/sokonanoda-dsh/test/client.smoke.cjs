@@ -290,10 +290,10 @@ const PROGRESS = {
     asked: 49, correct: 44, accuracy: 0.898, streak: 27, coverage: 0.453,
     tagsTouched: 43, tagsTotal: 95, chaptersStarted: 3, currentUnit: '⑦ 函数',
     unitDone: 0, unitTotal: 15, served: 184, dueCount: 0,
-    kpsTotal: 195, kpsWithQuestions: 96, solvedKps: 50, todoKps: 45, weakKps: 1,
+    kpsTotal: 195, kpsWithQuestions: 96, solvedKps: 13, probingKps: 37, todoKps: 45, weakKps: 1,
     codeSolved: 2, codeSkipped: 0, codeTotal: 916,
   },
-  chapters: [{ id: 'I.1', title: '集合与隶属', completion: 0.861, asked: 40, touched: 31, total: 36, solved: 16, todo: 0, weak: 1, codeSolved: 1, codeTotal: 115 }],
+  chapters: [{ id: 'I.1', title: '集合与隶属', completion: 0.861, asked: 40, touched: 31, total: 36, solved: 8, probing: 8, todo: 0, weak: 1, codeSolved: 1, codeTotal: 115 }],
   heatRows: [{
     chapter: 'I.2', title: '关系',
     units: [
@@ -1050,7 +1050,7 @@ test('code fence renders prompt, hints, template and the panel deep link', () =>
   expect(cardCss.includes('.dslc-code-meta{'), 'code meta CSS rule missing')
   for (const dict of [zh, en]) {
     for (const key of ['codeLabel', 'codeTemplateLabel', 'codeSubmitHint', 'codeOpenPanel',
-      'progressMapTitle', 'progressMapSolved', 'progressMapTodo', 'progressMapWeak', 'progressMapCode']) {
+      'progressMapTitle', 'progressMapSolved', 'progressMapProbing', 'progressMapTodo', 'progressMapWeak', 'progressMapCode']) {
       expect(typeof dict[key] === 'string' && dict[key] !== '', 'locale missing ' + key)
     }
   }
@@ -1071,7 +1071,7 @@ test('progress fence renders summary, chapter bars, heat cells, hotspots and rec
   }))
   oneByClass(view, 'dslc-fence')
   const text = textOf(view)
-  for (const needle of ['学习进展', '连对', '27', '正确率', '90%', '知识点覆盖', '45%', '已答题', '章节进展', 'I.1', '掌握热力', '建议关注', '⑥ 关系', '刚起步', '最近', '学习地图', '已解 50', '待做 45', '薄弱 1', '代码 2/916']) {
+  for (const needle of ['学习进展', '连对', '27', '正确率', '90%', '知识点覆盖', '45%', '已答题', '章节进展', 'I.1', '掌握热力', '建议关注', '⑥ 关系', '刚起步', '最近', '学习地图', '已解 13', '探针中 37', '待做 45', '薄弱 1', '代码 2/916']) {
     expect(text.includes(needle), 'progress card missing ' + needle)
   }
   expect(byClass(view, 'dslc-stat').length === 4, 'expected 4 summary stats')

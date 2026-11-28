@@ -352,6 +352,18 @@ if weights and abs(sum(weights.get(k, 0) for k in ("gap", "challenge", "novelty"
     fail("params.json: weights must sum to 1.0")
 if not (0 < params_data.get("eta", 0) < 1):
     fail("params.json: eta must be in (0,1)")
+# 调度 v2（issue #138）：单元连续 / 三题探针的参数必须为正（可服务题不足时引擎自行取 min）
+for key in ("unit_probe_target", "probe_min_questions"):
+    value = params_data.get(key)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        fail("params.json: " + key + " must be a positive integer")
+map_params = params_data.get("map") or {}
+min_probes = map_params.get("min_probes")
+if not isinstance(min_probes, int) or isinstance(min_probes, bool) or min_probes < 1:
+    fail("params.json: map.min_probes must be a positive integer")
+bonus = params_data.get("unit_continuity_bonus")
+if not isinstance(bonus, (int, float)) or isinstance(bonus, bool) or bonus < 0:
+    fail("params.json: unit_continuity_bonus must be a non-negative number")
 
 # ---------- 代码练习库 ----------
 code_path = ROOT / "data" / "code-exercises.json"

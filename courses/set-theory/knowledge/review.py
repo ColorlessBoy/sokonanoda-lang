@@ -10,7 +10,7 @@
 `code_done`）。本工具不重新实现判定或掌握度，也不写任何用户内容进仓库；报告是
 生成物，落在 `courses/set-theory/knowledge/reports/`（已 gitignore）。
 
-指标口径（C9.5）：正确率/覆盖/已解-待做-薄弱用**结构计数**；每题耗时只汇总展示
+指标口径（C9.5 + 调度 v2）：正确率/覆盖/已解-探针中-待做-薄弱用**结构计数**；每题耗时只汇总展示
 （avg/median/max），**不作为通过/失败判据**（仓库纪律：绝对毫秒只兜数量级）。
 """
 import argparse
@@ -251,8 +251,8 @@ def summary_lines(report: dict) -> list:
     else:
         lines.append("每题耗时（只汇总，不作判据）：暂无记录")
     kp = report.get("kp") or {}
-    lines.append("知识点：已解 %d · 待做 %d · 薄弱 %d（覆盖 %.0f%% · 共 %d，%d 个已有题）" % (
-        kp.get("solved", 0), kp.get("todo", 0), kp.get("weak", 0),
+    lines.append("知识点：已解 %d · 探针中 %d · 待做 %d · 薄弱 %d（覆盖 %.0f%% · 共 %d，%d 个已有题）" % (
+        kp.get("solved", 0), kp.get("probing", 0), kp.get("todo", 0), kp.get("weak", 0),
         (kp.get("coverage", 0.0) or 0.0) * 100,
         kp.get("total", 0), kp.get("withQuestions", 0)))
     if report.get("weak_tags"):
@@ -331,7 +331,9 @@ def selftest(data: dict) -> int:
           str(report["timing"]))
     check("review-wrong", len(report["wrong"]) == 1, str([row["qid"] for row in report["wrong"]]))
     check("review-weak-tag", bool(report["weak_tags"]), str(report["weak_tags"][:3]))
-    check("review-kp-summary", (report["kp"]["solved"] + report["kp"]["weak"]) >= 1,
+    check("review-kp-summary",
+          (report["kp"]["solved"] + report["kp"]["weak"] + report["kp"].get("probing", 0)) >= 1
+          and report["kp"].get("probing", 0) >= 1,
           str(report["kp"]))
     check("review-content-gaps", all(row["id"].startswith("kp.") for row in report["content_gaps"]),
           str(len(report["content_gaps"])))

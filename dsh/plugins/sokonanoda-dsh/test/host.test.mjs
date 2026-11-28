@@ -225,7 +225,10 @@ test('in-process quiz service + fence reply + letter grading', async () => {
     assert.ok(Array.isArray(progress.recent) && progress.recent.length >= 1, 'recent answers missing')
     /* C9.5 learning map fields come from engine.py map (one source of truth). */
     assert.ok(Number(progress.summary.kpsTotal) > 0, 'learning map KP total missing')
-    assert.ok(Number(progress.summary.solvedKps) >= 1, 'learning map must count the solved KP')
+    /* v2（#138）：一题后该 KP 还是「探针中」，不算已解、更不算薄弱。 */
+    assert.equal(Number(progress.summary.solvedKps), 0, 'one answer must not count a solved KP')
+    assert.ok(Number(progress.summary.probingKps) >= 1, 'learning map must count the probing KP')
+    assert.equal(Number(progress.summary.weakKps), 0, 'one answer must not count a weak KP')
     assert.ok(Number(progress.summary.codeTotal) > 0, 'learning map must merge code-exercise totals')
     assert.ok(progress.chapters.every((chapter) => 'solved' in chapter && 'todo' in chapter && 'weak' in chapter),
       'chapter progress must carry learning-map counts')
