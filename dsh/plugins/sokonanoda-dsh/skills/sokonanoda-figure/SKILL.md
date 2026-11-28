@@ -160,7 +160,8 @@ pdftotext -bbox figure.pdf - > /tmp/figure-bbox.html
 - [ ] 集合标签不压边线；
 - [ ] 箭头不穿字；
 - [ ] 同一组图画布一致；
-- [ ] 已跑 lint。
+- [ ] 已跑 lint；
+- [ ] 多页讲解用 `dsh-images` 画册（§9），页与页同画布。
 
 ## 8. 最小 TikZ 骨架
 
@@ -192,3 +193,25 @@ pdftotext -bbox figure.pdf - > /tmp/figure-bbox.html
 \end{tikzpicture}
 \end{document}
 ```
+
+## 9. 在聊天里展示：`dsh-images` 画册（2026-11-28）
+
+要连讲几张图时，不要连发多张单图；发一个画册，聊天里可以左右滑动：
+
+```dsh-images
+{"title":"连续统假设 · 7 页","pages":[
+  {"path":"ch-01.png","caption":"封面：无穷之间，还有没有第三档？"},
+  {"path":"ch-02.png","caption":"一样多 = 能一一配对"}]}
+```
+
+规则：
+
+- 图片放 `dsh/plugins/dsh-inline-image/public/`，`path` 只写文件名；Host 的
+  `/dsh-inline-image/public` 只服务这个白名单目录；
+- 每一页都按 §2–§5 出图；**同一画册的页必须同画布**（默认 12.25×5.8cm、220dpi），
+  否则翻页会跳高度；
+- `caption` 是翻页时跟着走的那一句，写结论或问题，不写「第 N 页」；
+- 画册只读：原生横向滚动 + scroll-snap，触控/触控板/滚轮都能滑，圆点、页码、
+  `‹ ›` 与方向键翻页；
+- 自检：`curl -s -o /dev/null -w '%{http_code}' 'http://127.0.0.1:<port>/dsh-inline-image/public?path=ch-01.png'`
+  应为 200；聊天里若显示成代码块，刷新页面（client 半走 HMR）。
