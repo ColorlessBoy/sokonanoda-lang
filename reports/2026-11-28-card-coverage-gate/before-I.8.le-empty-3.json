@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "kind": "knowledge-card",
+  "card": {
+    "id": "cardinal-le",
+    "kicker": "卷 I · I.8 基数",
+    "title": "基数比较 · ≼",
+    "oneLiner": "`A ≼ B` 就是「存在从 `A` 到 `B` 的单射」，它是不比 `B` 大这条断言。",
+    "definition": {
+      "lang": "lean",
+      "code": "def Set.InjOn (α β : Type) (f : α → β) (A : Set α) : Prop :=\n  ∀ (x : α), x ∈ A → ∀ (y : α), y ∈ A → f x = f y → x = y\n\ndef Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop :=\n  ∃ (f : α → β), Set.InjOn α β f A ∧ Set.MapsTo α β f A B"
+    },
+    "sections": [
+      {
+        "heading": "三个层次",
+        "kind": "table",
+        "columns": [
+          "写法",
+          "它是什么",
+          "读法"
+        ],
+        "rows": [
+          [
+            "`A ≼ B`",
+            "「存在单射」的命题",
+            "`A` 不比 `B` 大"
+          ],
+          [
+            "`A ≈ B`",
+            "一对互逆映射的打包",
+            "`A` 与 `B` 等势，比 `≼` 更强"
+          ],
+          [
+            "`A ⊆ B`",
+            "逐点蕴含",
+            "每个 `A` 的点都在 `B` 里，可由恒等映射给出 `A ≼ B`"
+          ]
+        ]
+      },
+      {
+        "heading": "常见误区",
+        "kind": "list",
+        "items": [
+          "把 `A ≼ ∅` 读成「`A` 与 `∅` 等势」——它只说明 `A` 没有元素。",
+          "以为 `≼` 能给出一把可用的映射——它只是存在命题，取出映射要额外的选择原则。",
+          "把 `≼` 与 `⊆` 混为一谈——包含能给出 `≼`，反过来一般不行。"
+        ]
+      },
+      {
+        "heading": "怎么用",
+        "kind": "list",
+        "items": [
+          "证 `A ≼ B`：给出映射、`Set.InjOn` 与 `Set.MapsTo` 三条即可。",
+          "用 `A ≼ B`：用 `Set.Le.elim` 拆出映射与两条条件，映射只在证明内部可用。"
+        ]
+      }
+    ],
+    "source": "lib/Equiv.sokonanoda:154 / :169 / :102",
+    "tags": [
+      "cardinal-le",
+      "le-empty",
+      "cardinal-arithmetic"
+    ],
+    "kps": [
+      "kp.i3.le"
+    ],
+    "prereq": []
+  },
+  "reason": "matched-tags",
+  "matched": [
+    "cardinal-le",
+    "le-empty"
+  ],
+  "matchedKps": [],
+  "score": 10.34403
+}

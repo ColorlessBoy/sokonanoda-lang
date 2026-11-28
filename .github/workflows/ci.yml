@@ -1190,6 +1190,18 @@ jobs:
           python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/text_lint.py" --selftest
           python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/text_lint.py"
 
+      - name: 知识卡覆盖门禁（选项点名引理 ⊆ 实际推送卡 + 红/绿对照自检）
+        # #146（2026-11-28）：学习者点「我不知道」时推送的卡必须覆盖选项里点名的引理。
+        # 判据 = 选项反引号片段里点名的裸引理名 → engine.explain_for 求实际卡 → 名字必须
+        # 出现在卡片 JSON 文本里；errors 即红，存量冻结在 `scripts/card-lint-baseline.json`
+        # （只减不增）。误报治理与已知限制见
+        # `skills/sokonanoda-prep/references/card-coverage.md`；`--selftest` = 红/绿 fixtures
+        # （声明解析 / 点名 / 表达式不算点名 / 命名空间与类型不计 / 基线双向棘轮）。
+        # 纯 python3、毫秒级 ⇒ 放在重活（release build / 课程门禁）之前，坏了先红。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/card-lint.py" --selftest
+          python3 "$GITHUB_WORKSPACE/scripts/card-lint.py"
+
       - name: 知识卡匹配引擎自检（explain_for 的 kp/IDF 评分）
         # #142：`explain_for` 的评分改由 `engine.py selftest` 里的一组 explain-*
         # 判据钉住（kp 优先 / 通用标签反例 / 破平不依赖 cards.json 顺序）。纯

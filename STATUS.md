@@ -1,3 +1,13 @@
+## 当前快照（2026-11-28 · 知识卡覆盖门禁 + 存量清账 · #146）
+
+#146：`scripts/card-lint.py` 判「选项里点名的裸引理必须出现在 `engine.explain_for` 实际推送卡里」
+（`--selftest` 18 条红/绿、`--data-dir` 复现、基线 `card-lint-baseline.json` 双向棘轮；清账
+**67 → 0**）。内容：新增 10 张专用卡（`cardinal-le-empty` 等）+ 扩 5 张既有卡；`I.8.le-empty-3`
+由通用卡 `cardinal-le` → `cardinal-le-empty`（四条签名齐全）。路由变化 60 fallback→有卡、
+0 card→fallback（明细 `reports/2026-11-28-card-coverage-gate/`）。已接 `soko gate` /
+CI `gates-course` / `ci-local.sh` + 咬住证明台账；判据与已知限制见
+`skills/sokonanoda-prep/references/card-coverage.md`。
+
 ## 当前快照（2026-11-28 · 文本公理 lint 门禁 · #144）
 
 #144：`courses/set-theory/knowledge/text_lint.py` 机检 X1/X3/X4/X5/X6/X7/X8（X2/X9/X10
@@ -14,13 +24,3 @@
 `cardinal-le-mono` 两张真卡（正文取 live 草稿、标签只留描述性的）并为 21 张既有卡补 `kps`；`validate.py` 判卡片
 `kps` 引用、`engine.py selftest` 新增 4 条 explain-* 判据并接进 CI `gates-course`。
 Before/After 见 `reports/2026-11-28-card-scoring/`。
-
-## 当前快照（2026-11-28 · 快思考调度 v2：单元连续 3 题 + 三题探针）
-
-#138：学习引擎**只改调度与展示**（内核判定与题库不动）——同一单元先连做满 3 题才放开
-（`unit_probe_target=3`，`pick` 兜底加 `unit_continuity_bonus`）；一个 KP 至少被探 3 次
-（`probe_min_questions=3`）才可能结案；作答 1–2 次的 KP 记「探针中」，不再算已解/薄弱
-（`map.min_probes=3`）。插件 progress 卡显示「已解 · 探针中 · 待做 · 薄弱」。判据：
-`engine.py selftest`（新增 kp-min-probes / probe-min-questions / probe-unit-continuity /
-unit-continuity）、真实 state 回放 3 题同单元、插件 host/client 回归、`validate.py`、
-课程门禁 G1–G7；Before/After 见 `reports/2026-11-28-quiz-sched-v2/`。

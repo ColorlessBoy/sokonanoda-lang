@@ -1,0 +1,309 @@
+{
+  "schema": "soko.card-lint-fixtures/1",
+  "note": "知识卡覆盖门禁的红/绿对照夹具：每条判据至少一条必红、一条必绿。`--selftest` 会把绿例误报、红例不咬、声明解析分错类、基线棘轮失效都判红。改判据必须同步改这里。",
+  "declarations": {
+    "lib/Fixture.sokonanoda": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A := by\n  intro x hx\n  exact hx\n\ndef bar_pred (α : Type) (x : α) : Prop := True\n\ndef SomeType (α : Type) : Type := α\n\ndef univLike {α : Type} : Set α := fun (x : α) => True\n\ndef Set.Le (α β : Type) (A : Set α) (B : Set β) : Prop := True\n\ntheorem Set.Le.refl (α : Type) (A : Set α) : A ≼ A := by\n  exact Set.Le.intro α α A A (fun x => x) (fun x => x) (fun x hx => hx)\n\ntheorem api_lemma (α : Type) (A : Set α) : A ⊆ A := by\n  intro x hx\n  exact hx\n\naxiom h : True\n"
+  },
+  "expected_candidates": [
+    "foo_lemma",
+    "bar_pred",
+    "api_lemma"
+  ],
+  "expected_not_candidates": [
+    "SomeType",
+    "univLike",
+    "h"
+  ],
+  "expected_namespaces": [
+    "Set.Le"
+  ],
+  "cases": [
+    {
+      "name": "绿：卡里有选项点名的引理（definition.code）",
+      "questions": [
+        {
+          "id": "fixture.green-1",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反",
+            "`bar_pred`：谓词"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "夹具卡",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A\n\ndef bar_pred (α : Type) (x : α) : Prop := True"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "红：卡里没有选项点名的引理",
+      "questions": [
+        {
+          "id": "fixture.red-1",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "通用卡：没有点名引理",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem other_lemma (α : Type) : α = α"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": [
+        [
+          "fixture.red-1",
+          "foo_lemma"
+        ]
+      ]
+    },
+    {
+      "name": "绿：引理只出现在 sections[].items 里也算覆盖",
+      "questions": [
+        {
+          "id": "fixture.green-2",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "解释里点名引理",
+          "definition": {
+            "lang": "lean",
+            "code": "def other (α : Type) : α → α := fun x => x"
+          },
+          "sections": [
+            {
+              "heading": "这题用到的引理",
+              "kind": "list",
+              "items": [
+                "`foo_lemma`：集合包含的自反"
+              ]
+            }
+          ],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "红：应用形式也点名（`foo_lemma α A`）、卡里没有它",
+      "questions": [
+        {
+          "id": "fixture.red-2",
+          "prompt": "怎么写？",
+          "options": [
+            "`foo_lemma α A`",
+            "`Nat.rec`",
+            "`apply Set.ext`"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "空白卡",
+          "definition": {
+            "lang": "lean",
+            "code": "def other (α : Type) : α → α := fun x => x"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": [
+        [
+          "fixture.red-2",
+          "foo_lemma"
+        ]
+      ]
+    },
+    {
+      "name": "绿：表达式片段不算点名（`∃ x, bar_pred α x` / `a ∈ univLike` / `h`）",
+      "questions": [
+        {
+          "id": "fixture.green-3",
+          "prompt": "哪个命题？",
+          "options": [
+            "`∃ x, bar_pred α x`",
+            "`a ∈ univLike`",
+            "`h`"
+          ],
+          "why": "表达式",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "空白卡",
+          "definition": {
+            "lang": "lean",
+            "code": "def other (α : Type) : α → α := fun x => x"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "绿：命名空间/类型/数据名不计（`Set.Le` / `Set.Le.refl` / `SomeType α` / `univLike`）",
+      "questions": [
+        {
+          "id": "fixture.green-4",
+          "prompt": "哪个类型/命名空间？",
+          "options": [
+            "`Set.Le`",
+            "`Set.Le.refl`",
+            "`SomeType α`",
+            "`univLike`"
+          ],
+          "why": "类型",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "空白卡",
+          "definition": {
+            "lang": "lean",
+            "code": "def other (α : Type) : α → α := fun x => x"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": []
+    },
+    {
+      "name": "红：无卡（fallback）⇒ 点名的引理全部未覆盖",
+      "questions": [
+        {
+          "id": "fixture.red-3",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [],
+      "expect": [
+        [
+          "fixture.red-3",
+          "foo_lemma"
+        ]
+      ]
+    },
+    {
+      "name": "红：同题两个引理、只覆盖一个 ⇒ 只报缺的那个",
+      "questions": [
+        {
+          "id": "fixture.red-4",
+          "prompt": "用哪两条？",
+          "options": [
+            "`foo_lemma`：自反",
+            "`api_lemma`：包含"
+          ],
+          "why": "两条",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-card",
+          "oneLiner": "只提一条",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expect": [
+        [
+          "fixture.red-4",
+          "api_lemma"
+        ]
+      ]
+    }
+  ]
+}

@@ -7,7 +7,9 @@
 > 相关文件：`DESIGN.md`（三层设计与调度语义）· `STYLE.md`（文本风格）·
 > `CONTENT-PLAN.md`（覆盖现状与批次表）· `README.md`（工作流总览）。
 > 判据脚本：`validate.py` · `coverage.py` · `verify_batch.py` · `text_audit.py` ·
-> `text_lint.py`（文本公理门禁；公理见 `skills/sokonanoda-prep/references/text-axioms.md`）。
+> `text_lint.py`（文本公理门禁；公理见 `skills/sokonanoda-prep/references/text-axioms.md`）·
+> `scripts/card-lint.py`（知识卡覆盖门禁；判据见
+> `skills/sokonanoda-prep/references/card-coverage.md`）。
 
 ## 0. 文件职责
 
@@ -256,6 +258,8 @@ C9.1 的门禁项，按章补。
    python3 scripts/notation-lint.py                        # 改了单元/画布才需要
    python3 courses/set-theory/knowledge/text_lint.py       # 表达底线门禁（errors 即红）
    python3 courses/set-theory/knowledge/text_lint.py --update-baseline  # 改完内容后收紧基线
+   python3 scripts/card-lint.py                           # 知识卡覆盖：选项点名引理 ⊆ 实际推送卡
+   python3 scripts/card-lint.py --update-baseline         # 补卡后收紧知识卡存量基线
    python3 courses/set-theory/knowledge/text_audit.py      # 报告；新文本应 0 新增问题
    ```
 
@@ -281,6 +285,7 @@ C9.1 的门禁项，按章补。
       （含选项 8–60 字、正确项不超最长干扰项 15 字、`why` ≥2 句）
 - [ ] source 抽检 ≥10%，逐条打开核验答案；无占位/假行号
 - [ ] `text_lint.py` errors 为 0（改过表达文本时同步 `--update-baseline` 收紧存量 warnings）
+- [ ] `scripts/card-lint.py` 0 处未覆盖（补卡后同步 `--update-baseline` 收紧基线）
 - [ ] `text_audit.py` 没有**新增** `why.short` / `option.length*` 条目（存量可暂留）
 - [ ] `engine.py selftest` + `engine.py simulate --questions 50` → exit 0
 - [ ] `text_audit.py` 无新增问题；`notation-lint.py` 绿（若改课程单元）

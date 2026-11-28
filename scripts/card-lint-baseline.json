@@ -1,0 +1,7 @@
+{
+  "schema": "soko.card-lint-baseline/1",
+  "note": "知识卡覆盖门禁的存量欠账基线：键 = qid:name（选项点名的引理没出现在实际推送卡里）；只许减不许增（新条目判红，已修条目没同步收紧也判红）。收紧用 `python3 scripts/card-lint.py --update-baseline`。",
+  "updated": "2026-11-28",
+  "violations": 0,
+  "entries": []
+}

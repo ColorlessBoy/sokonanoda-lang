@@ -20,6 +20,9 @@ truth for:
   `scripts/notation-lint.py` / `knowledge/text_lint.py`);
 - text axioms X1–X10 and the `text_lint.py` gate (red/green fixtures, false-positive
   governance, shrink-only backlog baseline) in `references/text-axioms.md`;
+- card-coverage gate (`scripts/card-lint.py`): lemmas named in a question's options must
+  appear in the knowledge card that `explain_for` actually pushes; false-positive
+  governance, known limits and the backlog workflow in `references/card-coverage.md`;
 - question-writing rules (stable ids, `source` verification, distractors,
   rubric for short/explain/proof, notation style);
 - knowledge-point organization rules (`kind`, `prereq` DAG, `saturation`,
@@ -35,8 +38,8 @@ Inviolable rules (restated here so a mis-load is still safe):
    necessary unit references; send kernel/engine/renderer work to
    `sokonanoda-dev`.
 3. Every batch must pass `validate.py`, `coverage.py`, `engine.py selftest`,
-   `engine.py simulate`, `scripts/notation-lint.py`, and `knowledge/text_lint.py`
-   (errors 0; warnings shrink-only against the frozen baseline) before delivery.
+   `engine.py simulate`, `scripts/notation-lint.py`, `knowledge/text_lint.py`, and
+   `scripts/card-lint.py` (errors 0; backlog baselines shrink-only) before delivery.
 4. `out/` and `reports/` are generated artifacts — never hand-edit them.
 5. Large changes (≥20 questions, splitting/merging KPs, chapter-plan changes)
    present the plan first and land only after user confirmation.

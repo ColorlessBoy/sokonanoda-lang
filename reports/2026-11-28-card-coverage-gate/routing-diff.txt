@@ -1,0 +1,15 @@
+总变化 73 {'fallback->card': 60, 'card->card': 13}
+card->card:
+  I.8.le-empty-1 cardinal-le -> cardinal-le-empty
+  I.8.le-empty-2 cardinal-le -> cardinal-le-empty
+  I.8.le-empty-3 cardinal-le -> cardinal-le-empty
+  I.8.mix-1 cardinal-le -> cardinal-le-empty
+  I.8.mix-3 cardinal-le -> cardinal-le-empty
+  II.1.addwd-5 quot-lift-well-defined -> nat-add-lemmas
+  II.1.addgroup-2 quot-lift-well-defined -> int-add-laws
+  II.1.addgroup-3 quot-lift-well-defined -> int-add-laws
+  II.1.negwd-4 quot-lift-well-defined -> int-add-laws
+  II.1.orderwd-3 quot-lift-well-defined -> nat-order-lemmas
+  II.1.mulcomm-3 int-rep-formulas -> int-mul-comm
+  II.1.mulwdsnd-2 quot-lift-well-defined -> int-mul-comm
+  II.1.mulwdsnd-3 quot-lift-well-defined -> int-mul-comm

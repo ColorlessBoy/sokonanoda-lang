@@ -1,0 +1,97 @@
+{
+  "ok": true,
+  "kind": "knowledge-card",
+  "card": {
+    "id": "partial-order",
+    "kicker": "卷 I · I.2 关系",
+    "title": "偏序 · IsPartialOrder",
+    "oneLiner": "自反 + 反对称 + 传递；样板是 `⊆`。",
+    "definition": {
+      "lang": "lean",
+      "code": "def IsPartialOrder (α : Type) (r : α → α → Prop) : Prop :=\n  Reflexive α r ∧ Antisymmetric α r ∧ Transitive α r"
+    },
+    "tags": [
+      "partial-order",
+      "order",
+      "rel"
+    ],
+    "kps": [
+      "kp.i2.order.partial"
+    ],
+    "prereq": [
+      "antisymmetric"
+    ],
+    "sections": [
+      {
+        "heading": "三条件",
+        "kind": "table",
+        "columns": [
+          "条件",
+          "定义",
+          "`⊆` 的例子"
+        ],
+        "rows": [
+          [
+            "自反",
+            "`∀ a, r a a`",
+            "A ⊆ A"
+          ],
+          [
+            "反对称",
+            "`∀ a b, r a b → r b a → a = b`",
+            "A⊆B 且 B⊆A ⇒ A=B"
+          ],
+          [
+            "传递",
+            "`∀ a b c, r a b → r b c → r a c`",
+            "A⊆B⊆C ⇒ A⊆C"
+          ]
+        ]
+      },
+      {
+        "heading": "对照",
+        "kind": "table",
+        "columns": [
+          "关系类",
+          "组成",
+          "样板"
+        ],
+        "rows": [
+          [
+            "等价关系",
+            "自反 + 对称 + 传递",
+            "`=`、同余"
+          ],
+          [
+            "偏序",
+            "自反 + 反对称 + 传递",
+            "`⊆`、`≤`"
+          ],
+          [
+            "严格序",
+            "非自反 + 传递",
+            "`<`、真包含"
+          ]
+        ]
+      },
+      {
+        "heading": "怎么用",
+        "kind": "list",
+        "items": [
+          "`h : IsPartialOrder α r` → `h.1 : Reflexive α r`、`h.2.1 : Antisymmetric α r`、`h.2.2 : Transitive α r`；",
+          "证的时候用 `constructor` 拆成三个子目标，逐个证。"
+        ]
+      }
+    ],
+    "source": "lib/Order.sokonanoda:76"
+  },
+  "reason": "matched-kps",
+  "matched": [
+    "order",
+    "partial-order"
+  ],
+  "matchedKps": [
+    "kp.i2.order.partial"
+  ],
+  "score": 9.075518
+}
