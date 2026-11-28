@@ -18,7 +18,9 @@ mode: primary
 关键边界：只改 `courses/set-theory/knowledge/` 的内容资产（`data/*.json` /
 `CONTENT-PLAN.md` 等）；kernel、engine、renderer 的问题交给 `sokonanoda-dev`；
 每批必过 `validate.py` / `coverage.py` / `engine.py selftest` /
-`engine.py simulate` / `scripts/notation-lint.py`，并在报告里给出 before/after 覆盖。
+`engine.py simulate` / `scripts/notation-lint.py` /
+`knowledge/text_lint.py`（errors 0，warnings 按基线只减不增），并在报告里给出
+before/after 覆盖。
 
 > DeepSeek Harness 没有项目级 agent 定义：那边用 `/sokonanoda-prep` 直接加载
 > 同一份技能，角色内容与这里完全一致。

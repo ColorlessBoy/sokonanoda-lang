@@ -1180,6 +1180,16 @@ jobs:
         # 等 C9.2 把注册 KP 补到 0 红后再接（`CONTENT-PLAN.md` §2.1 的批次表）。
         run: python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/validate.py"
 
+      - name: 文本公理门禁（表达底线 X1–X10 + 红/绿对照自检）
+        # #144（2026-11-28）：教学表达底线做成可执行门禁。errors 即红；存量 warnings
+        # 冻结在 `courses/set-theory/knowledge/text-lint-baseline.json`（只减不增）。
+        # 判据/误报治理/基线机制见 `skills/sokonanoda-prep/references/text-axioms.md`；
+        # `--selftest` 先跑（红/绿 fixtures，每条公理必须两边都咬得住）。纯 python3、
+        # 秒级 ⇒ 放在重活（release build / 课程门禁）之前，坏了先红、不浪费构建。
+        run: |
+          python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/text_lint.py" --selftest
+          python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/text_lint.py"
+
       - name: 知识卡匹配引擎自检（explain_for 的 kp/IDF 评分）
         # #142：`explain_for` 的评分改由 `engine.py selftest` 里的一组 explain-*
         # 判据钉住（kp 优先 / 通用标签反例 / 破平不依赖 cards.json 顺序）。纯

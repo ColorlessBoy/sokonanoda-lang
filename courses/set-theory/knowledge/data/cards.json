@@ -1,7 +1,7 @@
 {
   "schema": "soko.knowledge-cards/1",
   "title": "卷 I–III 知识卡片库（集合论 / 分析）",
-  "version": 13,
+  "version": 14,
   "updated": "2026-11-28",
   "policy": "内容（文本）是唯一资产：cards.json 与 data/questions.json 固化、可评审、可逐渐优化；PNG/聊天卡片/未来 UI 都只是同一份数据的渲染器。",
   "cards": [
@@ -457,7 +457,7 @@
       "id": "types-101",
       "kicker": "卷 I · 类型总览",
       "title": "核心类型一览（Type / Prop / Set / Rel / Prod / 函数）",
-      "oneLiner": "先认清「类型」和「命题」：类型住着值，命题住着证明。",
+      "oneLiner": "先分清「类型」和「命题」：类型住着值（例如 `ℕ`），命题住着证明（例如 `1 = 1` 的证明）。",
       "definition": {
         "lang": "lean",
         "code": "Prop          -- 命题的类型（a = b、A ⊆ B、Injective f）\nType          -- 类型的宇宙（α、β 是任意类型的占位符）\nSet α         -- 一元谓词：α → Prop\nRel α β       -- 二元谓词：α → β → Prop\nProd α β      -- 有序对：Prod.fst / Prod.snd\nα → β         -- 函数类型：吃 α 吐 β\nType.Equiv α β -- 等势：∃ 一对互逆函数\nCardinal      -- 基数（Type 1）：Cardinal.mk α"
@@ -523,7 +523,7 @@
       "id": "inverse",
       "kicker": "卷 I · I.2 函数",
       "title": "逆函数 · LeftInverse / RightInverse / Inverse",
-      "oneLiner": "右逆 = 先 g 再 f 回到 y（f ∘ g = id）；左逆 = 先 f 再 g 回到 x（g ∘ f = id）。",
+      "oneLiner": "右逆 = 先 `g` 再 `f` 回到 y（`f ∘ g = id`）；左逆 = 先 `f` 再 `g` 回到 x（`g ∘ f = id`）。",
       "definition": {
         "lang": "lean",
         "code": "def Function.LeftInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=\n  ∀ (x : α), g (f x) = x\n\ndef Function.RightInverse (α β : Type) (g : β → α) (f : α → β) : Prop :=\n  ∀ (y : β), f (g y) = y\n\ndef Function.Inverse (α β : Type) (f : α → β) (g : β → α) : Prop :=\n  LeftInverse α β g f ∧ RightInverse α β g f"
@@ -691,7 +691,7 @@
           "kind": "list",
           "items": [
             "`Type.Equiv.symm α β h` 的类型是 `Type.Equiv β α`——方向是**反过来**（α、β 顺序对调）；",
-            "它属于 I.3 单元⑨（等势），不是 I.2 的 `Inverse`：`Inverse f g` 是数据版双边逆，`Equiv` 是它的**存在包装**。",
+            "它属于 I.3 单元⑨（等势），不是 I.2 的 `Inverse`。`Inverse f g` 是数据版双边逆；`Equiv` 是它的**存在包装**。",
             "与集合层的 `Set.Equiv`（lib/Equiv）区分：后者还带 `A ⊆ α`、`B ⊆ β` 的子集限制。"
           ]
         },
@@ -710,7 +710,7 @@
       "id": "choice-axiom",
       "kicker": "选择公理",
       "title": "选择公理：什么时候能用，什么时候不能用",
-      "oneLiner": "「存在某种选择」这件事，本身不给你可计算的函数；要用它，就必须把公理明确请进来（本课在 I.7 才请），否则可以当它不存在。",
+      "oneLiner": "「存在某种选择」本身不给你可计算的函数。要用它，就必须把公理明确请进来；本课在 I.7 才请这条公理。",
       "definition": {
         "lang": "lean",
         "code": "axiom choice : (α β : Type) → (A : Set α) → (B : Set β) → (P : α → β → Prop) →\n  (∀ (x : α), x ∈ A → ∃ (y : β), y ∈ B ∧ P x y) →\n  ∃ (f : α → β), ∀ (x : α), x ∈ A → f x ∈ B ∧ P x (f x)"
@@ -719,20 +719,20 @@
         {
           "heading": "先分清「有」和「拿得到」",
           "kind": "paragraph",
-          "text": "∃ 是一个命题（有证据就成立），它只说「有这么个东西」，并不把那个东西交给你。所以你一旦要用「那个东西」，就必须另外拿到它——要么有人把它作为参数交进来，要么用一条公理保证它存在。"
+          "text": "`∃` 是一个命题（有证据就成立），它只说「有这么个东西」，并不把那个东西交给你。所以你一旦要用「那个东西」，就必须另外拿到它。要么有人把它作为参数交进来，要么用一条公理保证它存在。"
         },
         {
           "heading": "本课的两条纪律",
           "kind": "list",
           "items": [
-            "没有请选择公理之前：任何「存在 ⇒ 取出一个具体对象」的推理都不许做，相关定理只能写成「你交进来」的数据版（例如 Inverse f g：g 由调用者给出）。",
+            "没有请选择公理之前，任何「存在 ⇒ 取出一个具体对象」的推理都不许做。相关定理只能写成「你交进来」的数据版，例如 `Inverse f g` 的 g 由调用者给出。",
             "用了 axiom choice 之后：可以从逐点存在里一次选出整条函数（I.7 才引入），从那以后这类推理才合法。"
           ]
         },
         {
           "heading": "为什么会「一会能用一会不能用」",
           "kind": "paragraph",
-          "text": "不是规则变了，而是前提变了：前 6 章没有选择公理，所以「双射 ⇒ 存在逆函数」这种写成 ∃ 的版本证不出来；I.7 引入公理之后同样的命题就能证。题目里出现「要选择公理」= 该命题的 ∃ 版本超出当前公理；出现「数据版」= 把存在改成参数，绕开公理。"
+          "text": "不是规则变了，而是前提变了：前 6 章没有选择公理。所以「双射 ⇒ 存在逆函数」这种写成 ∃ 的版本证不出来。I.7 引入公理之后，同样的命题就能证。题目里出现「要选择公理」，意思是这个命题的 ∃ 版本超出了当前公理。出现「数据版」，就是把存在改成参数，绕开公理。"
         },
         {
           "heading": "怎么一眼判断",
@@ -748,7 +748,7 @@
       "types": [
         {
           "term": "选择公理",
-          "oneLiner": "允许把「逐点存在」打包成「存在一条函数」的公理",
+          "oneLiner": "这是允许把「逐点存在」打包成「存在一条函数」的公理。",
           "source": "lib/Choice.sokonanoda:38"
         }
       ],
@@ -1485,7 +1485,7 @@
         {
           "heading": "人话",
           "kind": "paragraph",
-          "text": "`r : Rel A B` 说的是从 `A` 到 `B` 的关系；逆关系 `r ⁻¹ : Rel B A` 只是把两个位置对调：先收 `B` 的元素，再收 `A` 的元素。"
+          "text": "`r : Rel A B` 说的是从 `A` 到 `B` 的关系。逆关系 `r ⁻¹ : Rel B A` 只是把两个位置对调：先收 `B` 的元素，再收 `A` 的元素。"
         },
         {
           "heading": "展开式",

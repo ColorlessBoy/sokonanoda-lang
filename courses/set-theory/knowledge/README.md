@@ -23,6 +23,7 @@
 | `coverage.py` | **知识点 × 题目覆盖门禁**（**按可服务题**：遵守 `params.selection.exclude`，与 `engine.py` 同口径；`--include-excluded` 切全库诊断）：按 `saturation` 逐 KP 算红/黄/绿 + 章节汇总 + `reports/coverage-<时间>.json`；有红 exit 1 |
 | `CONTENT-PLAN.md` | 覆盖计划：实测缺口、题量估算、分阶段批次与第一批题目清单 |
 | `verify_batch.py` | 批次验收：结构/source 行号/选项长度与 why 质量逐条核验 + 内存注入预测覆盖变化（不改仓库） |
+| `text_lint.py` | **文本公理门禁**（X1–X10）：完整性/白话/例子/句长/指代/空话/故事要素；`--selftest` 红绿对照、`--review` 人工清单、存量基线只减不增；公理见 `skills/sokonanoda-prep/references/text-axioms.md` |
 | `review.py` | **L3 复盘**（C9.5）：读引擎状态/导出日志 → 薄弱 tag 与知识点、错题、正确率/耗时/KP 覆盖、代码题进度、下一批建议、内容缺口；`--selftest` 自检聚合器 |
 | `render.py` | 知识卡 → `out/<id>.png`（Chrome 无头截图，2x） |
 | `build_quiz.py` | 题库 → `out/quiz.html`（零延迟自测页；离线可用） |
@@ -36,6 +37,9 @@
 python3 courses/set-theory/knowledge/validate.py
 # 知识点覆盖门禁（内容线）：红则 exit 1，报告落 reports/
 python3 courses/set-theory/knowledge/coverage.py
+# 文本公理门禁（表达底线）：errors 判红；存量 warnings 冻结在 text-lint-baseline.json
+python3 courses/set-theory/knowledge/text_lint.py
+python3 courses/set-theory/knowledge/text_lint.py --selftest
 
 # L2 引擎：自检 / 出下一题 / 判卷 / 快照 / 学习地图 / 离线评测
 python3 courses/set-theory/knowledge/engine.py selftest

@@ -1,3 +1,12 @@
+## 当前快照（2026-11-28 · 文本公理 lint 门禁 · #144）
+
+#144：`courses/set-theory/knowledge/text_lint.py` 机检 X1/X3/X4/X5/X6/X7/X8（X2/X9/X10
+走 `--review`），`--selftest` 每公理一红一绿；errors 即红，存量 warnings 冻结在
+`text-lint-baseline.json`（file+id+field+code，双向棘轮）。公理/误报治理见
+`skills/sokonanoda-prep/references/text-axioms.md`；已接 `soko gate` / CI `gates-course` /
+`ci-local.sh`。清账：**15/161 → 0/107**（errors 清零；lessons/cards/glossary 0 warning，
+余 107 条全在 questions why，按卷冻结）；lessons 89 条提纲式 intuition 改真讲解。
+
 ## 当前快照（2026-11-28 · 知识卡匹配改 kp/IDF 评分 · #142）
 
 #142：`explain_for` 改 **kp 优先 → IDF 稀有标签加权 → 稳定破平**（kps 命中数 →
@@ -15,12 +24,3 @@ Before/After 见 `reports/2026-11-28-card-scoring/`。
 `engine.py selftest`（新增 kp-min-probes / probe-min-questions / probe-unit-continuity /
 unit-continuity）、真实 state 回放 3 题同单元、插件 host/client 回归、`validate.py`、
 课程门禁 G1–G7；Before/After 见 `reports/2026-11-28-quiz-sched-v2/`。
-
-## 当前快照（2026-11-28 · 知识卡 sections 完整渲染 · #139）
-
-#139：`sokonanoda-dsh` 知识卡按 engine `sections` 顺序渲染**全部**段——`list` 全部
-items（不再 `slice(0, 2)`）、`paragraph` 的 `text`、`table` 的 `columns`/`rows`
-（与课程海报渲染器同形）都进卡；标题 / 一句话 / `definition.code` / `source` 位置
-不变，长卡片换行 + 聊天滚动，不静默截断；纯文本快路径（`cards=false`）同步去掉
-sections/items 截断。判据：插件 host 41 / client 47，真 DSH Web Before/After 见
-`reports/2026-11-28-knowledge-card-sections/`。

@@ -1,0 +1,972 @@
+{
+  "schema": "soko.text-lint-baseline/1",
+  "note": "文本公理门禁的存量欠账基线：键 = file+id+field+code；只许减不许增（新条目判红，已修条目没同步收紧也判红）。收紧用 `python3 courses/set-theory/knowledge/text_lint.py --update-baseline`。",
+  "updated": "2026-11-28",
+  "errors": 0,
+  "warnings": 107,
+  "entries": [
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.ext-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.logic-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.logic-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-6",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-7",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.open-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.sdiff-1",
+      "field": "prompt",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.sdiff-algebra-1",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.sdiff-algebra-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.sdiff-algebra-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.singleton-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.comp-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.comp-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.fun-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inj-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inj-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inv-4",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.logic-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.logic-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.mix-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.open-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.rel-comp-4",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.strict-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.both-3",
+      "field": "prompt",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.both-3",
+      "field": "prompt",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.both-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.both-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.choice-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.equiv-algebra-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-5",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-family-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-preimage-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-preimage-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.le-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.mix-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.open-3",
+      "field": "prompt",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.open-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.ordinal-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.preimage-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.preimage-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.ch-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.le-empty-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-comm-3",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.family-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-3",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addlaws-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addlaws-4",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addlaws-5",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addrep-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addwd-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addwd-1",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addwd-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addwd-3",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.addwd-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.intquot-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.lecancel-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.lecancel-4",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.leexists-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.leexists-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulcomm-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulrep-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulwd-1",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulwd-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulwd-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulwdsnd-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.mulwdsnd-4",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natadd-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natcancel-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natmul-3",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natorder-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natrec-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.neg-lift-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.neg-lift-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.neg-lift-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.negwd-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderax-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderax-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderrep-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderwd-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderwd-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderwd-5",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotexact-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotexact-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotexact-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotind-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotind-5",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotiota-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotiota-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotiota-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotsound-2",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.reprfl-2",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.reprfl-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.sublaws-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.subrep-4",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.subwd-1",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.subwd-1",
+      "field": "why",
+      "code": "X5-splice",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "逗号粘连：并列分句缺连接词或分号"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.subwd-3",
+      "field": "why",
+      "code": "X5-long",
+      "axiom": "X5",
+      "level": "warning",
+      "note": "单句超过 48 字（占位符按 1 字计）"
+    }
+  ]
+}

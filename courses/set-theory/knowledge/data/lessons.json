@@ -1,7 +1,7 @@
 {
   "schema": "soko.lessons/1",
-  "version": 14,
-  "updated": "2026-11-26",
+  "version": 15,
+  "updated": "2026-11-28",
   "note": "课级「教学环节」数据：由题库的单元/知识点/知识卡自动归并而成（内容源自课程库，不引入新事实）。",
   "lessons": [
     {
@@ -557,7 +557,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "数据版等势的对称律要把「去的映射」与「回的映射」对调、左逆与右逆也对调；拆用 `elim`、装用 `mk`（单元⑨ 的 `Set.Equiv.symm`）。",
+      "intuition": "数据版等势的对称律，要把「去的映射」与「回的映射」对调，左逆与右逆也对调。拆用 `elim`、装用 `mk`。",
       "cards": [
         {
           "id": "equiv",
@@ -601,7 +601,7 @@
           "kind": "prep"
         }
       ],
-      "intuition": "`Nonempty α : Prop := ∃ (a : α), a = a`——「非空」被编码成「存在一个元素」，注意它落在 `Prop`。",
+      "intuition": "「非空」被编码成「存在一个元素」，意思就是这个类型有居民。注意 `Nonempty α : Prop := ∃ (a : α), a = a` 落在 `Prop`。",
       "cards": [],
       "questionTotal": 3,
       "sources": [
@@ -626,7 +626,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「论域分层与每层自己的全集」「概括公理与 Russell 悖论」展开，核心是：说清 `@Set.univ α` 与 `Set.univ (Set α)` 是两个全集。",
+      "intuition": "每个类型都有自己的全集，`Set α` 的全集和 `α` 的全集不是同一个。正因为如此，「所有集合的集合」落不到类型上，Russell 悖论也就不会冒出来。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -650,7 +650,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「集合→关系→函数→基数综合链」「读证明与给错证找错」展开，核心是：把多章结论串成一条证明链。",
+      "intuition": "本单元把集合、关系、函数、基数四条线串成一条证明链。反方向也要练：给你一段错证，能指出它在哪一步越界，例如把「存在」直接当函数用。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -674,7 +674,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「驳倒全称：给反例」「驳倒包含：找成员」展开，核心是：用反例证 `¬∀`。",
+      "intuition": "要反驳「所有 A 都满足 P」，最省事的是举一个反例。要反驳集合包含，就找出一个在 A 里却不在 B 里的元素。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -698,7 +698,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「驳倒存在：逐个消去」「驳倒集合等式」展开，核心是：先 intro 再消去 `∃` 来证 `¬∃`。",
+      "intuition": "要证「不存在」这种否定说法，先引入一个假想的见证，再把它消去成矛盾。集合等式不成立时，同样是找一个只属于一边的成员。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -722,7 +722,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「差集取用与反例」「“差集非空”的边界」展开，核心是：用 `A\\B` 的成员刻画造反例。",
+      "intuition": "差集 `A \\ B` 的成员就是「在 A 里，且不在 B 里」。要说明 A 不包含于 B，去 `A \\ B` 里挑一个点就够了。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -741,7 +741,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「单射的复合与消去」展开，核心是：从复合单射反推内层单射；外层要把单射换成满射。",
+      "intuition": "复合 `g ∘ f` 是单射时，`f` 一定是单射。反过来 `g` 不必单射，因为它可以把不同的值再撞到一起。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -760,7 +760,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「满射的复合与消去」展开，核心是：从复合满射反推外层满射；内层不成立。",
+      "intuition": "复合 `g ∘ f` 满射时，`g` 一定满射。`f` 不必满射，`f` 漏掉的点由 `g` 补回来就行。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -779,7 +779,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「双射的复合」展开，核心是：双射对复合封闭。",
+      "intuition": "两个双射复合起来还是双射。单射沿复合传递，并且满射也沿复合传递，两半都保住。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -798,7 +798,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「复合层等式与外层单射」展开，核心是：用复合相等 + 外层单射推出分量相等。",
+      "intuition": "若 `g ∘ f = g ∘ f'`，且外层 `g` 是单射，就能把等式消回 `f = f'`。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -817,7 +817,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「逆映射与双射代数」展开，核心是：两侧逆 ⇒ 逆映射是双射；逆唯一。",
+      "intuition": "左逆与右逆同时存在时，这条逆映射就是双射，而且逆只有一条。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -836,7 +836,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「Cantor 对角线（函数版）」展开，核心是：用对角化造出不属于枚举的函数。",
+      "intuition": "假设有从 A 到 `𝒫A` 的满射 f，构造集合 `{a | a ∉ f a}`。它不在 f 的像里，矛盾，所以满射根本不存在。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -855,7 +855,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「对角线的一般形态」展开，核心是：识别“自指 + 反证”的共同骨架。",
+      "intuition": "对角线的骨架是「自指 + 反证」：先假设一个全覆盖的对应，再构造一个专门针对自己的对象。这个对象既必须被覆盖，又逃出了覆盖。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -879,7 +879,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「偏序、全序与严格序（六条性质）」「严格/非严格部分互译」展开，核心是：按六条性质判定偏序/全序/严格序，并把严格与非严格互译。",
+      "intuition": "六条性质是自反、反自反、对称、反对称、传递与全序比较性，例如偏序只要自反、反对称与传递。拿一套性质逐条核对，就能判定关系属于哪一种。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -908,7 +908,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「良序与良基」「良基的硬后果」「良基与自反互不包含」展开，核心是：展开“每个非空子集有极小元”。",
+      "intuition": "良基说的是每个非空子集都有极小元，良序还要求这个极小元是最小元。良基并不要求关系自反，例如真包含 `⊂` 就是良基的。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -927,7 +927,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「序嵌入及反射」展开，核心是：序嵌入保持并反射自反/对称/传递/非自反。",
+      "intuition": "序嵌入是把一个序「搬进」另一个序，同时把自反、对称、传递这些性质原样保持下来。它还要能反射回来，例如连同构的构造也保住，所以不是随便一个映射都算。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -946,7 +946,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「⊆ 是偏序（自反/传递/反对称）」展开，核心是：证 ⊆ 是偏序，并用 A = B ↔ A ⊆ B ∧ B ⊆ A 证集合相等。",
+      "intuition": "包含 `⊆` 满足自反、传递与反对称三条，所以它是一个偏序。反过来，两条包含同时成立就给出集合相等：`A = B ↔ A ⊆ B ∧ B ⊆ A`。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -975,7 +975,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「序数/传递集（预备）」「传递集」「序数 = 传递 + 元素传递 + 良基」展开，核心是：能把序数与传递集当谓词用，并逐条取出传递、元素传递与良基证据。",
+      "intuition": "传递集说的是：一个集合的元素，也还是它的元素。把传递、元素传递与良基叠起来，就得到序数。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1004,7 +1004,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「序数外延性」「序数反对称/无 2-循环」「零序数」展开，核心是：元素相同即序数相等。",
+      "intuition": "序数也遵守外延性：元素相同就相等。它还不会自我循环，`a ∈ b` 与 `b ∈ a` 不能同时成立。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1028,7 +1028,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「最小元四件套」「最小元与极小元对译」展开，核心是：取用/展开/构造/见证最小元。",
+      "intuition": "最小元是「比所有成员都小」的那一个，极小元只要求「没有成员比它更小」。良序集里两者可以互相对译，所以四件套可以互相搬。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1047,7 +1047,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「序数的元素仍是序数」展开，核心是：把该性质当继承性使用。",
+      "intuition": "序数的一个元素，本身仍是序数。这条可以当继承性来用：看到 `x ∈ a`，就可以把 x 也当序数处理。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1066,7 +1066,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「后继成员刻画」展开，核心是：`b∈a⁺ ↔ b∈a ∨ b=a`。",
+      "intuition": "后继 `a⁺` 的成员只有两种来源：原来就在 a 里的，或者就是 a 自己。写成一条就是 `b ∈ a⁺ ↔ b ∈ a ∨ b = a`。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1085,7 +1085,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「后继的前驱与元素」展开，核心是：后继的前驱及其元素仍是序数。",
+      "intuition": "后继的前驱是 a 自己，而 a 的元素也都是后继的元素。所以「前驱」和「元素」这两件事在序数上是同一批对象。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1104,7 +1104,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「序数反对称/无 2-循环」展开，核心是：排除 `a∈b ∧ b∈a`。",
+      "intuition": "序数上不会出现 `a ∈ b` 又 `b ∈ a` 的循环。排除它的办法是把两个方向都展开成传递性，再让良基出面。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1123,7 +1123,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「Acc 与良基递归」展开，核心是：说明 Acc 的构造与取用。",
+      "intuition": "`Acc` 把「可以沿关系一直往下取」这件事本身写成了一棵树。要证某个性质对所有点成立，就在这棵树上递归。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1142,7 +1142,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「∈-归纳」展开，核心是：用 ∈-归纳证序数性质。",
+      "intuition": "用 ∈-归纳证序数性质：假设所有更小的序数都满足它，再证当前这个也满足。例如「序数的元素仍是序数」就可以这样证。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1161,7 +1161,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「序数三歧」展开，核心是：陈述并装配 `a∈b`/`a=b`/`b∈a`。",
+      "intuition": "两个序数之间只有三种可能：`a ∈ b`、`a = b` 或者 `b ∈ a`。本单元把这三种情形拆成引理，再装成一条三歧结论。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1180,7 +1180,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「序数递归与加法」展开，核心是：递归定义加法并证结合律。",
+      "intuition": "加法先定义在「小于」这个关系上：每一步都往下走一格。定义好之后再证明加法结合，靠的是对第二个加数做递归。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1199,7 +1199,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「选择公理的族版取数据」展开，核心是：用 choice_family 从 ∀i∈I ∃x 取出选择函数；右逆留给 I.7。",
+      "intuition": "`choice_family` 把「每个 i 都有某个见证」打包成「存在一整条选择函数」。这是从 `Prop` 里往 `Type` 取数据，所以它需要公理；右逆那条线留给 I.7。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1218,7 +1218,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「ℕ 上的 add/mul 与算术律」展开，核心是：用 Nat.rec 定义 add/mul 并归纳证结合/交换/分配。",
+      "intuition": "先在 ℕ 上用 `Nat.rec` 定义加法与乘法，再用归纳证明结合、交换与分配。每一步都看得见，不必依赖外部库。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1247,7 +1247,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「选择公理（预备）」「满射可裂：AC 造右逆」「AC 不是处处要用」展开，核心是：能识别哪一步在从 `Prop` 里取数据，从而知道它需要选择公理。",
+      "intuition": "只要某一步是在从 `Prop` 里「取出」一个具体对象，这一步就多半在偷偷用选择公理。满射造右逆是典型例子；反过来说，把函数当参数交进来就不需要它。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1281,7 +1281,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「ZF 公理清单」「正则性」「外延性的两个用法」「IsUnionOf 接口与空族并」展开，核心是：外延性/正则性/选择是外挂公理，空集/无序对/并是定义。",
+      "intuition": "外延性、正则性与选择是三条外挂公理；空集、无序对与并则是定义出来的。知道哪些是公理，就知道哪些说法可以正当引用。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1300,7 +1300,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「⋃/⋂ 的包含演算与单调（空族并）」展开，核心是：证 ⋃F ⊆ A ↔ 每个族成员 ⊆ A、A ⊆ ⋂F ↔ 每个族成员 ⊇ A，并处理单调与空族并。",
+      "intuition": "广义并有两条基本翻译。`⋃F ⊆ A` 等价于「F 的每个成员都 ⊆ A」，而 `A ⊆ ⋂F` 等价于「每个成员都 ⊇ A」。还要照顾空族这一退化情形。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1319,7 +1319,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「广义并的代数」展开，核心是：证 ⋃(F ∪ G) = ⋃F ∪ ⋃G、对偶与单调。",
+      "intuition": "广义并和普通并一样满足交换与结合：`⋃(F ∪ G)` 就等于两个族各自并起来。对偶到交上，方向要反过来。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1338,7 +1338,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「并交的伴随刻画」展开，核心是：`A⊆B` 与并交伴随式互译。",
+      "intuition": "伴随刻画把「包含」翻译成「并交」：`A ⊆ B` 等价于某个并交式的成员关系。两个方向都要会读，证题时先换成点态成员。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1357,7 +1357,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「交对族并/族交的分配」展开，核心是：证 A ∩ ⋃F 与 A ∩ ⋂F 的分配，注意 c ∈ A 这一支不能丢。",
+      "intuition": "交对族并成立分配律：`A ∩ ⋃F` 的成员就是「在 A 里，并且在 F 的某个成员里」。对族交方向同样成立，但 `c ∈ A` 这一支不能丢。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1381,7 +1381,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元把「广义并的代数」「并交的伴随刻画」的结论接到课程主线上，核心是：证 ⋃(F ∪ G) = ⋃F ∪ ⋃G、对偶与单调。",
+      "intuition": "本单元把「广义并的代数」与「并交的伴随刻画」接在一起用：先证 `⋃(F ∪ G) = ⋃F ∪ ⋃G`，再用对偶与单调收口。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1405,7 +1405,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「“不比空集大”」「势比较（⊆/InjOn 定义与自反传递）」展开，核心是：A ≼ ∅ ⇒ A 没有元素（A ⊆ ∅）。",
+      "intuition": "「A 不比 B 大」就是存在一个从 A 到 B 的单射。把 B 取成空集，就得到 `A ≼ ∅` 只可能发生在 A 也空的时候。",
       "cards": [],
       "questionTotal": 5,
       "sources": [
@@ -1429,7 +1429,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「积集合的成员刻画与 ⊆-函子性」「乘法交换律（集合层）」展开，核心是：写出 p ∈ s ×ˢ t 的两个坐标，并证积对包含逐坐标单调。",
+      "intuition": "积 `s ×ˢ t` 的成员是「两个坐标都在」的对：`p` 属于积，当且仅当 `fst p ∈ s` 且 `snd p ∈ t`。两个坐标各自单调，所以积对包含也单调。",
       "cards": [],
       "questionTotal": 9,
       "sources": [
@@ -1448,7 +1448,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「等势的代数（自反/对称/传递/复合）」展开，核心是：会用互逆对的对调、复合与反序来证等势的自反、对称、传递。",
+      "intuition": "等势可以像等式一样做运算：交换两个互逆的映射，就得到反向的等势；复合两个等势，就得到传递。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1467,7 +1467,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「连续统假设」展开，核心是：陈述并展开 CH，并用对角线证 ¬(𝒫ℕ ≼ ℕ)。",
+      "intuition": "CH 说的是：自然数集的幂集与实数之间没有第三种大小。Cantor 对角线则给出下限——`𝒫ℕ` 一定比 ℕ 大。",
       "cards": [],
       "questionTotal": 4,
       "sources": [
@@ -1491,7 +1491,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「广义并交的刻画定理」「单调与空族」展开，核心是：证 ⋃₀F ⊆ B ↔ 每个族成员 ⊆ B、B ⊆ ⋂₀F ↔ 每个族成员 ⊇ B。",
+      "intuition": "广义并的成员是「至少属于族里一个成员」；广义交的成员是「属于族里每个成员」。两者的包含演算都可以逐条翻译成对一个族成员的量化。",
       "cards": [],
       "questionTotal": 9,
       "sources": [
@@ -1510,7 +1510,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「像/原像与广义并交的分配律」展开，核心是：会把像与原像同广义并交交换，并说清交换失败的那一半。",
+      "intuition": "像和广义并可以交换：`f '' (⋃F)` 就是各个像的并。像和交只能换一半，这一半失败的反例要能说清。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1534,7 +1534,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「广义积与柯里化」「非空族积非空 ⇔ AC」展开，核心是：写出 Set.pi 成员刻画，证族单调、空因子 ⇒ 积空与 pi∩ 拆装（curry/uncurry 为定义）。",
+      "intuition": "`Set.pi` 的成员就是一条把每个坐标都填满的函数。柯里化说的正是这件事：先固定一个坐标、再收其余坐标，和一次收完是同一份数据。",
       "cards": [],
       "questionTotal": 9,
       "sources": [
@@ -1563,7 +1563,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「三种闭包」「闭包是最小闭包」「传递闭包幂等」展开，核心是：展开三种闭包并说出包含与极小性。",
+      "intuition": "闭包是「含住原关系、又满足目标要求」的最小关系。自反、对称、传递三种闭包各有成员刻画，传递闭包还幂等。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1587,7 +1587,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「等价类与商集」「类相等 ↔ 相关」展开，核心是：写出 `[a]` 与 `A/r` 的成员。",
+      "intuition": "等价类 `[a]` 的成员就是所有和 a 等价的点。两个类要么完全重合，要么完全不交；这条性质是等价关系与划分之间的桥。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1611,7 +1611,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「划分」「划分 ⇔ 等价关系」展开，核心是：按不交/非空/覆盖检验。",
+      "intuition": "划分是一组不交、非空、且盖住全集的子集。拿一个划分去定义「在同一个块里」，就得到一个等价关系。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1640,7 +1640,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「商类型三件套」「良定义性」「商类型的边界」展开，核心是：Quot.sound / Quot.lift / Quot.ind 的职责（mk 为构造子）。",
+      "intuition": "`Quot.sound` 把代表元之间的关系变成相等；`Quot.lift` 要求先证良定义性；`Quot.ind` 把商上的命题降到代表元。没有 `Quot.exact`，所以反向不一定成立。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1659,7 +1659,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「类与商集的代数刻画」展开，核心是：用成员刻画做类/商集运算。",
+      "intuition": "类与商集上的运算，都可以用成员刻画来读。把商上的加法展开成代表元上的加法，良定义性就是「换代表元结果不变」。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1683,7 +1683,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「核关系」「等价关系」展开，核心是：写 `ker f` 并等价于 `f x=f y`。",
+      "intuition": "函数 f 的核关系是「`f x = f y`」。它一定是等价关系，而且它的类就是 f 的原像。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1702,7 +1702,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元把「类与商集的代数刻画」的结论接到课程主线上，核心是：用成员刻画做类/商集运算。",
+      "intuition": "本单元把类与商集的成员刻画拿来算：运算定义在代表元上，落地到商上之前先验一次换代表元不变。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1721,7 +1721,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「划分 ⇔ 等价关系」展开，核心是：双向构造并证往返。",
+      "intuition": "从等价关系出发，把等价类收成一族，就得到划分。从划分出发，先把同一个块里的点看作等价，并且收成等价关系，两个方向合起来是往返。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1740,7 +1740,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「商集上函数的良定义义务」展开，核心是：用 respects 与 class_value_unique 说明良定义义务。",
+      "intuition": "要在商集上定义函数，必须先证明「换代表元不改变函数值」，这就是良定义义务。`respects` 与 `class_value_unique` 就是在说这件事。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1759,7 +1759,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「商与像：类的像」展开，核心是：同一等价类的像只有一点（y ∈ f''[a] ↔ f a = y）。",
+      "intuition": "同一等价类的点，在像里只能落在同一点上：`y ∈ f''[a]` 当且仅当 `y = f a`。这是类的像和商之间的往返。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1778,7 +1778,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元把「商与像：类的像」的结论接到课程主线上，核心是：同一等价类的像只有一点（y ∈ f''[a] ↔ f a = y）。",
+      "intuition": "把商到像的映射写出来之后，可以证明它是单射：两类不同就给出不同的像。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1797,7 +1797,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「核与单射/复合」展开，核心是：用核平凡判定单射并与复合互动。",
+      "intuition": "核关系是 `f x = f y`。它平凡（只剩自己和自己相关）就等价于 f 是单射，核与复合还能互相搬运。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1826,7 +1826,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「分配律与 De Morgan」「吸收律与逆否」「差就是交补」展开，核心是：写出并交分配与可证方向的 De Morgan。",
+      "intuition": "并交分配与 De Morgan 是集合代数的两条主律。De Morgan 只有方向在构造性逻辑里能证，另一半要补经典逻辑。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1855,7 +1855,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「界与确界」「确界唯一」「并交即确界」展开，核心是：展开最小上界的两条义务。",
+      "intuition": "上界是「压在整个集合上面」的点；最小上界是其中最小的那个。要证确界，必须同时给出「是上界」与「没有更小的上界」两条义务。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1879,7 +1879,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「确界代数与对偶原理」「退化的确界」展开，核心是：写出对偶语句，并给出广义并交的泛性质（⋃F ⊆ C ⟺ 每个族成员 ⊆ C；C ⊆ ⋂F ⟺ 每个族成员 ⊇ C）。",
+      "intuition": "把 `⊆` 换成 `⊇`，上确界与下确界就互换，这就是对偶原理。退化情形也要交代：空族的并是 ⊥，空族的交是 ⊤。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1898,7 +1898,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「单调、序反射与序同构保上确界」展开，核心是：证单调的合成与常函数、序反射，并说明序同构保持上确界。",
+      "intuition": "单调函数保序；序同构还要反射序，并且把上确界原样带过去。常函数与合成是两条最容易上手的检查。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1917,7 +1917,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「逐点序」展开，核心是：展开逐点 ≤，并证自反、传递与逐点反对称。",
+      "intuition": "逐点序比较的是每个点的值：`f ≤ g` 当且仅当对每个 x 都有 `f x ≤ g x`。自反与传递逐点成立，反对称要靠外延性。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1936,7 +1936,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「对称差的成员刻画与代数」展开，核心是：写出 A △ B 的成员，证交换、A △ A = ∅、∅/univ 两端与 A △ B ⊆ A ∪ B。",
+      "intuition": "对称差 `A △ B` 的成员是「恰好在一边」的点。它满足交换、结合与 `A △ A = ∅`，配上交就得到布尔环。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1955,7 +1955,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元把「分配律与 De Morgan」的结论接到课程主线上，核心是：写出并交分配与可证方向的 De Morgan。",
+      "intuition": "本单元把分配律与 De Morgan 收成一族：并交分配可以逐条搬，De Morgan 只保证可证的那个方向。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -1979,7 +1979,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「幂集代数」「特征函数对应」展开，核心是：𝒫 对 ∩ 完全交换、对 ∪ 只有一半。",
+      "intuition": "幂集对交完全交换，对并只换一半。特征函数把这套代数翻译成逐点的真假运算。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2013,7 +2013,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「合成基本律」「单射的复合与消去」「满射的复合与消去」「双射的复合」展开，核心是：用逐点形态证合成律。",
+      "intuition": "合成的基本律是结合与单位律。单射、满射、双射各自沿复合传递，反方向还要额外条件。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2032,7 +2032,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「逆函数的合成保持与对称」展开，核心是：说明左逆与右逆逐点相等，并证逆在合成下保持与逆的对称。",
+      "intuition": "左逆与右逆其实逐点相等，这一点要用外延性来收口。逆在合成下保持，并且逆的逆就是原来的函数。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2056,7 +2056,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「funext 与 propext」「逐点序是偏序」展开，核心是：说出两条公理的差别。",
+      "intuition": "`funext` 说函数逐点相等就相等；`propext` 说逻辑等价的两个命题可以互换。两条合起来，才能证逐点序是偏序。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2075,7 +2075,7 @@
           "kind": "technique"
         }
       ],
-      "intuition": "本单元围绕「幂集的格性质」展开，核心是：用成员/包含刻画处理 𝒫A 中的包含与 ⋂ 取用子。",
+      "intuition": "`𝒫A` 上的包含就是一个偏序，交与并分别是下确界与上确界。处理 `⋂` 取用子时，用成员刻画最省事。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2094,7 +2094,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「幂集完备格」展开，核心是：证 ⋃₀(𝒫A) = A 与 ⋂₀(𝒫A) ⊆ A（top/bottom 与自家人）。",
+      "intuition": "幂集是完备格：任意族的并与交都落在 `𝒫A` 里。退化情形是 `⋃₀(𝒫A) = A` 与 `⋂₀(𝒫A) ⊆ A`。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2113,7 +2113,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元把「幂集代数」的结论接到课程主线上，核心是：𝒫 对 ∩ 完全交换、对 ∪ 只有一半。",
+      "intuition": "本单元把幂集代数的结论接到主线上：`𝒫` 对交完全交换。对并只有一半成立，反例要能说清。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2142,7 +2142,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「关系复合与结合律」「逆关系」「恒等关系」展开，核心是：写出 `r•s` 的成员并证结合律。",
+      "intuition": "复合关系的成员是「存在一个中间点，两边都连上」：`(r • s) a c` 当且仅当存在 b 使 `r a b` 与 `s b c`。复合满足结合律。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2166,7 +2166,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「三性质的代数形态」「代数三条件 ⇔ 等价关系」展开，核心是：自反/对称/传递与代数式互译。",
+      "intuition": "把自反、对称、传递写成代数式。自反对应 `id ⊆ r`，对称对应 `r⁻¹ ⊆ r`，并且传递对应 `r • r ⊆ r`。三个条件合起来正好是等价关系。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2185,7 +2185,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「偏序的代数条件」展开，核心是：用代数式刻画反对称/非自反/非对称。",
+      "intuition": "用代数式刻画序：反对称是 `r ∩ r⁻¹ ⊆ id`，非自反是 `r ∩ id = ∅`。这些式子把「一条性质」变成「一个包含关系」。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2214,7 +2214,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「关系像/原像/核」「像穿过复合」「等价核与单射判定」展开，核心是：写出 relImg/relPre/kernel 的成员刻画。",
+      "intuition": "关系的像 `relImg` 是「从 A 出发能到 B 的点」，原像反过来。核 `kernel` 把「到同一点的入边」收成一个等价关系。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2233,7 +2233,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元围绕「闭包的代数刻画」展开，核心是：闭包两端 + 最小 + 幂等 + 对复合封闭。",
+      "intuition": "传递闭包有两个端口：它含住原关系，又落在任何含住原关系的传递关系里。它还幂等，并且对复合封闭。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2262,7 +2262,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元围绕「良基与极小元原理」「良基的保持」「良基归纳的边界」展开，核心是：写出良基并取出极小元。",
+      "intuition": "良基关系里，每个非空子集都有极小元。这条判定可以沿嵌入保持，但良基归纳要小心边界，不是所有关系都能用。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2281,7 +2281,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元围绕「单值性与图」展开，核心是：写出单值性并说明图是函数。",
+      "intuition": "单值性说的是「每个点最多一个出边」。一个关系是单值的，它的图才像函数；反过来，函数就是单值的关系。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2305,7 +2305,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元把「恒等关系」「关系复合与结合律」的结论接到课程主线上，核心是：证 `id•r=r=r•id`。",
+      "intuition": "本单元把恒等关系与复合接到主线上：`id • r = r = r • id`。逐点看，复合就是「存在中间点」这条公式。",
       "cards": [],
       "questionTotal": 0,
       "sources": [
@@ -2334,7 +2334,7 @@
           "kind": "definition"
         }
       ],
-      "intuition": "本单元把整数定义成 ℕ×ℕ 按 intRel 作商，并先用 intRel 与 Quot.sound 把代表元相等写顺。",
+      "intuition": "本单元把整数定义成 ℕ×ℕ 按 `intRel` 作商。先用 `intRel` 与 `Quot.sound` 把代表元相等写顺。",
       "cards": [
         "int-as-quotient"
       ],
@@ -2375,7 +2375,7 @@
           "kind": "boundary"
         }
       ],
-      "intuition": "本单元复习商的三件套：sound 把关系变成相等，lift 要求良定义性，ind 把商上的性质降到代表元。",
+      "intuition": "本单元复习商的三件套：`Quot.sound` 把关系变成相等，`Quot.lift` 要求良定义性。`Quot.ind` 则把商上的性质降到代表元。",
       "cards": [
         "quot-lift-well-defined"
       ],
@@ -2406,7 +2406,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元从 Nat.rec 自建 add 与 mul，用 Prop 动机做归纳，再用 Eq.subst 把假设搬到后继情形。",
+      "intuition": "本单元用 `Nat.rec` 自建 `add` 与 `mul`。归纳用 `Prop` 做动机，再用 `Eq.subst` 把假设搬到后继情形。",
       "cards": [],
       "questionTotal": 12,
       "sources": [
@@ -2440,7 +2440,7 @@
           "kind": "concept"
         }
       ],
-      "intuition": "本单元把 ℤ 上的运算先写成 ℕ×ℕ 代表元上的公式，这些公式在代表元层都是 rfl；下降到商上则需要后续单元证良定义性。",
+      "intuition": "本单元把 ℤ 上的运算先写成 ℕ×ℕ 代表元上的公式，这些公式在代表元层都是 `rfl`。下降到商上，则需要后续单元证良定义性。",
       "cards": [
         "int-rep-formulas"
       ],
@@ -2467,7 +2467,7 @@
         "courses/analysis/units/II.1/unit05.sokonanoda:1",
         "courses/analysis/units/II.1/unit05.sokonanoda:26"
       ],
-      "intuition": "本单元把 (a-b)(c-d) 展开成 (ac+bd)-(ad+bc)，先只在代表元层写出公式。"
+      "intuition": "本单元把 `(a-b)(c-d)` 展开成 `(ac+bd)-(ad+bc)`，先只在代表元层写出公式。"
     },
     {
       "chapter": "II.1",
@@ -2505,7 +2505,7 @@
         "courses/analysis/units/II.1/unit07.sokonanoda:1",
         "courses/analysis/units/II.1/unit07.sokonanoda:81"
       ],
-      "intuition": "本单元把代表元层的交换与结合交给 Quot.sound，得到商上的加法律。"
+      "intuition": "本单元把代表元层的交换与结合交给 `Quot.sound`，得到商上的加法律。"
     },
     {
       "chapter": "II.1",
@@ -2591,7 +2591,7 @@
         "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:1",
         "courses/analysis/units/II.1/unit11-int-mul-wd.sokonanoda:178"
       ],
-      "intuition": "本单元用分配律把乘积展开，再用乘法同余搬交叉项，证明换第一个因子不变。"
+      "intuition": "本单元用分配律把乘积展开，再用乘法同余搬交叉项。最后证明换第一个因子不变。"
     },
     {
       "chapter": "II.1",
@@ -2610,7 +2610,7 @@
         "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:1",
         "courses/analysis/units/II.1/unit12-int-order-reps.sokonanoda:31"
       ],
-      "intuition": "本单元把整数序化成 ℕ 上的 LeNat 交叉和，先只写代表元公式。"
+      "intuition": "本单元把整数序化成 ℕ 上的 `LeNat` 交叉和，先只写代表元公式。"
     },
     {
       "chapter": "II.1",
@@ -2658,7 +2658,7 @@
         "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:1",
         "courses/analysis/units/II.1/unit14-leNat-cancel.sokonanoda:110"
       ],
-      "intuition": "本单元先证 ℕ 加法消去，再把序翻成存在加数，用重排与消去证序的消去律。"
+      "intuition": "本单元先证 ℕ 加法消去，再把序翻成存在加数。最后用重排与消去证序的消去律。"
     },
     {
       "chapter": "II.1",
@@ -2677,7 +2677,7 @@
         "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:1",
         "courses/analysis/units/II.1/unit15-leRep-wd.sokonanoda:189"
       ],
-      "intuition": "本单元把 intRel 假设读成等式，用序的加法消去律证明 leRep 的两个槽都稳定。"
+      "intuition": "本单元把 `intRel` 假设读成等式，用序的加法消去律证明 `leRep` 的两个槽都稳定。"
     },
     {
       "chapter": "II.1",
