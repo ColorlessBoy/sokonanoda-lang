@@ -134,6 +134,29 @@ score = w_gap·(1 − m_{tag})            # 盲区优先：掌握度最低的 ta
 **答错后的特殊规则**：同一 tag 连续错 2 次 → 强制插入该 tag 的知识卡；
 答错后优先同 tag 的**变式题**（`variants` 组），再回到主队列。
 
+### 3.2b 快思考调度 v2：单元连续 + 三题探针（2026-11-28，issue #138）
+
+学习者反馈「单元太跳、记忆不牢、评价系统高估」。v1 的两处结构性缺陷：
+① 探针按 KP 拓扑序走，一个 KP 连对 2 题就结案 ⇒ 常在一个单元只出 1 题就跳走；
+② 学习地图 `solved = asked > 0 and accuracy ≥ 阈值` ⇒ **一题答对就算「已解」**。
+
+v2 只改**调度与展示**，不改内核判定与题库内容：
+
+- **单元连续**：`unit_probe_kp()` —— 上一道**已作答**题所在单元已答题数 < `unit_probe_target`（3）时，
+  `next_probe_kp()` 优先在该单元未结案 KP 里按 `kp_order` 选；做满即放开（回拓扑序）。
+  该单元没有未结案 KP、或没有未作答的可出题时也放开（「题目不足 3 题做满现有题即走」，不卡死）。
+- **三题探针**：探针 `asked` 改为**作答时**计数（每答一次 +1）；`done` 需 `asked ≥ probe_min_questions`（3）；
+  `probe_question` 的「连对」快车道阈值同步由 2 改为 3。KP 可服务题不足 3 题时做满现有题即结案。
+- **三态 + 探针中**：`asked == 0` → 待做；`0 < asked < min_probes` → **探针中**（不算已解、不算薄弱）；
+  `asked ≥ min_probes` → 按正确率分已解/薄弱。`min_probes` 对可服务题不足 3 道的 KP 取
+  `min(min_probes, 可服务题数)`，避免永远「探针中」。`covered = solved + weak + probing`。
+- **兜底加成**：`pick` 的召回分加 `unit_continuity_bonus`（候选与上一题同单元、且该单元未做满 target 时）；
+  探针路径优先，加成只影响 `pick` 兜底。
+- **参数与展示**：`params.json` 的 `unit_probe_target` / `unit_continuity_bonus` /
+  `probe_min_questions` / `map.min_probes`；`map.kps.probing` 与 `map.thresholds.min_probes` 暴露给
+  插件 progress 卡（`probingKps`），`format_map` 显示「探针中」。
+- **边界**：校准阶段行为不变；已 `done` 的 KP 不回退；不引入随机。
+
 ### 3.3 遗忘与复习
 
 - `m_t < 0.75` 且距上次作答 `> interval(m_t) = 1 + 2·(1 − m_t)` 天 → 该 tag 的题进入"复习队列"优先；
@@ -150,10 +173,11 @@ score = w_gap·(1 − m_{tag})            # 盲区优先：掌握度最低的 ta
 
 - **单元状态**：沿用 `✅ 稳 / ◐ 在学 / ◔ 刚起步 / · 未碰`（`status`/`mark`/`touched`/`total`/`mastery`；
   progress 卡向后兼容读取这些字段）。
-- **知识点三态（结构计数）**：`已解` = 该 KP 做过的题正确率 ≥ `params.map.solved_accuracy_above`；
-  `薄弱` = 做过但正确率低于它；`待做` = 有可服务题但没作答。没有题的 KP **不算待做**，
+- **知识点四态（结构计数，v2 起）**：`探针中` = 作答过但不足 `params.map.min_probes` 题（既不算已解、
+  也不算薄弱）；`已解` = 作答数 ≥ min_probes 且正确率 ≥ `params.map.solved_accuracy_above`；
+  `薄弱` = 作答数 ≥ min_probes 但正确率低于它；`待做` = 有可服务题但没作答。没有题的 KP **不算待做**，
   由 `review.py` 的 `content_gaps` 报为内容缺口。掌握度（Elo）仍用于热力图和薄弱排序，
-  **不参与三态判定**——避免「答对一次但 Elo 还没爬上来」被误报成薄弱。
+  **不参与多态判定**——避免「答对一次但 Elo 还没爬上来」被误报成薄弱。
 - **代码题合并（C9.4）**：`code_done` 的 `true`/`"skipped"` 按课程数据集（默认 set-theory）
   的 `chapter` 归章，地图/复盘显示「已解/总数/跳过」；其它课程的已做 id 单独计数（`otherCourse`），不丢。
 - **指标（`state.metrics`）**：正确率、按 level/章计数、每题耗时（avg/median/max，**只汇总、不作判据**）、
