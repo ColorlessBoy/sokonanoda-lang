@@ -106,7 +106,15 @@ def _load_module(path: Path, name: str):
     if spec is None or spec.loader is None:
         raise PreconditionError("无法加载 %s" % path)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Python 3.12 的 dataclasses 解析 `from __future__ annotations` 时会读
+    # `sys.modules[cls.__module__].__dict__`；模块不先登记就直接 exec ⇒
+    # AttributeError: 'NoneType' object has no attribute '__dict__'（CI 3.12 实测）。
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
     return module
 
 
