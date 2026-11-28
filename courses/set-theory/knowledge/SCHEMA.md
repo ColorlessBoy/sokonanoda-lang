@@ -15,7 +15,7 @@
 | `data/knowledge-points.json` | `soko.knowledge-points/1` | 知识点注册表（覆盖的记账单位） | 备课/内容线 |
 | `data/questions.json` | `soko.choice-bank/1` | 题库（choice / short / explain / proof） | 备课/内容线 |
 | `data/lessons.json` | `soko.lessons/1` | 课级教学环节（由 KP/题目归并） | 备课/内容线 |
-| `data/cards.json` | `soko.knowledge-cards/1` | 知识卡 | 备课/内容线 |
+| `data/cards.json` | `soko.knowledge-cards/1` | 知识卡（`tags`/`prereq`；`kps` 可选，命中题目 kps 时优先匹配） | 备课/内容线 |
 | `data/params.json` | `soko.learn-params/1` | 调度参数 | 维护线 |
 | `engine.py` | — | L2 调度引擎 | 不改（C9 线） |
 

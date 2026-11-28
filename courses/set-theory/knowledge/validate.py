@@ -20,6 +20,7 @@ cards = cards_data.get("cards") or []
 if not isinstance(cards, list) or len(cards) == 0:
     fail("cards.json: cards missing")
 card_ids = set()
+card_kp_refs = []  # 卡片上的可选 `kps`；注册表读入后统一核引用
 for index, card in enumerate(cards):
     at = "cards[%d]" % index + ((" (" + card["id"] + ")") if isinstance(card, dict) and card.get("id") else "")
     if not isinstance(card, dict):
@@ -74,6 +75,15 @@ for index, card in enumerate(cards):
     prereq = card.get("prereq")
     if not isinstance(prereq, list) or any(not isinstance(item, str) for item in prereq):
         fail(at + ": prereq must be a list of card ids")
+    kps = card.get("kps")
+    if kps is not None:
+        if not isinstance(kps, list) or any(not isinstance(item, str) or not item for item in kps):
+            fail(at + ": kps must be a list of kp ids")
+        elif len(set(kps)) != len(kps):
+            fail(at + ": kps has duplicates")
+        else:
+            for ref in kps:
+                card_kp_refs.append((at, ref))
 
 # ---------- 选择题 ----------
 questions_data = json.loads((ROOT / "data" / "questions.json").read_text(encoding="utf-8"))
@@ -226,6 +236,13 @@ def visit_kp(kp_id, path):
 for kp_id in kp_by_id:
     if visit_state.get(kp_id, 0) == 0:
         visit_kp(kp_id, [])
+
+# ---------- 知识卡的 kps（可选字段）引用 ----------
+# 卡片 kps 只在写了的时候生效（explain_for 的 kp 优先匹配）；写错 id 会静默失效，
+# 所以这里按「写了就必须指向已注册知识点」判。
+for card_at, ref in card_kp_refs:
+    if ref not in kp_by_id:
+        fail(card_at + ": kps refs unknown knowledge-point " + repr(ref))
 
 # ---------- 每题的 kps 引用（一题可挂多个；≥2 个算综合题） ----------
 integration_by_chapter = {}

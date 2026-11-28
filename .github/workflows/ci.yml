@@ -1180,6 +1180,12 @@ jobs:
         # 等 C9.2 把注册 KP 补到 0 红后再接（`CONTENT-PLAN.md` §2.1 的批次表）。
         run: python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/validate.py"
 
+      - name: 知识卡匹配引擎自检（explain_for 的 kp/IDF 评分）
+        # #142：`explain_for` 的评分改由 `engine.py selftest` 里的一组 explain-*
+        # 判据钉住（kp 优先 / 通用标签反例 / 破平不依赖 cards.json 顺序）。纯
+        # python3、实测 0.2s ⇒ 接进 `gates-course`，UI 面向的匹配回归不用等人工看。
+        run: python3 "$GITHUB_WORKSPACE/courses/set-theory/knowledge/engine.py" selftest
+
       - name: 课程题目集数据集（构建 + 校验 + 自检）
         # C9.0（#98）：数据集是课程源的派生物 —— `--check` 判源文件漂移，`check.py`
         # 判结构/来源映射/解答，`--selftest` 注入坏数据必须判红。纯 python3、秒级，
