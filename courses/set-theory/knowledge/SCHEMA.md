@@ -6,7 +6,8 @@
 >
 > 相关文件：`DESIGN.md`（三层设计与调度语义）· `STYLE.md`（文本风格）·
 > `CONTENT-PLAN.md`（覆盖现状与批次表）· `README.md`（工作流总览）。
-> 判据脚本：`validate.py` · `coverage.py` · `verify_batch.py` · `text_audit.py`。
+> 判据脚本：`validate.py` · `coverage.py` · `verify_batch.py` · `text_audit.py` ·
+> `text_lint.py`（文本公理门禁；公理见 `skills/sokonanoda-prep/references/text-axioms.md`）。
 
 ## 0. 文件职责
 
@@ -217,7 +218,7 @@
 2. 其 `title` 与 `kind` 与注册表**逐字一致**；
 3. `questionTotal` 等于 `(chapter, unit)` 下真实题目数；
 4. 每个 KP 至少出现在一个 lesson 里（新 KP 必须同批补 lesson）；
-5. `goal` / `intuition` 非空；完整句由 `text_audit.py` 启发式扫（不判红）。
+5. `goal` / `intuition` 非空；完整句与表达底线由 `text_lint.py` 判（errors 红 / warnings 基线棘轮）。
 
 新增 KP/单元时：同一改动里补 `lessons.json`（`unit` 用课程单元标签；无题时
 `questionTotal: 0`；`cards` 可为空）。`cards.json` 与 `glossary.json` 不是
@@ -253,6 +254,8 @@ C9.1 的门禁项，按章补。
    python3 courses/set-theory/knowledge/engine.py selftest
    python3 courses/set-theory/knowledge/engine.py simulate --questions 50
    python3 scripts/notation-lint.py                        # 改了单元/画布才需要
+   python3 courses/set-theory/knowledge/text_lint.py       # 表达底线门禁（errors 即红）
+   python3 courses/set-theory/knowledge/text_lint.py --update-baseline  # 改完内容后收紧基线
    python3 courses/set-theory/knowledge/text_audit.py      # 报告；新文本应 0 新增问题
    ```
 
@@ -277,6 +280,7 @@ C9.1 的门禁项，按章补。
 - [ ] `verify_batch.py --batch … --chapter … --sample 8` → exit 0
       （含选项 8–60 字、正确项不超最长干扰项 15 字、`why` ≥2 句）
 - [ ] source 抽检 ≥10%，逐条打开核验答案；无占位/假行号
+- [ ] `text_lint.py` errors 为 0（改过表达文本时同步 `--update-baseline` 收紧存量 warnings）
 - [ ] `text_audit.py` 没有**新增** `why.short` / `option.length*` 条目（存量可暂留）
 - [ ] `engine.py selftest` + `engine.py simulate --questions 50` → exit 0
 - [ ] `text_audit.py` 无新增问题；`notation-lint.py` 绿（若改课程单元）
