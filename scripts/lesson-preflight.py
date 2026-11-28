@@ -390,6 +390,14 @@ def run_card_lint(script: Path, data_dir: Path) -> tuple[dict[str, list[dict]] |
         name = str(item.get("name") or "")
         if qid == "" or name == "":
             continue
+        if str(item.get("rule") or "coverage") == "content":
+            by_qid.setdefault(qid, []).append({
+                "qid": qid, "code": "card-content", "level": "blocker", "field": "",
+                "name": name,
+                "note": "推送卡只报了 `%s`，没给结论/签名（card=%s）"
+                        % (name, item.get("card") if item.get("card") else "?"),
+            })
+            continue
         by_qid.setdefault(qid, []).append({
             "qid": qid, "code": "card", "level": "blocker", "field": "", "name": name,
             "note": "选项点名的引理没出现在推送卡里（card=%s）"

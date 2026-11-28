@@ -92,3 +92,24 @@
 - `scripts/soko gate`（含 `--fast`）、`scripts/ci-local.sh` 的 gates 段、
   `.github/workflows/ci.yml` 的 `gates-course` job 都会跑这两条；
 - 缺脚本 / 解释器 / 数据 ⇒ exit 3，**不静默跳过**。
+
+## 7. 内容规则：覆盖了还要讲清楚（#150，2026-11-29）
+
+覆盖规则回答「名字在不在卡里」；内容规则回答「名字出现了有没有给结论」——学习者看到
+「用 `prod_swap` 即可」仍不知道 `prod_swap` 是什么。判据（在同一个
+`scripts/card-lint.py` 里，errors 即红）：
+
+1. **配对**：对每条被覆盖的 `(qid, 引理)`（即 §1 的判据通过的那些名字）；
+2. **给结论/签名**：该引理必须出现在 `definition.code` 里，**或**出现在一条带结论记号的
+   说明行里（同一 `sections[].items` / `text` / 表格行 / `oneLiner` / `types[]` 行内，
+   引理名 + `：`/`:`/`:=`/`→`/`↔`/`=`/`∀`/`∃`/`⊆`/`≼` 等）；
+3. **只报名字判红**：名字裸挂在句子里（如「用 `add_rotate` 重排」）⇒ 内容违例；
+4. **基线**：键 = `rule:qid:name`（`rule = coverage | content`），双向棘轮；规则维度进键，
+   这样「先没覆盖、补卡后变成覆盖但没讲结论」不会被同名抵消；
+5. **当前读数**：`card-lint` 总违例 0（覆盖 0 · 内容 0）；`II.1.lecancel-2` 的
+   `add_rotate` 曾裸挂在 `nat-order-lemmas`，已补 `add a (add b c) = add b (add a c)`；
+6. **fixtures**：`--selftest` 的 `contentCases` 覆盖「裸名字必红 / `：`+结论必绿 /
+   `definition.code` 必绿 / 段落裸挂必红」四态；
+7. **判据正文/已知限制**：本规则只查「卡内被这条题点名的引理」；卡内凡引用**其他**
+   库名的讲解义务仍按 `text-axioms.md` 与人工评审走（`text_lint.py` 不按名字做定义检查，
+   避免把数学表达误伤成命名检查）。
