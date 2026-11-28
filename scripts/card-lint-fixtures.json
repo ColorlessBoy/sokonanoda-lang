@@ -456,6 +456,124 @@
           "foo_lemma"
         ]
       ]
+    },
+    {
+      "name": "红：首段先讲怎么用、定义在后面才补（首段没答「它是什么」）",
+      "questions": [
+        {
+          "id": "fixture.content-red-first-paragraph",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-first-paragraph",
+          "oneLiner": "这题用 `foo_lemma` 就够了。",
+          "definition": {
+            "lang": "lean",
+            "code": ""
+          },
+          "sections": [
+            {
+              "heading": "它是什么",
+              "kind": "paragraph",
+              "text": "`foo_lemma`：`∀ (A : Set α), A ⊆ A`。"
+            }
+          ],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": [
+        [
+          "fixture.content-red-first-paragraph",
+          "foo_lemma"
+        ]
+      ]
+    },
+    {
+      "name": "绿：首段先给定义句、后面再讲怎么用",
+      "questions": [
+        {
+          "id": "fixture.content-green-def-first",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-def-first",
+          "oneLiner": "`foo_lemma`：`∀ (A : Set α), A ⊆ A`。",
+          "definition": {
+            "lang": "lean",
+            "code": ""
+          },
+          "sections": [
+            {
+              "heading": "怎么用",
+              "kind": "list",
+              "items": [
+                "要证 `A ⊆ A` 时套 `foo_lemma` 即可。"
+              ]
+            }
+          ],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": []
+    },
+    {
+      "name": "绿：definition.code 有签名（首段 oneLiner 只讲怎么用也算讲清楚）",
+      "questions": [
+        {
+          "id": "fixture.content-green-code-first",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-code-first",
+          "oneLiner": "这题用 `foo_lemma` 就够了。",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": []
     }
   ]
 }

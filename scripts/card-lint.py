@@ -20,7 +20,10 @@
    该引理的**结论或签名**：要么在 `definition.code` 里，要么出现在一条带说明的行里
    （名字 + `：`/`:`/`→`/`↔`/`=` 等结论记号，或「签名」「结论」段）。只把名字裸挂在
    句子里（「用 `prod_swap` 即可」）⇒ 内容违例。
-4. errors 即红；存量欠账冻结在 `scripts/card-lint-baseline.json`（键 = `qid:name`，
+5. **首段规则（#150 期望 2）**：名字**第一次**出现的那个文本单元必须已经是定义句
+   （带结论记号）；先讲怎么用、结论在后面某段才补 ⇒ 仍判红。`definition.code` 里
+   有签名的一律算讲清楚（不看后面还有没有别的提到）。
+6. errors 即红；存量欠账冻结在 `scripts/card-lint-baseline.json`（键 = `rule:qid:name`，
    **双向棘轮**：基线外新增判红，已修条目没同步收紧也判红）。
 
 判据正文、误报治理、已知限制与补卡流程见
@@ -231,14 +234,27 @@ def card_text_units(card: dict) -> list[tuple[str, str]]:
 
 
 def explained_in(card: dict, name: str) -> tuple[bool, str | None]:
-    """（是否给了结论/签名, 在哪）—— 同名可出现在多段，取第一份带结论的。"""
+    """（讲清楚了没, 在哪/为什么没讲清楚）。
+
+    期望 1（#150）：`definition.code` 里有它，或某一段说明行里同名 + 结论记号。
+    期望 2（#150）：**首段先答「它是什么」**——名字第一次出现的那个文本单元必须
+    已经是定义句（带结论记号）；先讲怎么用、结论在后面某段才补 ⇒ 仍判红。
+    """
     definition = card.get("definition") or {}
     if name in str(definition.get("code") or ""):
         return True, "definition.code"
+    first: str | None = None
     for field, text in card_text_units(card):
-        if name in text and CONCLUSION_MARK.search(text):
+        if name not in text:
+            continue
+        if first is None:
+            first = field
+        if CONCLUSION_MARK.search(text):
+            if first != field:
+                # 第一处只讲怎么用（无结论记号），到后面才补定义 ⇒ 首段没答它是什么。
+                return False, "first-paragraph"
             return True, field
-    return False, None
+    return False, "bare"
 
 
 def find_content_violations(data: dict, candidates: set[str]) -> list[dict]:
@@ -260,10 +276,11 @@ def find_content_violations(data: dict, candidates: set[str]) -> list[dict]:
         for name in names:
             if name not in text:
                 continue  # 没覆盖：归覆盖规则。
-            ok, _where = explained_in(card, name)
+            ok, where = explained_in(card, name)
             if not ok:
                 violations.append({
                     "rule": "content",
+                    "code": where or "bare",
                     "qid": question["id"],
                     "name": name,
                     "card": card.get("id"),
@@ -297,21 +314,24 @@ def check_baseline(violations: list[dict], baseline: dict[str, dict]) -> tuple[l
 
 
 def baseline_payload(violations: list[dict]) -> dict:
-    entries = [
-        {
+    entries = []
+    for item in violations:
+        entry = {
             "rule": item.get("rule") or "coverage",
             "qid": item["qid"], "name": item["name"], "card": item.get("card"),
         }
-        for item in violations
-    ]
+        if item.get("code"):
+            entry["code"] = item["code"]
+        entries.append(entry)
     return {
         "schema": "soko.card-lint-baseline/1",
         "note": (
-            "知识卡覆盖门禁的存量欠账基线：键 = qid:name（选项点名的引理没出现在实际"
-            "推送卡里）；只许减不许增（新条目判红，已修条目没同步收紧也判红）。"
+            "知识卡门禁的存量欠账基线：键 = rule:qid:name（rule = coverage | content；"
+            "选项点名的引理没出现在实际推送卡里、或出现了却没给结论/签名）；只许减不许增"
+            "（新条目判红，已修条目没同步收紧也判红）。"
             "收紧用 `python3 scripts/card-lint.py --update-baseline`。"
         ),
-        "updated": "2026-11-28",
+        "updated": "2026-11-29",
         "violations": len(entries),
         "entries": entries,
     }
@@ -324,6 +344,9 @@ def format_violation(item: dict) -> str:
     card = item.get("card")
     where = card if card else "fallback（无卡）"
     if item.get("rule") == "content":
+        if item.get("code") == "first-paragraph":
+            return "  %s: %s —— 推送卡 %s 首段先讲怎么用，没先答「它是什么」" % (
+                item["qid"], item["name"], where)
         return "  %s: %s —— 推送卡 %s 只报了名字，没给结论/签名" % (
             item["qid"], item["name"], where)
     return "  %s: %s —— 推送卡 %s 里没有它" % (item["qid"], item["name"], where)

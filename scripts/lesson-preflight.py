@@ -399,11 +399,14 @@ def run_card_lint(script: Path, data_dir: Path) -> tuple[dict[str, list[dict]] |
         if qid == "" or name == "":
             continue
         if str(item.get("rule") or "coverage") == "content":
+            card = item.get("card") if item.get("card") else "?"
+            if item.get("code") == "first-paragraph":
+                note = "推送卡 %s 首段先讲怎么用，没先答「它是什么」（`%s`）" % (card, name)
+            else:
+                note = "推送卡只报了 `%s`，没给结论/签名（card=%s）" % (name, card)
             by_qid.setdefault(qid, []).append({
                 "qid": qid, "code": "card-content", "level": "blocker", "field": "",
-                "name": name,
-                "note": "推送卡只报了 `%s`，没给结论/签名（card=%s）"
-                        % (name, item.get("card") if item.get("card") else "?"),
+                "name": name, "note": note,
             })
             continue
         by_qid.setdefault(qid, []).append({

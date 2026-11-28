@@ -103,13 +103,21 @@
 2. **给结论/签名**：该引理必须出现在 `definition.code` 里，**或**出现在一条带结论记号的
    说明行里（同一 `sections[].items` / `text` / 表格行 / `oneLiner` / `types[]` 行内，
    引理名 + `：`/`:`/`:=`/`→`/`↔`/`=`/`∀`/`∃`/`⊆`/`≼` 等）；
-3. **只报名字判红**：名字裸挂在句子里（如「用 `add_rotate` 重排」）⇒ 内容违例；
-4. **基线**：键 = `rule:qid:name`（`rule = coverage | content`），双向棘轮；规则维度进键，
+3. **首段先答「它是什么」**：名字**第一次**出现的那个文本单元必须已经是定义句（带结论
+   记号），再讲怎么用；先写「这题用 `foo_lemma` 就够了」、到后面某段才补定义 ⇒ 仍判红
+   （期望 2）。`definition.code` 里有签名的一律算讲清楚（`definition.code` 优先于
+   oneLiner 里的用法句）；
+4. **只报名字判红**：名字裸挂在句子里（如「用 `add_rotate` 重排」）⇒ 内容违例；
+5. **基线**：键 = `rule:qid:name`（`rule = coverage | content`），双向棘轮；规则维度进键，
    这样「先没覆盖、补卡后变成覆盖但没讲结论」不会被同名抵消；
-5. **当前读数**：`card-lint` 总违例 0（覆盖 0 · 内容 0）；`II.1.lecancel-2` 的
-   `add_rotate` 曾裸挂在 `nat-order-lemmas`，已补 `add a (add b c) = add b (add a c)`；
-6. **fixtures**：`--selftest` 的 `contentCases` 覆盖「裸名字必红 / `：`+结论必绿 /
-   `definition.code` 必绿 / 段落裸挂必红」四态；
-7. **判据正文/已知限制**：本规则只查「卡内被这条题点名的引理」；卡内凡引用**其他**
+6. **当前读数**：`card-lint` 总违例 0（覆盖 0 · 内容 0）；69 条被覆盖配对里 49 条在
+   `definition.code`、其余 20 条首次出现即定义句 ⇒ **0 张卡需要改内容**；
+   `II.1.lecancel-2` 的 `add_rotate` 曾裸挂在 `nat-order-lemmas`，已补
+   `add a (add b c) = add b (add a c)`；
+7. **fixtures**：`--selftest` 的 `contentCases` 覆盖「裸名字必红 / `：`+结论必绿 /
+   `definition.code` 必绿 / 段落裸挂必红 / **首段只讲怎么用必红** / **首段先定义后讲用必绿** /
+   「`definition.code` 优先于用法句」必绿」七态；
+8. **判据正文/已知限制**：本规则只查「卡内被这条题点名的引理」；卡内凡引用**其他**
    库名的讲解义务仍按 `text-axioms.md` 与人工评审走（`text_lint.py` 不按名字做定义检查，
-   避免把数学表达误伤成命名检查）。
+   避免把数学表达误伤成命名检查）。「首段」是文本顺序启发式：`oneLiner` → `sections`，
+   不读渲染后的视觉版式。
