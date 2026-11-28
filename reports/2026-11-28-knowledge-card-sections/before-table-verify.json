@@ -1,0 +1,32 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 1100
+  },
+  "card": {
+    "top": 611.25,
+    "height": 283.953125,
+    "bottom": 895.203125
+  },
+  "fullyVisible": true,
+  "headings": [
+    "要点"
+  ],
+  "lists": [
+    [
+      "= 是 Rel α α 的一个值：a = b 是命题。",
+      "⊆ 是 Rel (Set α) (Set α) 的一个值：A ⊆ B 是命题。"
+    ]
+  ],
+  "tables": [],
+  "definition": "def Rel (A B : Type) : Type := A → B → Prop",
+  "source": "出处：lib/Rel.sokonanoda:43",
+  "text": "关系 · Rel\n\n关系 = 二元谓词：Rel α β 与 α → β → Prop 是同一个东西。\n\ndef Rel (A B : Type) : Type := A → B → Prop\n\n要点\n\n= 是 Rel α α 的一个值：a = b 是命题。\n⊆ 是 Rel (Set α) (Set α) 的一个值：A ⊆ B 是命题。\n\n出处：lib/Rel.sokonanoda:43",
+  "longCard": {
+    "cardHeight": 284,
+    "viewportHeight": 720,
+    "scrollableAncestor": true,
+    "scrollHeight": 1367,
+    "clientHeight": 644
+  }
+}

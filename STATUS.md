@@ -1,3 +1,12 @@
+## 当前快照（2026-11-28 · 知识卡 sections 完整渲染 · #139）
+
+#139：`sokonanoda-dsh` 知识卡按 engine `sections` 顺序渲染**全部**段——`list` 全部
+items（不再 `slice(0, 2)`）、`paragraph` 的 `text`、`table` 的 `columns`/`rows`
+（与课程海报渲染器同形）都进卡；标题 / 一句话 / `definition.code` / `source` 位置
+不变，长卡片换行 + 聊天滚动，不静默截断；纯文本快路径（`cards=false`）同步去掉
+sections/items 截断。判据：插件 host 41 / client 47，真 DSH Web Before/After 见
+`reports/2026-11-28-knowledge-card-sections/`。
+
 ## 当前快照（2026-11-28 · dsh-images 画册缩放 / 预加载 / 移动端）
 
 #136：`dsh-images` 在 v1 翻页之上补齐交互——点页/`⤢` 开全屏 lightbox（双指/滚轮
@@ -14,6 +23,3 @@ solution），判卷复用 C9.4 `compose.py` + `scripts/soko grade --json`；仅
 `passed:true` 通过，诊断/sorry 失败，服务异常显示不可用；无右栏服务时按钮不渲染；
 面板不写 `mark-code`。判据：host 33 / client 45，Before/After 见
 `reports/2026-11-27-c97-exercise-panel/`。
-
-## 当前快照（2026-11-27 · 课堂笔记右侧栏闭环）
-#126：快路径知识卡 / 答题历史自动沉淀成右栏「课堂笔记」——知识点、✓/× 题目、易错与白名单图解；闲聊不入账。账本 `notes/<course>.json`（原子写）由四条 owner-only 只读路由服务；page tab + guide，iframe 轮询 `updatedAt`，首次变化自动打开一次。判据：插件 host 40 / client 46；真 DSH Web Before/After（`reports/2026-11-27-class-notes/`）。

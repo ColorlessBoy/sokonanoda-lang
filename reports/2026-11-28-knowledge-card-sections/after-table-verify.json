@@ -1,0 +1,67 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 1100
+  },
+  "card": {
+    "top": 266.25,
+    "height": 628.984375,
+    "bottom": 895.234375
+  },
+  "fullyVisible": true,
+  "headings": [
+    "三层拆解",
+    "例子",
+    "一句话记住"
+  ],
+  "lists": [
+    [
+      "= 是 Rel α α 的一个值：a = b 是命题。",
+      "⊆ 是 Rel (Set α) (Set α) 的一个值：A ⊆ B 是命题。"
+    ],
+    [
+      "集合 = 一元谓词（Set α := α → Prop）；关系 = 二元谓词（Rel α β := α → β → Prop）——同一句话的两阶版本。"
+    ]
+  ],
+  "tables": [
+    {
+      "headers": [
+        "表达式",
+        "它是什么",
+        "读法"
+      ],
+      "rows": [
+        [
+          "Rel A B",
+          "一个类型",
+          "「从 A 到 B 的关系」这个类型"
+        ],
+        [
+          "r : Rel A B",
+          "一个函数 A → B → Prop",
+          "吃 a : A、再吃 b : B，吐命题"
+        ],
+        [
+          "r a b",
+          "一个命题 Prop",
+          "「a 与 b 有关系 r」"
+        ],
+        [
+          "r a",
+          "B → Prop",
+          "就是 B 的一个子集"
+        ]
+      ]
+    }
+  ],
+  "definition": "def Rel (A B : Type) : Type := A → B → Prop",
+  "source": "出处：lib/Rel.sokonanoda:43",
+  "text": "关系 · Rel\n\n关系 = 二元谓词：Rel α β 与 α → β → Prop 是同一个东西。\n\ndef Rel (A B : Type) : Type := A → B → Prop\n\n三层拆解\n\n表达式\t它是什么\t读法\nRel A B\t一个类型\t「从 A 到 B 的关系」这个类型\nr : Rel A B\t一个函数 A → B → Prop\t吃 a : A、再吃 b : B，吐命题\nr a b\t一个命题 Prop\t「a 与 b 有关系 r」\nr a\tB → Prop\t就是 B 的一个子集\n\n例子\n\n= 是 Rel α α 的一个值：a = b 是命题。\n⊆ 是 Rel (Set α) (Set α) 的一个值：A ⊆ B 是命题。\n\n一句话记住\n\n集合 = 一元谓词（Set α := α → Prop）；关系 = 二元谓词（Rel α β := α → β → Prop）——同一句话的两阶版本。\n\n出处：lib/Rel.sokonanoda:43",
+  "longCard": {
+    "cardHeight": 629,
+    "viewportHeight": 720,
+    "scrollableAncestor": true,
+    "scrollHeight": 1712,
+    "clientHeight": 644
+  }
+}

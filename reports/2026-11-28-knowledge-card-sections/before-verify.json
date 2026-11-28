@@ -1,0 +1,32 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 1000
+  },
+  "card": {
+    "top": 433.25,
+    "height": 362.21875,
+    "bottom": 795.46875
+  },
+  "fullyVisible": true,
+  "headings": [
+    "要点"
+  ],
+  "lists": [
+    [
+      "f ∈ Set.pi ι α A 展开为 ∀ i, f i ∈ A i，逐坐标都要满足。",
+      "取用子 Set.mem_pi_elim 从成员证据得到单个坐标的成员关系。"
+    ]
+  ],
+  "tables": [],
+  "definition": "def Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=\n  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i",
+  "source": "出处：lib/SUnion.sokonanoda:115 / units/I.9/unit23-products.sokonanoda:172",
+  "text": "广义积 · Set.pi\n\nSet.pi ι α A 是「每个坐标都落在对应因子里」的函数集合。\n\ndef Set.pi (ι α : Type) (A : ι → Set α) : Set (ι → α) :=\n  fun (f : ι → α) => ∀ (i : ι), f i ∈ A i\n\n要点\n\nf ∈ Set.pi ι α A 展开为 ∀ i, f i ∈ A i，逐坐标都要满足。\n取用子 Set.mem_pi_elim 从成员证据得到单个坐标的成员关系。\n\n出处：lib/SUnion.sokonanoda:115 / units/I.9/unit23-products.sokonanoda:172",
+  "longCard": {
+    "cardHeight": 362,
+    "viewportHeight": 720,
+    "scrollableAncestor": true,
+    "scrollHeight": 1486,
+    "clientHeight": 644
+  }
+}

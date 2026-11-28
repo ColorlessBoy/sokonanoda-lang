@@ -181,7 +181,10 @@ payload 形状（照 card-dev README §Exact proxy change spec，逐条对齐）
   options:[{key:"A", text}, …]}`；`unitNo/questionNo` 来自 engine `next` 的 `position`
   （`unitIndex/questionIndex`），`stem` 是题干原文，`options` 不带 A/B/C/D 前缀。
 - **knowledge**：`我不懂 / 讲讲 / 解释一下` → engine `explain` 的 card 对象原样透传
-  （客户端认 `oneLiner` / `definition.code` / `sections[].items` 等别名）。
+  （客户端认 `oneLiner` / `definition.code` / `sections[].items` 等别名）。`sections[]`
+  **按引擎顺序全部渲染**：`list` 全部 items、`paragraph` 的 `text`、`table` 的
+  `columns`/`rows`（与课程海报渲染器同形）；标题 / 一句话 / `definition.code` /
+  `source` 位置不变，长卡片换行 + 聊天滚动，不静默截断。
 - **lesson**：engine `next` 的 lesson 对象原样透传（`goal` / `knowledgePoints[].title` /
   `intuition`）；教学环节先出卡，题目排在「继续」之后。
 
