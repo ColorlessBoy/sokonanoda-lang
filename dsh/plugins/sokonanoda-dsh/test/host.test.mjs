@@ -1621,3 +1621,115 @@ test('apply(): a fast knowledge-card reply lands in the class-notes ledger', asy
     await host.disposeAll()
   }
 })
+
+// ───────────────────── 会话预检（issue #151） ─────────────────────
+
+/** 起一个只用于预检测试的服务（临时 state；注入 runner/日志）。 */
+async function startPreflightService(options = {}) {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sokonanoda-dsh-preflight-'))
+  const logs = []
+  const service = await core.startQuizService({
+    repoRoot: REPO,
+    stateDir: path.join(dataDir, 'quiz'),
+    runDir: path.join(dataDir, 'logs'),
+    cardsMode: 'learn',
+    log: (line) => logs.push(String(line)),
+    ...options,
+  })
+  const stateFile = path.join(dataDir, 'quiz', 'default.json')
+  const ask = async (texts) => composeReplyText(await callProxy({
+    proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 20000,
+  }, {
+    model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+    messages: toProxyMessages({ sessionId: 'preflight-test', messages: [systemMsg(), ...texts.map((text) => userMsg(text))] }, core),
+  }, undefined))
+  const readState = () => JSON.parse(fs.readFileSync(stateFile, 'utf8'))
+  return { service, stateFile, logs, ask, readState }
+}
+
+test('preflight: blocker ⇒ 不发坏题（跳过 + preflight-blocked 日志），下一道好题照常发', async () => {
+  const calls = []
+  const runner = async ({ qid }) => {
+    calls.push(qid)
+    if (calls.length === 1) {
+      return {
+        ok: true,
+        blocked: [{ code: 'X11', field: 'prompt', name: '', note: '自造术语「落点」' }],
+        warnings: [],
+      }
+    }
+    return { ok: true, blocked: [], warnings: [] }
+  }
+  const { service, logs, ask, readState } = await startPreflightService({ preflightRunner: runner })
+  try {
+    const reply = await ask(['开始做题'])
+    assert.ok(calls.length >= 2, '预检必须真的被调用（blocker 后要继续取下一道）')
+    const blockedQid = calls[0]
+    const state = readState()
+    assert.notEqual(state.issued_qid, blockedQid, '被拦下的题绝不能成为 issued')
+    assert.equal(state.issued_qid, calls[1], '跳过后发的必须是下一道题')
+    assert.ok(Array.isArray(state.skipped) && state.skipped.includes(blockedQid),
+      '被拦下的题要记进 skipped（引擎 advance 的唯一跳过通道）')
+    assert.ok(logs.some((line) => line.startsWith('preflight-blocked ' + blockedQid + ':')),
+      '内部日志必须写明「跳过 qid + 原因」')
+    assert.ok(logs.some((line) => line.includes('X11')), '日志要带 blocker 原因')
+    assert.match(reply, /```learn-card\n/, '好题照常出卡片')
+  } finally {
+    await service.close()
+  }
+})
+
+test('preflight: exit 3 / 预检不可用 ⇒ fail-open（照常出题 + 一行警告，不静默）', async () => {
+  const runner = async () => ({ ok: false, degraded: 'preflight exit 3（前提缺失）：boom' })
+  const { service, logs, ask, readState } = await startPreflightService({ preflightRunner: runner })
+  try {
+    const reply = await ask(['开始做题'])
+    assert.match(reply, /内容预检暂不可用/, '预检不可用要给用户一行可见警告')
+    assert.match(reply, /```learn-card\n/, '预检不可用绝不能打断正常出题')
+    assert.ok(logs.some((line) => line.startsWith('preflight-degraded ')), '降级要写日志')
+    assert.equal(typeof readState().issued_qid, 'string', '正常流程仍要发出题')
+  } finally {
+    await service.close()
+  }
+})
+
+test('preflight: 连续被拦 ⇒ 可读维护提示，不发题也不崩', async () => {
+  const runner = async () => ({
+    ok: true,
+    blocked: [{ code: 'card', field: '', name: 'foo_lemma', note: '选项点名的引理没出现在推送卡里' }],
+    warnings: [],
+  })
+  const { service, logs, ask } = await startPreflightService({ preflightRunner: runner })
+  try {
+    const reply = await ask(['开始做题'])
+    assert.match(reply, /暂停出题/, '全被拦下要给可读维护提示（不是报错栈）')
+    assert.ok(!reply.includes('```learn-card'), '全被拦下时不能发题卡')
+    assert.ok(logs.filter((line) => line.startsWith('preflight-blocked ')).length >= core.PREFLIGHT_MAX_SKIPS,
+      '每次跳过都要留日志')
+  } finally {
+    await service.close()
+  }
+})
+
+test('preflight: 真脚本 + 真 state 跑通（#151 接口），缺脚本时诚实降级', async () => {
+  const { service, stateFile, readState } = await startPreflightService({})
+  try {
+    await composeReplyText(await callProxy({
+      proxyUrl: `${service.url}/v1/chat/completions`, timeoutMs: 20000,
+    }, {
+      model: 'quiz-auto', stream: false, tools: [LEARN_CARD_TOOL_DECLARATION],
+      messages: toProxyMessages({ sessionId: 'preflight-real', messages: [systemMsg(), userMsg('开始做题')] }, core),
+    }, undefined))
+    const qid = readState().issued_qid
+    const verdict = await core.runLessonPreflight(service.app, stateFile, qid, { fresh: true })
+    assert.equal(verdict.ok, true, '真脚本必须能跑：' + JSON.stringify(verdict))
+    assert.deepEqual(verdict.blocked, [], '当前题库的 learner path 不应有 blocker')
+    const missing = await core.runLessonPreflight(
+      { ...service.app, preflightScript: path.join(stateFile, '..', 'missing-preflight.py') },
+      stateFile, qid, { fresh: true })
+    assert.equal(missing.ok, false, '缺脚本必须诚实降级')
+    assert.match(missing.degraded, /找不到预检脚本/)
+  } finally {
+    await service.close()
+  }
+})

@@ -650,4 +650,9 @@ CLI 层实测 40 条声明的夹具：管道 **2.48s** vs `NO_TICK` **2.48s**（
 **预防**：这类"等诊断回来再敲"的对照臂按偶发处理——先取 `cargo-test-log` 看断言，再 `--failed` 复跑；同一轮连续两次红才按真回归查。
 **修复**：无代码改动（复跑即绿）。
 
+## 2026-11-29 · PR #154 `guard-bite`/`gates-course` 红 = 预检脚本在 Python 3.12 加载 text_lint 失败
+**事实**：CI 报 `文本门禁 text_lint.py 加载失败：'NoneType' object has no attribute '__dict__'`（exit 3），本机 3.15 不复现。
+**真因**：`importlib` 按路径 `exec_module` 前没登记 `sys.modules`；3.12 dataclasses 解析 `from __future__ annotations` 要读它 ⇒ AttributeError。
+**修 ✓**：先 `sys.modules[name]=module` 再 exec、失败回滚；3.12/3.15 实测 rc=0。**预防**：按路径加载模块的脚本用 CI 同版本复跑。
+
 ## 更早条目（原文已删 ⇒ `git log --all -- docs/CI-FAILURES.md`）

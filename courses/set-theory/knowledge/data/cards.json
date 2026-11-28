@@ -2023,7 +2023,7 @@
           "heading": "加法与序的搬运",
           "kind": "list",
           "items": [
-            "`leNat_add_cancel_right` 先把 `LeNat (a+k) (b+k)` 翻成存在式，再用 `add_rotate` 重排。",
+            "`leNat_add_cancel_right` 先把 `LeNat (a+k) (b+k)` 翻成存在式，再用 `add_rotate`（`add a (add b c) = add b (add a c)`）重排。",
             "最后用加法消去律得到 `b = a+j`，再翻回 `LeNat`。"
           ]
         },

@@ -1,0 +1,4101 @@
+{
+  "schema": "soko.lesson-preflight/1",
+  "mode": "content",
+  "state": null,
+  "data_dir": "/Users/penglingwei/.dsh/state/superagent/work/quality-gates-umbrella-1344b53d1a2c/courses/set-theory/knowledge/data",
+  "limit": null,
+  "chapter": null,
+  "checked": 409,
+  "blockers": 0,
+  "warnings": 92,
+  "card_lint": "script",
+  "terms": "/Users/penglingwei/.dsh/state/superagent/work/quality-gates-umbrella-1344b53d1a2c/courses/set-theory/knowledge/text-lint-terms.json",
+  "degraded": [],
+  "questions": [
+    {
+      "qid": "I.1.mem-1",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.empty-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.empty-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.inter-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.union-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.compl-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.ext-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.powerset-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.singleton-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.singleton-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.pack-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.elim-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.refl-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.symm-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.trans-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.antisymm-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.partial-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.strict-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.linear-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [
+        {
+          "qid": "I.2.linear-1",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.comp-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inj-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.surj-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.bij-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inj-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.surj-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.surj-split-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.prod-1",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.preimage-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.equiv-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.sunion-1",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.ordinal-1",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.ordtrans-1",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.axiom-choice-1",
+      "chapter": "I.3",
+      "unit": "⑰ 选择公理",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-2",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.empty-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.singleton-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-4",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.union-3",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.powerset-2",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.refl-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.partial-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.comp-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inj-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.inj-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        },
+        {
+          "qid": "I.2.inj-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.2.surj-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.surj-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 37 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.bij-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inv-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.prod-2",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-4",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-5",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.preimage-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.preimage-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.equiv-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.equiv-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.sinter-2",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.sunion-2",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.3.sunion-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.ordinal-2",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "findings": [
+        {
+          "qid": "I.3.ordinal-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.succ-2",
+      "chapter": "I.3",
+      "unit": "⑮ 传递集与序数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.choice-3",
+      "chapter": "I.3",
+      "unit": "⑰ 选择公理",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.open-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.open-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.open-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.open-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.open-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.open-2",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-3",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-5",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-apply-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [
+        {
+          "qid": "I.1.subset-apply-1",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.subset-apply-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-apply-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [
+        {
+          "qid": "I.1.subset-apply-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.inter-2",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.inter-3",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.union-4",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.union-5",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.sdiff-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 38 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.compl-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.compl-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.powerset-3",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.singleton-4",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.singleton-5",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.univ-1",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.univ-2",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-5",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.ext-use-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-algebra-1",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.subset-algebra-2",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [
+        {
+          "qid": "I.1.subset-algebra-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：装回"
+        },
+        {
+          "qid": "I.1.subset-algebra-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开、装回"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.1.subset-algebra-3",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [
+        {
+          "qid": "I.1.subset-algebra-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.sdiff-algebra-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-algebra-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-algebra-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.sdiff-algebra-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.sdiff-algebra-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.sdiff-algebra-5",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.sdiff-algebra-5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.classical-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.classical-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.classical-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.logic-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.logic-2",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.logic-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.mix-1",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mix-2",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mix-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mix-4",
+      "chapter": "I.1",
+      "unit": "③ 并、交、幂集",
+      "findings": [
+        {
+          "qid": "I.1.mix-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.mix-5",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mix-6",
+      "chapter": "I.1",
+      "unit": "② 子集、空集与包含三律",
+      "findings": [
+        {
+          "qid": "I.1.mix-6",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.mix-7",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.fun-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.inv-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inv-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.logic-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.logic-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.antisymm-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.antisymm-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-comp-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-comp-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-comp-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [
+        {
+          "qid": "I.2.rel-comp-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 43 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.fun-boundary-1",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.comp-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.comp-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.linear-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.linear-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.partial-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.strict-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.strict-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.pair-1",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.pair-2",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [
+        {
+          "qid": "I.2.pair-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        },
+        {
+          "qid": "I.2.pair-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.2.prod-3",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.prod-4",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [
+        {
+          "qid": "I.2.prod-4",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：装回"
+        },
+        {
+          "qid": "I.2.prod-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.2.rel-inv-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-inv-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.bij-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.bij-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.bij-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 36 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.inj-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-4",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.trans-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.symm-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.fun-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 39 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.inv-5",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.logic-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.antisymm-4",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-boundary-2",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.partial-4",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.inj-5",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.inj-5",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        },
+        {
+          "qid": "I.2.inj-5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.2.surj-4",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.symm-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.trans-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.linear-4",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.rel-comp-4",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [
+        {
+          "qid": "I.2.rel-comp-4",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        },
+        {
+          "qid": "I.2.rel-comp-4",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：装回"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.2.prod-5",
+      "chapter": "I.2",
+      "unit": "⑤ 序对与笛卡尔积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.mix-1",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [
+        {
+          "qid": "I.2.mix-1",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.2.mix-2",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.mix-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.mix-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-family-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-family-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-family-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [
+        {
+          "qid": "I.3.image-family-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 39 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.le-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.le-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.le-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.le-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 43 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.le-mono-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-mono-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-mono-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.both-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.both-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.both-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.both-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 52 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.cantor-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cantor-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cantor-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cb-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cb-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.cb-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.equiv-algebra-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.equiv-algebra-2",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.equiv-algebra-3",
+      "chapter": "I.3",
+      "unit": "⑨ 等势（基数 Ⅰ）",
+      "findings": [
+        {
+          "qid": "I.3.equiv-algebra-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 39 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-preimage-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-preimage-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cardinal-1",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cardinal-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.pointwise-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.family-1",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.family-2",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.3.family-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 41 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-6",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-family-4",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-mono-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cb-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.cb-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 38 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-preimage-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [
+        {
+          "qid": "I.3.image-preimage-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 41 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.pointwise-2",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [
+        {
+          "qid": "I.3.pointwise-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 34 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-7",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [
+        {
+          "qid": "I.3.image-7",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.image-family-5",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.le-5",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.le-5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.le-mono-5",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.le-mono-5",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.both-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cantor-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.cb-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [
+        {
+          "qid": "I.3.cb-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.equiv-algebra-4",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.image-preimage-4",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [
+        {
+          "qid": "I.3.image-preimage-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.3.cardinal-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.family-3",
+      "chapter": "I.3",
+      "unit": "⑨ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.mix-1",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.mix-2",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.mix-3",
+      "chapter": "I.3",
+      "unit": "⑩ 基数初步",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.ordinal-3",
+      "chapter": "I.3",
+      "unit": "序数预备",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.choice-4",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.choice-5",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.choice-6",
+      "chapter": "I.3",
+      "unit": "选择公理预备",
+      "findings": [
+        {
+          "qid": "I.3.choice-6",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 35 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.open-3",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.open-3",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.3.open-3",
+      "chapter": "I.3",
+      "unit": "⑧ 像与原像",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.fun-boundary-3",
+      "chapter": "I.2",
+      "unit": "⑦ 函数",
+      "findings": [
+        {
+          "qid": "I.2.fun-boundary-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.mem-s1",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-s2",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-s3",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-s4",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.1.mem-s5",
+      "chapter": "I.1",
+      "unit": "① 集合与隶属",
+      "findings": [
+        {
+          "qid": "I.1.mem-s5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.1.classical-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [
+        {
+          "qid": "I.1.classical-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 34 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.1.classical-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 32 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.1.classical-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 3
+    },
+    {
+      "qid": "I.1.compl-4",
+      "chapter": "I.1",
+      "unit": "④ 外延性与集合恒等式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.2.partial-5",
+      "chapter": "I.2",
+      "unit": "⑥ 关系",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.le-empty-1",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.le-empty-2",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.le-empty-3",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [
+        {
+          "qid": "I.8.le-empty-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.8.prod-1",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.prod-2",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.prod-3",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：装回"
+        },
+        {
+          "qid": "I.8.prod-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：装回"
+        },
+        {
+          "qid": "I.8.prod-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 3
+    },
+    {
+      "qid": "I.8.prod-4",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.8.prod-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.8.prod-comm-1",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.prod-comm-2",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-comm-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.8.prod-comm-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.8.prod-comm-3",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-comm-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.8.prod-comm-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.8.prod-comm-4",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.ch-1",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.ch-2",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.ch-3",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.ch-4",
+      "chapter": "I.8",
+      "unit": "113 连续统假设（CH）与 Cantor 定理",
+      "findings": [
+        {
+          "qid": "I.8.ch-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 32 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.8.mix-1",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.mix-2",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.mix-3",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [
+        {
+          "qid": "I.8.mix-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.family-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-2",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-3",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-4",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.family-mono-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-mono-2",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-mono-3",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-mono-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "prompt",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.family-mono-4",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-mono-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.family-mono-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.product-1",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-2",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-3",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-4",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.product-5",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-5",
+          "code": "X12",
+          "level": "warning",
+          "field": "prompt",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        },
+        {
+          "qid": "I.9.product-5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.product-ac-1",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-ac-2",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-ac-3",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-ac-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.product-ac-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.mix-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.mix-1",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.mix-2",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 36 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 3
+    },
+    {
+      "qid": "II.1.intrel-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intrel-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intrel-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intrel-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [
+        {
+          "qid": "II.1.intrel-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "II.1.intrel-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "II.1.intquot-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intquot-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intquot-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intquot-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intofnat-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intofnat-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intofnat-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intofnat-4",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotsound-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotsound-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotsound-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotsound-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [
+        {
+          "qid": "II.1.quotsound-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.quotlift-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotlift-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotlift-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotlift-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotlift-5",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotiota-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotiota-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotiota-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotiota-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotind-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotind-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotind-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [
+        {
+          "qid": "II.1.quotind-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 35 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.quotind-4",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotind-5",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotexact-1",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.quotexact-2",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [
+        {
+          "qid": "II.1.quotexact-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        },
+        {
+          "qid": "II.1.quotexact-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：搬运"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "II.1.quotexact-3",
+      "chapter": "II.1",
+      "unit": "② 商类型与良定义性（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natrec-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [
+        {
+          "qid": "II.1.natrec-1",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.natrec-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natrec-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natrec-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natadd-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natadd-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natadd-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [
+        {
+          "qid": "II.1.natadd-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.natadd-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natmul-1",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natmul-2",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natmul-3",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natmul-4",
+      "chapter": "II.1",
+      "unit": "③ ℕ 的算术律（复习）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [
+        {
+          "qid": "II.1.negrep-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.subrep-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subrep-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subrep-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subrep-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.reprfl-1",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.reprfl-2",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.reprfl-3",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.reprfl-4",
+      "chapter": "II.1",
+      "unit": "④ 整数加法 / 负 / 减的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulrep-1",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulrep-2",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulrep-3",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulrep-4",
+      "chapter": "II.1",
+      "unit": "⑤ 整数乘法的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addwd-1",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addwd-2",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addwd-3",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addwd-4",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "findings": [
+        {
+          "qid": "II.1.addwd-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.addwd-5",
+      "chapter": "II.1",
+      "unit": "⑥ 整数加法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addlaws-1",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addlaws-2",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addlaws-3",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addlaws-4",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addlaws-5",
+      "chapter": "II.1",
+      "unit": "⑦ 整数加法的交换律与结合律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addgroup-1",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addgroup-2",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addgroup-3",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.addgroup-4",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negwd-1",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negwd-2",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negwd-3",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.negwd-4",
+      "chapter": "II.1",
+      "unit": "⑧ 整数加法的零元与负元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subwd-1",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subwd-2",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.subwd-3",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [
+        {
+          "qid": "II.1.subwd-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.subwd-4",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.sublaws-1",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.sublaws-2",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.sublaws-3",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.sublaws-4",
+      "chapter": "II.1",
+      "unit": "⑨ 整数减法的良定义性与基本律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulid-1",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulid-2",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulid-3",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulid-4",
+      "chapter": "II.1",
+      "unit": "⑩ 整数乘法的零元与单位元",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwd-1",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwd-2",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwd-3",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwd-4",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwd-5",
+      "chapter": "II.1",
+      "unit": "⑪ 整数乘法的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderrep-1",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderrep-2",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderrep-3",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderrep-4",
+      "chapter": "II.1",
+      "unit": "⑫ 整数序的代表元公式",
+      "findings": [
+        {
+          "qid": "II.1.orderrep-4",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.natorder-1",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natorder-2",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natorder-3",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natorder-4",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natorder-5",
+      "chapter": "II.1",
+      "unit": "⑬ ℕ 序的传递性与单调性",
+      "findings": [
+        {
+          "qid": "II.1.natorder-5",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.natcancel-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natcancel-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [
+        {
+          "qid": "II.1.natcancel-2",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "II.1.natcancel-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.natcancel-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.leexists-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.leexists-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.leexists-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.leexists-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.lecancel-1",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.lecancel-2",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.lecancel-3",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.lecancel-4",
+      "chapter": "II.1",
+      "unit": "⑭ ℕ 序的加法消去律",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderwd-1",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderwd-2",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderwd-3",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderwd-4",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderwd-5",
+      "chapter": "II.1",
+      "unit": "⑮ 整数序的良定义性",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderax-1",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderax-2",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderax-3",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.orderax-4",
+      "chapter": "II.1",
+      "unit": "⑯ 整数序的传递性与加法单调",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulcomm-1",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulcomm-2",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulcomm-3",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulcomm-4",
+      "chapter": "II.1",
+      "unit": "⑰ 整数乘法的交换律（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwdsnd-1",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwdsnd-2",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwdsnd-3",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.mulwdsnd-4",
+      "chapter": "II.1",
+      "unit": "⑱ 整数乘法的第二个因子良定义（代表元层）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.neg-lift-1",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.neg-lift-2",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.neg-lift-3",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.neg-lift-4",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.neg-lift-5",
+      "chapter": "II.1",
+      "unit": "⑲ 把取负下降成函数（`Quot.lift`）",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    }
+  ],
+  "baseline": {
+    "path": "/Users/penglingwei/.dsh/state/superagent/work/quality-gates-umbrella-1344b53d1a2c/scripts/lesson-preflight-baseline.json",
+    "new": [],
+    "stale": []
+  }
+}

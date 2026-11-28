@@ -304,6 +304,9 @@ run "gates：文本公理（表达底线）" "gates" python3 courses/set-theory/
 # **知识卡覆盖门禁**（#146，2026-11-28）：选项里点名的引理必须出现在实际推送卡里；
 # errors 即红，存量冻结在 `scripts/card-lint-baseline.json`（只减不增）。
 run "gates：知识卡覆盖（选项点名引理 ⊆ 推送卡）" "gates" python3 scripts/card-lint.py
+# **会话预检门禁**（#151，2026-11-29）：出题前文本规则（X11）+ 卡片覆盖 + 无卡兜底；
+# blocker 即红，content 模式存量冻结在 `scripts/lesson-preflight-baseline.json`（只减不增）。
+run "gates：会话预检（出题前文本 + 卡片覆盖 + 兜底）" "gates" python3 scripts/lesson-preflight.py --all
 run "gates：STATUS 瘦身（用户 2026-09-26 ✓）" "gates" python3 scripts/status-lint.py
 run "gates：文档预算（用户 2026-09-26 ✓）" "gates" python3 scripts/docs-lint.py
 # **冻结余量**（2026-10-16 · 洞 `CI-FAILURES-FROZEN-BUDGET-BLOCKS-MANDATORY-APPEND` ✓）：

@@ -20,7 +20,9 @@ mode: primary
 每批必过 `validate.py` / `coverage.py` / `engine.py selftest` /
 `engine.py simulate` / `scripts/notation-lint.py` /
 `knowledge/text_lint.py`（errors 0，warnings 按基线只减不增）/
-`scripts/card-lint.py`（知识卡覆盖，见 `references/card-coverage.md`），并在报告里
+`scripts/card-lint.py`（知识卡覆盖，见 `references/card-coverage.md`）/
+`scripts/lesson-preflight.py --all`（出题前预检，0 blocker，见
+`references/lesson-preflight.md`），并在报告里
 给出 before/after 覆盖。
 
 > DeepSeek Harness 没有项目级 agent 定义：那边用 `/sokonanoda-prep` 直接加载

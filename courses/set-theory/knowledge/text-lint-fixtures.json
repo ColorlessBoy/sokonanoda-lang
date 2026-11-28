@@ -195,6 +195,88 @@
           "expect": "ok"
         }
       ]
+    },
+    "X11": {
+      "red": [
+        {
+          "name": "选项里出现自造术语（判红）",
+          "kind": "question",
+          "prompt": "已知 `h : a ∈ A`，下面哪个是 `h` 展开后的命题？",
+          "why": "集合的成员关系就是谓词应用：`h` 就是 `A a` 的证明。",
+          "options": ["`A a`", "`a = A`", "落点条件", "`A ⊆ {a}`"],
+          "expect": "error"
+        },
+        {
+          "name": "why 里出现自造术语（判红）",
+          "kind": "question",
+          "prompt": "下面哪个选项说明 `Set.MapsTo` 的含义？",
+          "why": "`Set.MapsTo` 就是落点条件：`f x ∈ B`。",
+          "options": ["`f x ∈ B`", "`x ∈ B`", "`A ⊆ B`", "`A = B`"],
+          "expect": "error"
+        }
+      ],
+      "green": [
+        {
+          "name": "普通表达没有自造术语",
+          "kind": "question",
+          "prompt": "已知 `h : a ∈ A`，下面哪个是 `h` 展开后的命题？",
+          "why": "集合的成员关系就是谓词应用：`h` 就是 `A a` 的证明。",
+          "options": ["`A a`", "`a = A`", "`A ⊆ {a}`", "`a → A`"],
+          "expect": "ok"
+        }
+      ]
+    },
+    "X12": {
+      "red": [
+        {
+          "name": "选项用隐喻代替代码（提示）",
+          "kind": "question",
+          "prompt": "下面哪个做法把 `↔` 当成两个方向来用？",
+          "why": "`Iff.mp` 与 `Iff.mpr` 分别取两个方向。",
+          "options": ["把 `↔` 拆开再装回", "用 `Iff.mp` 与 `Iff.mpr`", "直接 `exact h`", "用 `Eq.refl`"],
+          "expect": "warning"
+        }
+      ],
+      "green": [
+        {
+          "name": "用代码/命名而不是隐喻",
+          "kind": "question",
+          "prompt": "下面哪个做法把 `↔` 当成两个方向来用？",
+          "why": "`Iff.mp` 与 `Iff.mpr` 分别取两个方向。",
+          "options": ["用 `Iff.mp` 与 `Iff.mpr` 分别取两个方向", "直接 `exact h`", "用 `Eq.refl`", "用 `False.elim`"],
+          "expect": "ok"
+        }
+      ]
+    },
+    "X13": {
+      "red": [
+        {
+          "name": "选项中文超过 24 字（提示）",
+          "kind": "question",
+          "prompt": "下面哪个选项说明了包含关系的传递性？",
+          "why": "包含关系可以传递：两个包含接起来就得到第三个。",
+          "options": ["这是一段明显超过二十四个汉字的中文选项用来验证选项长度门禁确实会给出警告提示", "`A ⊆ B`", "`B ⊆ C`", "`A ⊆ C`"],
+          "expect": "warning"
+        }
+      ],
+      "green": [
+        {
+          "name": "代码/公式折成 1 字后中文不超 24 字",
+          "kind": "question",
+          "prompt": "下面哪个写法在 `Set` 上表示包含？",
+          "why": "包含关系可以传递：两个包含接起来就得到第三个。",
+          "options": ["`Set.subset α A B` 就是包含关系", "`Set.mem a A`", "`Set.univ α`", "`Set.empty α`"],
+          "expect": "ok"
+        },
+        {
+          "name": "纯代码选项不数中文",
+          "kind": "question",
+          "prompt": "下面哪个是本课 `∈` 的展开？",
+          "why": "成员关系就是谓词应用。",
+          "options": ["`Set.mem a A`", "`Set.subset α A B`", "`Set.union A B`", "`Set.inter A B`"],
+          "expect": "ok"
+        }
+      ]
     }
   }
 }

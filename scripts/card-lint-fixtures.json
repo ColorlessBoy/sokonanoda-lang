@@ -305,5 +305,157 @@
         ]
       ]
     }
+  ],
+  "contentCases": [
+    {
+      "name": "红：只报名字、没给结论（oneLiner 裸挂）",
+      "questions": [
+        {
+          "id": "fixture.content-red-oneliner",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-bare",
+          "oneLiner": "用 `foo_lemma` 即可。",
+          "definition": {
+            "lang": "lean",
+            "code": ""
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": [
+        [
+          "fixture.content-red-oneliner",
+          "foo_lemma"
+        ]
+      ]
+    },
+    {
+      "name": "绿：名字后给结论（`：` + 结论）",
+      "questions": [
+        {
+          "id": "fixture.content-green-colon",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-concl",
+          "oneLiner": "`foo_lemma`：`A ⊆ A`。",
+          "definition": {
+            "lang": "lean",
+            "code": ""
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": []
+    },
+    {
+      "name": "绿：名字在 definition.code 的签名里",
+      "questions": [
+        {
+          "id": "fixture.content-green-code",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-code",
+          "oneLiner": "夹具卡",
+          "definition": {
+            "lang": "lean",
+            "code": "theorem foo_lemma (α : Type) (A : Set α) : A ⊆ A"
+          },
+          "sections": [],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": []
+    },
+    {
+      "name": "红：只在段落里裸挂名字（无结论记号）",
+      "questions": [
+        {
+          "id": "fixture.content-red-item",
+          "prompt": "用哪条引理？",
+          "options": [
+            "`foo_lemma`：自反"
+          ],
+          "why": "自反",
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "id": "fixture-item",
+          "oneLiner": "夹具卡",
+          "definition": {
+            "lang": "lean",
+            "code": ""
+          },
+          "sections": [
+            {
+              "heading": "怎么用",
+              "kind": "list",
+              "items": [
+                "这里要用 `foo_lemma` 才能过。"
+              ]
+            }
+          ],
+          "tags": [
+            "fixture",
+            "lemma"
+          ]
+        }
+      ],
+      "expectContent": [
+        [
+          "fixture.content-red-item",
+          "foo_lemma"
+        ]
+      ]
+    }
   ]
 }

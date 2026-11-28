@@ -16,6 +16,10 @@
 3. 用 `engine.explain_for` 求**实际推送卡**；点名的引理必须出现在**卡片 JSON 文本**
    里（`definition.code`、`oneLiner`、`sections[].items` / `text` / 表格行都算——
    术语可能写在解释里）。没有卡（fallback）⇒ 这些引理全部算未覆盖。
+4. **内容规则（#150）**：名字出现了还不算讲清楚——被覆盖的 `(qid, 引理)` 必须给出
+   该引理的**结论或签名**：要么在 `definition.code` 里，要么出现在一条带说明的行里
+   （名字 + `：`/`:`/`→`/`↔`/`=` 等结论记号，或「签名」「结论」段）。只把名字裸挂在
+   句子里（「用 `prod_swap` 即可」）⇒ 内容违例。
 4. errors 即红；存量欠账冻结在 `scripts/card-lint-baseline.json`（键 = `qid:name`，
    **双向棘轮**：基线外新增判红，已修条目没同步收紧也判红）。
 
@@ -197,11 +201,83 @@ def find_violations(data: dict, candidates: set[str]) -> list[dict]:
     return violations
 
 
+# ── 内容规则：被覆盖的引理要给出结论/签名（#150）────────────────────────────
+
+
+#: 「结论/签名」的记号：有了它才算把这条引理的结论讲出来（不是只报个名字）。
+CONCLUSION_MARK = re.compile(r"[：:]|:=|→|↔|∀|∃|⊆|≼|∧|∨|¬|=|\bProp\b")
+
+
+def card_text_units(card: dict) -> list[tuple[str, str]]:
+    """卡片里所有「解释性文本」单元（field, text）；渲染用的定义代码也在内。"""
+    units: list[tuple[str, str]] = []
+    definition = card.get("definition") or {}
+    if definition.get("code"):
+        units.append(("definition.code", str(definition["code"])))
+    if card.get("oneLiner"):
+        units.append(("oneLiner", str(card["oneLiner"])))
+    for section in card.get("sections") or []:
+        heading = section.get("heading") or section.get("kind") or "section"
+        if section.get("text"):
+            units.append((heading + ":text", str(section["text"])))
+        for index, item in enumerate(section.get("items") or []):
+            units.append((heading + ":items[%d]" % index, str(item)))
+        for row in section.get("rows") or []:
+            units.append((heading + ":row", " | ".join(str(cell) for cell in row)))
+    for entry in card.get("types") or []:
+        units.append(("type:" + str(entry.get("term") or ""),
+                      str(entry.get("term") or "") + "：" + str(entry.get("oneLiner") or "")))
+    return units
+
+
+def explained_in(card: dict, name: str) -> tuple[bool, str | None]:
+    """（是否给了结论/签名, 在哪）—— 同名可出现在多段，取第一份带结论的。"""
+    definition = card.get("definition") or {}
+    if name in str(definition.get("code") or ""):
+        return True, "definition.code"
+    for field, text in card_text_units(card):
+        if name in text and CONCLUSION_MARK.search(text):
+            return True, field
+    return False, None
+
+
+def find_content_violations(data: dict, candidates: set[str]) -> list[dict]:
+    """被推送卡覆盖、但只报名字没给结论/签名的 `(qid, 引理)` 清单。"""
+    if str(KNOWLEDGE) not in sys.path:
+        sys.path.insert(0, str(KNOWLEDGE))
+    import engine  # noqa: PLC0415
+
+    violations: list[dict] = []
+    for question in data.get("questions") or []:
+        names = named_lemmas(question, candidates)
+        if not names:
+            continue
+        result = engine.explain_for(engine.new_state(), data, question["id"])
+        card = result.get("card") if result.get("kind") == "knowledge-card" else None
+        if not isinstance(card, dict):
+            continue  # 没有卡：归覆盖规则（fallback），不在内容规则里重复记账。
+        text = json.dumps(card, ensure_ascii=False)
+        for name in names:
+            if name not in text:
+                continue  # 没覆盖：归覆盖规则。
+            ok, _where = explained_in(card, name)
+            if not ok:
+                violations.append({
+                    "rule": "content",
+                    "qid": question["id"],
+                    "name": name,
+                    "card": card.get("id"),
+                })
+    return violations
+
+
 # ── 存量基线（双向棘轮：只许收紧，不许新增）──────────────────────────────────
 
 
 def baseline_key(entry: dict) -> str:
-    return "%s:%s" % (entry.get("qid"), entry.get("name"))
+    # 规则维度进键：同一条引理可能先「没覆盖」、修好卡后变「覆盖但没讲结论」，
+    # 两条的存量必须分开记，否则一次修复会让另一条基线条目假装「已过期」。
+    return "%s:%s:%s" % (entry.get("rule") or "coverage", entry.get("qid"), entry.get("name"))
 
 
 def load_baseline(path: Path) -> dict[str, dict]:
@@ -222,7 +298,10 @@ def check_baseline(violations: list[dict], baseline: dict[str, dict]) -> tuple[l
 
 def baseline_payload(violations: list[dict]) -> dict:
     entries = [
-        {"qid": item["qid"], "name": item["name"], "card": item["card"]}
+        {
+            "rule": item.get("rule") or "coverage",
+            "qid": item["qid"], "name": item["name"], "card": item.get("card"),
+        }
         for item in violations
     ]
     return {
@@ -244,6 +323,9 @@ def baseline_payload(violations: list[dict]) -> dict:
 def format_violation(item: dict) -> str:
     card = item.get("card")
     where = card if card else "fallback（无卡）"
+    if item.get("rule") == "content":
+        return "  %s: %s —— 推送卡 %s 只报了名字，没给结论/签名" % (
+            item["qid"], item["name"], where)
     return "  %s: %s —— 推送卡 %s 里没有它" % (item["qid"], item["name"], where)
 
 
@@ -314,24 +396,45 @@ def run_selftest() -> int:
             else:
                 failures.append("%s：期望 %r，实际 %r" % (name, expected, got))
 
-    # 基线棘轮：新增判红 · 已修未收紧也判红（双向）。
-    sample = [{"qid": "q1", "name": "foo", "card": "fixture-card"}]
-    baseline = {"q1:foo": {"qid": "q1", "name": "foo"}}
+        # 内容规则（#150）：覆盖了但只报名字 ⇒ 内容违例；带结论/签名 ⇒ 不算。
+        for case in fixtures.get("contentCases") or []:
+            name = case.get("name") or "content-case"
+            data = _fixture_data(case)
+            violations = find_content_violations(data, candidates)
+            got = [(item["qid"], item["name"]) for item in violations]
+            expected = [tuple(pair) for pair in (case.get("expectContent") or [])]
+            if got == expected:
+                passed += 1
+            else:
+                failures.append("%s：期望 %r，实际 %r" % (name, expected, got))
+
+    # 基线棘轮：新增判红 · 已修未收紧也判红（双向）；规则维度分开记。
+    sample = [{"rule": "coverage", "qid": "q1", "name": "foo", "card": "fixture-card"}]
+    baseline = {"coverage:q1:foo": {"rule": "coverage", "qid": "q1", "name": "foo"}}
     new, stale = check_baseline(sample, baseline)
     if not new and not stale:
         passed += 1
     else:
         failures.append("基线棘轮：完全一致的 findings 不该有新增/过期")
-    new, stale = check_baseline(sample + [{"qid": "q2", "name": "bar", "card": None}], baseline)
+    new, stale = check_baseline(
+        sample + [{"rule": "coverage", "qid": "q2", "name": "bar", "card": None}], baseline)
     if len(new) == 1 and not stale:
         passed += 1
     else:
         failures.append("基线棘轮：基线外新增必须判红")
     new, stale = check_baseline([], baseline)
-    if not new and "q1:foo" in stale:
+    if not new and "coverage:q1:foo" in stale:
         passed += 1
     else:
         failures.append("基线棘轮：已修条目没收紧必须判红")
+    # 同一条引理从 coverage 修成 content：两条键不同 ⇒ coverage 过期（必须收紧）、
+    # content 新增（必须判红）—— 不会被「同名」抵消。
+    migrated = [{"rule": "content", "qid": "q1", "name": "foo", "card": "fixture-card"}]
+    new, stale = check_baseline(migrated, baseline)
+    if len(new) == 1 and "coverage:q1:foo" in stale:
+        passed += 1
+    else:
+        failures.append("基线棘轮：规则维度必须分开记账（coverage→content 不能互相当成已修）")
 
     if failures:
         print("SELFTEST FAIL")
@@ -348,7 +451,7 @@ def run_selftest() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="知识卡覆盖门禁：选项里点名的引理必须出现在实际推送卡里",
+        description="知识卡门禁：选项点名的引理必须出现在推送卡里，且被覆盖时要给结论/签名",
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--selftest", action="store_true", help="红/绿对照 fixtures")
     parser.add_argument("--json-out", action="store_true", help="机读 findings（stdout）")
@@ -357,6 +460,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", default=str(BASELINE), metavar="PATH", help="存量基线路径")
     parser.add_argument("--no-baseline", action="store_true", help="不按基线判（全部列出）")
     parser.add_argument("--update-baseline", action="store_true", help="把当前 findings 收紧成新基线")
+    parser.add_argument("--coverage-only", action="store_true", help="只跑覆盖规则（#146）")
+    parser.add_argument("--content-only", action="store_true", help="只跑内容规则（#150）")
     args = parser.parse_args(argv)
 
     if args.selftest:
@@ -377,9 +482,17 @@ def main(argv: list[str] | None = None) -> int:
         return 3
 
     candidates, _namespaces = collect_declarations(COURSE)
-    violations = find_violations(data, candidates)
+    coverage: list[dict] = []
+    content: list[dict] = []
+    if not args.content_only:
+        coverage = find_violations(data, candidates)
+    if not args.coverage_only:
+        content = find_content_violations(data, candidates)
+    violations = coverage + content
 
     errors = len(violations)
+    coverage_errors = len(coverage)
+    content_errors = len(content)
     baseline_path = Path(args.baseline)
     new: list[dict] = []
     stale: dict[str, dict] = {}
@@ -396,6 +509,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.json_out:
         print(json.dumps({
             "violations": errors,
+            "coverage": coverage_errors,
+            "content": content_errors,
             "findings": violations,
             "new": new,
             "stale": list(stale.values()),
@@ -408,14 +523,16 @@ def main(argv: list[str] | None = None) -> int:
             print("基线外新增（必须补卡/扩卡，或说明后收紧基线）：")
             print_violations(new)
         if stale:
-            print("基线已过期（这些引理已被覆盖，跑 --update-baseline 收紧）：")
+            print("基线已过期（这些条目已被修复，跑 --update-baseline 收紧）：")
             for entry in stale.values():
-                print("  %s:%s" % (entry.get("qid"), entry.get("name")))
+                print("  %s:%s:%s" % (entry.get("rule") or "coverage",
+                                      entry.get("qid"), entry.get("name")))
         if not args.no_baseline and not new and not stale and violations:
             print("存量基线（只减不增）：%d 条（见 %s）"
                   % (errors, baseline_path.relative_to(REPO) if baseline_path.is_relative_to(REPO) else baseline_path))
-        print("card-lint: %d 处未覆盖%s"
-              % (errors, "" if args.no_baseline else
+        print("card-lint: %d 处违例（覆盖 %d · 内容 %d）%s"
+              % (errors, coverage_errors, content_errors,
+                 "" if args.no_baseline else
                  "（基线外新增 %d 条、过期 %d 条）" % (len(new), len(stale))))
 
     if args.no_baseline:

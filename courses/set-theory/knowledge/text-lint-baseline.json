@@ -3,8 +3,44 @@
   "note": "文本公理门禁的存量欠账基线：键 = file+id+field+code；只许减不许增（新条目判红，已修条目没同步收紧也判红）。收紧用 `python3 courses/set-theory/knowledge/text_lint.py --update-baseline`。",
   "updated": "2026-11-28",
   "errors": 0,
-  "warnings": 107,
+  "warnings": 173,
   "entries": [
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.classical-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 34 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.classical-4",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 32 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.classical-4",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.ext-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+    },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.1.ext-5",
@@ -26,11 +62,38 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.1.logic-2",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.logic-2",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mem-s5",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 31 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -54,19 +117,19 @@
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.1.mix-6",
       "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.mix-6",
+      "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.1.mix-7",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -79,21 +142,21 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.1.sdiff-1",
-      "field": "prompt",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.1.sdiff-4",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 38 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.1.sdiff-algebra-1",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.1.sdiff-algebra-3",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 27 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -115,12 +178,75 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.sdiff-algebra-5",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.1.singleton-5",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.subset-algebra-2",
+      "field": "options[3]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：装回"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.subset-algebra-2",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开、装回"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.subset-algebra-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.subset-apply-1",
+      "field": "options[1]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.1.subset-apply-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.bij-4",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 36 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -143,11 +269,56 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.2.fun-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.fun-3",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.fun-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 39 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.fun-boundary-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inj-3",
+      "field": "options[1]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inj-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 42 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -169,12 +340,30 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.2.inv-4",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.2.inj-5",
+      "field": "options[2]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.inj-5",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.linear-1",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -196,6 +385,24 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.mix-1",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.mix-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.2.mix-3",
       "field": "why",
       "code": "X5-long",
@@ -214,12 +421,66 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.pair-2",
+      "field": "options[3]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.pair-2",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.prod-4",
+      "field": "options[1]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：装回"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.prod-4",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.rel-comp-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 43 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.rel-comp-4",
+      "field": "options[1]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.2.rel-comp-4",
       "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：装回"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -232,21 +493,30 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.2.surj-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 37 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.both-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 52 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.both-3",
       "field": "prompt",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.3.both-3",
-      "field": "prompt",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -278,6 +548,15 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.cb-2",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 42 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-2",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
@@ -287,11 +566,29 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.cb-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 38 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-3",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.cb-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 30 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -313,12 +610,39 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.choice-6",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 35 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.equiv-algebra-2",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.equiv-algebra-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 39 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.family-2",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 41 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -340,12 +664,21 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.3.image-5",
+      "id": "I.3.image-7",
       "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-family-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 39 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -359,11 +692,29 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.image-preimage-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 41 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-preimage-3",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.image-preimage-4",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 42 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -376,12 +727,48 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.le-2",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.le-4",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 43 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.le-4",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.le-5",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.le-mono-5",
+      "field": "options[1]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -413,11 +800,20 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "I.3.ordinal-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.3.pointwise-2",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 34 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -430,21 +826,30 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.3.preimage-2",
+      "id": "I.3.sunion-2",
       "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：拆开"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.8.ch-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.8.ch-4",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 32 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.le-empty-3",
+      "field": "options[3]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：接起来"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -457,12 +862,102 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.8.prod-comm-3",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.8.mix-3",
+      "field": "options[0]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：接起来"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-3",
+      "field": "options[0]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：装回"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-3",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：装回"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-4",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-comm-2",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-comm-2",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-comm-3",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.8.prod-comm-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.family-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 28 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -472,6 +967,69 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.family-mono-3",
+      "field": "prompt",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.family-mono-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.family-mono-4",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.mix-1",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：接起来"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.mix-2",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.mix-2",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 36 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.mix-2",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -493,12 +1051,48 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "I.9.product-3",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "I.9.product-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-5",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-5",
+      "field": "prompt",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：接起来"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-ac-3",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "I.9.product-ac-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -508,24 +1102,6 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.addlaws-4",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.addlaws-5",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -547,15 +1123,6 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.addwd-1",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.addwd-3",
       "field": "why",
       "code": "X5-long",
@@ -565,12 +1132,12 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.addwd-3",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "II.1.addwd-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -592,30 +1159,30 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.intrel-4",
+      "field": "options[1]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.intrel-4",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.lecancel-2",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.lecancel-4",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.leexists-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -646,15 +1213,6 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.mulwd-1",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.mulwd-4",
       "field": "why",
       "code": "X5-long",
@@ -682,12 +1240,12 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.mulwdsnd-4",
+      "id": "II.1.natadd-3",
       "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：接起来"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -701,20 +1259,20 @@
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.natcancel-2",
+      "field": "options[0]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natcancel-2",
       "field": "why",
       "code": "X5-long",
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.natmul-3",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -724,6 +1282,24 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natorder-5",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：接起来"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.natrec-1",
+      "field": "options[3]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 26 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -763,6 +1339,15 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.negrep-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.negwd-4",
       "field": "why",
       "code": "X5-long",
@@ -787,6 +1372,15 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.orderrep-4",
+      "field": "options[0]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：拆开"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -817,12 +1411,21 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.orderwd-5",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "II.1.quotexact-2",
+      "field": "options[0]",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：搬运"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotexact-2",
+      "field": "why",
+      "code": "X12-metaphor",
+      "axiom": "X12",
+      "level": "warning",
+      "note": "用隐喻代替代码/命名：搬运"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -832,15 +1435,6 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.quotexact-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -850,6 +1444,15 @@
       "axiom": "X5",
       "level": "warning",
       "note": "单句超过 48 字（占位符按 1 字计）"
+    },
+    {
+      "file": "courses/set-theory/knowledge/data/questions.json",
+      "id": "II.1.quotind-3",
+      "field": "options[2]",
+      "code": "X13-option-long",
+      "axiom": "X13",
+      "level": "warning",
+      "note": "选项中文 35 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -880,15 +1483,6 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.quotiota-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
-      "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
-    },
-    {
-      "file": "courses/set-theory/knowledge/data/questions.json",
       "id": "II.1.quotiota-4",
       "field": "why",
       "code": "X5-long",
@@ -898,12 +1492,12 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.quotsound-2",
-      "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "id": "II.1.quotsound-4",
+      "field": "options[0]",
+      "code": "X13-option-long",
+      "axiom": "X13",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "选项中文 31 字超过 24 字（代码/公式不计）"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
@@ -952,12 +1546,12 @@
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",
-      "id": "II.1.subwd-1",
+      "id": "II.1.subwd-3",
       "field": "why",
-      "code": "X5-splice",
-      "axiom": "X5",
+      "code": "X12-metaphor",
+      "axiom": "X12",
       "level": "warning",
-      "note": "逗号粘连：并列分句缺连接词或分号"
+      "note": "用隐喻代替代码/命名：接起来"
     },
     {
       "file": "courses/set-theory/knowledge/data/questions.json",

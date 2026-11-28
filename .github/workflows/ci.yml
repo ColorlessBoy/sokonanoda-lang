@@ -1202,6 +1202,16 @@ jobs:
           python3 "$GITHUB_WORKSPACE/scripts/card-lint.py" --selftest
           python3 "$GITHUB_WORKSPACE/scripts/card-lint.py"
 
+      - name: 会话预检门禁（出题前文本规则 + 卡片覆盖 + 无卡兜底 + 红/绿对照自检）
+        # #151（2026-11-29）：出题前先查「即将发给学习者的题」——X11 自造术语 = blocker、
+        # 卡片覆盖（复用 card-lint.py）与无卡兜底；content 模式存量冻结在
+        # `scripts/lesson-preflight-baseline.json`（只减不增）。判据与 state 路径见
+        # `skills/sokonanoda-prep/references/lesson-preflight.md`；`--selftest` = 红/绿 fixtures。
+        # 纯 python3、秒级 ⇒ 放在重活之前，坏了先红。
+        run: |
+          python3 "$GITHUB_WORKSPACE/scripts/lesson-preflight.py" --selftest
+          python3 "$GITHUB_WORKSPACE/scripts/lesson-preflight.py" --all
+
       - name: 知识卡匹配引擎自检（explain_for 的 kp/IDF 评分）
         # #142：`explain_for` 的评分改由 `engine.py selftest` 里的一组 explain-*
         # 判据钉住（kp 优先 / 通用标签反例 / 破平不依赖 cards.json 顺序）。纯

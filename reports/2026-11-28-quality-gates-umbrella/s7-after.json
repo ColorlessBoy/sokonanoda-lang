@@ -1,0 +1,23 @@
+{
+  "rendered": true,
+  "viewport": {
+    "width": 1280,
+    "height": 813
+  },
+  "bodyDarkAttribute": true,
+  "prefersDark": false,
+  "deckTitle": "深浅讲解图 · 同一画布",
+  "deckCount": 1,
+  "imgSrc": "http://127.0.0.1:3987/dsh-inline-image/public?path=s7-dark.png",
+  "centerPixel": [
+    20,
+    20,
+    20
+  ],
+  "natural": {
+    "width": 1147,
+    "height": 588
+  },
+  "caption": "同一页：浅色 / 深色两套图",
+  "deckText": "深浅讲解图 · 同一画布 | 1 / 1 | ⤢ | ‹ | › | 同一页：浅色 / 深色两套图 | 第 1 页，共 1 页：同一页：浅色 / 深色两套图"
+}
