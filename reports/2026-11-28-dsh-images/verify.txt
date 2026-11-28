@@ -1,0 +1,14 @@
+End counter: 7 / 7
+aria-live: 第 7 页，共 7 页：没有最大的无穷
+left edge visible: true
+PageDown counter: 2 / 7
+preloaded resources: ["http://127.0.0.1:3987/dsh-inline-image/public?path=ch-01.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-02.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-06.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-03.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-04.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-05.png","http://127.0.0.1:3987/dsh-inline-image/public?path=ch-07.png"]
+dialog focused: 关闭（Esc）
+focus after Esc: dii-deck-stage
+dialog after Esc: 0
+wheel zoom: 150%
+pan transform: translate(120px, 40px) scale(1.5)
+after dblclick: 100%
+after 0: 100%
+next page: 2 / 7
+× / 一样多 = 能一一配对

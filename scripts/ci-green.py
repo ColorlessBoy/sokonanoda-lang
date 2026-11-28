@@ -120,6 +120,10 @@ ALWAYS = [
     "strict-text-oracle-ratchet",   # strict 文本 oracle 棘轮 + 反咬（ci.yml）
     "wiring-lint",        # harness 接线漂移 + 启动器链接 + LSP marker + 推送范围（ci.yml:154）
     "board", "guard-bite", "budgets", "site", "hygiene",
+    # 2026-11-28（#136 画册）：**无 `if:` 的独立测试 job**（`dsh-inline-image-tests`）
+    # —— 形状与上面三个 lint job 同；按定义被 skip 就是异常 ⇒ 进 ALWAYS
+    # （⇒ 被 skip 判**假绿** ✓，不是放宽 ✗）。
+    "dsh-inline-image-tests",
 ]
 
 # 按设计可合法 skip

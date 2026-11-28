@@ -1,0 +1,3 @@
+anonymous GET /dsh-inline-image/public?path=ch-01.png -> 401
+authenticated browser <img> -> complete=true naturalWidth=1147
+anonymous GET /dsh-inline-image/health -> 401

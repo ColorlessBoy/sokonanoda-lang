@@ -159,6 +159,7 @@ python3 courses/exercise-dataset/build.py --check   # C9 数据集漂移（改�
 python3 courses/exercise-dataset/check.py           # 数据集结构 / 来源 / 解答
 python3 courses/set-theory/knowledge/validate.py    # 题库结构 / source / lessons
 (cd dsh/plugins/sokonanoda-dsh && node test/run.mjs)  # DSH 插件 host + client 契约
+(cd dsh/plugins/dsh-inline-image && node test/run.mjs)  # 画册 7 页 host + client 回归
 python3 courses/set-theory/tools/check.py --selftest   # 课程门禁（卷 I，判据 G1–G6；gate 已含，单跑用这条）
 python3 scripts/gap.py selftest             # 台账判据自检（judge() 的期望推导 / repro_expect / 非法值）
 python3 scripts/gap.py check                # 台账契约：缺口复现必须与 status 一致（gate 已含，单跑用这条）

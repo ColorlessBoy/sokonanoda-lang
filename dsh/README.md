@@ -22,6 +22,15 @@ dsh plugin --profile web add "$PWD/dsh/plugins/sokonanoda-dsh"
 dsh web      # 重启后在新会话里 /sokonanoda-fast-think on → 「开始做题」
 ```
 
+**画册插件另装**（连讲几张图时用 `dsh-images` 围栏；与做题插件互不依赖）：
+
+```bash
+dsh plugin --profile web add "$PWD/dsh/plugins/dsh-inline-image"
+```
+
+聊天里发 `dsh-images` JSON 即可左右翻页；点页开全屏，双指/滚轮缩放、拖拽、
+`Esc` 关闭。用法、7 页样例与回归测试见 `dsh/plugins/dsh-inline-image/README.md`。
+
 完整安装、开关、数据目录、代码题提交与排障见
 `dsh/plugins/sokonanoda-dsh/README.md`（干净机器一条路）。
 
@@ -43,6 +52,7 @@ dsh web      # 重启后在新会话里 /sokonanoda-fast-think on → 「开始�
 |---|---|---|
 | `/sokonanoda-teacher`、`/sokonanoda-dev`、`/sokonanoda-ci` | ✅ 零配置 | 技能名的斜杠命令；模型目录也能自动发现 |
 | `/sokonanoda-update`、`/sokonanoda-doctor` | ✅ 零配置 | **人工**运维命令（`disable-model-invocation`）：刷新缓存 / 只读就绪诊断。DSH 命令名不允许 `/`，所以 opencode 的 `/sokonanoda/update` 在这里写作 `/sokonanoda-update`。`update` 的退出码有语义：`0` = 缓存写成了，**`3` = 缓存没写成**（stderr 给 `download:` 原因，即使有可用回退也照报）——DSH 的沙箱常让 `~/.local/share` 不可写，这时按 `skills/sokonanoda-update/SKILL.md` 的"常见失败"处置 |
+| **多页画册 `dsh-images`（翻页 / 放大 / 移动端）** | ✅ 装插件 | `dsh/plugins/dsh-inline-image`：把一组同画布的图渲染成可左右滑动的画册，点页开全屏 lightbox（双指/滚轮缩放、拖拽、`Esc`），首屏只 eager 第一页、相邻页预加载，失败保留路径并可重试。规范见 `sokonanoda-figure` §9，回归测试 `node test/run.mjs` |
 | **做题卡 + 代码题真内核判卷** | ✅ 装插件 | `dsh/plugins/sokonanoda-dsh`（`dsh plugin --profile web add …`）：本地题库出选择题卡；代码题贴围栏 ⇒ `compose.py` + `scripts/soko grade --json`。开关是按会话的 `/sokonanoda-fast-think on`，默认关闭 |
 | 模型的 `lsp` 工具 hover `.sokonanoda` | ✅ 需 `--patch` | hover 文本来自内核 pretty printer（真类型/真目标态） |
 | 跳定义 / 找引用 / 找实现 | ✅ 需 `--patch` | 比纯文本 grep 精确 |
