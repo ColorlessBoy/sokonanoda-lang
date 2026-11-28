@@ -1,0 +1,347 @@
+{
+  "schema": "soko.lesson-preflight/1",
+  "mode": "learner",
+  "state": "/Users/penglingwei/.dsh/state/sokonanoda-dsh/quiz/default.json",
+  "data_dir": "/Users/penglingwei/.dsh/state/superagent/work/quality-gates-umbrella-1344b53d1a2c/courses/set-theory/knowledge/data",
+  "limit": 22,
+  "chapter": null,
+  "checked": 22,
+  "blockers": 0,
+  "warnings": 18,
+  "card_lint": "script",
+  "terms": "/Users/penglingwei/.dsh/state/superagent/work/quality-gates-umbrella-1344b53d1a2c/courses/set-theory/knowledge/text-lint-terms.json",
+  "degraded": [],
+  "questions": [
+    {
+      "qid": "I.8.prod-comm-2",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-comm-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.8.prod-comm-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 30 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.8.prod-comm-4",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.8.mix-3",
+      "chapter": "I.8",
+      "unit": "⑲ 基数的比较",
+      "findings": [
+        {
+          "qid": "I.8.mix-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.8.prod-comm-3",
+      "chapter": "I.8",
+      "unit": "⑳ 基数算术：积",
+      "findings": [
+        {
+          "qid": "I.8.prod-comm-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.8.prod-comm-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.family-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-3",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-2",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-4",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.mix-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.mix-1",
+          "code": "X12",
+          "level": "warning",
+          "field": "why",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.family-mono-1",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-mono-2",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.family-mono-3",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-mono-3",
+          "code": "X12",
+          "level": "warning",
+          "field": "prompt",
+          "name": "",
+          "note": "用隐喻代替代码/命名：拆开"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.family-mono-4",
+      "chapter": "I.9",
+      "unit": "㉑ 集族与广义并交",
+      "findings": [
+        {
+          "qid": "I.9.family-mono-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 29 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.family-mono-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.product-3",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-5",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-5",
+          "code": "X12",
+          "level": "warning",
+          "field": "prompt",
+          "name": "",
+          "note": "用隐喻代替代码/命名：接起来"
+        },
+        {
+          "qid": "I.9.product-5",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[1]",
+          "name": "",
+          "note": "选项中文 28 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "I.9.mix-2",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 27 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 36 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.mix-2",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[3]",
+          "name": "",
+          "note": "选项中文 26 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 3
+    },
+    {
+      "qid": "I.9.product-4",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-4",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 33 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 1
+    },
+    {
+      "qid": "I.9.product-ac-2",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "I.9.product-ac-3",
+      "chapter": "I.9",
+      "unit": "㉓ 广义积与柯里化",
+      "findings": [
+        {
+          "qid": "I.9.product-ac-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[0]",
+          "name": "",
+          "note": "选项中文 31 字超过 24 字（代码/公式不计）"
+        },
+        {
+          "qid": "I.9.product-ac-3",
+          "code": "X13",
+          "level": "warning",
+          "field": "options[2]",
+          "name": "",
+          "note": "选项中文 25 字超过 24 字（代码/公式不计）"
+        }
+      ],
+      "blockers": 0,
+      "warnings": 2
+    },
+    {
+      "qid": "II.1.intrel-1",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intrel-2",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    },
+    {
+      "qid": "II.1.intquot-3",
+      "chapter": "II.1",
+      "unit": "① 整数与商构造",
+      "findings": [],
+      "blockers": 0,
+      "warnings": 0
+    }
+  ]
+}
